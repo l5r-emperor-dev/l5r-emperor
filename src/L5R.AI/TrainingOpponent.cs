@@ -213,6 +213,8 @@ public static partial class TrainingOpponent
             case "brashDraw":
             case "overconfidentDraw": return command.Choice == "draw" ? 150 : 100;
             case "chooseShinden":
+                // An opponent already at 40 Honor has won and only waits to begin their turn: one more Honor changes nothing, so a bow would be a cost for no gain (Mendon, 2026-10-24).
+                if (x.Opponent.Honor >= 40) return command.Choice == "honor" ? 100 : -100;
                 // Never give the opponent Honor (Mendon's rule, issue #642): bowing is always the answer; allowing the Honor gain is only chosen if bowing were not offered.
                 return Spec(x) ? ShindenScore(x, command) : command.Choice == "honor" ? -100 : 100; // issue #818 item 10
             case "useAbility":
