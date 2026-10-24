@@ -234,6 +234,8 @@ internal static class Spec818Tests
         var big = Soldier("big", 0, 10); var small = Soldier("small", 0, 1);
         Check(Pick(Table(10, [big, small], "small")) == "bow", "a unit under 15% of the army's Force is bowed");
         Check(Pick(Table(30, [big, small], "big")) == "bow", "an opponent over 25 Honor is not given more: bow");
+        Check(Pick(Table(40, [big, small], "big")) == "honor" && Pick(Table(55, [big, small], "small")) == "honor", "an opponent who has already reached 40 Honor only waits for their turn: never bow, even for a small unit");
+        Check(Pick(Table(39, [big, small], "big")) == "bow", "one Honor short of 40 is still held back");
         // A lone Personality with Force: bowing it decides whether the bot attacks at all, so the Honor goes to the opponent instead.
         var only = Soldier("only", 0, 8);
         var attackable = Table(10, [only], "only");

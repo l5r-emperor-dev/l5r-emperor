@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Bot: against an opponent already at 40 Honor (a won game waiting for their turn) Shinden Asahina is answered with the Honor gain, never the bow.",
+  "validation": "AI tests 99/99 incl. new Spec818 ShindenBow cases (40, 55 Honor -> honor; 39 -> bow).",
+  "remaining": "None; Hotaka's lowered threshold is not read by the bot (uses 40).",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/642",
+  "branch": "claude/bot-no-bow-vs-winner",
+  "updated": "2026-10-24T19:03:48.712876+00:00"
+}
