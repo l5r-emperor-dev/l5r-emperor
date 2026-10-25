@@ -59,6 +59,7 @@ public partial class Main
             var button = SidebarSkin.Button("Use " + ability.Timing + " ability…", () => Choose(option));
             button.Disabled = !option.Enabled || _session.Busy || _session.Online && !_session.Connected;
             button.TooltipText = option.Reason ?? ability.Label;
+            if (!option.Enabled && option.Reason is { Length: > 0 } reason) _inspector.AddChild(Palette.Wrapped(reason, 15, Palette.Gold)); // why it cannot be used now, above its button and without hovering (issue #1114)
             _inspector.AddChild(button);
         }
     }

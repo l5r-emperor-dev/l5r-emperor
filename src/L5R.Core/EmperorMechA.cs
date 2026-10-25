@@ -241,7 +241,7 @@ public sealed partial class MatchEngine
     // ---- Isawa Momoko ------------------------------------------------------------------------------------------------------------------------------------------------------------
 
     private static bool IsDestructionCostVerb(string verb) =>
-        verb is CostVerb.Destroy or CostVerbs.Sacrifice or CostVerbs.DestroyRegion or CostVerbs.DestroyToken or CostVerbs.DestroyLeftmostProvince;
+        verb is CostVerb.Destroy or CostVerbs.Sacrifice or CostVerbs.DestroyRegion or CostVerbs.DestroyToken or CostVerbs.DestroyLeftmostProvince or CostVerbs.DestroyRightmostProvince;
 
     // The Spell the command's action is on, when it is attached to the watched Momoko of a watch of the command's player this turn.
     private MomokoWatch? MomokoWatchFor(GameCommand command)

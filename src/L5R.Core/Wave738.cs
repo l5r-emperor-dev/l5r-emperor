@@ -67,7 +67,7 @@ public static class Wave738Abilities
             "personality", Performer: "own-personality-with-keyword", RequiredKeywords: ["Shugenja"], ActionKeywords: ["Maho"], Costs: [new(CostVerb.Bow, CostSubject.Performer), new(CostVerbs.Sacrifice, CostSubject.Performer)]);
         all[TempleBattle] = new("Battle", "Battle: Destroy a Terrain (if able). Put this Terrain into play", "none");
         all[TempleEngage] = new("Reaction", "Engage: Destroy a Terrain (if able). Put this Terrain into play", "none", Trigger: "after-engaging");
-        all[ChagataiEnd] = new("Limited", "Limited: End the Action Phase. Discard this Celestial", "none", Costs: [new(CostVerbs.DiscardFromPlay)]);
+        all[ChagataiEnd] = new("Limited", "Limited: End the Action Phase. Discard this Celestial", "none"); // the discard is printed after the colon: an effect (Mendon, issue #1114)
         all[EmpireSeppuku] = new("Open", "Open: Your target Personality with a Madness token commits Seppuku", OwnMadnessPersonality, PlayerAbility: true);
         return all;
     }
@@ -163,6 +163,7 @@ public sealed partial class MatchEngine
                 }
             case Wave738Abilities.ChagataiEnd:
                 SetRuleFlag(RuleFlagKinds.EndActionPhase, source: Definition(source!).Name);
+                WlItemsMiscDiscardCelestial(source!); // "Discard this Celestial." -- an effect (issue #1114)
                 return false;
             case Wave738Abilities.EmpireSeppuku:
                 CommitSeppuku(target!, player.Id);

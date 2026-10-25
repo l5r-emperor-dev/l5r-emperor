@@ -40,7 +40,7 @@ public static class EmperorThreeSAbilities
             Performer: OwnBowedPersonalityAtBattle);
         // The rulebook Favor Political Limited action, paid the way Kurohito's Perfection allows: "When paying the cost of the rulebook Favor Political Limited action: You may ignore the cost of discarding a
         // card; if you did, delay its effects until your End Phase begins." The Imperial Favor is still discarded (only the discard of a card is ignored); the action's one effect, a draw, is delayed.
-        all[KurohitoFavorDraw] = new("Limited", "Favor Political Limited (Kurohito's Perfection): Discard the Imperial Favor, ignoring the cost of discarding a card: Draw a card, delayed until your End Phase begins", "none", true, UsageKey: "favor-cycle");
+        all[KurohitoFavorDraw] = new("Limited", "Favor Political Limited (Kurohito's Perfection): Discard the Imperial Favor, ignoring the cost of discarding a card: Draw a card, delayed until your End Phase begins", "none", true, UsageKey: "favor-cycle", ActionKeywords: ["Political"]);
         // Kurohito's Perfection (oracle-l5r-10258, a Unique Fortune Celestial): "Limited: Discard this card and target a Personality: Permanently give him Cavalry, Duelist, or Tactician." -- one action per
         // keyword sharing one use (the Manipulate Energies shape); the discard is the cost of whichever is taken.
         foreach (var (id, keyword) in KurohitoKeywords)

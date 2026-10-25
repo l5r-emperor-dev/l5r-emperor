@@ -211,9 +211,10 @@ public static class AbilityCatalog
         ["crushing-destroy"] = new("Battle", "Destroy an enemy Follower or Item", "enemy-attachment"),
         ["never-afraid"] = new("Battle", "Destroy an attachment", "attachment"),
         // The Blessed Mantle of the Greensnakes (PromoEmperorItems.cs): "This Personality may lobby ignoring the cost of bowing" -- the bow is not owed by a Personality with the pseudo-keyword it grants.
-        ["lobby"] = new("Limited", "Lobby · bow a Personality to take Favor", "lobby", true, Costs: [new(CostVerb.Bow, CostSubject.Target, UnlessKeyword: PromoEmperorItemsAbilities.LobbiesWithoutBowing)]),
-        ["favor-cycle"] = new("Limited", "Discard Favor and a card · draw a card", "hand", true, Costs: ActionCost.DiscardTarget),
-        ["favor-battle"] = new("Battle", "Discard Favor · move an enemy attacker home", "enemy-attacking", true),
+        ["lobby"] = new("Limited", "Lobby · bow a Personality to take Favor", "lobby", true, Costs: [new(CostVerb.Bow, CostSubject.Target, UnlessKeyword: PromoEmperorItemsAbilities.LobbiesWithoutBowing)], ActionKeywords: ["Political"]),
+        // The rulebook prints Lobby "Political Limited" and the Favor's actions "Favor Political Limited/Battle": each is a Political action (issue #1114: Hantei's Guidance could not negate them).
+        ["favor-cycle"] = new("Limited", "Discard Favor and a card · draw a card", "hand", true, Costs: ActionCost.DiscardTarget, ActionKeywords: ["Political"]),
+        ["favor-battle"] = new("Battle", "Discard Favor · move an enemy attacker home", "enemy-attacking", true, ActionKeywords: ["Political"]),
         ["journeys-end-move"] = new("Battle", "Move home a Personality with no more Followers than the performer", "fewer-or-equal-followers-than-performer", Performer: "own-unbowed-personality-at-battle"),
         ["shamate-move"] = new("Battle", "Move home a Personality with equal or lower Personal Honor", "lower-or-equal-honor-than-performer", Performer: "own-unbowed-personality-at-battle"),
         // Personality wave 32 / Strategy wave 21 (issue #336; readings and alternatives in docs/decisions/2026-09-19-hotako-yoshitada-predator-liuxeung.md).
@@ -1120,7 +1121,8 @@ public static class AbilityCatalog
         // tracked in MatchState.PendingLadyMatsusRageWatches, checked reactively from Straighten()
         // itself, and cleared unconsumed at EndTurn -- "this turn" (the printed parenthetical) is
         // enforced structurally by that clear, not by comparing a stored turn number.
-        ["lady-matsus-rage-bow-destroy"] = new("Battle", "Choose your performing unbowed attacking Personality, target an enemy card, and discard this card: Bow the target. After the next time (this turn) it straightens, destroy it.", "enemy-card", Performer: "own-unbowed-attacking-personality-at-battle"),
+        ["lady-matsus-rage-bow-destroy"] = new("Battle", "Choose your performing unbowed attacking Personality, target an enemy card, and discard this card: Bow the target. After the next time (this turn) it straightens, destroy it.", "enemy-card", Performer: "own-unbowed-attacking-personality-at-battle",
+            Costs: [new(CostVerbs.DiscardFromPlay)]), // "discard this card" is printed before the colon: a cost (issue #1114)
         // Scouring Flood (Seeds of Decay wave, the first real Spell wired): "This Personality has
         // +2F" is not a separate ability at all -- her own printed Force box now conveys to her
         // wielder unconditionally via PersonalityForce's own new Spell term (see its doc comment),
@@ -1954,7 +1956,7 @@ public static class AbilityCatalog
         ["ashigaru-recruits-create"] = new("Reaction", "After this Follower enters play from your hand, create a 0F Ashigaru Follower and attach it to your target Personality", "own-personality", Trigger: "own-enters-play",
             Creates: new(CardType.Follower, Force: 0, Keywords: ["Ashigaru"], ProxyId: "oracle-l5r-9713")),
         ["indomitable-home-strength"] = new("Battle", "Siege Absent Battle, bow this card: Increase the current battlefield's Province's strength by 2", "none", Absent: true, ActionKeywords: ["Siege"], Costs: ActionCost.BowSource),
-        ["ebisu-destroy-province"] = new("Limited", "Destroy your rightmost province and discard this card: Gain 4 Honor; this gain will not be negated", "none", Costs: [new(CostVerbs.DiscardFromPlay)]),
+        ["ebisu-destroy-province"] = new("Limited", "Destroy your rightmost province and discard this card: Gain 4 Honor; this gain will not be negated", "none", Costs: [new(CostVerbs.DestroyRightmostProvince), new(CostVerbs.DiscardFromPlay)]), // the province is a cost (issue #1114)
         ["saibankan-dishonor"] = new("Open", "Target one or two Personalities controlled by the same player and discard this card: Dishonor them", "slots",
             Slots: [new("targets", "personality", "One or two Personalities controlled by the same player", 1, 2)], Costs: [new(CostVerbs.DiscardFromPlay)]),
         ["stone-hewed-shrine-strength"] = new("Battle", "Even if you control no units at the current battlefield, bow your performing Earth Personality at any location: Give the current battlefield's province +3 strength", "none", Absent: true,
@@ -2304,7 +2306,8 @@ public static class AbilityCatalog
         // Advanced Intelligence (10135): a Reaction played from the hand in the after-action-resolved window (ActionEffectTracking.cs), drawing for the Recon Strategy actions its player took this battle.
         ["advanced-intelligence-draw"] = new("Reaction", "After a Recon Strategy's action resolves: Draw one card for each action from a Recon Strategy you have taken this battle", "none", Trigger: AfterActionReactionTriggers.AfterActionResolved),
         // Megumi's Guidance (10028), a Celestial: the discard is its cost; the shield is the Personality's DestructionShieldTurn stamp (read by DestroyUnits).
-        ["megumis-guidance-shield"] = new("BattleOrOpen", "Discard this card and choose your performing Personality: Negate his destruction from other players' cards' effects (until the turn ends)", "none", Performer: "own-personality-at-battle"),
+        ["megumis-guidance-shield"] = new("BattleOrOpen", "Discard this card and choose your performing Personality: Negate his destruction from other players' cards' effects (until the turn ends)", "none", Performer: "own-personality-at-battle",
+            Costs: [new(CostVerbs.DiscardFromPlay)]), // "Discard this card" is printed before the colon: a cost (issue #1114)
         // Seeds of Decay pass (issue #453), batch 2 (SeedsOfDecayBatch2.cs holds the execution and the primitives).
         // Courting Trouble (oracle-l5r-10140): "in or out of play" -- a face-up Personality anywhere a card is face up (in play, face up in a province, in a discard pile).
         ["courting-trouble-overconfident"] = new("Open", "Target another player's face-up Personality in or out of play: Permanently give him Overconfident", "enemy-face-up-personality-anywhere"),
@@ -6093,7 +6096,7 @@ public sealed partial class MatchEngine
                 // -- no unbowed qualifier, no keyword gate. own-personality's own at-battle variant,
                 // which did not exist yet (every prior "at battle, no other restriction" Performer also
                 // carried either "unbowed" or a keyword gate).
-                "own-personality-at-battle" => Definition(performer).Type == CardType.Personality && (!actingAsBattle || AtBattle(performer)),
+                "own-personality-at-battle" => Definition(performer).Type == CardType.Personality && InPlay(performer) && (!actingAsBattle || AtBattle(performer)), // in play (issue #1114: Megumi's Guidance's Open)
                 // Kensai's Blade (Emperor Edition remaining-cards pass, issue #492 group G): "choose your performing Personality at the current battlefield" on a Reaction (never acting as Battle), so the location is checked explicitly.
                 "own-personality-explicitly-at-battle" => Definition(performer).Type == CardType.Personality && AtBattle(performer),
                 // Consuming Weakness (oracle-l5r-1467, issue #295): own-unbowed-spider-personality-at-
@@ -8440,11 +8443,8 @@ public sealed partial class MatchEngine
                 }
             case "lady-matsus-rage-bow-destroy":
                 {
-                    // "Discard this card" is the cost -- she leaves play by discard, not destruction (her
-                    // own controller-scoped destroy-redirect trait no longer applies to anything once she
-                    // is gone, including this very card, which was never destroyed in the first place).
-                    source!.Zone = Zone.DynastyDiscard;
-                    Emit("celestialDiscarded", $"{Definition(source).Name} was discarded to use its Battle action.", player.Id, source.Id);
+                    // "Discard this card" is the declared cost (issue #1114) -- she leaves play by discard, not destruction (her own controller-scoped destroy-redirect
+                    // trait no longer applies to anything once she is gone). A bow Stalwart negated sets no delayed destruction (Mendon, issue #1114).
                     if (!StalwartNegatesBow(target!, player.Id))
                     {
                         target!.Bowed = true;
@@ -9057,13 +9057,7 @@ public sealed partial class MatchEngine
                 break;
             case "indomitable-home-strength": GiveProvinceStrengthThisTurn(1 - _state.ActivePlayerId, _state.CurrentBattleProvince!.Value, 2, "Indomitable Home"); break;
             case "stone-hewed-shrine-strength": GiveProvinceStrengthThisTurn(1 - _state.ActivePlayerId, _state.CurrentBattleProvince!.Value, 3, "Stone-Hewed Shrine"); break;
-            case "ebisu-destroy-province":
-                {
-                    var rightmost = player.Provinces.Where(p => !p.Destroyed).OrderByDescending(p => p.Index).FirstOrDefault();
-                    if (rightmost is not null) DestroyProvince(player.Id, rightmost);
-                    GainHonor(player.Id, 4, Definition(source!).Name, source);
-                    break;
-                }
+            case "ebisu-destroy-province": GainHonor(player.Id, 4, Definition(source!).Name, source); break; // "this gain will not be negated": UnnegatableHonorGain (EmperorP3Priority.cs)
             case "saibankan-dishonor": foreach (var dishonored in SlotCards(command, "targets").ToArray()) Dishonor(dishonored); break;
             case "stockpiled-attach":
             case "stockpiled-attach-commander":
@@ -9841,9 +9835,7 @@ public sealed partial class MatchEngine
                 for (var drawn = 0; drawn < _state.ReconStrategyActionsThisBattle[player.Id]; drawn++) Draw(player);
                 break;
             case "megumis-guidance-shield":
-                source!.Zone = Zone.DynastyDiscard;
-                Emit("celestialDiscarded", $"{Definition(source).Name} was discarded to use its action.", player.Id, source.Id);
-                ShieldFromDestruction(Card(command.PerformerId!), Definition(source).Name);
+                ShieldFromDestruction(Card(command.PerformerId!), Definition(source!).Name);
                 break;
             // Seeds of Decay pass (issue #453), batch 2: every case is in SeedsOfDecayBatch2.cs.
             case "courting-trouble-overconfident":
@@ -11435,7 +11427,7 @@ public sealed partial class MatchEngine
                     && (Definition(c).Type == CardType.Personality || Definition(c).Type == CardType.Follower && c.Zone == Zone.Attached)).OrderBy(c => c.Id, StringComparer.Ordinal).Select(c => (string?)c.Id).ToArray(),
                 "own-unbowed-weapon-of-source" => _state.Cards.Values.Where(c => c.OwnerId == playerId && c.Zone == Zone.Attached && c.AttachedTo == source?.Id && !c.Bowed && Definition(c).Type == CardType.Item && Keyword(c, "Weapon")).OrderBy(c => c.Id, StringComparer.Ordinal).Select(c => (string?)c.Id).ToArray(),
                 "own-unbowed-unit-at-battle" => _state.Cards.Values.Where(c => c.OwnerId == playerId && InPlay(c) && Definition(c).Type is CardType.Personality or CardType.Follower && !c.Bowed && AtBattle(c)).OrderBy(c => c.Id, StringComparer.Ordinal).Select(c => (string?)c.Id).ToArray(),
-                "own-personality-at-battle" => _state.Cards.Values.Where(c => c.OwnerId == playerId && Definition(c).Type == CardType.Personality && (!actingAsBattle || AtBattle(c))).OrderBy(c => c.Id, StringComparer.Ordinal).Select(c => (string?)c.Id).ToArray(),
+                "own-personality-at-battle" => _state.Cards.Values.Where(c => c.OwnerId == playerId && Definition(c).Type == CardType.Personality && InPlay(c) && (!actingAsBattle || AtBattle(c))).OrderBy(c => c.Id, StringComparer.Ordinal).Select(c => (string?)c.Id).ToArray(),
                 "own-personality-explicitly-at-battle" => _state.Cards.Values.Where(c => c.OwnerId == playerId && Definition(c).Type == CardType.Personality && AtBattle(c)).OrderBy(c => c.Id, StringComparer.Ordinal).Select(c => (string?)c.Id).ToArray(), // Kensai's Blade (issue #492 group G)
                 "own-shadowlands-personality-at-battle" => _state.Cards.Values.Where(c => c.OwnerId == playerId && Definition(c).Type == CardType.Personality && HasClanAffiliation(c, "Shadowlands") && (!actingAsBattle || AtBattle(c))).OrderBy(c => c.Id, StringComparer.Ordinal).Select(c => (string?)c.Id).ToArray(),
                 "own-personality-with-fire-token-at-battle" => _state.Cards.Values.Where(c => c.OwnerId == playerId && Definition(c).Type == CardType.Personality && AtBattle(c) && HasToken(c, "Fire")).OrderBy(c => c.Id, StringComparer.Ordinal).Select(c => (string?)c.Id).ToArray(),
@@ -11637,7 +11629,7 @@ public sealed partial class MatchEngine
                                             + (shownChoice is null ? "" : $" · {(costOption is { Verb: CostVerbs.Discard } ? "discards" : null) ?? MechCCostCardVerb(id) ?? Wave827CostCardVerb(id) ?? P5CostCardVerb(id) ?? SearchPlayCostCardVerb(id) ?? WlCostCardVerb(id) /* issue #674 */ ?? "shows"} {Definition(Card(shownChoice)).Name} ({shownChoice})")
                                             + (compareChoice is null ? "" : AttackCompareOptions(id) is { } compareLabels ? $" · compare against {compareLabels.First(o => o.Key == compareChoice).Label}" : $" · {(MechEChoiceOptions(id) ?? P2ChoiceOptions(id) ?? P5ChoiceOptions(id, playerId) ?? Wave9601ChoiceOptions(id, playerId))!.First(o => o.Key == compareChoice).Label}")
                                             + (provinceOwner is int owner ? ability.Target == "player" ? (owner == playerId ? " · you" : " · your opponent") : (owner == playerId ? " · your Province" : " · an enemy Province") : "");
-                                        yield return new("useAbility", label, legal.Count > 0, legal.Count > 0 ? null : error ?? "No legal target or performer.",
+                                        yield return new("useAbility", label, legal.Count > 0, legal.Count > 0 ? null : error ?? (candidates.Length == 0 ? EmperorRemainingENoCandidateReason(ability.Target) : null) ?? "No legal target or performer.",
                                             legal.FirstOrDefault(), source?.Id, ability.Target == "provinces" ? provinces : legal.Where(c => c.TargetId is not null).Select(c => c.TargetId!).Distinct().ToArray(),
                                             // The battlefields a move's destination rule lists (issue #336) or, for an Attack, the province it may name instead of a card (issue #335): the
                                             // province indices the assignment flow already draws. An ability has one shape or the other (a Move ability is never an Attack), so the

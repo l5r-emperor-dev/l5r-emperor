@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Celestial audit (#1114). All 38 published Celestials checked: printed text vs engine vs tests (three reviews) and a soak putting each into play in real custom matches with forced random-legal use (5 matches x 30 turns each): every action that arose was accepted, no exceptions or stalls. Doji's Guidance's reported Open works (engine, real Crane Dominance match, native client); with nothing to return it now gives a specific reason shown in the sidebar above its button (all Guidance discard/hand targets). Fixed: Ebisu's province as a cost + unnegatable gain (no-province refusal also covers Akuma's Power); Megumi/Lady Matsu discard as cost; Jizo/Chagatai discard as effect (Mendon R-087); Benten and Suitengu forget earlier choices on re-entry; Daigotsu discarding the opponent's Ryoshun runs his 0-Chi check; Lobby and the Favor actions tagged Political so Hantei negates them. Matsu Stalwart behaviour kept (R-088).",
+  "validation": "check.sh --skip-client passed (incl. 7 new celestial-audit cases; 6 fail without the engine changes); full core suite 4604/4604 before the new suite; format check clean; native check-support-cards modes doji (1920x1080 and 1280x800) and dynasty-flow pass; the other five Region modes fail identically on main (#1116). Automated only; no human playtest.",
+  "remaining": "Region-click native failures are pre-existing (#1116). Not changed: Suitengu's grant keyed on the target's id; untested-by-design pieces listed in docs/decisions/2026-10-25-celestial-audit.md. Negation of Jizo/Chagatai/Megumi/Matsu is not independently tested (no generic negation rig for non-targeting actions).",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1114",
+  "branch": "claude/1114-celestials",
+  "updated": "2026-10-25T13:26:48.444275+00:00"
+}
