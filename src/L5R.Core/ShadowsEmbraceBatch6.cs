@@ -47,18 +47,23 @@ public sealed partial class MatchEngine
 
     // ---- Shieldman --------------------------------------------------------------------------------------------------------------------------------------
     // "This Personality may not be assigned to, and will not move into, an attacking army." Printed on a Follower, "this Personality" is the one it is attached to: his unit.
+    private const string ShieldmanBars = "Assigning to attack or moving into an attacking army";
+    private string ShieldmanName(CardInstance personality) =>
+        Attachments(personality.Id).Where(a => Definition(a).Type == CardType.Follower && Definition(a).Effect == ShieldmanEffect).Select(a => Definition(a).Name).FirstOrDefault() ?? "Shieldman";
+
     private bool UnitHasShieldman(CardInstance personality) =>
         Attachments(personality.Id).Any(a => Definition(a).Type == CardType.Follower && Definition(a).Effect == ShieldmanEffect);
 
     // Assign's hook: an attacker's assignment only (a Defender's army is never an attacking army).
     private void RequireShieldmanMayAssign(CardInstance personality, bool isDefender) =>
-        Require(isDefender || !UnitHasShieldman(personality), $"{Definition(personality).Name}'s Shieldman: this Personality may not be assigned to an attacking army.");
+        RequireNotBarred(isDefender || !UnitHasShieldman(personality), ShieldmanBars, ShieldmanName(personality));
 
     // MoveToBattlefield's hook: a move to a battlefield puts the unit on its controller's side there, which is the attacking army when its controller is the Attacker.
     private bool ShieldmanNegatesMove(CardInstance personality)
     {
         if (!UnitHasShieldman(personality) || personality.OwnerId != _state.ActivePlayerId || _state.CurrentBattleProvince is null && _state.UnresolvedBattlefields.Count == 0) return false;
         Emit("moveNegated", $"{Definition(personality).Name} will not move into an attacking army (Shieldman).", personality.OwnerId, personality.Id);
+        EmitBarred(personality.OwnerId, ShieldmanBars, ShieldmanName(personality), personality.Id);
         return true;
     }
 

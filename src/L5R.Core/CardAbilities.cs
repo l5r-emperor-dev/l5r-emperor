@@ -4977,8 +4977,8 @@ public sealed partial class MatchEngine
     private void GrantAdditionalAction(int playerId, string[]? scopeCardIds, bool fromDiscard = false, int? battle = null, bool anyDiscardTiming = false, string? rangedTargetId = null, string? performerId = null, bool baseAbilityOnly = false,
         string? requiredActionKeyword = null, string? tag = null, string? id = null, bool mandatory = false, string[]? scopeAbilityIds = null)
     {
-        if (_state.NoNewAdditionalActionsThisBattle) return;
-        if (MechAGrantLocked(playerId, battle)) return; // One Action, Two Strikes (issue #501, EmperorMechA.cs): "You will not take any other additional Battle actions this battle."
+        if (_state.NoNewAdditionalActionsThisBattle) { EmitBarred(playerId, "Taking a new additional Battle action", _state.NoNewAdditionalActionsBy ?? "Two Hands"); return; }
+        if (MechAGrantLocked(playerId, battle)) { EmitBarred(playerId, "Taking another additional Battle action", "One Action, Two Strikes"); return; } // One Action, Two Strikes (issue #501, EmperorMechA.cs): "You will not take any other additional Battle actions this battle."
         _state.AdditionalActions.Add(new(playerId, scopeCardIds, fromDiscard, battle, anyDiscardTiming, rangedTargetId, performerId, baseAbilityOnly, requiredActionKeyword, tag, id, mandatory, scopeAbilityIds));
         Emit("additionalActionGranted", $"{Player(playerId).Name} may take an additional {(anyDiscardTiming ? "" : "Battle ")}action.", playerId);
     }
@@ -5635,7 +5635,7 @@ public sealed partial class MatchEngine
             uses = source.AbilityUses;
         }
         // The Forgotten Temple (Forgotten Legacy pass, issue #467 batch 2): "You may not take Political actions." (ForgottenLegacyBatch2.cs)
-        if (!(!ForgottenTempleForbidsPolitical(id, ability, source, player))) return "The Forgotten Temple: you may not take Political actions.";
+        if (!(!ForgottenTempleForbidsPolitical(id, ability, source, player))) return new BarNotice("Taking Political actions", "The Forgotten Temple").Message;
         // The per-turn limit is AbilityDefinition.UsesPerTurn (AbilityLimits.cs). A once-per-GAME ability (AbilityDefinition.OncePerGame: Border Keep's refresh, Bo of Water) never resets: any stamp spends it.
         var usageKey = ability.UsageKey ?? id;
         if (!(ability.OncePerGame ? !uses.ContainsKey(usageKey) : !AbilityUseSpent(uses, ability, usageKey) || UnsafePassageWaives(command, source))) return "This ability has already been used within its limit."; // Unsafe Passage (issue #622)
@@ -8214,7 +8214,7 @@ public sealed partial class MatchEngine
                     var unit = new[] { kensai.Id }.Concat(Attachments(kensai.Id).Select(a => a.Id)).ToArray();
                     GrantAdditionalAction(player.Id, unit);
                     GrantAdditionalAction(player.Id, unit);
-                    _state.NoNewAdditionalActionsThisBattle = true;
+                    _state.NoNewAdditionalActionsThisBattle = true; _state.NoNewAdditionalActionsBy = "Two Hands";
                     break;
                 }
             case "effortless-counterattack-negate":

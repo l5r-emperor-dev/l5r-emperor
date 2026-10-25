@@ -362,7 +362,7 @@ public sealed partial class MatchEngine
 
     // Assign's hook (a Defender's assignment) and the created-battlefield assignment's.
     private void RequireAsukaMayAssign(CardInstance card, bool isDefender) =>
-        Require(!isDefender || !IsGojuAsuka(card), $"{Definition(card).Name} may not assign into a defending army.");
+        RequireNotBarred(!isDefender || !IsGojuAsuka(card), "Assigning into a defending army", Definition(card).Name);
 
     // MoveToBattlefield's hook: a move to a battlefield puts the unit on its controller's side, which is the defending army when its controller is not the Attacker.
     private bool AsukaNegatesMove(CardInstance card)

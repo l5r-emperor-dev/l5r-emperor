@@ -189,7 +189,8 @@ public sealed partial class MatchSession : IDisposable
             if (command is null) return false;
             var result = _engine.Execute(command);
             if (result.Accepted) { RefreshLocal(); return true; }
-            if (refused is null) { Notice?.Invoke(result.Error ?? "The practice opponent could not act."); RefreshLocal(); return false; }
+            // A card that stops the practice opponent is not the player's to read about: its refusal is never worded as a "barred" notice, so the player never gets a dialog for the bot.
+            if (refused is null) { Notice?.Invoke(BarNotice.TryParse(result.Error) is { } bar ? $"The practice opponent was stopped by {bar.Source}." : result.Error ?? "The practice opponent could not act."); RefreshLocal(); return false; }
             refused(command, result.Error, view.Version);
         }
         Notice?.Invoke("The practice opponent could not act.");

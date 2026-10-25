@@ -14,7 +14,7 @@ internal static class NegatedCostTests
     private const string Goju = "oracle-l5r-2851", Donor = "training-skin-donor", Receiver = "training-skin-receiver", Negate = "sakuma-political-negate";
     private const string Mochitoko = "oracle-l5r-3152", HiredLegion = "oracle-l5r-3277", EffortlessCounterattack = "oracle-l5r-2283";
     private const string HonorCost = "training-honor-cost-attack", HonorStrategy = "training-honor-cost-strategy";
-    private const string Reason = "You must pass at this opportunity (Unfortunate Hesitation).";
+    private const string Reason = "Taking any action but passing is barred by Unfortunate Hesitation.";
 
     public static void Run(TestRunner runner)
     {

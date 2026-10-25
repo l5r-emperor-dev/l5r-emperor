@@ -48,8 +48,8 @@ public sealed partial class MatchEngine
     /// <summary>Why these two cards of one side may not be in one army, or null.</summary>
     private string? ArmyConflict(CardInstance card, CardInstance other)
     {
-        if (HasRestriction(card, RestrictionKind.SoleUnit)) return $"{Definition(card).Name} will not attack or defend with other Personalities.";
-        if (HasRestriction(other, RestrictionKind.SoleUnit)) return $"Other Personalities will not attack or defend with {Definition(other).Name}.";
+        if (HasRestriction(card, RestrictionKind.SoleUnit)) return new BarNotice($"{Definition(card).Name} attacking or defending with other Personalities", Definition(card).Name).Message;
+        if (HasRestriction(other, RestrictionKind.SoleUnit)) return new BarNotice($"Attacking or defending alongside {Definition(other).Name}", Definition(other).Name).Message;
         if (SameArmyPaired(card, other)) return $"{Definition(card).Name} and {Definition(other).Name} will not attack or defend in the same army.";
         return null;
     }

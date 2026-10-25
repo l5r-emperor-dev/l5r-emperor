@@ -61,7 +61,7 @@ public sealed partial class MatchEngine
         var source = command.CardId is not null && _state.Cards.TryGetValue(command.CardId, out var card) ? card : null;
         foreach (var rule in BarRulesOn(target))
             if (!rule.Forced && ActorMatches(rule.Actor, actor, command.PlayerId, ability, source, target))
-                Require(false, $"{Definition(target).Name} may not be targeted by this action ({rule.Label}).");
+                RequireNotBarred(false, $"Targeting {Definition(target).Name} with this action", rule.Label);
         RequireTargetNotBarred(actor, target);
     }
 

@@ -120,9 +120,9 @@ public sealed partial class MatchEngine
     }
 
     private string FirstActionLimitMessage(FirstActionRestriction limit) => limit.MustPass
-        ? "Rebuilding Kyuden Hida: the Attacker may not announce a Battle action before the Defender's first normal opportunity to act or pass."
-        : limit.ActionKeyword is { } keyword ? $"Jade's Roar: your first Battle action must be a {keyword} action."
-        : $"{limit.Reason ?? FirstPerformerSource()}: your first Battle action must be performed by {Definition(Card(limit.PerformerId)).Name}."; // issue #503: or Scouting the Pass
+        ? new BarNotice("Announcing a Battle action before the Defender's first normal opportunity to act or pass", "Rebuilding Kyuden Hida").Message
+        : limit.ActionKeyword is { } keyword ? new BarNotice($"Starting the battle with anything but a {keyword} action", "Jade's Roar").Message
+        : new BarNotice($"Starting the battle with anyone but {Definition(Card(limit.PerformerId)).Name}", limit.Reason ?? FirstPerformerSource()).Message; // issue #503: or Scouting the Pass
 
     // Applied to a useAbility by ValidateAbility (so offered actions already respect it) and to the two other
     // Battle-action commands by Apply. Ignored inside any reaction window (a Reaction is not the first Battle action).

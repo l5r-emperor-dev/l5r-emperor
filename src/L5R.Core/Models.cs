@@ -911,6 +911,8 @@ public sealed partial class MatchState
     public int BattleNumber { get; set; }
     public GameCommand? PendingAdditionalAction { get; set; }
     public bool NoNewAdditionalActionsThisBattle { get; set; }
+    /// <summary>The name of the card that set NoNewAdditionalActionsThisBattle (Two Hands), for the "barred" notice.</summary>
+    public string? NoNewAdditionalActionsBy { get; set; }
     // Attack-vs-Followers exceptions granted by another card (AttackFollowerException shape (e), Yoritomo
     // Ebumi): standing, one-shot permissions for a player's NEXT Attack action of the covered kind. Battle-
     // scoped like AdditionalActions -- consumed when that Attack executes, cleared at FinishBattleResolution.

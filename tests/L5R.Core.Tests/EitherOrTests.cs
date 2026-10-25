@@ -522,7 +522,7 @@ internal static class EitherOrTests
         var actions = e.QueryActions(1);
         Check(actions.Any(a => a.Type == "pass" && a.Enabled), "pass stays legal");
         var charity = Listed(e, 1, Charity, h.Fixture.Id)!;
-        Check(!charity.Enabled && charity.Reason == "You must pass at this opportunity (Unfortunate Hesitation).", charity.Reason ?? "");
+        Check(!charity.Enabled && charity.Reason == "Taking any action but passing is barred by Unfortunate Hesitation.", charity.Reason ?? "");
         Check(actions.Where(a => a.Type is "useAbility" or "playStrategy" or "recruitReserve" or "equip").All(a => !a.Enabled), "no Battle, Limited or Open action");
         Reject(e, new GameCommand("useAbility", 1, e.Version, CardId: h.Fixture.Id, AbilityId: Charity, GoldAmount: 0, SourceIds: []));
         // The pass settles it.
@@ -556,7 +556,7 @@ internal static class EitherOrTests
         Pass(e, 1);
         // Back to the player who owes the pass: only pass is legal for him.
         var own = Listed(e, 0, Charity, h.Own.Id)!;
-        Check(!own.Enabled && own.Reason!.Contains("must pass"), own.Reason ?? "");
+        Check(!own.Enabled && own.Reason!.Contains("barred by Unfortunate Hesitation"), own.Reason ?? "");
         Pass(e, 0);
         Eq(e.State.ForcedPasses.Count, 0); Eq(e.State.Phase, Phase.AttackDeclaration, "two passes in a row ended the Action Phase");
     }
@@ -570,7 +570,7 @@ internal static class EitherOrTests
         return (s, bower, mine);
     }
 
-    private const string ForcedReason = "You must pass at this opportunity (Unfortunate Hesitation).";
+    private const string ForcedReason = "Taking any action but passing is barred by Unfortunate Hesitation.";
 
     private static void HesitationPhaseScope()
     {

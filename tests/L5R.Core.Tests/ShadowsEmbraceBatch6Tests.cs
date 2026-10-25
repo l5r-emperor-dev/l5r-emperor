@@ -468,6 +468,10 @@ internal static class ShadowsEmbraceBatch6Tests
         var free = Add(s, "training-crane-samurai", 0, Zone.Home);
         var e = MatchEngine.FromTestState(s);
         Check(Rejection(e, new GameCommand("attack", 0, e.Version, Assignments: new() { [host.Id] = 0 })).Contains("Shieldman"), "a Shieldman unit may not be assigned to attack");
+        // Issue #1115: the refusal is the general "barred by" sentence, which a client turns into a dialog.
+        var refusal = BarNotice.TryParse(Rejection(e, new GameCommand("attack", 0, e.Version, Assignments: new() { [host.Id] = 0 })));
+        Check(refusal == new BarNotice("Assigning to attack or moving into an attacking army", "Shieldman") && refusal.Message == "Assigning to attack or moving into an attacking army is barred by Shieldman.", "the refusal names Shieldman as the bar");
+        Check(BarNotice.TryParse("Choose a target.") is null && BarNotice.TryParse("is barred by .") is null, "any other sentence is not a bar");
         Accept(e, new GameCommand("attack", 0, e.Version, Assignments: new() { [free.Id] = 0 }));
         var sd = Table(Phase.DefenseAssignment, 1); sd.PriorityPlayerId = 0; sd.CurrentBattleProvince = null; sd.UnresolvedBattlefields = [0];
         Add(sd, "training-lion-samurai", 1, Zone.Battlefield, province: 0);
