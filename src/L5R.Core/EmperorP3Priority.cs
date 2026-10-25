@@ -366,15 +366,18 @@ public sealed partial class MatchEngine
     private bool? P3HonorChangeApplies(CardInstance card, string abilityId, PendingHonorChange change)
     {
         if (abilityId == EmperorP3PriorityAbilities.DestructiveReaction)
-            return card.Zone == Zone.Home && change.Amount > 0 && change.PlayerId == card.OwnerId && card.OwnerId == _state.ActivePlayerId
+            return card.Zone == Zone.Home && change.Amount > 0 && !UnnegatableHonorGain(change.ActionKey, change.Amount) && change.PlayerId == card.OwnerId && card.OwnerId == _state.ActivePlayerId
                 && BeforeActionReactionPerformers(card.OwnerId, AbilityCatalog.All[abilityId]).Any() && !P3ReactionLocked(card.OwnerId, abilityId);
         return change.ActionKey.StartsWith(P3NonActionHonorPrefix, StringComparison.Ordinal) ? false : null;
     }
 
+    // Ebisu's Honesty (issue #1114): "Gain 4 Honor; this gain will not be negated." Nothing that negates a gain is offered on it, or applies to it.
+    private static bool UnnegatableHonorGain(string actionKey, int amount) => amount > 0 && actionKey.Split('|') is [_, "ebisu-destroy-province", _];
+
     /// <summary>GainHonor's hook: the change just offered was negated by Destructive Priorities.</summary>
     private bool P3HonorGainNegated(int playerId, int amount, string reason)
     {
-        if (amount <= 0 || _p3LastHonorChange is not { } change || !P3P.NegatedHonorGains.Remove($"{change.Key}#{change.Occurrence}")) return false;
+        if (amount <= 0 || _p3LastHonorChange is not { } change || UnnegatableHonorGain(change.Key, amount) || !P3P.NegatedHonorGains.Remove($"{change.Key}#{change.Occurrence}")) return false;
         Emit("honorGainNegated", $"{Player(playerId).Name}'s Honor gain from {reason} was negated (Destructive Priorities).", playerId);
         return true;
     }

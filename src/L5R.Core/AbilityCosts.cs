@@ -42,6 +42,8 @@ public static class CostVerbs
     public const string DiscardFromPlay = "discard-from-play";
     /// <summary>The acting player's leftmost province that has not been destroyed is destroyed ("destroy your leftmost province:"). It names no card.</summary>
     public const string DestroyLeftmostProvince = "destroy-leftmost-province";
+    /// <summary>The acting player's rightmost province that has not been destroyed is destroyed ("destroy your rightmost province", Ebisu's Honesty, issue #1114). It names no card.</summary>
+    public const string DestroyRightmostProvince = "destroy-rightmost-province";
     /// <summary>Bow the subject and every unbowed card in its unit ("bow all unbowed cards in his unit", Assault in the Jungle, Forgotten Legacy pass issue #467).</summary>
     public const string BowUnit = "bow-unit";
     /// <summary>Give the subject -Amount Chi ("give this Personality -1C:", Cursed Relic, issue #467): payable only when he has that much Chi to lose (core rules,
@@ -156,6 +158,9 @@ public sealed partial class MatchEngine
     {
         foreach (var cost in ability.Costs ?? [])
         {
+            // A province destroyed as a cost must be there to destroy (issue #1114: Akuma's Power, Ebisu's Honesty).
+            if (cost.Verb is CostVerbs.DestroyLeftmostProvince or CostVerbs.DestroyRightmostProvince)
+                Require(Player(command.PlayerId).Provinces.Any(p => !p.Destroyed), "You have no province left to destroy.");
             if (cost.Subject != CostSubject.Wielder) continue;
             var wielder = CostSubjectCard(new CostOption(cost.Verb, cost.Verb, cost.Verb, cost.Subject), ability, command, source);
             Require(wielder is not null && InPlay(wielder), "This card must be attached to a Personality.");
@@ -228,7 +233,7 @@ public sealed partial class MatchEngine
                 foreach (var slotCard in SlotCostCards(command, cost)) yield return (new ActionCost(CostVerbs.Remove, cost.Subject), slotCard);
                 continue;
             }
-            var subject = cost.Verb is CostVerbs.LoseHonor or CostVerbs.DestroyLeftmostProvince or CostVerbs.ShuffleHand or CostVerbs.DiscardHand or CostVerbs.DiscardFavor ? null : CostSubjectCard(new CostOption(cost.Verb, cost.Verb, cost.Verb, cost.Subject), ability, command, source);
+            var subject = cost.Verb is CostVerbs.LoseHonor or CostVerbs.DestroyLeftmostProvince or CostVerbs.DestroyRightmostProvince or CostVerbs.ShuffleHand or CostVerbs.DiscardHand or CostVerbs.DiscardFavor ? null : CostSubjectCard(new CostOption(cost.Verb, cost.Verb, cost.Verb, cost.Subject), ability, command, source);
             if (CostExempt(cost, source, subject) || YorimiWaivesBow(ability, cost, source, subject)) continue; // Soshi Yorimi (issue #477, batch 4): ignored, so not planned.
             if (MomokoWaivesCost(command, cost.Verb)) continue; // Isawa Momoko (issue #501): the action's non-destruction costs are ignored
             yield return (cost, subject);
@@ -264,6 +269,11 @@ public sealed partial class MatchEngine
             if (cost.Verb == CostVerbs.DestroyLeftmostProvince)
             {
                 if (player.Provinces.Where(p => !p.Destroyed).OrderBy(p => p.Index).FirstOrDefault() is { } leftmost) DestroyProvince(player.Id, leftmost);
+                continue;
+            }
+            if (cost.Verb == CostVerbs.DestroyRightmostProvince)
+            {
+                if (player.Provinces.Where(p => !p.Destroyed).OrderByDescending(p => p.Index).FirstOrDefault() is { } rightmost) DestroyProvince(player.Id, rightmost);
                 continue;
             }
             var subject = CostSubjectCard(new CostOption(cost.Verb, cost.Verb, cost.Verb, cost.Subject), ability, command, source);

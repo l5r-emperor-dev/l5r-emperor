@@ -54,7 +54,7 @@ public static class Wave829Abilities
             Trigger: ReactionTriggers.TargetedByAction, Performer: BentenPerformer, Costs: [new(CostVerbs.DiscardFromPlay)]);
         // Jizo's Mercy (oracle-l5r-10563)
         all[JizoHome] = new("Battle", "Battle: Move a target attacking Personality home", "attacking");
-        all[JizoMercy] = new("Battle", "Battle: Discard this Celestial. In this battle's resolution, before you destroy the Province, gain 4 Honor instead", "none", Costs: [new(CostVerbs.DiscardFromPlay)]);
+        all[JizoMercy] = new("Battle", "Battle: Discard this Celestial. In this battle's resolution, before you destroy the Province, gain 4 Honor instead", "none"); // the discard is printed after the colon: an effect (Mendon, issue #1114)
         // The Onyx Championship (oracle-l5r-8242): the ability it permanently grants. Mendon: a usual recruit action, from the discard pile (dead Oni included).
         all[OnyxMaho] = new("Limited", "Maho Limited, bow this Shugenja: Destroy your other target Personality to recruit your target Oni Personality from your discard pile (dead ones included), paying all costs. Lose 3 Honor", "slots",
             Slots: [new(OnyxTarget, EffectPrimitiveTargets.CardInAnyDiscard("Oni", ownOnly: true), "Your Oni Personality in your discard pile"), new(OnyxSacrifice, OtherOwnPersonality, "Your other Personality to destroy")], // the recruited Oni is the first slot: the recruit cost reads it
@@ -237,6 +237,7 @@ public sealed partial class MatchEngine
                     W829.Jizo.Add(new JizoMark { Battlefield = battlefield, PlayerId = player.Id, Turn = _state.TurnNumber });
                     Emit("jizoMercy", $"{Definition(source!).Name}: in this battle's resolution, {player.Name} gains 4 Honor instead of destroying the Province.", player.Id, source!.Id);
                 }
+                WlItemsMiscDiscardCelestial(source!); // "Discard this Celestial." -- an effect, so a negated action leaves it in play (issue #1114)
                 return false;
             // The Duty of the Crab: from a province (refilled) or the discard pile, at the current battlefield.
             case Wave829Abilities.DutyBattle:
@@ -445,7 +446,9 @@ public sealed partial class MatchEngine
 
     private void Wave829CelestialEntered(PlayerState player, CardInstance card)
     {
-        if (Definition(card).Effect == Wave829Abilities.BentenEffect) W829.BentenQueue.Add(new BentenPick { CelestialId = card.Id, PlayerId = player.Id });
+        if (Definition(card).Effect != Wave829Abilities.BentenEffect) return;
+        W829.BentenChosen.Remove(card.Id); // a fresh entry asks afresh: what it chose while last in play does not come back (issue #1114)
+        W829.BentenQueue.Add(new BentenPick { CelestialId = card.Id, PlayerId = player.Id });
     }
 
     private int Wave829PersonalHonor(CardInstance card)

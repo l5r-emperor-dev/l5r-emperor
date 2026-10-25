@@ -142,6 +142,20 @@ effect, qualify for Deception Revealed. A Ring bowed as the cost of a Focus Effe
 - **Date:** 2026-09-25
 - **Source:** [Emperor Edition rulings pass](../decisions/2026-09-25-emperor-edition-rulings-pass.md) (R4)
 
+### R-087 — "Discard this Celestial." after the colon is an effect, not a cost
+Jizo's Mercy and Chagatai's Wrath print "Discard this Celestial." after the colon, so it is part of the effect, as for The Inevitable Grasp of Conquest and The Ways of Sensei Wu: if the action is negated, the Celestial stays in play.
+
+- **Cards/primitives:** Jizo's Mercy (oracle-l5r-10563), Chagatai's Wrath (oracle-l5r-10816); `w829-jizo-mercy`, `w738-chagatai-end-phase`.
+- **Date:** 2026-10-25
+- **Source:** Mendon — [decision](../decisions/2026-10-25-celestial-audit.md). Issue #1114.
+
+### R-088 — Lady Matsu's Rage sets no delayed destruction when its bow is negated
+If Stalwart (or another negation) stops the bow, the "After the next time (this turn) it straightens, destroy it" half does not apply.
+
+- **Cards/primitives:** Lady Matsu's Rage (oracle-l5r-4658); `lady-matsus-rage-bow-destroy`.
+- **Date:** 2026-10-25
+- **Source:** Mendon — [decision](../decisions/2026-10-25-celestial-audit.md). Issue #1114.
+
 ## Search and look
 
 ### R-011 — Ordered searches take from the first named location only

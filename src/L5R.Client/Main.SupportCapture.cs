@@ -108,6 +108,10 @@ public partial class Main
             {
                 await CheckDynastyFlow(); GD.Print("REGIONS_CELESTIALS_PASS: " + _captureMode); GetTree().Quit(); return;
             }
+            if (_captureMode.Contains("doji"))
+            {
+                await CheckDojisGuidance(); GD.Print("REGIONS_CELESTIALS_PASS: " + _captureMode); GetTree().Quit(); return;
+            }
             if (_captureMode.Contains("reaction"))
             {
                 await CheckSupportReaction(); GD.Print("REGIONS_CELESTIALS_PASS: " + _captureMode); GetTree().Quit(); return;

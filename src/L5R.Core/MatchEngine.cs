@@ -3301,6 +3301,7 @@ public sealed partial class MatchEngine
     private bool EnterCelestialPlayCore(PlayerState player, CardInstance card, bool pauseReveal)
     {
         var hadRyoshun = ControlsCelestialEffect(player.Id, RyoshunsGuidanceEffect); // Ryoshun's Guidance (issue #467): its +1C leaves with it.
+        var othersWithRyoshun = _state.Players.Where(p => p.Id != player.Id && ControlsCelestialEffect(p.Id, RyoshunsGuidanceEffect)).Select(p => p.Id).ToArray(); // Daigotsu's Guidance can discard theirs (issue #1114)
         var asks = EngineHooks.CelestialEntryChoices.Items.Length == 0 ? [] : CelestialEntryAsks(player, card);
         var deferDiscard = asks.Any(a => a.Choice.SparesFromDiscard);
         if (deferDiscard) (_state.CelestialDiscardDebts ??= []).Add(new CelestialDiscardDebt { CelestialId = card.Id, PlayerId = player.Id });
@@ -3309,8 +3310,10 @@ public sealed partial class MatchEngine
         Emit("celestialEnteredPlay", $"{Definition(card).Name} entered play.", player.Id, card.Id);
         RecordFact(FactKinds.CelestialEntered, player.Id, card.Id); // P6 (AfterFacts.cs)
         Wave829CelestialEntered(player, card); // issue #829 (Wave829.cs): Benten's Blessing queues its choice of Personalities
+        _state.PromoEmperor.NavalGrants.RemoveAll(g => g.CelestialId == card.Id); // Suitengu's Blessing: a Celestial entering play afresh grants nothing it granted before (issue #1114)
         ApplyDaigotsusGuidanceTrait(); // Daigotsu's Guidance (Emperor Edition remaining-cards pass, issue #492, group E): "After a Celestial enters play (including this one): Discard all Kami Celestials in play."
         if (hadRyoshun && Definition(card).Effect != RyoshunsGuidanceEffect) CheckChiAfterRyoshunLeaves(player.Id);
+        foreach (var other in othersWithRyoshun.Where(id => !ControlsCelestialEffect(id, RyoshunsGuidanceEffect))) CheckChiAfterRyoshunLeaves(other);
         return asks.Count > 0 && QueueCelestialEntryAsks(player, card, asks, pauseReveal);
     }
     // Lady Matsu's Rage's own destroy-redirect trait is Effect-keyed the same way RegionStrengthBonus

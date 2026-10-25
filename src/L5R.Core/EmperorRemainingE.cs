@@ -332,6 +332,16 @@ public sealed partial class MatchEngine
             _ => "Choose one of your discarded Port Holdings."
         });
 
+    // Why the action is unavailable when its out-of-play category has no card at all (issue #1114: Doji's Guidance said only "No legal target or performer.").
+    private static string? EmperorRemainingENoCandidateReason(string category) => category switch
+    {
+        "own-nonunique-political-strategy-in-discard" => "Your Fate discard pile has no non-Unique Strategy with a Political ability.",
+        "own-nonunique-spell-or-kiho-in-discard" => "Your Fate discard pile has no non-Unique Spell or Kiho.",
+        "own-ring-in-hand" => "You have no Ring in your hand.",
+        "own-discarded-port-holding" => "Your Dynasty discard pile has no Port Holding.",
+        _ => null
+    };
+
     // QueryActions' candidate list for an out-of-play category; null for any other.
     private string?[]? EmperorRemainingECandidates(string category, int playerId) =>
         IsEmperorRemainingEOutOfPlayTarget(category)
