@@ -173,7 +173,7 @@ public sealed partial class MatchEngine
 
     // ---- Action allowances (Urgency) ----
 
-    private const string ActionAllowanceReason = "You may take no more non-Reaction actions this phase (Urgency).";
+    private static readonly string ActionAllowanceReason = new BarNotice("Taking more non-Reaction actions this phase", "Urgency").Message;
 
     private void LimitActionsThisPhase(int playerId, int count, string source)
     {

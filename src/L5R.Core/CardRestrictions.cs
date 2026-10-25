@@ -435,7 +435,7 @@ public sealed partial class MatchEngine
             if (!_state.Cards.TryGetValue(targetId, out var target)) continue;
             foreach (var rule in BarRulesOn(target))
                 if (!rule.Forced && ActorMatches(rule.Actor, performing, command.PlayerId, ability, source, target))
-                    Require(false, $"{Definition(target).Name} may not be targeted by this action ({rule.Label}).");
+                    RequireNotBarred(false, $"Targeting {Definition(target).Name} with this action", rule.Label);
         }
         RequireForcedTarget(command, ability, performing, source);
     }
@@ -458,6 +458,6 @@ public sealed partial class MatchEngine
     {
         foreach (var rule in BarRulesOn(target))
             if (!rule.Forced && rule.Actor.ActionKeyword is null && ActorMatches(rule.Actor, actor, actor.OwnerId, null, null, target))
-                Require(false, $"{Definition(target).Name} may not be targeted by {Definition(actor).Name}'s actions ({rule.Label}).");
+                RequireNotBarred(false, $"Targeting {Definition(target).Name} with {Definition(actor).Name}'s actions", rule.Label);
     }
 }

@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "One general 'X is barred by <card>' primitive (Core BarNotice: refusal message + 'barred' event) shown as an OK dialog in the client. Wired: Shieldman (assign and move), Hotei's Contentment, Goju Asuka, Hida Kaiji, generalised target bars, Two Hands and One Action Two Strikes (withheld extra actions), Unfortunate Hesitation, Urgency, Jade's Roar, Rebuilding Kyuden Hida, The Forgotten Temple, Burning Dreams, Chiisai, Incredible Tragedy. Bot refusals never raise the dialog.",
+  "validation": "bash tools/check.sh --skip-client: all stages passed except core-3 (one case matched old Unfortunate Hesitation wording; test updated, either-or/shadows-embrace/negated-costs/additional-action suites rerun green); client builds with 0 errors; tools/check-tutorial.sh passed; native capture of the dialog at 1672x941. Not human-playtested.",
+  "remaining": "Other bars still show only the notice line and are not yet BarNotice: movement locks (Khan's Estate etc.), Isawa Ryuzo pairs, NoPair/Generational Gap, stored NoAttack/NoDefend, province entry lock (Sudden Blockade), P3 reaction lockouts, Bushido/Dark Virtue, Delayed Arrival, Star-Crossed Lovers, Legion of the Bat/Pain, Yari, Disgrace. Convert with RequireNotBarred/EmitBarred.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1115",
+  "branch": "claude/1115-barred-notice",
+  "updated": "2026-10-25T13:41:20.968241+00:00"
+}

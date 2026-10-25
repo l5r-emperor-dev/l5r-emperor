@@ -1377,7 +1377,7 @@ public sealed partial class MatchEngine
             // removes his own default Infantry eligibility, only adds Cavalry while defending.
             var cavalryEligible = IsCavalryUnit(card) || isDefender && Definition(card).Effect == "cavalry-if-defender";
             Require(!cavalry || cavalryEligible, "Only a Cavalry unit may assign during Cavalry Maneuvers."); // a Cavalry unit may assign in either segment; an Infantry unit only in Infantry Maneuvers
-            Require(!(cavalry && CavalryAssignmentBarredP6()), "Incredible Tragedy: Personalities may not be assigned during the Cavalry Maneuvers Segment."); // issue #503
+            Require(!(cavalry && CavalryAssignmentBarredP6()), new BarNotice("Assigning Personalities during the Cavalry Maneuvers Segment", "Incredible Tragedy").Message); // issue #503
             Require(provinces.Contains(assignment.Value), "Choose an existing enemy province battlefield.");
             Require(!MovementLocked(card, MovementKinds.Assign), $"{Definition(card).Name} may not be assigned to a battlefield this turn.");
             if (_state.ExtraInfantrySegment) RequireHiddenFallsAssignment(card, assignment.Value); // Hidden Falls Dojo (Stronghold pass, issue #486 batch 1): its Scouts, to the provinces it targeted.
@@ -1859,7 +1859,7 @@ public sealed partial class MatchEngine
         // (Issue #379: only a recruit grant -- the one kind that carries a battle -- survives: this battle's is kept for the aftermath window that
         // follows (OpenBattleRecruitWindow), where it is the last chance to use it, and lapses there.)
         _state.AdditionalActions.RemoveAll(Forfeitable);
-        _state.PendingAdditionalAction = null; _state.NoNewAdditionalActionsThisBattle = false;
+        _state.PendingAdditionalAction = null; _state.NoNewAdditionalActionsThisBattle = false; _state.NoNewAdditionalActionsBy = null;
         // An unused Attack-target grant ("your next Ranged Attack action this battle") ends with the battle.
         _state.AttackTargetGrants.Clear();
         _state.BattleAbilityLocks.Clear(); // Yoritomo Naoto (Emperor Edition Personality pass, issue #477): "until this battle ends".

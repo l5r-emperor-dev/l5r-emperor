@@ -17,7 +17,7 @@ public sealed record ForcedPass(int PlayerId, int PhaseInstance, string SourceId
 
 public sealed partial class MatchEngine
 {
-    private const string ForcedPassReason = "You must pass at this opportunity (Unfortunate Hesitation).";
+    private static readonly string ForcedPassReason = new BarNotice("Taking any action but passing", "Unfortunate Hesitation").Message;
 
     private void AddForcedPass(int playerId, CardInstance source) => _state.ForcedPasses.Add(new(playerId, PhaseInstance(), source.Id));
 

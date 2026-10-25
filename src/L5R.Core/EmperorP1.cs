@@ -345,7 +345,7 @@ public sealed partial class MatchEngine
 
     // Assign's hook: "He may not assign to ... an attacking army."
     private void RequireHoteiMayAssign(CardInstance card, bool isDefender) =>
-        Require(isDefender || !HoteiLocked(card), $"{Definition(card).Name} may not assign to an attacking army (Hotei's Contentment).");
+        RequireNotBarred(isDefender || !HoteiLocked(card), $"{Definition(card).Name} assigning to an attacking army", "Hotei's Contentment");
 
     // MoveToBattlefield's hook: "... and will not move into, an attacking army" -- a move puts the unit on its controller's side, the attacking army when he is the Attacker.
     private bool HoteiNegatesMove(CardInstance card)

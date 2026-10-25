@@ -100,7 +100,7 @@ public partial class Main : Node
                 _matchDuelFlow.Observe(snapshot); Render(); if (snapshot is not null) AutoProclaim(snapshot);
             });
         };
-        _session.Notice += message => _uiQueue.Enqueue(() => SetNotice(message));
+        _session.Notice += message => _uiQueue.Enqueue(() => { SetNotice(message); if (BarNotice.TryParse(message) is { } bar) ShowBarred(bar); });
         _session.SeatCreated += (seat, server) => _uiQueue.Enqueue(() => SaveSeat(seat, server));
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -567,6 +567,7 @@ public partial class Main : Node
         {
             _displayedVersion = View.Version;
             if (View.Events.LastOrDefault() is { } latest) SetNotice(latest.Message);
+            ObserveBarredEvents();
         }
         if (_chosen?.Command?.ExpectedVersion != View.Version) { _chosen = null; _sources.Clear(); _assignments.Clear(); _assignmentUnit = null; }
         if (_chosen?.Movement is not null && _chosen.Command?.PlayerId != View.ViewerId) { _chosen = null; _sources.Clear(); }

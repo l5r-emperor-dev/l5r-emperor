@@ -5328,6 +5328,8 @@ static void AdditionalActionPrimitive()
         // already proven above) still fully apply -- only the grant itself is suppressed.
         Accept(e, new GameCommand("useAbility", 0, e.Version, CardId: again.Id, PerformerId: kensai.Id, AbilityId: "again-boost"));
         Check(!e.State.Cards[weapon.Id].AbilityUses.ContainsKey("training-weapon-attack"), "Again!'s Weapon-ability reset still applies");
+        // Issue #1115: the grant that never arrives is not silent -- the player is told which card withheld it.
+        Check(e.State.Events.Any(ev => ev.Type == BarNotice.EventType && ev.PlayerId == 0 && ev.Message == "Taking a new additional Battle action is barred by Two Hands."), "Two Hands tells the player it withheld Again!'s grant");
         Check(!e.State.AdditionalActions.Any(g => g.PlayerId == 0), "Again!'s own grant is suppressed by Two Hands' restriction");
     }
     {

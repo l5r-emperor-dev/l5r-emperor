@@ -119,7 +119,7 @@ public sealed partial class MatchEngine
         }
         foreach (var performer in performers)
             if (Definition(performer).Type is CardType.Personality or CardType.Follower && Keyword(performer, "Nonhuman"))
-                Require(false, $"Burning Dreams: {Definition(performer).Name} is Nonhuman and may not perform Political actions.");
+                RequireNotBarred(false, $"{Definition(performer).Name} performing Political actions", "Burning Dreams");
     }
 
     // ---- Colonial Harbor: "Your Stronghold's abilities have Tireless" ---------------------------------------------------------------------------------

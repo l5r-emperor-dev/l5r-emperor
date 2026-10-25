@@ -402,7 +402,7 @@ public sealed partial class MatchEngine
         }
         foreach (var performer in performers)
             if (Definition(performer).Effect == ChiisaiRestrictionsEffect)
-                Require(false, $"{Definition(performer).Name} may not perform Iaijutsu or Political actions.");
+                RequireNotBarred(false, $"{Definition(performer).Name} performing Iaijutsu or Political actions", "Chiisai");
     }
 
     // Hida Bakari: "Bakari has -4F while he is unopposed." -- at a battlefield where the enemy army has no unit (core rules, Opposed); at home he is neither.
