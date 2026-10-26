@@ -70,8 +70,12 @@ public partial class DuelScreen : Control
             {
                 _revealQueue.Enqueue(reveal);
                 if (!ReducedMotion) foreach (var card in reveal.Cards)
-                    if (card.Definition?.ArtworkKey is { } path && !ResourceLoader.HasCached(path) && ResourceLoader.Exists(path) && _pendingRevealArt.Add(path))
-                        if (ResourceLoader.LoadThreadedRequest(path, "Texture2D") != Error.Ok) _pendingRevealArt.Remove(path);
+                    if (card.Definition?.ArtworkKey is { } path)
+                    {
+                        if (CardFaces.Has(path)) CardTile.Artwork(card.Definition); // decode now, off the reveal's critical frame
+                        else if (!ResourceLoader.HasCached(path) && ResourceLoader.Exists(path) && _pendingRevealArt.Add(path))
+                            if (ResourceLoader.LoadThreadedRequest(path, "Texture2D") != Error.Ok) _pendingRevealArt.Remove(path);
+                    }
             }
         if (ReducedMotion) while (_revealQueue.TryDequeue(out var frame)) _shownReveal = frame;
         if (_selectedHand is { } hand && !snapshot.View.Players[snapshot.View.ViewerId].Hand.Any(c => c.Id == hand)) _selectedHand = null;

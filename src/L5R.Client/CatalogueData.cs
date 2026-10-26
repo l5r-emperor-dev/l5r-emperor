@@ -56,7 +56,7 @@ public sealed class CatalogueData
             var variants = printings.Cards.GetValueOrDefault(card.Id, []);
             // The packaged supported face is a separately pinned printing, never silently
             // relabelled as a different Oracle variant or used to grant support to that variant.
-            if (card.Definition is { } def && !string.IsNullOrEmpty(def.ArtworkKey) && ResourceLoader.Exists(def.ArtworkKey))
+            if (card.Definition is { } def && !string.IsNullOrEmpty(def.ArtworkKey) && (CardFaces.Has(def.ArtworkKey) || ResourceLoader.Exists(def.ArtworkKey)))
                 variants = new[] { new Printing { Id = card.Id + "-pinned", Set = "Game printing", ResourcePath = def.ArtworkKey } }.Concat(variants).ToArray();
             card.Printings = variants;
         }
