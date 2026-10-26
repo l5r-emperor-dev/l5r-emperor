@@ -100,8 +100,10 @@ public partial class CardTile : Button
         if (definition.ScenarioOnly) return Atlas;
         if (definition.ArtworkKey is not string path) return null;
         if (PublishedArt.TryGetValue(path, out var texture)) { PublishedArtOrder.Remove(path); PublishedArtOrder.AddLast(path); return texture; }
-        if (!ResourceLoader.Exists(path)) return null;
-        PublishedArt[path] = texture = GD.Load<Texture2D>(path);
+        // The art pack is the shipped source; the JPG is the development fallback (the export leaves it out).
+        texture = CardFaces.Get(path) ?? (ResourceLoader.Exists(path) ? GD.Load<Texture2D>(path) : null);
+        if (texture is null) return null;
+        PublishedArt[path] = texture;
         PublishedArtOrder.AddLast(path);
         while (PublishedArt.Count > PublishedArtCap && PublishedArtOrder.First is { } oldest) { PublishedArt.Remove(oldest.Value); PublishedArtOrder.RemoveFirst(); }
         return texture;

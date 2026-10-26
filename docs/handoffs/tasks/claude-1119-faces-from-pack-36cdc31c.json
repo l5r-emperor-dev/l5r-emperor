@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Playable card faces are now read from Content/catalogue-art.zip (already holds all 2,208 at 750x1050) through new CardFaces.cs; the exported game no longer carries a second converted copy (Content/Published/oracle-l5r-* excluded in both export presets). Windows zip 1.51 GB -> 1.01 GB. Development checkouts fall back to the JPG when the pack is absent. CardTile.Artwork, CatalogueData's pinned printing and the DuelScreen reveal prefetch use the pack. Option 3 (raw JPGs) is subsumed: no converted copy of the faces remains.",
+  "validation": "dotnet build 0 errors; fresh tools/export.sh windows (pck 1.45 GB -> 0.94 GB, zip 1.01 GB); the EXPORTED exe, which lacks the JPGs, drew all faces correctly in a native 1672x941 tutorial capture. Faces are now WebP q85 from the pack instead of near-lossless; not compared side by side beyond that capture. No hand-played match.",
+  "remaining": "Pack faces are q85 WebP: if a card looks soft on the big inspector, raise quality in the pack rebuild. Windows graphical check of the extracted package and a published release not done.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1119",
+  "branch": "claude/1119-faces-from-pack",
+  "updated": "2026-10-26T12:28:26.692377+00:00"
+}
