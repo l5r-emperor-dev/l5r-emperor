@@ -15,9 +15,9 @@ dest_files=["res://.godot/imported/oracle-l5r-9978.jpg-ed8d43f7618a1f2f9a7069302
 
 [params]
 
-compress/mode=0
+compress/mode=1
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.95
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

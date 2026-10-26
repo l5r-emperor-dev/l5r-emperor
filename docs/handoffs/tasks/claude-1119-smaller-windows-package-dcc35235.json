@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Windows package 2.62 GB -> 1.51 GB: the 2,208 card faces (Content/Published/oracle-l5r-*.jpg) now import lossy at WebP quality 0.95 instead of lossless (imported size 1,623 MB -> 504 MB; PSNR vs source JPG >= 42 dB on a 12-card sample). The package is now under the 2 GiB release limit so it no longer needs splitting. Multipart first-launch assembly also deletes each extracted part as it is appended (peak disk use). No rules change.",
+  "validation": "Fresh bash tools/export.sh windows (pck 2.57 GB -> 1.45 GB, zip 1.51 GB); package-share-build zip extracts to 1.65 GB and the extracted exe starts headless (exit 0); native tutorial capture at 1672x941 shows crisp card faces; tools/previews/test_package.py 7/7. Not done: a hand-played match, a published release, a Windows graphical check of the extracted package.",
+  "remaining": "Publish a new Windows preview from main if wanted (the old release body's 12 GB free-space note is now stale: about 4 GB is enough). The multipart assembler change is untested end to end because the package no longer splits.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1119",
+  "branch": "claude/1119-smaller-windows-package",
+  "updated": "2026-10-26T12:01:59.844762+00:00"
+}
