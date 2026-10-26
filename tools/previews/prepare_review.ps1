@@ -20,9 +20,11 @@ try {
                     if ((Get-Item -LiteralPath $path).Length -ne $part.bytes -or (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -ne $part.sha256) { throw "Damaged package part: $($part.file). Download this version again." }
                     $inputStream = [System.IO.File]::OpenRead($path)
                     try { $inputStream.CopyTo($destination) } finally { $inputStream.Dispose() }
+                    # Free the extracted part now that its bytes are in the combined archive: peak disk use stays near one copy of the game, not two.
+                    Remove-Item -LiteralPath $path -Force
                 }
             } finally { $destination.Dispose() }
-            if ($bundle.sha256 -notmatch '^[a-f0-9]{64}$' -or (Get-Item -LiteralPath $combined).Length -ne $bundle.bytes -or (Get-FileHash -LiteralPath $combined -Algorithm SHA256).Hash.ToLowerInvariant() -ne $bundle.sha256) { throw 'Combined preview checksum mismatch' }
+            if ($bundle.sha256 -notmatch '^[a-f0-9]{64}$' -or (Get-Item -LiteralPath $combined).Length -ne $bundle.bytes -or (Get-FileHash -LiteralPath $combined -Algorithm SHA256).Hash.ToLowerInvariant() -ne $bundle.sha256) { throw 'Combined preview checksum mismatch. Extract ALL download ZIP parts into a fresh folder and retry.' }
             Write-Host 'Preparing the complete preview. This happens only on the first launch.'
             $expanded = Join-Path $temporary 'expanded'
             Expand-Archive -LiteralPath $combined -DestinationPath $expanded
