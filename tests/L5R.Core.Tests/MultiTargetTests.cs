@@ -463,7 +463,7 @@ internal static class MultiTargetTests
         // (4) Sakuma's Political reaction (#338) reads the window's target too: Yoshitada's Political action names an enemy Personality, and Sakuma (in play, his
         // controller's) is offered his reaction for it -- and for nobody else's target.
         var r = Yoshi(dishonorable: false);
-        var sakuma = Add(r.S, "oracle-l5r-9624", 1, Zone.Home);
+        var sakuma = Add(r.S, "oracle-l5r-9624", 1, Zone.Battlefield, province: 0);
         var e4 = MatchEngine.FromTestState(r.S);
         Accept(e4, Yo(e4, r, r.Enemy.Id));
         Check(WindowFor(e4, r.Enemy.Id) || e4.State.PendingChoice?.Type == "beforeActionReaction", "a window opens for the Political action's target: " + e4.State.PendingChoice?.Type);
@@ -583,7 +583,7 @@ internal static class MultiTargetTests
             var s = Table(); s.PriorityPlayerId = 0; s.ActivePlayerId = 0;
             var actor = Add(s, "training-slots-source", 0, Zone.Battlefield, province: 0);
             var kakihara = Add(s, Kakihara, 1, Zone.Battlefield, province: 0); var plain = Add(s, "training-lion-samurai", 1, Zone.Battlefield, province: 0);
-            Add(s, "oracle-l5r-9624", 1, Zone.Home);
+            Add(s, "oracle-l5r-9624", 1, Zone.Battlefield, province: 0);
             var e = MatchEngine.FromTestState(s);
             Accept(e, Use(e, 0, "training-slots-two-political", actor.Id, selections: [Pick("first", kakihara.Id), Pick("second", plain.Id)]));
             Check(WindowFor(e, kakihara.Id), "Kakihara's window first: " + e.State.PendingChoice?.Prompt);
@@ -600,7 +600,7 @@ internal static class MultiTargetTests
             var s = Table(); s.PriorityPlayerId = 0; s.ActivePlayerId = 0;
             var actor = Add(s, "training-slots-source", 0, Zone.Battlefield, province: 0);
             var kakihara = Add(s, Kakihara, 1, Zone.Battlefield, province: 0); var plain = Add(s, "training-lion-samurai", 1, Zone.Battlefield, province: 0);
-            Add(s, "oracle-l5r-9624", 1, Zone.Home);
+            Add(s, "oracle-l5r-9624", 1, Zone.Battlefield, province: 0);
             var e = MatchEngine.FromTestState(s);
             Accept(e, Two(e, new(s, actor, kakihara, plain, plain, plain), kakihara.Id, plain.Id));
             Check(WindowFor(e, kakihara.Id) && OfferedTo(e, 1).SequenceEqual(new[] { "kakihara-force-bonus" }), "not Political: Kakihara's own reaction only");
@@ -794,7 +794,7 @@ internal static class MultiTargetTests
         }
         {
             // "If he moved": a negated move (Tamori Tamoko's negation) asks nothing and changes nobody's Honor.
-            var e = Battle(s => Add(s, "training-tamoko", 1, Zone.Home));
+            var e = Battle(s => Add(s, "training-tamoko", 1, Zone.Battlefield, province: 0));
             var before = new[] { Honor(e, 0), Honor(e, 1) };
             Accept(e, Play(e));
             Eq(e.State.PendingChoice?.Type, "beforeActionReaction");

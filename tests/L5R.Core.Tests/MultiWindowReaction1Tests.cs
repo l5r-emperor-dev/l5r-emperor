@@ -647,7 +647,7 @@ internal static partial class MultiWindowReaction1Tests
             var card = Add(s, treachery, 1, Zone.Hand);
             Add(s, "training-lion-samurai", 1, Zone.Battlefield, province: 0);
             big = Add(s, "training-crane-veteran", 0, Zone.Battlefield, province: 0); Add(s, "training-follower", 0, Zone.Attached, province: 0, parent: big.Id);
-            tamoko = Add(s, def, 0, Zone.Home);
+            tamoko = Add(s, def, 0, Zone.Battlefield, province: 0);
             var e = MatchEngine.FromTestState(s);
             if (act) Accept(e, Offer(e, 1, "treachery-deceit-move", card.Id, big.Id));
             return e;

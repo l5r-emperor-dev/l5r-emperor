@@ -412,8 +412,8 @@ internal static partial class MultiWindowReaction3Tests
         {
             var s = Table(); s.PriorityPlayerId = 1;
             fires = Add(s, DefWith("fires-of-turmoil"), 1, Zone.Hand); victim = Bf(s, "training-battle-bower", 0); Bf(s, "training-lion-samurai", 1);
-            var host = AtHome(s, "training-crane-samurai", 0); Kw(host, "Shugenja", element);
-            spell = Add(s, Def("w737-reverse-fate-plus"), 0, Zone.Attached, parent: host.Id);
+            var host = Bf(s, "training-crane-samurai", 0); Kw(host, "Shugenja", element);
+            spell = Add(s, Def("w737-reverse-fate-plus"), 0, Zone.Attached, province: 0, parent: host.Id);
             return s;
         }
         var st = Build("Void", out var spell, out var fires, out var victim);
@@ -526,7 +526,7 @@ internal static partial class MultiWindowReaction3Tests
     private static void HiddenDefensesMove()
     {
         CardInstance mover = null!, card = null!;
-        var e = Engage(t => { mover = Add(t, "training-crane-veteran", 0, Zone.Home, true); Bf(t, "training-lion-samurai", 1); card = Add(t, Def("hidden-defenses-move"), 0, Zone.Hand); });
+        var e = Engage(t => { mover = Add(t, "training-crane-veteran", 0, Zone.Home, true); Bf(t, "training-lion-samurai", 1); Bf(t, "training-crane-samurai", 0); card = Add(t, Def("hidden-defenses-move"), 0, Zone.Hand); });
         Check(!Listed(e, 1, "hidden-defenses-move", card.Id), "not offered to the other player");
         var cmd = Enabled(e, 0, "hidden-defenses-move", card.Id, mover.Id).Command!;
         Reject(e, cmd with { PlayerId = 1, ExpectedVersion = e.Version });
@@ -778,7 +778,7 @@ internal static partial class MultiWindowReaction3Tests
         MatchState Build(out CardInstance makiko, out CardInstance akahiko, out CardInstance target, bool bowed = false)
         {
             var s = Table(Phase.Battle, 1);
-            makiko = Add(s, Def("wlpt-makiko-reduce"), 0, Zone.Home, bowed); akahiko = Bf(s, "oracle-l5r-10278", 1); target = Bf(s, "training-crane-samurai", 0);
+            makiko = Add(s, Def("wlpt-makiko-reduce"), 0, Zone.Battlefield, bowed, 0); akahiko = Bf(s, "oracle-l5r-10278", 1); target = Bf(s, "training-crane-samurai", 0);
             return s;
         }
         var st = Build(out var mk, out var ak, out var tg);
@@ -840,7 +840,7 @@ internal static partial class MultiWindowReaction3Tests
         {
             var s = Table(Phase.Battle, 1);
             card = Add(s, Def("determined-challenge-move"), 1, Zone.Hand); perf = Bf(s, "training-lion-samurai", 1);
-            target = AtHome(s, "training-crane-samurai", 0, bowed: true); tam = AtHome(s, Def("tamoko-negate"), 0);
+            target = AtHome(s, "training-crane-samurai", 0, bowed: true); tam = Bf(s, Def("tamoko-negate"), 0);
             return s;
         }
         var st = Build(out var card, out var perf, out var target, out var tam);
