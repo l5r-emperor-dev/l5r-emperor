@@ -732,12 +732,24 @@ Fallow Lands' Reaction ("after a Melee or Ranged Attack is targeted: -2 strength
 - **Date:** 2026-10-27
 - **Source:** Mendon, issue #1124.
 
-### R-088 — Attack reactions: a province is a target, and presence at the attacked battlefield is required
+### R-088 — Attack reactions: a province is a target, and presence at the attacked battlefield is required (generalised by R-089)
 An Attack on a province is targeted (as is any card the Attack affects), so every "after an Attack is targeted" Reaction triggers on it. Unless its text lets it be used from another location, a Reaction to an Attack, whether it targets a province or a card, needs presence at the battlefield of the Attack: an in-play card must be at that battlefield (a Follower, Item or Spell through its wielder) and a Strategy played from a hand needs its player to have a Personality there. Isawa Kaname, Moshi Umiko and Kaiu Fumiko must stand at the battlefield. Archery Range may react from home. A Reaction that needs a card to be targeted (A Close Call, Akodo Kakihara, Flesh Cutter Arrows) cannot react to an Attack that targets no card. An Attack that names neither a card nor a province cannot be reacted to.
 
 - **Cards/primitives:** `before-attack-resolves` Reactions (Khol Regulars, Archery Range, Isawa Kaname, Moshi Umiko, Kaiu Fumiko, Strong Defenses, Trusting Instinct, Precision, Sniping, Unholy Strike, Steal the Candle's Flame, Fallow Lands); `AttackReactionOffered`. The `training-attack-boost` / `training-attack-negate` fixture has no location rule.
 - **Date:** 2026-10-27
 - **Source:** Mendon, issues #1129 and #1131 (2026-10-27: the presence rule applies to Attacks on a card too; Archery Range acts from home; a Strategy needs no one at the battlefield only if its text says so).
+
+### R-089 — A Reaction taken in a battle follows the Rules of Presence and Location
+A Reaction taken during a battle is an Interrupt action, so it follows the Rule of Presence and the Rule of Location (Comprehensive Rules, Combat Segment); this overrides the sentence "Reactions are not subject to rules of Presence and Location". A Reaction taken outside a battle has no presence rule. In a battle:
+- The player needs a unit at the current battlefield. Absent Reactions and those that move a unit to the battle are exempt (the CR exception).
+- A Reaction printed on a Personality needs that Personality at the battlefield, and one on an attachment needs its wielder there, unless the ability may be used away or from home (Home). Engage Reactions are the same. The ones already listed in `EngageSourceElsewhere` (Rokku, Hayan, the Sled), Tsukimi's, Rokku's and The Wave Persists' moves of their own unit to the battlefield, and Mitsuo (who reacts to being moved away) are exempt from the location half.
+- A Holding never gives presence and a Strategy played from a hand is not in a unit: each needs the player to have presence by another unit. A Region is present only at a battle on its own province, and its controller needs a Personality there too; a Personality is what gives a Region presence, never the reverse.
+- A player does not lose presence by the destruction of a Personality until the action (or battle resolution) that destroyed their last unit is fully resolved, including closing the Reaction window that destruction opens. So a Reaction to a Personality's destruction (Crippled Sensei, Feign Death, Hero's Memorial) can always be played. The Empress' Address does not need its performing Personality at a battlefield.
+Fallow Lands already worked this way; the older notes that it acts on its own are withdrawn.
+
+- **Cards/primitives:** `BattleReactionPresenceRefusal`, `PresenceHeldUntilWindowCloses` (CardAbilities.cs); applies to every `Reaction` timing ability, in `ValidateAbility` and in reaction-window availability (`AnyInPlayReactionAvailable`, `OutOfPlayReactions`). `training-*` fixtures and Archery Range are exempt.
+- **Date:** 2026-10-27
+- **Source:** Mendon, issue #1133 (extends R-088; supersedes the Fallow Lands notes in R-065 and R-087). Open: Quagmire's own text names an adjacent province but a Region is now present only at its own battle province.
 
 ## Printings and card text
 
