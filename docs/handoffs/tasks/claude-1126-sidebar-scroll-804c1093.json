@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Sidebar zones (battle header, guide, decision buttons, phase buttons) are now SidebarScroll areas: as tall as their content up to a cap, then a visible, draggable scroll bar. A bot playing many Reactions (Mantis) filled the unscrollable header with one line per announced/queued Reaction and pushed the pass/decline buttons off the panel, so the player could not continue.",
+  "validation": "New native assertion (CheckSidebarOverflow, reaction-flow layout modes, 1920x1080 and 1280x800): 60 extra lines do not grow the panel, buttons stay on it, header scrolls; verified it FAILS with the caps removed. Native reaction-flow, decision-chooser, event-decisions and tutorial checks pass. check-battle-sequence-ui fails identically on clean origin/main (Missing offered useAbility: reactionAnnounce), unrelated.",
+  "remaining": "Not reproduced against the real Mantis bot match; no human playthrough. Pre-existing battle-sequence check failure on main needs its own look.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1035",
+  "branch": "claude/1126-sidebar-scroll",
+  "updated": "2026-10-27T14:55:44.342047+00:00"
+}
