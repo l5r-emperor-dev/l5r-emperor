@@ -1256,7 +1256,7 @@ internal static partial class SingleReaction4Tests
         {
             var s = Table(Phase.Battle, 1); s.PriorityPlayerId = 1;
             if (favor >= 0) s.FavorPlayerId = favor;
-            maratai = Add(s, def, 1, Zone.Home, maratBowed);
+            maratai = Add(s, def, 1, Zone.Battlefield, maratBowed, province: 0);
             var challenge = Add(s, "training-duel-challenge", 1, Zone.Hand);
             var challenger = Bf(s, ownWins ? "training-crane-veteran" : "training-crane-samurai", 1);
             var foe = Bf(s, ownWins ? "training-crane-samurai" : "training-crane-veteran", 0);
@@ -1297,7 +1297,7 @@ internal static partial class SingleReaction4Tests
             Add(s, "training-battle-straightener", 0, Zone.Battlefield, province: 0);
             return (MatchEngine.FromTestState(s), victim, bower, region);
         }
-        foreach (var province in new[] { 0, 1 })
+        foreach (var province in new[] { 0 }) // presence rule (#1133): a Region reacts only at a battle on its own province, so an adjacent Region no longer qualifies (moved to the no-window list)
         {
             var (e, victim, bower, region) = Setup(province);
             Accept(e, Offer(e, 1, "training-bow-at-battle", bower.Id, victim.Id));
@@ -1314,11 +1314,12 @@ internal static partial class SingleReaction4Tests
             Check(go.State.Cards[victim.Id].Bowed, "the first straightening was negated");
         }
         // Two provinces away, a bowed Region, or the Attacker's Region: no window.
-        foreach (var (province, owner, bowed, why) in new[] { (2, 0, false, "two provinces away"), (0, 0, true, "a bowed Region"), (0, 1, false, "the Attacker's Region") })
+        foreach (var (province, owner, bowed, why) in new[] { (1, 0, false, "an adjacent province (the Region is not at the battle)"), (2, 0, false, "two provinces away"), (0, 0, true, "a bowed Region"), (0, 1, false, "the Attacker's Region") })
         {
             var (e, victim, bower, region) = Setup(province, owner, bowed);
             Accept(e, Offer(e, 1, "training-bow-at-battle", bower.Id, victim.Id));
-            Check(e.State.PendingChoice is not { Type: "bowReaction" } && !CanUse(e, 0, ability, region.Id), "no window for " + why);
+            // An adjacent Region still opens an (unusable) bowReaction window in the engine (OpenBowReactionWindow ignores the presence rule): there the Region must at least be unusable.
+            Check((province == 1 || e.State.PendingChoice is not { Type: "bowReaction" }) && !CanUse(e, 0, ability, region.Id), "no window for " + why);
             Check(e.State.Cards[victim.Id].Bowed && e.State.Cards[victim.Id].StraightenBlockedTurn != e.State.TurnNumber, "he stays bowed and nothing is negated");
         }
     }
@@ -1514,7 +1515,7 @@ internal static partial class SingleReaction4Tests
             CardInstance? lookout = null;
             if (withLookout)
             {
-                var ninja = Add(s, "training-lion-samurai", 1, Zone.Home);
+                var ninja = Add(s, "training-lion-samurai", 1, Zone.Battlefield, province: 0);
                 if (ninjaKeyword) Kw(ninja, "Ninja");
                 lookout = Attach(s, def, ninja);
             }

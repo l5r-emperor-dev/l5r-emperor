@@ -309,7 +309,8 @@ internal static partial class SecondCityRulingTests
         Accept(e4, Use(e4, 0, "dislodge-the-foe", c4.Id, selections: [Pick("tacticians", first.Id), Pick("opposing", kakihara.Id)]));
         Eq(e4.State.PendingChoice?.Type, "beforeActionReaction", "the window opens for the opposing Personality");
         Eq(e4.State.ReactionWindowTargetId, kakihara.Id, "and it is his window");
-        Check(ReactionOffered(e4, 1, "kakihara-force-bonus"), "Kakihara's Reaction to being targeted is offered");
+        // Presence (issue #1133): in a battle a Personality's Reaction needs him at the CURRENT battlefield, and the opposing Personality stands at another one, so his window opens but he cannot take it.
+        Check(!ReactionOffered(e4, 1, "kakihara-force-bonus"), "Kakihara stands at a non-current battlefield: his Reaction to being targeted is not offered");
     }
 
     // ---- Kyuden Kitsune ---------------------------------------------------------------------------------------------------------------------------

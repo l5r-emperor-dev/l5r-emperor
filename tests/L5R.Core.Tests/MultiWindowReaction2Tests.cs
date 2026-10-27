@@ -504,8 +504,8 @@ internal static partial class MultiWindowReaction2Tests
             var fires = Add(s, Def("fires-of-turmoil"), 1, Zone.Hand);
             var victim = Add(s, "training-battle-bower", 0, Zone.Battlefield, province: 0);
             Add(s, "training-lion-samurai", 1, Zone.Battlefield, province: 0);
-            var host = Add(s, "training-crane-samurai", 0, Zone.Home); Kw(host, hostKeywords);
-            spell = Add(s, def, 0, Zone.Attached, parent: host.Id);
+            var host = Add(s, "training-crane-samurai", 0, Zone.Battlefield, province: 0); Kw(host, hostKeywords);
+            spell = Add(s, def, 0, Zone.Attached, province: 0, parent: host.Id);
             var e = MatchEngine.FromTestState(s);
             Accept(e, Offer(e, 1, "fires-of-turmoil", fires.Id, victim.Id));
             return e;

@@ -674,7 +674,7 @@ internal static class Wave741Tests
     private static void TowerCard()
     {
         // The Fortification guards province 0; player 1 attacks it and engages. The Tower's controller (player 0) is the Defender and reacts after the Attacker passes.
-        MatchEngine Rig(bool units, out CardInstance tower)
+        MatchEngine Rig(bool units, out CardInstance tower, bool expectWindow = true)
         {
             var s = Table(Phase.BattleSelection, 1); s.CurrentBattleProvince = null; s.UnresolvedBattlefields = [0];
             tower = Add(s, Tower, 0, Zone.Home);
@@ -684,6 +684,8 @@ internal static class Wave741Tests
             P(s, "w741-attacker-t", 1, Zone.Battlefield, 2, 2, 1, ["Samurai"], province: 0);
             var e = MatchEngine.FromTestState(s);
             Accept(e, new GameCommand("selectBattle", 1, e.Version, Province: 0));
+            // Presence rule (#1133): a Defender with no unit at the battlefield cannot take the Engage Reaction, so no Engage window opens for it.
+            if (!expectWindow) return e;
             Eq(e.State.PendingChoice?.Type, "engageReaction", "the Engage window is open");
             Accept(e, new GameCommand("declineReaction", 1, e.Version));
             return e;
@@ -698,8 +700,8 @@ internal static class Wave741Tests
         Check(Now(e, tower).Bowed, "the Tower bows");
         Check(Batch336Support.CanUse(e, 0, Wave741Abilities.TowerEngage, tower.Id) == false, "it is bowed: no second use");
         // Without units there, nothing is created.
-        var empty = Rig(false, out var tower2);
-        Accept(empty, Batch336Support.Enabled(empty, 0, Wave741Abilities.TowerEngage, tower2.Id).Command!);
+        var empty = Rig(false, out var tower2, expectWindow: false);
+        Check(!Batch336Support.CanUse(empty, 0, Wave741Abilities.TowerEngage, tower2.Id), "no units at the battlefield: the Tower cannot be used (presence rule)");
         Check(!empty.State.Cards.Values.Any(c => c.DefinitionId == Wave741Abilities.TowerGuard), "no units, no Guard");
         // A Tower guarding another Province is not offered.
         var other = Rig(true, out var tower3);

@@ -698,6 +698,7 @@ internal static class EmperorRemainingBTests
             mover = Add(t, "training-crane-veteran", 0, alreadyThere ? Zone.Battlefield : Zone.Home, bowed: true, province: alreadyThere ? 0 : null);
             Add(t, "training-lion-samurai", 1, enemyThere ? Zone.Battlefield : Zone.Home, province: enemyThere ? 0 : null);
             card = Add(t, HiddenDefenses, 0, Zone.Hand);
+            Add(t, "training-crane-samurai", 0, Zone.Battlefield, province: 0); // a unit of its player's at the battlefield: presence for taking a Reaction in a battle (a Strategy in hand needs only that)
             var engine = MatchEngine.FromTestState(t);
             Accept(engine, new GameCommand("selectBattle", 0, engine.Version, Province: 0));
             return engine;

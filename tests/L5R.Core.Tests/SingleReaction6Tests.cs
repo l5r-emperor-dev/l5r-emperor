@@ -682,7 +682,7 @@ internal static partial class SingleReaction6Tests
             s.Fortifications = new(StringComparer.Ordinal) { [tower.Id] = guarded };
             if (units) Add(s, "training-lion-samurai", 1, Zone.Battlefield, province: 0);
             Add(s, "training-crane-samurai", 0, Zone.Battlefield, province: 0);
-        }, select, expectWindow: guarded == 0);
+        }, select, expectWindow: guarded == 0 && units);
         var e = Build(true);
         var command = InWindow(e, "engageReaction", 1, ability, tower.Id);
         Accept(e, command);
@@ -697,7 +697,7 @@ internal static partial class SingleReaction6Tests
         Check(e.State.Cards[guards[0].Id].Zone == Zone.RemovedFromGame, "removed from the game after the battle ended");
         // No units of his at the battlefield: nothing is created. A Tower guarding another Province, or no battle at all: not offered.
         var empty = Build(false);
-        Accept(empty, InWindow(empty, "engageReaction", 1, ability, tower.Id));
+        Check(empty.State.PendingChoice?.Type != "engageReaction" && !CanUse(empty, 1, ability, tower.Id), "no units at the battlefield: the Tower is not offered (presence rule)");
         Check(empty.State.Cards.Values.All(c => c.DefinitionId != Wave741Guard), "no units, no Guard");
         var other = Build(true, guarded: 1);
         Check(other.State.PendingChoice?.Type != "engageReaction" || !CanUse(other, 1, ability, tower.Id), "a Tower guarding another Province is not offered");
@@ -1125,7 +1125,7 @@ internal static partial class SingleReaction6Tests
                 var s = Table(Phase.Battle, foe); s.PriorityPlayerId = foe; s.CurrentBattleProvince = 1; s.UnresolvedBattlefields = [0, 1, 3];
                 source = Add(s, moves ? "training-move-source" : "training-battle-bower", foe, Zone.Battlefield, province: 1);
                 target = Add(s, "training-battle-bower", owner, Zone.Battlefield, province: 1);
-                taigo = Add(s, Def(ability), owner, Zone.Home);
+                taigo = Add(s, Def(ability), owner, Zone.Battlefield, province: 1);
                 if (follower) Add(s, "training-follower", owner, Zone.Attached, province: 1, parent: target.Id);
                 var e = MatchEngine.FromTestState(s);
                 if (act) Accept(e, moves ? Enabled(e, foe, "training-move-anywhere", source.Id).Command! with { TargetId = target.Id, Province = 3 } : Offer(e, foe, "training-bow-at-battle", source.Id, target.Id));

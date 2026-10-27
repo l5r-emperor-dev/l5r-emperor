@@ -523,7 +523,7 @@ public static class AbilityCatalog
         // The Wave Persists (oracle-l5r-9890): "Reaction: After engaging, if this Shugenja is not at the current battlefield, target your Personality there: Before this
         // battle resolves, move the target home, and if he moved, move this Shugenja to the current battlefield." ("While this Shugenja is Water, he has +2F" is its Effect.)
         ["wave-persists-move"] = new("Reaction", "After engaging, if this Shugenja is not at the current battlefield, target your Personality there: before this battle resolves, move the target home, and if he moved, move this Shugenja to the current battlefield",
-            "own-personality-at-battle", Trigger: "after-engaging"),
+            "own-personality-at-battle", Trigger: "after-engaging", SourceUnitMayBeAway: true), // its Shugenja must NOT be at the current battlefield (issue #1133: the presence rule waives the source location)
         // Before This Battle Resolves (spec step 5; issue #310): a mandatory or optional trait of a card in play at
         // the battlefield, applied once both players have passed and before Force is totalled, ordered by the
         // player whose turn it is. Encircled Terrain (issue #272) is the one real card; its card names this id as
@@ -4907,7 +4907,7 @@ public sealed partial class MatchEngine
     // every Attack while the card sat in play (Kakihara only ever cares about an Attack that targets HIM);
     // every other caller omits it and keeps the existence-only behavior described above.
     private bool AnyInPlayReactionAvailable(string trigger, Func<CardInstance, string, bool>? relevant = null) => _state.Cards.Values.Any(c => InPlay(c) && !BowedBarsAbilities(c) &&
-        AbilityIdsOf(c).Any(id => AbilityCatalog.All.TryGetValue(id, out var a) && a.Timing == "Reaction" && a.Trigger == trigger && !BarredByCherryBlossom(id) /* Cherry Blossom Festival (issue #492, group F; traits exempt, R4) */ && !P3ReactionLocked(c.OwnerId, id) /* issue #503 */ &&
+        AbilityIdsOf(c).Any(id => AbilityCatalog.All.TryGetValue(id, out var a) && a.Timing == "Reaction" && a.Trigger == trigger && BattleReactionPresenceRefusal(a, id, c, c.OwnerId) is null && !BarredByCherryBlossom(id) /* Cherry Blossom Festival (issue #492, group F; traits exempt, R4) */ && !P3ReactionLocked(c.OwnerId, id) /* issue #503 */ &&
             !AbilityUseSpent(c.AbilityUses, a, a.UsageKey ?? id) && (relevant?.Invoke(c, id) ?? true)));
     // No kind-restricted in-play Reaction exists yet (see AttackKind); once one does, filter by
     // attack.Kind here rather than inside AnyInPlayReactionAvailable itself.
@@ -4942,7 +4942,33 @@ public sealed partial class MatchEngine
         if (_state.CurrentBattleProvince is not int battlefield || province is not null && province != battlefield) return false;
         if (id is "archery-range-reaction" or "training-attack-boost" or "training-attack-negate") return true; // Archery Range may react from home; the Training fixture stands for a Reaction with no location (it keeps windows open in many suites)
         if (id == "fallow-lands-reaction") return card is not null && card.OwnerId != attackerId && card.ProvinceIndex == battlefield && Army(playerId, battlefield).Any();
-        return card is not null && InPlay(card) ? AtBattle(card) : Army(playerId, battlefield).Any();
+        return BattleReactionPresenceRefusal(AbilityCatalog.All[id], id, card, playerId) is null;
+    }
+    // Mendon's ruling (2026-10-27, issue #1133): a Reaction taken during a battle is an Interrupt action and follows the Rules of Presence and Location (Comprehensive Rules, Combat Segment); a
+    // Reaction taken outside a battle has no presence rule. So in a battle (CurrentBattleProvince) its player needs a unit at the battlefield, and a Reaction on a card in a unit needs that unit
+    // there too unless the action is Absent / moves a unit to the battle, may be used away (SourceUnitMayBeAway) or has Home (its unit home). A Holding or a Strategy played from a hand gives
+    // no presence of its own and needs only the player's (a controlled Personality). A Region is present only on the attacked province, and its controller needs a Personality there as well.
+    // Archery Range reacts from home (issue #1131) and the Training fixtures have no location rule; both still need the player's presence only when a rule says so (they keep none).
+    // Mendon's ruling (2026-10-27, issue #1133): a player keeps the presence of a Personality an action or a battle's resolution destroyed until that action is fully resolved, which includes closing
+    // the Reaction window the destruction opened. So while the after-action or after-resolution window is open, the player whose Personality was destroyed still has presence (Crippled Sensei and
+    // Feign Death can always answer a Personality's destruction).
+    private bool PresenceHeldUntilWindowCloses(int playerId) => _state.PendingChoice?.Type switch
+    {
+        "afterActionResolvedReaction" => LastActionDestroyedOwnPersonality(playerId),
+        "afterResolutionReaction" => _state.PendingAfterResolution?.Losers.Contains(playerId) == true,
+        _ => false,
+    };
+    private string? BattleReactionPresenceRefusal(AbilityDefinition ability, string id, CardInstance? source, int playerId)
+    {
+        if (ability.Timing != "Reaction" || _state.CurrentBattleProvince is not int battlefield) return null;
+        if (ability.Absent || ability.MovesToBattle || id is "tsukimi-battlefield" or "rokku-move" or "wave-persists-move" /* moves its own unit to the battlefield (Tsukimi, Rokku, The Wave Persists): the Rules of Presence and Location' move-in exception */ || id is "archery-range-reaction" || id.StartsWith("training-", StringComparison.Ordinal)) return null; // training-*: scenario fixtures with no location rule
+        if (!(Army(playerId, battlefield).Any() || Wave735WaivesPresence(playerId) || PresenceHeldUntilWindowCloses(playerId))) return "You need a unit at the current battlefield to take a Reaction in a battle.";
+        if (source is null || !InPlay(source)) return null;
+        if (source.Zone == Zone.Region) return source.ProvinceIndex == battlefield && source.OwnerId != _state.ActivePlayerId ? null : "A Region is present only at a battle on its own province.";
+        // Engage Reactions listed in EngageSourceElsewhere (Rokku, Hayan, the Sled) move a unit to the battlefield from elsewhere (issues #838/#840), and Mitsuo reacts to an action that moved him away: neither can need the card at the battlefield.
+        var inUnit = (Definition(source).Type == CardType.Personality || source.Zone == Zone.Attached) && !EngageSourceElsewhere.Contains(id) && id != "mitsuo-additional-action";
+        if (inUnit && !SourceMayBeAway(ability, source) && !HomeWaivesSourceLocation(ability, source) && !AtBattle(source)) return "The card taking this Reaction must be at the current battlefield.";
+        return null;
     }
     private bool ProvinceAttackReactionAvailableTo(int playerId, int attackerId, int province) =>
         AnyInPlayReactionAvailable("before-attack-resolves", (c, id) => c.OwnerId == playerId && AttackReactionOffered(c, id, playerId, attackerId, province))
@@ -4988,7 +5014,7 @@ public sealed partial class MatchEngine
         return _state.Cards.Values.Where(c => c.OwnerId == playerId && c.Zone is Zone.Hand or Zone.FateDiscard or Zone.DynastyDiscard)
             .SelectMany(c => AbilityIdsOf(c).Select(id => (Card: c, AbilityId: id)))
             // Cherry Blossom Festival (issue #492, group F): no players may take Reactions -- a trait modelled as one is not barred (Mendon's R4 ruling, TraitReactions).
-            .Where(x => AbilityCatalog.All.TryGetValue(x.AbilityId, out var a) && a.Timing == "Reaction" && a.Trigger == trigger && !BarredByCherryBlossom(x.AbilityId) && !P3ReactionLocked(playerId, x.AbilityId) /* issue #503 */ && AbilitySourceZoneAllows(a, x.Card, player));
+            .Where(x => AbilityCatalog.All.TryGetValue(x.AbilityId, out var a) && a.Timing == "Reaction" && a.Trigger == trigger && BattleReactionPresenceRefusal(a, x.AbilityId, x.Card, playerId) is null && !BarredByCherryBlossom(x.AbilityId) && !P3ReactionLocked(playerId, x.AbilityId) /* issue #503 */ && AbilitySourceZoneAllows(a, x.Card, player));
     }
     private bool AnyPersonalityEntryReactionAvailable(int playerId) => AnyOutOfPlayReactionAvailable(playerId, "any-personality-enters-play");
     // Additional Action (issue #181): a grant is a Battle action the named player may take without
@@ -5666,6 +5692,7 @@ public sealed partial class MatchEngine
         var usageKey = ability.UsageKey ?? id;
         if (!(ability.OncePerGame ? !uses.ContainsKey(usageKey) : !AbilityUseSpent(uses, ability, usageKey) || UnsafePassageWaives(command, source))) return "This ability has already been used within its limit."; // Unsafe Passage (issue #622)
         RequireAbilityGates(id, player, source);
+        if (BattleReactionPresenceRefusal(ability, id, source, player.Id) is { } presenceRefusal) return presenceRefusal; // issue #1133
         if (id == "border-first") { if (!(player.TurnsTaken == 1)) return "This Border Keep ability is only available on your first turn."; }
         // Battle/Open presence primitive (issue #267): a printed "Battle/Open" ability carries no
         // battlefield-presence requirement at all when used as its OPEN half (performed from Home,

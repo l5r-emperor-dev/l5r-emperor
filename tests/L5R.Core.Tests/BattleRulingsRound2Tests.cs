@@ -445,7 +445,7 @@ internal static class BattleRulingsRound2Tests
     private static void EngageClaimNegated()
     {
         var s = Selection();
-        var sakuma = Add(s, Sakuma, 1, Zone.Home); var ally = Add(s, "training-crane-samurai", 1, Zone.Battlefield, province: 0);
+        var sakuma = Add(s, Sakuma, 1, Zone.Battlefield, province: 0); var ally = Add(s, "training-crane-samurai", 1, Zone.Battlefield, province: 0);
         Add(s, "training-lion-samurai", 0, Zone.Battlefield, province: 0);
         Add(s, PoliticalClaim, 0, Zone.Hand);
         foreach (var c in s.Cards.Values.Where(c => c.OwnerId == 0 && CardCatalog.Get(c.DefinitionId).GoldProduction > 0)) c.Bowed = true; // he cannot pay Sakuma's 2 Gold: the negation is automatic
@@ -563,7 +563,7 @@ internal static class BattleRulingsRound2Tests
     private static void SuspendedWindowIsState()
     {
         var s = Selection();
-        var sakuma = Add(s, Sakuma, 1, Zone.Home); var ally = Add(s, "training-crane-samurai", 1, Zone.Battlefield, province: 0);
+        var sakuma = Add(s, Sakuma, 1, Zone.Battlefield, province: 0); var ally = Add(s, "training-crane-samurai", 1, Zone.Battlefield, province: 0);
         Add(s, "training-lion-samurai", 0, Zone.Battlefield, province: 0); Add(s, PoliticalClaim, 0, Zone.Hand);
         foreach (var c in s.Cards.Values.Where(c => c.OwnerId == 0 && CardCatalog.Get(c.DefinitionId).GoldProduction > 0)) c.Bowed = true;
         var e = MatchEngine.FromTestState(s);

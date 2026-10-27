@@ -164,6 +164,7 @@ internal static class EmbersOfWarBatch2Tests
         s3.Phase = Phase.BattleSelection; s3.ActivePlayerId = 0; s3.PriorityPlayerId = 0; s3.CurrentBattleProvince = null; s3.UnresolvedBattlefields = [0];
         var rokku3 = Add(s3, Rokku, 1, Zone.Home, bowed: true);
         Add(s3, "training-crane-samurai", 0, Zone.Battlefield, province: 0); // the attacker's unit: enemy presence for Rokku's own (defending) controller
+        Add(s3, "training-lion-samurai", 1, Zone.Battlefield, province: 0); // a unit of Rokku's own controller at the battlefield: presence for taking a Reaction in a battle
         var e3 = MatchEngine.FromTestState(s3);
         Accept(e3, new("selectBattle", 0, e3.Version, Province: 0));
         Eq(e3.State.PendingChoice?.Type, "engageReaction", "the engage window opens");

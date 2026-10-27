@@ -488,6 +488,7 @@ internal static class ShadowsEmbraceBatch3Tests
         var shadows = Add(s, CastTwoShadows, 0, Zone.Hand);
         var magistrate = Grant(Add(s, "training-lion-samurai", 1, Zone.Battlefield, province: 0), "Magistrate");
         var ninja = Grant(Add(s, "training-crane-samurai", 0, Zone.Battlefield, province: 0), "Ninja");
+        Add(s, "training-lion-samurai", 0, Zone.Battlefield, province: 0); // presence (issue #1133): the Strategy's player keeps a unit at the battlefield after the Ninja was moved home
         var e = MatchEngine.FromTestState(s);
         Accept(e, Offer(e, 1, "captured-convict-move", convict.Id, ninja.Id, magistrate.Id));
         Eq(e.State.Cards[ninja.Id].Zone, Zone.Home, "the Ninja was moved home from battlefield 0");

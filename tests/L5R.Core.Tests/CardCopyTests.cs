@@ -498,6 +498,7 @@ internal static class CardCopyTests
         e = Edit(e, st =>
         {
             st.Phase = Phase.Battle; st.ActivePlayerId = 1; st.PriorityPlayerId = 1; st.CurrentBattleProvince = 0; st.UnresolvedBattlefields = [0]; st.PendingChoice = null;
+            st.Cards[wearer.Id].Zone = Zone.Battlefield; st.Cards[wearer.Id].ProvinceIndex = 0; // #1133: a Reaction in a battle needs its unit at the battlefield
             straightener = Add(st, "training-battle-straightener", 1, Zone.Battlefield, province: 0).Id;
             target = Add(st, "training-crane-samurai", 1, Zone.Battlefield, bowed: true, province: 0).Id;
         });

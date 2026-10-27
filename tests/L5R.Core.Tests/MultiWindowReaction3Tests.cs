@@ -38,6 +38,7 @@ internal static partial class MultiWindowReaction3Tests
         ("Shosuro Makiko (Political Reaction, bow her): the Honor GAIN from another player's action is reduced by 2; not for a loss, not while bowed, not outside the window; her Open Favor action is independent", MakikoReduce),
         ("Unimpeachable Name (Reaction before an Honor loss): a loss from another player's action is reduced by 3 for its holder; not offered to the actor or mid-Action phase without a loss; its Battle bow is independent", UnimpeachableNameReduce),
         ("Tamori Tamoko (Reaction before an action resolves): another player's movement of a Personality can be negated; offered to her controller only; not outside the window; her Open action is independent", TamokoNegate),
+        ("A Reaction taken in a battle follows the Rules of Presence and Location (issue #1133): a Personality's own Reaction needs her at the battlefield, and her player needs a unit there", ReactionNeedsPresence),
         ("Bayushi Irezu (Reaction before a duel begins, bow): a Scorpion Clan Personality challenged by another player's duel is replaced by Irezu; not once he is bowed, not outside the duel window; his Battle move is independent", IrezuDuelEnter),
         ("Asako Kikugoro (Reaction after your Henshin enters play): another Henshin purchased opens the look at the top two Dynasty cards; not for a non-Henshin, not to the other player or outside the entry window", KikugoroHenshinEntry),
         ("Kaiu Village (Reaction after your Personality enters play from a province, pay 2 Gold): creates and attaches a +1F Armor; not to the other player, not outside the entry window; the Weapon half is the sibling", KaiuVillageArmor),
@@ -412,8 +413,8 @@ internal static partial class MultiWindowReaction3Tests
         {
             var s = Table(); s.PriorityPlayerId = 1;
             fires = Add(s, DefWith("fires-of-turmoil"), 1, Zone.Hand); victim = Bf(s, "training-battle-bower", 0); Bf(s, "training-lion-samurai", 1);
-            var host = AtHome(s, "training-crane-samurai", 0); Kw(host, "Shugenja", element);
-            spell = Add(s, Def("w737-reverse-fate-plus"), 0, Zone.Attached, parent: host.Id);
+            var host = Bf(s, "training-crane-samurai", 0); Kw(host, "Shugenja", element);
+            spell = Add(s, Def("w737-reverse-fate-plus"), 0, Zone.Attached, province: 0, parent: host.Id);
             return s;
         }
         var st = Build("Void", out var spell, out var fires, out var victim);
@@ -526,7 +527,7 @@ internal static partial class MultiWindowReaction3Tests
     private static void HiddenDefensesMove()
     {
         CardInstance mover = null!, card = null!;
-        var e = Engage(t => { mover = Add(t, "training-crane-veteran", 0, Zone.Home, true); Bf(t, "training-lion-samurai", 1); card = Add(t, Def("hidden-defenses-move"), 0, Zone.Hand); });
+        var e = Engage(t => { mover = Add(t, "training-crane-veteran", 0, Zone.Home, true); Bf(t, "training-lion-samurai", 1); Bf(t, "training-crane-samurai", 0); card = Add(t, Def("hidden-defenses-move"), 0, Zone.Hand); });
         Check(!Listed(e, 1, "hidden-defenses-move", card.Id), "not offered to the other player");
         var cmd = Enabled(e, 0, "hidden-defenses-move", card.Id, mover.Id).Command!;
         Reject(e, cmd with { PlayerId = 1, ExpectedVersion = e.Version });
@@ -778,7 +779,7 @@ internal static partial class MultiWindowReaction3Tests
         MatchState Build(out CardInstance makiko, out CardInstance akahiko, out CardInstance target, bool bowed = false)
         {
             var s = Table(Phase.Battle, 1);
-            makiko = Add(s, Def("wlpt-makiko-reduce"), 0, Zone.Home, bowed); akahiko = Bf(s, "oracle-l5r-10278", 1); target = Bf(s, "training-crane-samurai", 0);
+            makiko = Add(s, Def("wlpt-makiko-reduce"), 0, Zone.Battlefield, bowed, 0); akahiko = Bf(s, "oracle-l5r-10278", 1); target = Bf(s, "training-crane-samurai", 0);
             return s;
         }
         var st = Build(out var mk, out var ak, out var tg);
@@ -840,7 +841,7 @@ internal static partial class MultiWindowReaction3Tests
         {
             var s = Table(Phase.Battle, 1);
             card = Add(s, Def("determined-challenge-move"), 1, Zone.Hand); perf = Bf(s, "training-lion-samurai", 1);
-            target = AtHome(s, "training-crane-samurai", 0, bowed: true); tam = AtHome(s, Def("tamoko-negate"), 0);
+            target = AtHome(s, "training-crane-samurai", 0, bowed: true); tam = Bf(s, Def("tamoko-negate"), 0);
             return s;
         }
         var st = Build(out var card, out var perf, out var target, out var tam);
@@ -860,6 +861,30 @@ internal static partial class MultiWindowReaction3Tests
         var o = Table(Phase.Action, 1); o.PriorityPlayerId = 0; var tm = AtHome(o, Def("tamoko-negate"), 0); var active = AtHome(o, "training-lion-samurai", 1);
         var q = MatchEngine.FromTestState(o);
         Check(Options(q, 0, "tamoko-open", tm.Id).Any(x => x.Enabled && (x.TargetIds ?? []).Contains(active.Id)), "her Open action is independent of the Reaction");
+    }
+
+    // Mendon's ruling (2026-10-27, issue #1133): a Reaction taken in a battle is an Interrupt action and follows the Rules of Presence and Location. Tamoko's Reaction is offered only when she stands at the
+    // battlefield: not from home even though her player has another unit there, and not when her player has no unit there at all.
+    private static void ReactionNeedsPresence()
+    {
+        (MatchEngine E, CardInstance Tam) Play(bool tamokoAtBattle, bool otherUnit)
+        {
+            var s = Table(Phase.Battle, 1);
+            var card = Add(s, Def("determined-challenge-move"), 1, Zone.Hand); var perf = Bf(s, "training-lion-samurai", 1);
+            var target = AtHome(s, "training-crane-samurai", 0, bowed: true);
+            var tam = tamokoAtBattle ? Bf(s, Def("tamoko-negate"), 0) : AtHome(s, Def("tamoko-negate"), 0);
+            if (otherUnit) Bf(s, "training-crane-samurai", 0);
+            var e = MatchEngine.FromTestState(s);
+            Accept(e, Use(e, 1, "determined-challenge-move", card.Id, target.Id, performerId: perf.Id));
+            ToPlayer(e, 0);
+            return (e, tam);
+        }
+        var (present, tamoko) = Play(tamokoAtBattle: true, otherUnit: false);
+        Check(Listed(present, 0, "tamoko-negate", tamoko.Id), "she is at the battlefield: her Reaction is offered");
+        var (home, homeTamoko) = Play(tamokoAtBattle: false, otherUnit: true);
+        Check(!Listed(home, 0, "tamoko-negate", homeTamoko.Id), "she is at home: her player has presence, but her own Reaction needs her at the battlefield");
+        var (alone, aloneTamoko) = Play(tamokoAtBattle: false, otherUnit: false);
+        Check(!Listed(alone, 0, "tamoko-negate", aloneTamoko.Id), "no unit of her player's at the battlefield: no Reaction at all");
     }
 
     private static void IrezuDuelEnter()
