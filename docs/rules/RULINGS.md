@@ -733,11 +733,11 @@ Fallow Lands' Reaction ("after a Melee or Ranged Attack is targeted: -2 strength
 - **Source:** Mendon, issue #1124.
 
 ### R-088 — Attack reactions: a province is a target, and presence at the attacked battlefield is required
-An Attack on a province is targeted (as is any card the Attack affects), so every "after an Attack is targeted" Reaction triggers on it. Unless its text lets it be used from another location, a Reaction to an Attack needs presence at the battlefield where the province is attacked: an in-play card must be at that battlefield (a Follower, Item or Spell through its wielder), a Holding never is, and a Strategy played from a hand needs its player to have a Personality there. A Reaction that needs a card to be targeted (A Close Call, Akodo Kakihara, Flesh Cutter Arrows) cannot react to an Attack that targets no card. An Attack that names neither a card nor a province cannot be reacted to.
+An Attack on a province is targeted (as is any card the Attack affects), so every "after an Attack is targeted" Reaction triggers on it. Unless its text lets it be used from another location, a Reaction to an Attack, whether it targets a province or a card, needs presence at the battlefield of the Attack: an in-play card must be at that battlefield (a Follower, Item or Spell through its wielder) and a Strategy played from a hand needs its player to have a Personality there. Isawa Kaname, Moshi Umiko and Kaiu Fumiko must stand at the battlefield. Archery Range may react from home. A Reaction that needs a card to be targeted (A Close Call, Akodo Kakihara, Flesh Cutter Arrows) cannot react to an Attack that targets no card. An Attack that names neither a card nor a province cannot be reacted to.
 
-- **Cards/primitives:** `before-attack-resolves` Reactions (Khol Regulars, Archery Range, Isawa Kaname, Moshi Umiko, Kaiu Fumiko, Strong Defenses, Trusting Instinct, Precision, Sniping, Unholy Strike, Steal the Candle's Flame, Fallow Lands); `ProvinceAttackReactionOffered`.
+- **Cards/primitives:** `before-attack-resolves` Reactions (Khol Regulars, Archery Range, Isawa Kaname, Moshi Umiko, Kaiu Fumiko, Strong Defenses, Trusting Instinct, Precision, Sniping, Unholy Strike, Steal the Candle's Flame, Fallow Lands); `AttackReactionOffered`. The `training-attack-boost` / `training-attack-negate` fixture has no location rule.
 - **Date:** 2026-10-27
-- **Source:** Mendon, issue #1129. Applied to Attacks on a province only; whether the presence requirement also applies to Attacks on a card is open.
+- **Source:** Mendon, issues #1129 and #1131 (2026-10-27: the presence rule applies to Attacks on a card too; Archery Range acts from home; a Strategy needs no one at the battlefield only if its text says so).
 
 ## Printings and card text
 

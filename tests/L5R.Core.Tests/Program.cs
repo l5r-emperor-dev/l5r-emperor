@@ -622,9 +622,7 @@ static void FallowLandsRegion()
         Accept(e, new GameCommand("declineReaction", 1, e.Version)); // the attacker holds nothing, so this one pass closes the window
         Check(e.State.Cards[enemy.Id].Zone == Zone.Battlefield, "Force 4 vs. reduced strength 3 no longer destroys -- worked the very turn Fallow Lands entered play");
     }
-    // Rejected when its own province is not the one under attack, even though the window still opens
-    // (a Reaction-eligible card merely existing in play is enough for that, regardless of whether its
-    // own Require would actually pass).
+    // Not offered when its own province is not the one under attack (issue #1131: a Reaction needs presence at the battlefield): no window opens at all and the Attack resolves at full strength.
     {
         var s = StrongholdBattle("oracle-l5r-1218");
         Add(s, "training-lion-samurai", 0, Zone.Battlefield, province: 0);
@@ -634,9 +632,7 @@ static void FallowLandsRegion()
         s.Players[1].Provinces[1].RegionId = fallowLands.Id;
         var e = MatchEngine.FromTestState(s);
         Accept(e, new GameCommand("useAbility", 0, e.Version, CardId: s.Players[0].StrongholdId, PerformerId: castle.Id, TargetId: enemy.Id, AbilityId: "carpenter-castle-siege"));
-        Equal(e.State.PendingChoice?.Type, "attackReaction");
-        Reject(e, new GameCommand("useAbility", 1, e.Version, CardId: fallowLands.Id, AbilityId: "fallow-lands-reaction"));
-        Accept(e, new GameCommand("declineReaction", 1, e.Version)); // the attacker holds nothing, so this one pass closes the window (issue #644)
+        Equal(e.State.PendingChoice, null);
         Check(e.State.Cards[enemy.Id].Zone == Zone.Dead, "Attack resolved at full strength -- Fallow Lands never reacted");
     }
 }

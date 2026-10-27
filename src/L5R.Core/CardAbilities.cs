@@ -4925,24 +4925,28 @@ public sealed partial class MatchEngine
     // Per player (issue #318): who holds a reaction decides who has the first opportunity in the window
     // (FirstReactionOpportunity), so availability is asked of one owner at a time.
     private bool AttackReactionAvailableTo(int playerId, int attackerId, string? targetId) =>
-        AnyInPlayReactionAvailable("before-attack-resolves", (c, id) => c.OwnerId == playerId
+        AnyInPlayReactionAvailable("before-attack-resolves", (c, id) => c.OwnerId == playerId && AttackReactionOffered(c, id, playerId, attackerId, null)
             && (id != "kakihara-attack-force-bonus" || targetId == c.Id && KakiharaCanReact(c, attackerId)))
-        || AnyOutOfPlayReactionAvailable(playerId, "before-attack-resolves")
+        || OutOfPlayReactions(playerId, "before-attack-resolves").Any(x => AttackReactionOffered(x.Card, x.AbilityId, playerId, attackerId, null))
         || OwnsTargetedActionReaction(playerId, SubjectForAttack(_runningCommand, targetId));
     // An Attack that targets a province (issues #1124, #1129; Mendon's ruling): a province is a target, so every "after an Attack is targeted" Reaction triggers on it. Each needs presence at the
     // attacked battlefield, because none of them says it may be used from another location: an in-play card must be at that battlefield (a Follower, Item or Spell through its wielder), and a Strategy
     // played from a hand needs its player to have a Personality there. Fallow Lands is its Region on the attacked province with its controller present. A Reaction that needs a CARD to be targeted
     // (A Close Call, Akodo Kakihara, Flesh Cutter Arrows) cannot react: the Attack names no card.
-    private bool ProvinceAttackReactionOffered(CardInstance? card, string id, int playerId, int attackerId, int province)
+    // Mendon's amendment (2026-10-27, issue #1131): the same presence rule holds for an Attack on a CARD. None of these Reactions says it may be taken from another location, so each needs presence at
+    // the battlefield: Kaname, Umiko and Fumiko must stand there, and a Strategy needs a controlled Personality there. Archery Range alone may react from home. `province` is the attacked province
+    // for an Attack on a province (null for one on a card).
+    private bool AttackReactionOffered(CardInstance? card, string id, int playerId, int attackerId, int? province)
     {
-        if (id is "kakihara-attack-force-bonus" or "a-close-call-negate" or "flesh-cutter-arrows-reaction") return false;
-        if (province != _state.CurrentBattleProvince) return false;
-        if (id == "fallow-lands-reaction") return card is not null && card.OwnerId != attackerId && card.ProvinceIndex == province && Army(playerId, province).Any();
-        return card is not null && InPlay(card) ? AtBattle(card) : Army(playerId, province).Any();
+        if (province is not null && id is "kakihara-attack-force-bonus" or "a-close-call-negate" or "flesh-cutter-arrows-reaction") return false;
+        if (_state.CurrentBattleProvince is not int battlefield || province is not null && province != battlefield) return false;
+        if (id is "archery-range-reaction" or "training-attack-boost" or "training-attack-negate") return true; // Archery Range may react from home; the Training fixture stands for a Reaction with no location (it keeps windows open in many suites)
+        if (id == "fallow-lands-reaction") return card is not null && card.OwnerId != attackerId && card.ProvinceIndex == battlefield && Army(playerId, battlefield).Any();
+        return card is not null && InPlay(card) ? AtBattle(card) : Army(playerId, battlefield).Any();
     }
     private bool ProvinceAttackReactionAvailableTo(int playerId, int attackerId, int province) =>
-        AnyInPlayReactionAvailable("before-attack-resolves", (c, id) => c.OwnerId == playerId && ProvinceAttackReactionOffered(c, id, playerId, attackerId, province))
-        || OutOfPlayReactions(playerId, "before-attack-resolves").Any(x => ProvinceAttackReactionOffered(x.Card, x.AbilityId, playerId, attackerId, province));
+        AnyInPlayReactionAvailable("before-attack-resolves", (c, id) => c.OwnerId == playerId && AttackReactionOffered(c, id, playerId, attackerId, province))
+        || OutOfPlayReactions(playerId, "before-attack-resolves").Any(x => AttackReactionOffered(x.Card, x.AbilityId, playerId, attackerId, province));
     private bool AnyAttackReactionAvailable(int attackerId, string? targetId) =>
         AttackReactionAvailableTo(0, attackerId, targetId) || AttackReactionAvailableTo(1, attackerId, targetId);
     // Akodo Kakihara (oracle-l5r-223, issue #305): "Reaction: After another player's action targets
@@ -5837,9 +5841,11 @@ public sealed partial class MatchEngine
         if (id is "kaname-attack-boost" or "umiko-attack-boost" or "umiko-attack-reduce") { if (!(_state.PendingAttack!.Kind == "Ranged")) return "This only reacts to a Ranged Attack."; }
         if (id == "umiko-attack-reduce")
         { if (!(!_state.RangedAttackStrengthReductionImmune)) return "This Ranged Attack is immune to strength reduction for the remainder of its resolution."; }
-        // An Attack that targets a province names no card (issues #1124, #1129): a Reaction needing a card target, or presence it lacks at the attacked battlefield, cannot react.
-        if (AbilityCatalog.All[id].Trigger == "before-attack-resolves" && _state.PendingAttack is { TargetId: null } provinceAttack
-            && !ProvinceAttackReactionOffered(source, id, player.Id, provinceAttack.PlayerId, provinceAttack.Command?.Province ?? _state.CurrentBattleProvince ?? -1)) return "This Attack targets a province: this Reaction needs a card to be targeted, or presence at the attacked battlefield.";
+        // An Attack that targets a province names no card (issues #1124, #1129): a Reaction needing a card target cannot react. Every Attack Reaction needs presence at the battlefield unless it says
+        // it may be taken elsewhere (issue #1131; Archery Range).
+        if (AbilityCatalog.All[id].Trigger == "before-attack-resolves" && _state.PendingAttack is { } reactedAttack
+            && !AttackReactionOffered(source, id, player.Id, reactedAttack.PlayerId, reactedAttack.TargetId is null ? reactedAttack.Command?.Province ?? _state.CurrentBattleProvince ?? -1 : null))
+            return reactedAttack.TargetId is null ? "This Attack targets a province: this Reaction needs a card to be targeted, or presence at the attacked battlefield." : "This Reaction needs presence at the battlefield where the Attack is made.";
         if (id == "flesh-cutter-arrows-reaction")
         {
             if (!(_state.PendingAttack!.Kind == "Ranged" && _state.PendingAttack.SourceId == Card(source!.AttachedTo!).Id

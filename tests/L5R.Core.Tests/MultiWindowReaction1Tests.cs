@@ -302,7 +302,8 @@ internal static partial class MultiWindowReaction1Tests
         var target = Add(s, "training-crane-samurai", 0, Zone.Battlefield, province: 0);
         if (armor) Kw(Add(s, "training-weapon", 0, Zone.Attached, province: 0, parent: target.Id), "Armor");
         var type = CardCatalog.Get(reactorDef).Type;
-        var reactor = Add(s, reactorDef, owner, type == CardType.Personality ? Zone.Home : Zone.Hand);
+        // Issue #1131: a Personality's Reaction to an Attack needs presence at the battlefield (the Training fixture has no location rule and stays home).
+        var reactor = type == CardType.Personality ? reactorDef == "training-attack-reactor" ? Add(s, reactorDef, owner, Zone.Home) : Add(s, reactorDef, owner, Zone.Battlefield, province: 0) : Add(s, reactorDef, owner, Zone.Hand);
         var probe = MatchEngine.FromTestState(s);
         Force(target, targetForce - probe.CardForceForTest(target.Id));
         var e = MatchEngine.FromTestState(s);
