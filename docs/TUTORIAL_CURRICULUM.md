@@ -18,7 +18,7 @@ A track with a single built lesson has no list: choosing it starts the lesson.
 |---|---|
 | Events, Regions, and Celestials (`dynasty-deck`) | The rest of the Dynasty Deck: Unicorn Maidens against Mantis Manipulation, one turn each. Dark Experiments, Natural Aviary, Ebisu's Honesty and the Mantis Border Keep refresh (built, issue #1074). |
 | Recruiting Personalities (`recruiting`) | Clan Alignment, Honor Requirement, Recruitment Effects, Overlays: Crab Control against Classic Crane at the Dynasty phase. Gold Cost and Honor Requirement (each swells on the cards, over and over, while its note shows), a Loyal card that will not join, Proclaim, the Clan Discount, an Overlay, then the Crane showing Clan Allegiance against an Honor Requirement (built, issue #1075). |
-| Spells and Shugenja (`spells`) | Attaching and using spells in the Action and Battle Phases |
+| Spells and Shugenja (`spells`) | Attaching and using spells in the Action and Battle Phases: Phoenix (Library of Rebirth) against Scorpion Lethargy. Only a Shugenja takes a Spell, Equip (Limited) in your Action phase, element keywords, cost and effect; then you defend, and Equip (Battle) with its additional action destroys Bayushi Waru (The Earth's Hunger bows Isawa Tomohiro, who is not Earth), Shiba Sansesuke catches the Scorpion's bow, and Library of Rebirth pays for Strength of the Tsunami (built, issue #1076). |
 | Attachments (`attachments`) | Using actions on attachments |
 | Keywords (`keywords`) | Functional vs Non-functional Keywords |
 | Traits and Actions (`traits-actions`) | Timing and limitations of Traits and Actions |

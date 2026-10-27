@@ -9,6 +9,7 @@ public partial class Main
     private const float PlacardStackScale = .85f;
     private readonly Dictionary<(int Owner, int Province), ProvincePlacard> _provincePlacards = [];
     private readonly List<Control> _placardStack = [];
+    private float _placardStackHeight;
 
     private void AddProvincePlacard(Control area, PlayerView owner, ProvinceView province, float width)
     {
@@ -25,7 +26,7 @@ public partial class Main
     private void AddBattleStack()
     {
         foreach (var node in _placardStack.Where(IsInstanceValid)) node.QueueFree();
-        _placardStack.Clear();
+        _placardStack.Clear(); _placardStackHeight = 0;
         if (View.WinnerId is not null || View.CurrentBattleProvince is not int field || BattleValues(field) is not { } values) return;
         var seals = View.Players.OrderBy(p => p.Id == View.ViewerId ? 1 : 0).Select(p =>
         {
@@ -43,7 +44,9 @@ public partial class Main
         parts.Add(seals[1]);
         const float gap = 8;
         var total = parts.Sum(p => p.Size.Y) + gap * (parts.Count - 1);
-        var y = 540 - total * PlacardStackScale / 2;
+        _placardStackHeight = total * PlacardStackScale;
+        // While a lesson's coach column holds the left edge, the stack sits at the foot of that column and the note ends above it (issue #1076); otherwise it is centred on the left edge.
+        var y = _coachPanel is { Visible: true } ? TutorialColumnTop + TutorialColumnHeight - _placardStackHeight : 540 - _placardStackHeight / 2;
         foreach (var part in parts)
         {
             part.Scale = Vector2.One * PlacardStackScale; part.Position = new Vector2(16, y);

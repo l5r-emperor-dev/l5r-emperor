@@ -3082,6 +3082,7 @@ public sealed partial class MatchEngine
                 continue;
             }
             var card = Card(province.CardId!);
+            if (!card.FaceUp && _tutorialFaceDown.Remove((player.Id, province.Index))) { _state.EventsRevealNext = province.Index + 1; continue; } // tutorial only: this province stays face down
             if (!card.FaceUp && TutorialRevealHold(player.Id, province.Index, after: false, () => ContinueEventsReveal(player))) return; // tutorial only: stop before this province is revealed
             _state.EventsRevealNext = province.Index + 1;
             if (!card.FaceUp)
