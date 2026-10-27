@@ -100,7 +100,7 @@ internal static class EmperorPersonalityBatch6Tests
         var shig = Add(s, Shigeyuki, 0, Zone.Battlefield, province: 0);
         var foe = Add(s, targetDefinition, 1, Zone.Battlefield, province: 0);
         foe.Modifiers.Add(new("test-source", "test", "PersonalHonor", -CardCatalog.Get(targetDefinition).PersonalHonor));
-        if (withYataku) Add(s, Yataku, 1, Zone.Home);
+        if (withYataku) Add(s, Yataku, 1, Zone.Battlefield, province: 0);
         edit?.Invoke(s);
         var e = MatchEngine.FromTestState(s);
         Accept(e, Offer(e, 0, "shigeyuki-duel", shig.Id, foe.Id));
@@ -141,7 +141,7 @@ internal static class EmperorPersonalityBatch6Tests
         var s = Table(Phase.Battle, 0); s.PriorityPlayerId = 0;
         var bower = Add(s, "training-battle-bower", 0, Zone.Battlefield, province: 0);
         var samurai = Add(s, Washi, 1, Zone.Battlefield, province: 0);
-        Add(s, Yataku, 1, Zone.Home);
+        Add(s, Yataku, 1, Zone.Battlefield, province: 0);
         var other = MatchEngine.FromTestState(s);
         Accept(other, Offer(other, 0, "training-bow-at-battle", bower.Id, samurai.Id));
         Check(other.State.PendingChoice?.Type != "beforeActionReaction", "Yataku only answers an action that creates a challenge");

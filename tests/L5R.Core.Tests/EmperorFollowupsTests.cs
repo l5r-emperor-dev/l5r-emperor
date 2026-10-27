@@ -440,17 +440,19 @@ internal static class EmperorFollowupsTests
         var e2 = MatchEngine.FromTestState(s2);
         Accept(e2, Offer(e2, 0, "favor-battle", null!, attacker2.Id));
         Check(!CanUse(e2, 0, "chukage-follow", ownChukage.Id), "an enemy Personality's move is not one of his controller's Personalities moving");
-        // Already at the location: no move, no straightening.
-        var s3 = Table(Phase.Battle, 1); s3.PriorityPlayerId = 0; s3.FavorPlayerId = 0;
-        StrongholdOf(s3, 0, Halls);
-        Add(s3, "training-crane-samurai", 0, Zone.Battlefield, province: 0);
-        var attacker3 = Add(s3, "training-lion-samurai", 1, Zone.Battlefield, province: 0);
-        var homeChukage = Add(s3, Chukage, 1, Zone.Home, bowed: true);
+        // Already at the location: no move, no straightening. (Presence: in a battle the Reaction's Personality must itself be at the battlefield, so Chukage stands there
+        // and the moved Personality is brought to that same battlefield by his controller's own action -- he is already at the location.)
+        var s3 = Table(Phase.Battle, 1);
+        var mover3 = Add(s3, "training-move-source", 1, Zone.Battlefield, province: 0);
+        var homeChukage = Add(s3, Chukage, 1, Zone.Battlefield, bowed: true, province: 0);
+        var moved3 = Add(s3, "training-lion-samurai", 1, Zone.Home);
         var e3 = MatchEngine.FromTestState(s3);
-        Accept(e3, Offer(e3, 0, "favor-battle", null!, attacker3.Id));
+        Accept(e3, Offer(e3, 1, "training-move-current", mover3.Id, moved3.Id));
+        Eq(e3.State.Cards[moved3.Id].Zone, Zone.Battlefield, "the Personality was moved to the battlefield");
+        Eq(e3.State.PendingChoice?.Type, "afterActionResolvedReaction", "the window after the action opened");
         if (e3.State.PriorityPlayerId != 1) Accept(e3, new GameCommand("declineReaction", e3.State.PriorityPlayerId, e3.Version));
-        Accept(e3, Offer(e3, 1, "chukage-follow", homeChukage.Id, attacker3.Id));
-        Check(e3.State.Cards[homeChukage.Id].Zone == Zone.Home && e3.State.Cards[homeChukage.Id].Bowed, "he was already there: he did not move and stays bowed");
+        Accept(e3, Offer(e3, 1, "chukage-follow", homeChukage.Id, moved3.Id));
+        Check(e3.State.Cards[homeChukage.Id].Zone == Zone.Battlefield && e3.State.Cards[homeChukage.Id].Bowed, "he was already there: he did not move and stays bowed");
     }
 
     private static void RingSearchEnlightenment()

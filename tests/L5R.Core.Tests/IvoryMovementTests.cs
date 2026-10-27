@@ -454,7 +454,7 @@ internal static class IvoryMovementTests
         var card = Add(s, Treachery, 1, Zone.Hand);
         Add(s, "training-lion-samurai", 1, Zone.Battlefield, province: 0);
         var big = Add(s, "training-crane-veteran", 0, Zone.Battlefield, province: 0); Add(s, "training-follower", 0, Zone.Attached, province: 0, parent: big.Id);
-        var tamoko = Add(s, "training-tamoko", 0, Zone.Home);
+        var tamoko = Add(s, "training-tamoko", 0, Zone.Battlefield, province: 0);
         var e = MatchEngine.FromTestState(s);
         Accept(e, Cmd(e, 1, "treachery-deceit-move", card, target: big.Id));
         Eq(e.State.PendingChoice?.Type, "beforeActionReaction", "the movement is offered for negation");
@@ -466,7 +466,7 @@ internal static class IvoryMovementTests
         // Soul's Sacrifice: negated, but the keywords are still given (independent sentences).
         var t = Table(Phase.Battle, 1);
         var c2 = Add(t, SoulsSacrifice, 1, Zone.Hand); var samurai = Kw(Add(t, "training-crane-dignitary", 1, Zone.Battlefield, province: 0), "Samurai");
-        var enemy = Add(t, "training-crane-samurai", 0, Zone.Battlefield, province: 0); var tam2 = Add(t, "training-tamoko", 0, Zone.Home);
+        var enemy = Add(t, "training-crane-samurai", 0, Zone.Battlefield, province: 0); var tam2 = Add(t, "training-tamoko", 0, Zone.Battlefield, province: 0);
         var f = MatchEngine.FromTestState(t);
         Accept(f, Cmd(f, 1, "souls-sacrifice-move", c2, samurai.Id, enemy.Id));
         Eq(f.State.PendingChoice?.Type, "beforeActionReaction");
@@ -478,7 +478,7 @@ internal static class IvoryMovementTests
         // Determined Challenge: the Defender's Tamoko negates the target's movement to the battle; he is not straightened.
         var u = Table(Phase.Battle, 1);
         var c3 = Add(u, DeterminedChallenge, 1, Zone.Hand); var perf = Add(u, "training-lion-samurai", 1, Zone.Battlefield, province: 0);
-        var tgt = Add(u, "training-crane-samurai", 0, Zone.Home, bowed: true); var tam3 = Add(u, "training-tamoko", 0, Zone.Home);
+        var tgt = Add(u, "training-crane-samurai", 0, Zone.Home, bowed: true); var tam3 = Add(u, "training-tamoko", 0, Zone.Battlefield, province: 0);
         var g2 = MatchEngine.FromTestState(u);
         Accept(g2, Cmd(g2, 1, "determined-challenge-move", c3, perf.Id, tgt.Id));
         Eq(g2.State.PendingChoice?.Type, "beforeActionReaction");
