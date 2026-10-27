@@ -11,8 +11,8 @@ internal static class FallowLandsReactionTests
 
     public static void Run(TestRunner runner) => runner.Run("fallow-lands-reaction", [
                 ("An Attack on the province: the window opens, Fallow Lands takes 2 off, and the province loses 2 less strength", AttackOnTheProvince),
-        ("An Attack on the province offers no other Attack reaction, and without Fallow Lands it opens no window as before", ProvinceAttackWindowIsNarrow),
-                ("Fallow Lands only opens the window for the Attack on its own province while its controller has presence there", ProvinceGates),
+                ("Without a reactor a province Attack opens no window and resolves at once", NoReactorNoWindow),
+        ("Fallow Lands only opens the window for the Attack on its own province while its controller has presence there", ProvinceGates),
     ]);
 
     private static void Check(bool ok, string message = "Assertion failed") => Batch336Support.Check(ok, message);
@@ -76,38 +76,17 @@ internal static class FallowLandsReactionTests
         Check(lostReacted == 1, "with Fallow Lands' -2 the province loses 1 strength, not 3; lost " + lostReacted);
     }
 
-    private static void ProvinceAttackWindowIsNarrow()
+    // Without a reactor nothing can react: no window, the Attack resolves at once as it always did.
+    private static void NoReactorNoWindow()
     {
-        // Another Attack reaction in the Defender's hand (Strong Defenses, -3 strength) is not usable against a province: it needs a card to be targeted.
-        var strongDefenses = CardCatalog.Cards.Values.Where(c => !c.ScenarioOnly && (c.Abilities ?? []).Contains("strong-defenses-reaction")).Select(c => c.Id).OrderBy(i => i, StringComparer.Ordinal).First();
-        var s = Position();
-        var held = Add(s, strongDefenses, 0, Zone.Hand);
-        var attacker = Add(s, ProvinceAttacker, 1, Zone.Battlefield, province: 0);
-        var e = MatchEngine.FromTestState(s);
-        Accept(e, e.QueryActions(1).Single(a => a.Type == "useAbility" && a.CardId == attacker.Id && a.Command?.AbilityId == ProvinceAttack).Command! with { TargetId = null, Province = 0 });
-        Eq(e.State.PendingChoice?.Type, "attackReaction");
-        Check(CanUse(e, 0, Reaction, Region(e).Id) || e.State.PriorityPlayerId != 0, "Fallow Lands is the reaction on offer");
-        if (e.State.PriorityPlayerId != 0) Accept(e, Decline(e));
-        Check(CanUse(e, 0, Reaction, Region(e).Id), "Fallow Lands is offered to its controller");
-        Check(!CanUse(e, 0, "strong-defenses-reaction", held.Id), "Strong Defenses is not offered against an Attack that targets no card");
-        Reject(e, Use(e, 0, "strong-defenses-reaction", held.Id));
-
-        // Without Fallow Lands nothing can react: no window, the Attack resolves at once as it always did.
         var bare = Table(Phase.Battle, 1);
         Add(bare, "training-crane-samurai", 0, Zone.Battlefield, province: 0);
-        var attacker2 = Add(bare, ProvinceAttacker, 1, Zone.Battlefield, province: 0);
-        var e2 = MatchEngine.FromTestState(bare);
-        var before = e2.ProvinceStrengthForTest(0, 0);
-        Accept(e2, e2.QueryActions(1).Single(a => a.Type == "useAbility" && a.CardId == attacker2.Id && a.Command?.AbilityId == ProvinceAttack).Command! with { TargetId = null, Province = 0 });
-        Check(e2.State.PendingChoice is null && e2.State.PendingAttack is null, "no window without a reactor");
-        Eq(before - e2.ProvinceStrengthForTest(0, 0), 3, "the province loses the full strength");
-
-        // No presence at the battlefield: Fallow Lands cannot react, so no window opens for the province Attack either.
-        var empty = Position(presence: false);
-        var attacker3 = Add(empty, ProvinceAttacker, 1, Zone.Battlefield, province: 0);
-        var e3 = MatchEngine.FromTestState(empty);
-        Accept(e3, e3.QueryActions(1).Single(a => a.Type == "useAbility" && a.CardId == attacker3.Id && a.Command?.AbilityId == ProvinceAttack).Command! with { TargetId = null, Province = 0 });
-        Check(e3.State.PendingChoice is null, "no window while the Defender has no presence");
+        var attacker = Add(bare, ProvinceAttacker, 1, Zone.Battlefield, province: 0);
+        var e = MatchEngine.FromTestState(bare);
+        var before = e.ProvinceStrengthForTest(0, 0);
+        Accept(e, e.QueryActions(1).Single(a => a.Type == "useAbility" && a.CardId == attacker.Id && a.Command?.AbilityId == ProvinceAttack).Command! with { TargetId = null, Province = 0 });
+        Check(e.State.PendingChoice is null && e.State.PendingAttack is null, "no window without a reactor");
+        Eq(before - e.ProvinceStrengthForTest(0, 0), 3, "the province loses the full strength");
     }
 
     private static MatchEngine ProvinceAttackWith(MatchState s)

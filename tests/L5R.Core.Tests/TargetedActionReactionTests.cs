@@ -1432,7 +1432,11 @@ internal static class TargetedActionReactionTests
             var siegeOnProvince = new GameCommand("useAbility", 1, e.Version, CardId: stronghold, PerformerId: castle.Id, AbilityId: "carpenter-castle-siege", Province: 0);
             Reject(e, siegeOnProvince); // an Attack that names no province cannot be aimed at one
             Accept(e, onProvince);
-            Check(Window(e) is null && e.State.PendingAttack is null && e.State.PendingNegatableAbility is null, "a province is not a card: no card-targeted reaction, no redirect, no window");
+            // A province is a target (issue #1129): the strength reactor at the battlefield may react, so its window opens; nothing card-targeted can (no redirect, no negation), and the Attack waits for it.
+            Eq(Window(e), "attackReaction", "a province is a target: the strength reactor present at the battlefield gets its window");
+            Check(e.State.PendingAttack is { TargetId: null } && e.State.PendingNegatableAbility is null, "the Attack names no card, so no card-targeted reaction or redirect is held");
+            Check(!e.QueryActions(0).Concat(e.QueryActions(1)).Any(a => a.Enabled && a.Command?.AbilityId is { } reactionId && AbilityCatalog.All.TryGetValue(reactionId, out var def) && def.Trigger == ReactionTriggers.TargetedByAction), "no card-targeted reaction is offered against a province");
+            for (var guard = 0; guard < 12 && Window(e) is not null; guard++) Accept(e, new GameCommand("declineReaction", e.State.PriorityPlayerId, e.Version));
             Eq(e.ProvinceStrengthForTest(0, 0), Math.Max(0, strength - 3), "the Attack's own effect on the province happened");
             Check(EventLogged(e, "provinceAttacked"));
         }

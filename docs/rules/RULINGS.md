@@ -726,11 +726,18 @@ A Spell attached to a Personality who is not currently a Shugenja provides no ac
 - **Source:** Mendon, following the validation report. Issue #936.
 
 ### R-087 — Fallow Lands reacts to an Attack that targets its province
-Fallow Lands' Reaction ("after a Melee or Ranged Attack is targeted: -2 strength") applies to an Attack that targets the province as well as to one that targets a card. An Attack on a province opens the Attack reaction window when Fallow Lands can react (its controller the Defender with presence at the attacked province); no other Attack reaction is offered against it, since each of those needs a card to be targeted. Without Fallow Lands such an Attack still opens no window.
+Fallow Lands' Reaction ("after a Melee or Ranged Attack is targeted: -2 strength") applies to an Attack that targets the province as well as to one that targets a card. An Attack on a province opens the Attack reaction window when Fallow Lands can react (its controller the Defender with presence at the attacked province); the other Attack reactions are covered by R-088. Without any reactor such an Attack opens no window.
 
 - **Cards/primitives:** Fallow Lands (oracle-l5r-9865); `fallow-lands-reaction`; `ResolveOrDeferAttack`, `ProvinceAttackReactionAvailableTo`.
 - **Date:** 2026-10-27
 - **Source:** Mendon, issue #1124.
+
+### R-088 — Attack reactions: a province is a target, and presence at the attacked battlefield is required
+An Attack on a province is targeted (as is any card the Attack affects), so every "after an Attack is targeted" Reaction triggers on it. Unless its text lets it be used from another location, a Reaction to an Attack needs presence at the battlefield where the province is attacked: an in-play card must be at that battlefield (a Follower, Item or Spell through its wielder), a Holding never is, and a Strategy played from a hand needs its player to have a Personality there. A Reaction that needs a card to be targeted (A Close Call, Akodo Kakihara, Flesh Cutter Arrows) cannot react to an Attack that targets no card. An Attack that names neither a card nor a province cannot be reacted to.
+
+- **Cards/primitives:** `before-attack-resolves` Reactions (Khol Regulars, Archery Range, Isawa Kaname, Moshi Umiko, Kaiu Fumiko, Strong Defenses, Trusting Instinct, Precision, Sniping, Unholy Strike, Steal the Candle's Flame, Fallow Lands); `ProvinceAttackReactionOffered`.
+- **Date:** 2026-10-27
+- **Source:** Mendon, issue #1129. Applied to Attacks on a province only; whether the presence requirement also applies to Attacks on a card is open.
 
 ## Printings and card text
 
