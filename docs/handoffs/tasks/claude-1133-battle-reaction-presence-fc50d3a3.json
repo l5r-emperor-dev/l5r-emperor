@@ -1,0 +1,9 @@
+{
+  "lane": "rules",
+  "summary": "Every Reaction taken in a battle follows the Rules of Presence and Location (R-089): the player needs a unit at the battlefield, a Reaction on a Personality/attachment needs it there (Engage movers, Tsukimi/Rokku/Wave Persists self-moves and Mitsuo exempt), Holdings and hand Strategies need only player presence, Regions only at their own battle province; presence is kept until the window opened by a destruction closes. Fixtures in 35 tests updated.",
+  "validation": "dotnet L5R.Core.Tests full run 0 failures; tools/check.sh --skip-client passed; new ReactionNeedsPresence test",
+  "remaining": "Quagmire (names an adjacent province) now reacts only at its own battle province and its window still opens for adjacent regions (RegionIsNear); no native client check; Lookout tests now place the Ninja at the battlefield.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1133",
+  "branch": "claude/1133-battle-reaction-presence",
+  "updated": "2026-10-27T21:42:26.322552+00:00"
+}
