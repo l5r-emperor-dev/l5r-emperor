@@ -43,8 +43,23 @@ public partial class CardFlight : Control
         var center = quad.Aggregate(Vector2.Zero,(a,b)=>a+b)/4;
         var flip = Back is null ? 1 : Math.Max(.035f,Math.Abs(Mathf.Cos(t*Mathf.Pi)));
         quad = quad.Select(p=>new Vector2(center.X+(p.X-center.X)*flip,p.Y)).ToArray();
-        DrawColoredPolygon(quad.Select(p=>p+new Vector2(2,4+lift*.22f)).ToArray(),new Color(0,0,0,.28f*opacity));
-        DrawColoredPolygon(quad,new Color(1,1,1,opacity),new[]{Vector2.Zero,Vector2.Right,Vector2.One,Vector2.Down},Back is not null && t<.5 ? Back : Face);
+        if (quad.Any(p => !float.IsFinite(p.X) || !float.IsFinite(p.Y))) return; // a corner that is not a number (a tile not laid out yet) draws nothing this frame
+        DrawQuad(quad.Select(p=>p+new Vector2(2,4+lift*.22f)).ToArray(),new Color(0,0,0,.28f*opacity),null,null);
+        DrawQuad(quad,new Color(1,1,1,opacity),new[]{Vector2.Zero,Vector2.Right,Vector2.One,Vector2.Down},Back is not null && t<.5 ? Back : Face);
         DrawPolyline(quad.Append(quad[0]).ToArray(),new Color(.43f,.37f,.27f,.7f*opacity),.7f,true);
+    }
+
+    /// <summary>Two triangles. DrawColoredPolygon triangulates its points and logs "Invalid polygon data, triangulation failed" (and draws nothing) when the quad has collapsed to a line or crossed over itself
+    /// partway through a flight; triangles need no triangulation, so a squashed or twisted frame simply draws what it can.</summary>
+    private void DrawQuad(Vector2[] q, Color color, Vector2[]? uv, Texture2D? texture)
+    {
+        int[][] triangles = [[0, 1, 2], [0, 2, 3]];
+        foreach (var tri in triangles)
+        {
+            Vector2[] points = tri.Select(i => q[i]).ToArray();
+            Color[] colors = [color, color, color];
+            Vector2[] uvs = uv is null ? [Vector2.Zero, Vector2.Zero, Vector2.Zero] : tri.Select(i => uv[i]).ToArray();
+            DrawPrimitive(points, colors, uvs, texture);
+        }
     }
 }
