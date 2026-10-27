@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Spells and Shugenja tutorial (lesson id spells, 26 steps) from Mendon's script, corrected against the comprehensive rules: Phoenix (Library of Rebirth) vs Scorpion Lethargy; Equip (Limited) only to Shugenja, element keywords, cost vs target, then the Scorpion attacks and Equip (Battle) with its additional action destroys Waru (The Earth's Hunger bows non-Earth Tomohiro, per Mendon), Sansesuke redirects Hurunayi's Yogo bow, Library's Reaction plus bow pays for Strength of the Tsunami. Tutorial support: lesson Opening, keep-face-down Events hold, scripted foe attack and named performer, runner keeps a Reaction the step wants, narrowed targets move the default target; battle placards sit at the foot of the coach column during lessons.",
+  "validation": "tutorial suites 36/36 (tutorial-spells 7/7, incl. Back at every step); check.sh --skip-client passed; format check clean on 9 changed C# files; native tools/check-tutorial.sh passed all four lessons (Spells and Shugenja 26 steps through real controls, Sansesuke never offered for a Spell); screenshots reviewed at 1672x941. No human playtest.",
+  "remaining": "Human playtest of the lesson. Long battle notes may scroll on small windows (the coach column is shorter while battle placards show). Equip (Battle) log line reads 'Imperial Favor — Equip (Battle)' (existing label, not changed).",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1076",
+  "branch": "claude/1076-spells-shugenja",
+  "updated": "2026-10-27T11:27:46.500124+00:00"
+}
