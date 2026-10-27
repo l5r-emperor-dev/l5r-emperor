@@ -165,7 +165,7 @@ internal static class AbilityGrantTests
     }
     private static void Reaction()
     {
-        var s = Table(); var receiver = Add(s, "training-crane-samurai");
+        var s = Table(); var receiver = Add(s, "training-crane-samurai", 0, Zone.Battlefield); // #1133: a Reaction in a battle needs its unit at the battlefield
         receiver.GrantedAbilities.Add(new("tamoko-negate", "permanent-reaction", "Permanent"));
         s.Phase = Phase.Battle; s.ActivePlayerId = s.PriorityPlayerId = 1; s.CurrentBattleProvince = 0; s.UnresolvedBattlefields = [0];
         var straightener = Add(s, "training-battle-straightener", 1, Zone.Battlefield);

@@ -523,7 +523,7 @@ public static class AbilityCatalog
         // The Wave Persists (oracle-l5r-9890): "Reaction: After engaging, if this Shugenja is not at the current battlefield, target your Personality there: Before this
         // battle resolves, move the target home, and if he moved, move this Shugenja to the current battlefield." ("While this Shugenja is Water, he has +2F" is its Effect.)
         ["wave-persists-move"] = new("Reaction", "After engaging, if this Shugenja is not at the current battlefield, target your Personality there: before this battle resolves, move the target home, and if he moved, move this Shugenja to the current battlefield",
-            "own-personality-at-battle", Trigger: "after-engaging"),
+            "own-personality-at-battle", Trigger: "after-engaging", SourceUnitMayBeAway: true), // its Shugenja must NOT be at the current battlefield (issue #1133: the presence rule waives the source location)
         // Before This Battle Resolves (spec step 5; issue #310): a mandatory or optional trait of a card in play at
         // the battlefield, applied once both players have passed and before Force is totalled, ordered by the
         // player whose turn it is. Encircled Terrain (issue #272) is the one real card; its card names this id as

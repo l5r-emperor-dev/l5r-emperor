@@ -316,7 +316,7 @@ internal static class DisciplineAndAbsentTests
     {
         // Hand play, Tamori Tamoko (the opponent's) negates the movement.
         var rig = Table();
-        var tamoko = Add(rig.S, "training-tamoko", 1, Zone.Home);
+        var tamoko = Add(rig.S, "training-tamoko", 1, Zone.Battlefield, province: 0); // #1133: a Reaction in a battle needs its Personality at the battlefield
         var e = MatchEngine.FromTestState(rig.S);
         Accept(e, Use(e, rig.Card, Rta, rig.BowedHome.Id));
         Eq(e.State.PendingChoice?.Type, "beforeActionReaction", "the movement is offered for negation");
@@ -339,7 +339,7 @@ internal static class DisciplineAndAbsentTests
 
         // Discipline mode: the cost is paid and the card removed from the game even though the movement was negated.
         var paid = Table(Zone.FateDiscard);
-        var paidTamoko = Add(paid.S, "training-tamoko", 0, Zone.Home); // the Defender's own Tamoko may negate their own action too
+        var paidTamoko = Add(paid.S, "training-tamoko", 0, Zone.Battlefield, province: 0); // the Defender's own Tamoko may negate their own action too
         var p = MatchEngine.FromTestState(paid.S);
         var sources = TwoGold(p);
         Accept(p, Use(p, paid.Card, Rta, paid.UnbowedHome.Id, sources));
