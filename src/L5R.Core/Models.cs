@@ -1139,6 +1139,8 @@ public sealed partial class MatchState
     public PlayerState[] Players { get; set; } = [];
     public Dictionary<string, CardInstance> Cards { get; set; } = [];
     public List<GameEvent> Events { get; set; } = [];
+    // Core rules (Abilities): a single copy of a Reaction -- one source -- may not be taken more than once to the same trigger, even when something lets it be used more than once per turn (issue #1131). Each entry is "card|ability|window event|window type"; an entry of an earlier window is stale and dropped.
+    public List<string> ReactionsTakenThisTrigger { get; set; } = [];
     // Action-effect tracking (issue #437, ActionEffectTracking.cs): what the currently-resolving action has affected so far -- appended to by
     // DestroyUnits/DestroyAttachment/MoveHome/MoveByRule as they run, snapshotted into LastResolvedAction and cleared once the action (and any
     // reaction windows of its own) finishes resolving. Never populated by a mass sweep outside a single action (battle resolution's own casualties).
