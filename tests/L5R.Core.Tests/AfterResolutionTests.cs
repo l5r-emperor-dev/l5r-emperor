@@ -293,8 +293,16 @@ internal static class AfterResolutionTests
             Add(s, Quagmire, regionOwner, Zone.Region, bowed: regionBowed, province: regionProvince);
             return (MatchEngine.FromTestState(s), victim.Id, bower.Id);
         }
-        // Its own province (0) and an adjacent one (1): the reaction is offered after the action bowed the Defender's Personality.
-        foreach (var province in new[] { 0, 1 })
+        // An adjacent province (1): the printed range still names it, but Mendon's presence ruling (issue #1133) makes a Region present only at a battle on its own province, so in a battle at province 0 a Region at province 1 offers nothing.
+        {
+            var (e, victim, bower) = Setup(1);
+            Accept(e, Offer(e, 1, "training-bow-at-battle", bower, victim));
+            // NOTE (#1133 follow-up): OpenBowReactionWindow/RegionIsNear still open the window for the adjacent Region; only the use is refused. Pinned here as "not usable", not as "no window".
+            Check(!e.QueryActions(0).Any(x => x.Type == "useAbility" && x.Command?.AbilityId == "quagmire-negate-straighten" && x.Enabled), "the adjacent Region is not at this battle: its Reaction is not usable");
+            Check(e.State.Cards[victim].Bowed && e.State.Cards[victim].StraightenBlockedTurn != e.State.TurnNumber, "he stays bowed and nothing is negated");
+        }
+        // Its own province (0): the reaction is offered after the action bowed the Defender's Personality.
+        foreach (var province in new[] { 0 })
         {
             var (e, victim, bower) = Setup(province);
             Accept(e, Offer(e, 1, "training-bow-at-battle", bower, victim));

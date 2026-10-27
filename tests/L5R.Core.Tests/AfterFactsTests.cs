@@ -67,9 +67,9 @@ internal static class AfterFactsTests
 
     // ---- fixtures ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-    private static CardInstance Holder(MatchState s, int owner, string kind, Zone zone = Zone.Home)
+    private static CardInstance Holder(MatchState s, int owner, string kind, Zone zone = Zone.Home, int? province = null)
     {
-        var card = Batch336Support.Add(s, "training-crane-samurai", owner, zone);
+        var card = Batch336Support.Add(s, "training-crane-samurai", owner, zone, province: province);
         card.GrantedAbilities.Add(new("test-p6-" + kind, "test-fixture", GrantDuration.Permanent));
         return card;
     }
@@ -194,7 +194,7 @@ internal static class AfterFactsTests
         var s = Batch336Support.Table(Phase.Battle, 0);
         var terrain = Batch336Support.Add(s, "training-terrain", 1, Zone.Battlefield, province: 0);
         var destroyer = Batch336Support.Add(s, "training-terrain-destroyer", 0, Zone.Battlefield, province: 0);
-        var holder = Holder(s, 1, FactKinds.TerrainDestroyed);
+        var holder = Holder(s, 1, FactKinds.TerrainDestroyed, Zone.Battlefield, 0); // #1133: at the battlefield to react in the battle
         var e = MatchEngine.FromTestState(s);
         Accept(e, new GameCommand("useAbility", 0, e.Version, CardId: destroyer.Id, TargetId: terrain.Id, AbilityId: "training-destroy-terrain"));
         Eq(e.State.Cards[terrain.Id].Zone, Zone.FateDiscard, "the Terrain was destroyed");
@@ -206,7 +206,7 @@ internal static class AfterFactsTests
         var old = Batch336Support.Add(t, "training-terrain", 1, Zone.Battlefield, province: 0);
         Batch336Support.Add(t, "training-crane-samurai", 0, Zone.Battlefield, province: 0);
         var replacement = Batch336Support.Add(t, "oracle-l5r-397", 0, Zone.Hand); // Ancient Feud: "Destroy a Terrain (if able). Put this Terrain into play"
-        Holder(t, 1, FactKinds.TerrainDestroyed);
+        Holder(t, 1, FactKinds.TerrainDestroyed, Zone.Battlefield, 0);
         var f = MatchEngine.FromTestState(t);
         Check(!f.State.Players[0].TerrainDestroyedThisBattle, "fixture: nothing destroyed yet");
         Accept(f, new GameCommand("playStrategy", 0, f.Version, CardId: replacement.Id));

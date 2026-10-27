@@ -10613,7 +10613,7 @@ static void BatchEPrimitives()
     static (MatchEngine Engine, CardInstance Maratai) DuelWon(bool ownWins, bool maratBowed = false)
     {
         var s = StrongholdBattle("oracle-l5r-1218"); s.ActivePlayerId = 1; s.PriorityPlayerId = 1;
-        var maratai = Add(s, "oracle-l5r-4197", 1, Zone.Home, maratBowed); // NOT the duelist
+        var maratai = Add(s, "oracle-l5r-4197", 1, Zone.Battlefield, maratBowed, province: 0); // NOT the duelist (#1133: a Reaction in a battle needs her at the battlefield)
         var challenge = Add(s, "training-duel-challenge", 1, Zone.Hand);
         var challenger = Add(s, ownWins ? "training-crane-veteran" : "training-crane-samurai", 1, Zone.Battlefield, province: 0); // Chi 4 vs. 3
         var enemy = Add(s, ownWins ? "training-crane-samurai" : "training-crane-veteran", 0, Zone.Battlefield, province: 0);
@@ -10650,7 +10650,7 @@ static void BatchEPrimitives()
     {
         // A window may also be used to take the Favor away from the opponent who held it.
         var s = StrongholdBattle("oracle-l5r-1218"); s.ActivePlayerId = 1; s.PriorityPlayerId = 1; s.FavorPlayerId = 0;
-        var maratai = Add(s, "oracle-l5r-4197", 1, Zone.Home);
+        var maratai = Add(s, "oracle-l5r-4197", 1, Zone.Battlefield, province: 0); // #1133: at the battlefield
         var challenge = Add(s, "training-duel-challenge", 1, Zone.Hand);
         var challenger = Add(s, "training-crane-veteran", 1, Zone.Battlefield, province: 0);
         var enemy = Add(s, "training-crane-samurai", 0, Zone.Battlefield, province: 0);
@@ -10665,7 +10665,7 @@ static void BatchEPrimitives()
         // AND a Maratai is in play -- BOTH reactions are usable in the one window, independently.
         var s = StrongholdBattle("oracle-l5r-1218"); s.ActivePlayerId = 1; s.PriorityPlayerId = 1;
         var daisuke = Add(s, "oracle-l5r-4407", 1, Zone.Battlefield, province: 0); // Chi 4, Duelist
-        var maratai = Add(s, "oracle-l5r-4197", 1, Zone.Home);
+        var maratai = Add(s, "oracle-l5r-4197", 1, Zone.Battlefield, province: 0); // #1133: at the battlefield
         var challenge = Add(s, "training-duel-challenge", 1, Zone.Hand);
         var enemy = Add(s, "training-crane-samurai", 0, Zone.Battlefield, province: 0);
         var e = MatchEngine.FromTestState(s);
@@ -11269,7 +11269,7 @@ static void BatchFMovementAndChoices()
     {
         // A negated move (Tamori Tamoko's window) is not "moved": no Honor.
         var (s, mune, attacker) = MuneBattle();
-        var tamoko = Add(s, "training-tamoko", 0, Zone.Home); // the attacker's controller's own Tamoko
+        var tamoko = Add(s, "training-tamoko", 0, Zone.Battlefield, province: 0); // the attacker's controller's own Tamoko (#1133: at the battlefield)
         var e = MatchEngine.FromTestState(s);
         var honor = e.State.Players[1].Honor;
         Accept(e, UseF(e, 1, "munefusa-move", mune.Id, attacker.Id));
