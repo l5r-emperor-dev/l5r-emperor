@@ -346,6 +346,8 @@ public sealed partial class MatchEngine
     // A window a Reaction set aside (ReactionsAreActions.cs) is reopened the moment nothing that Reaction started is still waiting.
     private void Apply(GameCommand command)
     {
+        // Issue #1131: a command that is neither a Reaction nor a pass is a new action, so every trigger the earlier Reactions answered is over (the record of one source's use per trigger starts afresh).
+        if (command.Type is not ("declineReaction" or "pass") && !(command.Type == "useAbility" && AbilityCatalog.All.TryGetValue(command.AbilityId ?? "", out var appliedAbility) && appliedAbility.Timing == "Reaction")) _state.ReactionsTakenThisTrigger.Clear();
         var twistWasActive = _state.TwistOfFateActive; // Twist of Fate (issue #492, group D): the additional action ends with the first command taken during it that leaves nothing open.
         var suspendedBefore = _state.SuspendedWindows.Count;
         ApplyCore(command);

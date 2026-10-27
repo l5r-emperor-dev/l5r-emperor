@@ -739,6 +739,13 @@ An Attack on a province is targeted (as is any card the Attack affects), so ever
 - **Date:** 2026-10-27
 - **Source:** Mendon, issues #1129 and #1131 (2026-10-27: the presence rule applies to Attacks on a card too; Archery Range acts from home; a Strategy needs no one at the battlefield only if its text says so).
 
+### R-089 — A single copy of a Reaction is taken once per trigger; identical copies each react
+Core rules (Abilities, 31 Jan 2013): a single copy of a Reaction (one source) may not be taken more than once to the same trigger, even if an effect lets it be used more than once per turn. The rule is per source: two identical cards are two sources and each may react once to the same trigger (two Chrysanthemum Blossoms on one Personality, several Stormless Furies, issues #898 and #900). The engine records the Reaction each source takes in the open reaction window and refuses a second use of that source to that window; a window opened later is a new trigger, and so is any new action. A Reaction whose own text allows several uses a turn (Mochitoko, Matsu Rika, The Governor's Estate) is outside the rule: it answers the effect that gives a once-per-turn Reaction another use.
+
+- **Cards/primitives:** `MatchState.ReactionsTakenThisTrigger`, `ReactionTriggerKey`, `NoteReactionTaken`; applies to every Reaction limited to one use a turn; in practice it bites when an effect gives a use back (Itoku-style).
+- **Date:** 2026-10-27
+- **Source:** Mendon, issue #1131 (reading of Comprehensive Rules, Abilities: "single copy ... from a single given source").
+
 ## Printings and card text
 
 ### R-086 — Ring of Fire reads as the Promotional–Emperor text on the Emperor Edition scan

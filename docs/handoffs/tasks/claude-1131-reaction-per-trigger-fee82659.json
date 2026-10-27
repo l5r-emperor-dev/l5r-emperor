@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "A single copy of a Reaction (one source) may not be taken more than once to the same trigger (Comprehensive Rules, Abilities), enforced for once-per-turn Reactions by recording the source in the open reaction window (R-089). Identical copies still each react once (issues #898, #900); printed multi-use Reactions (Mochitoko, Rika, Governor's Estate) are outside the rule.",
+  "validation": "reaction-per-trigger 1/1 with a control that fails without the record; wave-816, wave-821-cards, single-reaction-5 fixed; full check pending",
+  "remaining": "None for the engine; no client check.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1131",
+  "branch": "claude/1131-reaction-per-trigger",
+  "updated": "2026-10-27T21:27:49.829703+00:00"
+}
