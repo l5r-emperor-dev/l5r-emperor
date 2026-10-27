@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Repaired two stale native probes that fail on main (#1116 check-support-cards, #1105 check-persistent-home). Probe-only changes; no game behaviour changed. Support-cards probe: Regions sit under their Dynasty card since #780, so it now clicks where the Region is actually hover-reachable (top strip, or the sides in a crowded province); cancels an open choice before selecting the next card (DeselectCard ignores an active choice); picks the performer row in the #1004 choosing flow; uses ReactionOptionLabel for the reaction window; waits on conditions instead of fixed frame counts. Persistent-home probe: Reserve payment now needs sources ticked before Confirm shows; the hand-limit decision is now click-cards-then-Confirm discard.",
+  "validation": "bash tools/check-support-cards.sh: all 7 modes pass (default, compact-opponent, crowded, crowded-opponent, motion, dynasty-flow, doji), exit 0; motion mode 3/3 on its own. bash tools/check-persistent-home.sh: PERSISTENT_HOME_PASS at 1920x1080 and 1440x900. Client builds with 0 errors. Not in CI (native checks).",
+  "remaining": "Fallow Lands reaction: the window now closes itself, so the probe can no longer read the -2 on PendingAttack; it asserts the abilityUsed event instead. I found no engine test of the -2 attack strength (AbilityRemovalTests covers the +2 province strength trait), so that numeric effect is currently unverified by any automated check: worth a Core regression. Fixes #1116 and #1105.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1116",
+  "branch": "claude/1116-1105-native-checks",
+  "updated": "2026-10-27T00:09:52.470849+00:00"
+}
