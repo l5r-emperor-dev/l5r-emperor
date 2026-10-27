@@ -923,7 +923,7 @@ internal static class WlPersTornTests
 
         // Another player's action gains Honor: Akahiko's "Gain 1 Honor" (player 1 acts, Makiko is player 0's).
         var s = Table(Phase.Battle, 1);
-        var makiko = Add(s, Makiko, 0, Zone.Home);
+        var makiko = Add(s, Makiko, 0, Zone.Battlefield, province: 0);
         var akahiko = Add(s, Akahiko, 1, Zone.Battlefield, province: 0);
         var target = Add(s, "training-crane-samurai", 0, Zone.Battlefield, province: 0);
         var e = MatchEngine.FromTestState(s);
@@ -938,7 +938,7 @@ internal static class WlPersTornTests
 
         // Declined: the gain stands.
         var s2 = Table(Phase.Battle, 1);
-        Add(s2, Makiko, 0, Zone.Home);
+        Add(s2, Makiko, 0, Zone.Battlefield, province: 0);
         var a2 = Add(s2, Akahiko, 1, Zone.Battlefield, province: 0);
         var t2 = Add(s2, "training-crane-samurai", 0, Zone.Battlefield, province: 0);
         var e2 = MatchEngine.FromTestState(s2);
@@ -949,7 +949,7 @@ internal static class WlPersTornTests
 
         // Bowed Makiko cannot pay the bow; a Honor LOSS is not hers to reduce (the window does not offer her).
         var b = Table(Phase.Battle, 1);
-        var bm = Add(b, Makiko, 0, Zone.Home, bowed: true);
+        var bm = Add(b, Makiko, 0, Zone.Battlefield, bowed: true, province: 0);
         var a3 = Add(b, Akahiko, 1, Zone.Battlefield, province: 0);
         var t3 = Add(b, "training-crane-samurai", 0, Zone.Battlefield, province: 0);
         var be = MatchEngine.FromTestState(b);
@@ -971,7 +971,7 @@ internal static class WlPersTornTests
 
         // The reduction belongs to the one action: the next gain (another action) is whole.
         var s4 = Table(Phase.Battle, 1);
-        Add(s4, Makiko, 0, Zone.Home);
+        Add(s4, Makiko, 0, Zone.Battlefield, province: 0);
         var a4 = Add(s4, Akahiko, 1, Zone.Battlefield, province: 0);
         var t4 = Add(s4, "training-crane-samurai", 0, Zone.Battlefield, province: 0);
         var e4 = MatchEngine.FromTestState(s4);
