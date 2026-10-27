@@ -29,6 +29,15 @@ internal static class TutorialCards
     public const string YasukiBaiko = "oracle-l5r-10044", YasukiTanimura = "oracle-l5r-9464", YasukiTsujiken = "oracle-l5r-9469", YasukiTsujikenExp = "oracle-l5r-10045",
         YoritomoSachina = "oracle-l5r-9623", UtakuMai = "oracle-l5r-9086";
 
+    // The Spells and Shugenja lesson (issue #1076): Phoenix (you, Library of Rebirth) against Scorpion Lethargy (The Towers of the Yogo).
+    // Library of Rebirth: 4 Gold, 6 starting Honor, province strength 6. The Towers of the Yogo: 4 Gold, 1 starting Honor, province strength 7. The lesson sets the Honor (10 against 3).
+    public const string LibraryOfRebirth = "oracle-l5r-4724", TowersOfTheYogo = "oracle-l5r-8392";
+    public const string SilverMine = "oracle-l5r-7266", WhisperingArchive = "oracle-l5r-9802", GeishaHouse = "oracle-l5r-2784", RemoteVillage = "oracle-l5r-6258";
+    public const string ShibaSansesuke = "oracle-l5r-6803", IsawaTomohiro = "oracle-l5r-3930", Natsumi = "oracle-l5r-9839", AgashaKodo = "oracle-l5r-142", AsakoMegu = "oracle-l5r-561";
+    public const string BayushiHurunayi = "oracle-l5r-790", BayushiUtoro = "oracle-l5r-10249", BayushiWaru = "oracle-l5r-923", SeppunHeavyElite = "oracle-l5r-6596";
+    public const string ObscuredPathways = "oracle-l5r-5649", PeaceOfTheKami = "oracle-l5r-10130", ScouringFlood = "oracle-l5r-6502", TheEarthsHunger = "oracle-l5r-9889",
+        StrengthOfTheTsunami = "oracle-l5r-7562", TheSwellOfStrength = "oracle-l5r-8366";
+
     /// <summary>A forty-card deck: the lesson's cards on top, then the rest of the side's deck in its own order. A card the deck does not hold displaces the last card.</summary>
     internal static string[] Deck(string[] top, TutorialSide side, bool dynasty)
     {

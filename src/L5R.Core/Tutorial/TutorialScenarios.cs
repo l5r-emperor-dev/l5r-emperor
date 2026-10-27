@@ -61,6 +61,9 @@ public sealed partial class MatchEngine
         if (!_tutorialRevealHolds.Remove((playerId, province, after))) return false;
         _tutorialResume = resume; return true;
     }
+    private readonly HashSet<(int PlayerId, int Province)> _tutorialFaceDown = [];
+    /// <summary>The next Events phase leaves this province's card face down (Spells and Shugenja opens with two of your cards still hidden). Tutorial-only; no rules change.</summary>
+    internal void TutorialKeepFaceDown(int playerId, int province) => _tutorialFaceDown.Add((playerId, province));
     internal bool TutorialHeld => _tutorialResume is not null;
     /// <summary>The live state, for the script's own reads (<see cref="State"/> is a full copy). Never mutate it.</summary>
     internal MatchState TutorialState => _state;

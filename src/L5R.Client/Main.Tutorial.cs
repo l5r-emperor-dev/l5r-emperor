@@ -10,6 +10,8 @@ public partial class Main
     private const float TutorialColumnTop = 178, TutorialColumnWidth = 296;
     /// <summary>The coach card owns a column at the left of the table while a lesson is showing; the table is fitted to the room that is left, so nothing is covered.</summary>
     private float TutorialReserve => _coachPanel is { Visible: true } ? 176 : 0;
+    /// <summary>The height of the coach column, from its top to just above your placard.</summary>
+    private float TutorialColumnHeight => Math.Max(300, GetViewport().GetVisibleRect().Size.Y / _root.Scale.Y - TutorialColumnTop - 196);
 
     private void StartTutorial(string? lessonId = null)
     {
@@ -93,7 +95,7 @@ public partial class Main
         PlaceGoldMeter();
         if (_coachPanel is not { Visible: true } panel) return;
         panel.SetReady(!PresentationBusy && !PlayShowcaseBusy && !_session.Busy && !TutorialDealing);
-        var height = Math.Max(300, GetViewport().GetVisibleRect().Size.Y / _root.Scale.Y - TutorialColumnTop - 196);
+        var height = TutorialColumnHeight - (_placardStackHeight > 0 ? _placardStackHeight + 8 : 0); // a battle's placards take the foot of the column
         panel.CustomMinimumSize = new Vector2(TutorialColumnWidth, 0); panel.Size = new Vector2(TutorialColumnWidth, height);
         panel.Position = new Vector2(16, TutorialColumnTop);
     }
@@ -184,10 +186,10 @@ public partial class Main
     private string TutorialControls()
     {
         string Buttons(Node root) => string.Join(" | ", root.FindChildren("*", "Button", true, false).OfType<Button>().Select(b => (b.Disabled ? "[x]" : "") + b.Text));
-        return $"phase=[{Buttons(_phaseActions)}] decision=[{Buttons(_decisionActions)}] inspector=[{Buttons(_inspector)}]";
+        return $"phase=[{Buttons(_phaseActions)}] decision=[{Buttons(_decisionActions)}] inspector=[{Buttons(_inspector)}]" + (_session.Tutorial?.Refusal is { } refusal ? $" refused=[{refusal}]" : "");
     }
 
-    /// <summary>One thing a player does at the table, through the real controls: select:&lt;card&gt;, selectprovince:&lt;owner&gt;/&lt;index&gt;, click:&lt;button text&gt;, resize:&lt;width&gt;x&lt;height&gt;, wait:&lt;seconds&gt;.</summary>
+    /// <summary>One thing a player does at the table, through the real controls: select:&lt;card&gt;, selecthome:&lt;card in play&gt;, check:&lt;sidebar checkbox&gt;, selectprovince:&lt;owner&gt;/&lt;index&gt;, click:&lt;button text&gt;, resize:&lt;width&gt;x&lt;height&gt;, wait:&lt;seconds&gt;.</summary>
     private async Task RunTutorialUiToken(string token)
     {
         var (verb, arg) = token.Split(':', 2) is [var v, var a] ? (v, a) : (token, "");
@@ -195,6 +197,12 @@ public partial class Main
         {
             var tile = _tiles.FirstOrDefault(t => IsInstanceValid(t) && t.Card.Definition?.Name == arg && t.Card.OwnerId == View.ViewerId) ?? _tiles.FirstOrDefault(t => IsInstanceValid(t) && t.Card.Definition?.Name == arg);
             if (tile is null) { GD.Print("TUTORIAL_UI no tile for " + arg); return; }
+            SelectCard(tile.Card);
+        }
+        else if (verb == "selecthome") // a card of yours in play, when a copy of it is also in a Province (a second Silver Mine)
+        {
+            var tile = _tiles.FirstOrDefault(t => IsInstanceValid(t) && t.Card.Definition?.Name == arg && t.Card.OwnerId == View.ViewerId && t.Card.Zone is Zone.Home or Zone.Battlefield);
+            if (tile is null) { GD.Print("TUTORIAL_UI no tile in play for " + arg); return; }
             SelectCard(tile.Card);
         }
         else if (verb == "selectprovince")
@@ -252,6 +260,12 @@ public partial class Main
             _tutorialEmphasisStarted = Time.GetTicksMsec(); Render();
             await ToSignal(GetTree().CreateTimer(double.Parse(arg)), SceneTreeTimer.SignalName.Timeout);
         }
+        else if (verb == "check") // ticks the sidebar checkbox with this text (a payment source), as a click on it does
+        {
+            var box = _inspector.FindChildren("*", "CheckBox", true, false).OfType<CheckBox>().FirstOrDefault(b => !b.Disabled && b.Text.Contains(arg, StringComparison.OrdinalIgnoreCase));
+            if (box is null) { GD.Print("TUTORIAL_UI no enabled checkbox " + arg); return; }
+            box.ButtonPressed = true;
+        }
         else if (verb == "wait") await ToSignal(GetTree().CreateTimer(double.Parse(arg)), SceneTreeTimer.SignalName.Timeout);
         else if (verb == "click")
         {
@@ -295,6 +309,18 @@ public partial class Main
         ["overlay"] = "selectprovince:0/2;click:Overlay",
         ["discard-sachina"] = "selectprovince:0/1;click:Discard;confirm:Discard this province card?",
         ["pass-turn"] = "click:End Dynasty Phase",
+        // Spells and Shugenja (issue #1076): Equip (Limited), buying in the Dynasty phase, defending, Equip (Battle) with its additional action, and a Reaction on the opponent's turn.
+        ["equip-flood"] = "select:Scouring Flood;click:Isawa Tomohiro;select:Border Keep;click:Attach",
+        ["equip-swell"] = "select:The Swell of Strength;click:Natsumi;selecthome:Silver Mine;click:Attach",
+        ["buy-archive"] = "selectprovince:0/0;click:Recruit",
+        ["buy-silver-mine"] = "selectprovince:0/1;select:Large Farm;click:Recruit",
+        ["limited"] = "click:Pass action",
+        ["equip-hunger"] = "select:The Earth's Hunger;click:Isawa Tomohiro · Equip;click:The Earth's Hunger ·;click:Use ability",
+        ["destroy-waru"] = "click:Isawa Tomohiro · Bow this Shugenja;click:Bayushi Waru;click:Use The Earth's Hunger",
+        ["equip-tsunami"] = "select:Strength of the Tsunami;click:Natsumi · Equip;click:Strength of the Tsunami ·;check:Library of Rebirth: Reaction;check:Bow this card: 4 Gold;click:Use ability",
+        ["utoro-home"] = "click:Bow this card and target an enemy Personality;click:Bayushi Utoro;click:Use Strength of the Tsunami",
+        ["redirect"] = "click:Use Shiba Sansesuke;click:Play Reaction",
+        ["defend"] = "select:Isawa Tomohiro;selectprovince:0/0;select:Natsumi;selectprovince:0/0;select:Shiba Sansesuke;selectprovince:0/0;click:Confirm assignments",
     };
 
 
@@ -340,7 +366,8 @@ public partial class Main
             if (_session.Tutorial is not null || !MenuVisible || _titleMenu?.Page != "tutorial") throw new InvalidOperationException("Leaving the tutorial from the table menu did not return to the tutorial menu.");
             var dynastySteps = await CheckTutorialDynastyUi();
             var recruitingSteps = await CheckTutorialRecruitingUi();
-            GD.Print($"TUTORIAL_UI_CHECK: completed {seen.Count} steps; Honor {honor}; left mid-lesson through the table menu; Events, Regions and Celestials: {dynastySteps} steps; Recruiting Personalities: {recruitingSteps} steps");
+            var spellsSteps = await CheckTutorialSpellsUi();
+            GD.Print($"TUTORIAL_UI_CHECK: completed {seen.Count} steps; Honor {honor}; left mid-lesson through the table menu; Events, Regions and Celestials: {dynastySteps} steps; Recruiting Personalities: {recruitingSteps} steps; Spells and Shugenja: {spellsSteps} steps");
             GetTree().Quit();
         }
         catch (Exception e) { GD.PushError("TUTORIAL_UI_CHECK failed: " + e.Message); GetTree().Quit(1); }
@@ -424,6 +451,42 @@ public partial class Main
                 throw new InvalidOperationException($"{coach.StepId}: the step did not advance. {TutorialControls()} notice={_status.Text}");
         }
         if (_session.Tutorial is { Finished: false }) throw new InvalidOperationException("Recruiting Personalities did not finish.");
+        if (!MenuVisible || _titleMenu?.Page != "tutorial-track") throw new InvalidOperationException("Tutorial Menu did not return to the Level Up Your Play list.");
+        return seen.Count;
+    }
+
+    /// <summary>Plays Spells and Shugenja (issue #1076) start to finish with the controls a player uses: Equip (Limited) offers only the Shugenja for a Spell, the Spells in hand cannot be equipped on the
+    /// Scorpion's turn, and Equip (Battle), its additional action, Sansesuke's Reaction and Library of Rebirth's two payment boxes all work from the sidebar.</summary>
+    private async Task<int> CheckTutorialSpellsUi()
+    {
+        StartTutorial("spells"); for (var i = 0; i < 6; i++) await CoverageFrames();
+        var seen = new List<string>();
+        for (var guard = 0; guard < 200 && _session.Tutorial is { Finished: false } lesson; guard++)
+        {
+            var coach = lesson.Coach; seen.Add(coach.StepId);
+            if (coach.StepId == "limited" && View.Players[0].HandCount != 4) throw new InvalidOperationException($"Four Spells should be left in hand on the Scorpion's turn, not {View.Players[0].HandCount}.");
+            if (coach.Button is not null)
+            {
+                var before = coach.StepId;
+                await RunTutorialUiToken("mouse:coach"); await CoverageFrames(); await CoverageFrames();
+                if (_session.Tutorial is { Finished: false } moved && moved.Coach.StepId == before) throw new InvalidOperationException($"{before}: a real click on the coach's button did nothing.");
+                continue;
+            }
+            if (!TutorialUiScripts.TryGetValue(coach.StepId, out var script)) throw new InvalidOperationException($"{coach.StepId}: no UI script for this step.");
+            await WaitTutorialRest();
+            foreach (var token in script.Split(';'))
+            {
+                await RunTutorialUiToken(token);
+                if (token != "select:The Swell of Strength") continue;
+                // With the Spell chosen, the sidebar offers the Shugenja to attach it to, and never Shiba Sansesuke.
+                var offered = _inspector.FindChildren("*", "Button", true, false).OfType<Button>().Select(b => b.Text).ToArray();
+                if (!offered.Any(t => t.Contains("Natsumi")) || offered.Any(t => t.Contains("Shiba Sansesuke"))) throw new InvalidOperationException("The Swell of Strength should offer Natsumi and never Shiba Sansesuke: " + string.Join(" | ", offered));
+            }
+            for (var wait = 0; wait < 60 && _session.Tutorial is { Finished: false } still && still.Coach.StepId == coach.StepId; wait++) await ToSignal(GetTree().CreateTimer(.25), SceneTreeTimer.SignalName.Timeout);
+            if (_session.Tutorial is { Finished: false } after && after.Coach.StepId == coach.StepId)
+                throw new InvalidOperationException($"{coach.StepId}: the step did not advance. {TutorialControls()} notice={_status.Text}");
+        }
+        if (_session.Tutorial is { Finished: false }) throw new InvalidOperationException("Spells and Shugenja did not finish.");
         if (!MenuVisible || _titleMenu?.Page != "tutorial-track") throw new InvalidOperationException("Tutorial Menu did not return to the Level Up Your Play list.");
         return seen.Count;
     }

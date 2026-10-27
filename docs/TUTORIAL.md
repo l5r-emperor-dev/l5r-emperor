@@ -24,6 +24,12 @@ It uses two more tutorial-only stops in the engine: `TutorialHoldReveal(player, 
 enters play outside the Events phase (Border Keep's refresh) honours the same stop. The Mantis player's Border Keep refresh is played by the script (`TutorialContext.FoeBorderKeep`). Dark Experiments may name any Mantis Province but the leftmost, where a
 Mantis Region attaches later in the lesson (a Region attaching to a Dark Experiments Province is destroyed).
 
+## The Spells and Shugenja lesson (issue #1076)
+
+`TutorialLessonSpells.cs`, lesson id `spells`: Phoenix (Library of Rebirth, 10 Honor) against Scorpion Lethargy (The Towers of the Yogo, 3 Honor), from your Action phase into the Scorpion's attack on your Province 1. The lesson's `Opening` draws your six Spells and starts the turn before the first note, and `TutorialKeepFaceDown` keeps Agasha Kodo and Asako Megu face down through that Events phase. The Scorpion's side is scripted with `TutorialFoeScript.AttackProvince` (it attacks that Province with everyone and fights there) and `Performers` (Bayushi Hurunayi, not another Scorpion, uses the bow The Towers of the Yogo grants). On the opponent's turn the runner no longer passes a Reaction of yours that the current step asks for (Shiba Sansesuke's). While a lesson's coach column is showing, a battle's placards sit at the foot of that column and the note ends above them, instead of covering it.
+
+Corrections to the original script, checked against the comprehensive rules and the cards: the two Equip abilities are player abilities, not printed on Spells; targeting is not a cost (CR, Costs); "As a Focus Effect" works only when the card is focused in a duel; Library of Rebirth's Reaction produces 4 Gold, it does not reduce the cost, and is once per turn, so the Dynasty phase is guided (Whispering Archive, then a Silver Mine, the Stronghold kept straightened); The Earth's Hunger bows Isawa Tomohiro, who is not Earth (Mendon chose to keep that and teach it); Spells are described with the rules' blue background (Mendon's choice).
+
 ## Writing or changing the lesson
 
 1. Pick cards from `TutorialCards.cs` (add constants there; the test checks every number the text quotes against the catalogue and the engine).

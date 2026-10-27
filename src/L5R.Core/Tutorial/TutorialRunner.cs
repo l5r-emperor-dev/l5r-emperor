@@ -81,6 +81,8 @@ internal sealed class TutorialContext(TutorialRunner runner)
     public void Draw(int count) => Engine.TutorialDraw(TutorialRunner.Seat, count);
     /// <summary>Stop the Events phase at one of this player's provinces: before its card is turned face up, or (<paramref name="after"/>) with it face up and not yet resolved (see <see cref="MatchEngine.TutorialHoldReveal"/>).</summary>
     public void HoldReveal(int playerId, int province, bool after) => Engine.TutorialHoldReveal(playerId, province, after);
+    /// <summary>The next Events phase leaves these provinces of this player face down (see <see cref="MatchEngine.TutorialKeepFaceDown"/>).</summary>
+    public void KeepFaceDown(int playerId, params int[] provinces) { foreach (var province in provinces) Engine.TutorialKeepFaceDown(playerId, province); }
     /// <summary>The opponent uses its Border Keep's first-turn Limited action on these provinces (they are put at the bottom of its deck and refilled face up).</summary>
     public void FoeBorderKeep(params int[] provinces)
     {
@@ -122,6 +124,7 @@ public sealed class TutorialRunner
     private TutorialRunner(TutorialLesson lesson)
     {
         _lesson = lesson; _engine = MatchEngine.CreateTutorial(lesson.Setup); _steps = lesson.Steps; _lookup = new(_engine); _context = new(this);
+        lesson.Opening?.Invoke(_context);
         PlayFoe(null, scripted: false);
     }
 
@@ -160,6 +163,8 @@ public sealed class TutorialRunner
         return offered.Select(a => a.Enabled && a.Command is { } command && step.Allow!(_lookup, command)
             ? a with
             {
+                // the command's default target moves with the narrowed list, so a table that submits it as it stands names a target the step accepts
+                Command = targets is not null && a.TargetIds is not null && command.TargetId is { } preset && !targets.Contains(preset) && a.TargetIds.FirstOrDefault(targets.Contains) is { } first ? command with { TargetId = first } : command,
                 TargetIds = targets is not null && a.TargetIds is not null ? a.TargetIds.Where(targets.Contains).ToArray() : a.TargetIds,
                 Provinces = step.OnlyProvinces is { } only && a.Provinces is not null ? a.Provinces.Where(only.Contains).ToArray() : a.Provinces
             }
@@ -222,7 +227,7 @@ public sealed class TutorialRunner
             var seat = _engine.PriorityPlayerId;
             var options = _engine.QueryActions(seat).Where(a => a.Enabled && a.Command is not null).ToArray();
             ActionOption? pick;
-            if (seat == Seat) pick = options.FirstOrDefault(a => a.Type == "declineReaction") is { } decline && _engine.TutorialState.ActivePlayerId != Seat ? decline : null;
+            if (seat == Seat) pick = options.FirstOrDefault(a => a.Type == "declineReaction") is { } decline && _engine.TutorialState.ActivePlayerId != Seat && !StepWants(options) ? decline : null; // a Reaction the step asks for is yours to take
             else
             {
                 var onItsOwnTurn = _engine.TutorialState.ActivePlayerId != Seat;
@@ -234,14 +239,16 @@ public sealed class TutorialRunner
         }
     }
 
+    private bool StepWants(ActionOption[] options) => Current is { IsAction: true } step && options.Any(a => a.Type != "declineReaction" && step.Allow!(_lookup, a.Command!));
+
     /// <summary>The practice opponent's script: it declines reactions, passes, defends the province you attacked with whom it has, and, when the lesson asks, recruits (Daidoji Kenshi with the Clan Discount,
     /// the farms) and destroys your Follower with Never Afraid. It never does anything else, so the lesson meets exactly these plays.</summary>
     private ActionOption? FoeChoice(ActionOption[] options, bool scripted)
     {
         bool Plays(ActionOption a, string ability) => a.Type == "useAbility" && a.Command!.AbilityId == ability;
-        ActionOption? Targeting(string ability, string definition)
+        ActionOption? Targeting(string ability, string definition, string? performer)
         {
-            var option = options.FirstOrDefault(a => Plays(a, ability));
+            var option = options.FirstOrDefault(a => Plays(a, ability) && (performer is null || _lookup.Is(a.Command!.PerformerId ?? a.CardId, performer)));
             if (option?.TargetIds is not { Length: > 0 } targets) return null;
             var target = targets.FirstOrDefault(id => _lookup.DefinitionOf(id) == definition);
             return target is null ? null : option with { Command = option.Command! with { TargetId = target } };
@@ -253,12 +260,21 @@ public sealed class TutorialRunner
             var sources = buy.PaidBy.SelectMany(d => _lookup.Foe(d, Zone.Home, Zone.Stronghold).Take(1)).ToArray();
             return option with { Command = option.Command! with { SourceIds = sources } };
         }
+        ActionOption? Attacks(int province)
+        {
+            if (options.FirstOrDefault(a => a.Type == "declareAttack") is { } declare) return declare;
+            if (options.FirstOrDefault(a => a.Type == "attack") is not { } attack) return options.FirstOrDefault(a => a.Type == "selectBattle" && a.Command!.Province == province);
+            var foe = 1 - Seat;
+            var units = _engine.TutorialState.Cards.Values.Where(c => c.OwnerId == foe && c.Zone == Zone.Home && !c.Bowed && CardCatalog.Get(c.DefinitionId).Type == CardType.Personality).Select(c => c.Id);
+            return attack with { Command = attack.Command! with { Assignments = units.ToDictionary(id => id, _ => province) } };
+        }
         ActionOption? Buys(string definition, bool discount) => options.FirstOrDefault(a => a.Type == "purchase" && a.Command!.ClanDiscount == discount && _lookup.Is(a.Command.CardId, definition));
         var script = _lesson.Foe;
         return (scripted && script.Purchases is { } plan ? options.FirstOrDefault(a => a.Type == "proclaim" && plan.Any(p => p.Proclaim)) : null) // a Proclaim the script asks for comes before declining the window it opens
             ?? options.FirstOrDefault(a => a.Type == "declineReaction")
             ?? options.FirstOrDefault(a => a.Type == "assignDefense" && _attackedProvince is int attacked && (a.Command!.Assignments?.Values.Contains(attacked) ?? a.Command.Province == attacked))
-            ?? (scripted ? script.Abilities.Select(x => Targeting(x.Ability, x.Target)).FirstOrDefault(o => o is not null) : null)
+            ?? (scripted && script.AttackProvince is int province && _engine.TutorialState.ActivePlayerId != Seat ? Attacks(province) : null)
+            ?? (scripted ? script.Abilities.Select((x, i) => Targeting(x.Ability, x.Target, script.Performers?.ElementAtOrDefault(i))).FirstOrDefault(o => o is not null) : null)
             ?? (scripted && script.Purchases is { } purchases ? purchases.Where(p => !_bought.Contains(p)).Select(p => { var o = Scripted(p); if (o is not null) _bought.Add(p); return o; }).FirstOrDefault(o => o is not null) : null)
             ?? (scripted && script.Purchases is null ? script.RecruitWithDiscount.Select(d => Buys(d, true)).Concat(script.Recruit.Select(d => Buys(d, false))).FirstOrDefault(o => o is not null) : null)
             ?? (scripted && script.Purchases is not null && script.Purchases.All(_bought.Contains) ? script.Discard?.Select(d => options.FirstOrDefault(a => a.Type == "discardProvince" && _lookup.Is(a.Command!.CardId, d))).FirstOrDefault(o => o is not null) : null)
