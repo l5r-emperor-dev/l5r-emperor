@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Attack reactions now trigger on a province target (R-088): every 'after an Attack is targeted' Reaction reacts to an Attack on a province from where it has presence at the attacked battlefield (in-play card at it, Holding never, hand Strategy needs a Personality there); card-target Reactions (A Close Call, Kakihara, Flesh Cutter Arrows) never do. Updated the old targeted-action test that asserted no window for a province Attack.",
+  "validation": "province-attack-reactions 4/4 (3 fail on the old engine), fallow-lands-reaction 4/4, targeted-action-reactions 31/31; bash tools/check.sh --skip-client all passed. No client run.",
+  "remaining": "Open question for Mendon: the presence requirement is applied to province Attacks only; Attacks on a card still let a Personality at home, a Holding or a Strategy with no one present react. No native client check of a province-Attack window.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1129",
+  "branch": "claude/1129-province-attack-reactions",
+  "updated": "2026-10-27T17:02:29.057542+00:00"
+}
