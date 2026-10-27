@@ -725,6 +725,13 @@ A Spell attached to a Personality who is not currently a Shugenja provides no ac
 - **Date:** 2026-10-13
 - **Source:** Mendon, following the validation report. Issue #936.
 
+### R-087 — Fallow Lands reacts to an Attack that targets its province
+Fallow Lands' Reaction ("after a Melee or Ranged Attack is targeted: -2 strength") applies to an Attack that targets the province as well as to one that targets a card. An Attack on a province opens the Attack reaction window when Fallow Lands can react (its controller the Defender with presence at the attacked province); no other Attack reaction is offered against it, since each of those needs a card to be targeted. Without Fallow Lands such an Attack still opens no window.
+
+- **Cards/primitives:** Fallow Lands (oracle-l5r-9865); `fallow-lands-reaction`; `ResolveOrDeferAttack`, `ProvinceAttackReactionAvailableTo`.
+- **Date:** 2026-10-27
+- **Source:** Mendon, issue #1124.
+
 ## Printings and card text
 
 ### R-086 — Ring of Fire reads as the Promotional–Emperor text on the Emperor Edition scan
