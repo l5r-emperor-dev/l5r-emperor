@@ -2,8 +2,8 @@ using L5R.Core;
 using static Batch336Support;
 using static RegressionAssertions;
 
-// Issue #1129 (Mendon's ruling, 2026-10-27): an Attack on a province is targeted, so every "after an Attack is targeted" Reaction triggers on it; unless its text lets it be used from another location
-// it needs presence at the battlefield of the attacked province; a Reaction that needs a CARD to be targeted cannot react to it. Position: the economy table, player 1 the Attacker with a Ranged 3
+// Issues #1129 and #1131 (Mendon's rulings, 2026-10-27): an Attack on a province is targeted, so every "after an Attack is targeted" Reaction triggers on it; unless its text lets it be used from another location
+// it needs presence at the battlefield of the attacked province (an Attack on a card too: #1131); a Reaction that needs a CARD to be targeted cannot react to a province. Position: the economy table, player 1 the Attacker with a Ranged 3
 // province Attack at province 0 (the battlefield), player 0 the Defender. For each Reaction the card is placed where it has presence and where it has none, driven only through QueryActions.
 internal static class ProvinceAttackReactionTests
 {
@@ -13,6 +13,7 @@ internal static class ProvinceAttackReactionTests
         ("Each 'after an Attack is targeted' Reaction reacts to an Attack on a province from where it has presence at the battlefield, and never from home", PresenceMatrix),
         ("A Strategy played from a hand needs its player to have a Personality at the attacked battlefield", StrategyNeedsPresence),
         ("A Reaction that needs a card to be targeted (A Close Call, Akodo Kakihara, Flesh Cutter Arrows) never reacts to a province Attack", CardTargetReactionsRefused),
+        ("An Attack on a card gives the same answer: Kaname, Umiko, Fumiko, Khol Regulars and Steal the Candle's Flame need presence at the battlefield, Archery Range reacts from home", CardAttackPresence),
         ("The reaction takes effect: Strong Defenses' -3 leaves the province with all its strength", ReactionTakesEffect),
     ]);
 
@@ -23,10 +24,20 @@ internal static class ProvinceAttackReactionTests
     private static CardInstance Kw(CardInstance card, params string[] keywords) { foreach (var k in keywords) card.GrantedKeywords.Add(new(k, "test-fixture", GrantDuration.Permanent)); return card; }
 
     // The engine after player 1 declares the province Attack on province 0.
-    private static MatchEngine Attack(Action<MatchState> arrange)
+    private static MatchEngine Attack(Action<MatchState> arrange, bool onCard = false)
     {
         var s = Table(Phase.Battle, 1);
         arrange(s);
+        if (onCard)
+        {
+            // A Ranged 3 Attack (a Strategy in the Attacker's hand) on the Defender's Personality at the battlefield.
+            Add(s, "training-lion-samurai", 1, Zone.Battlefield, province: 0);
+            var strategy = Add(s, "training-honor-cost-strategy", 1, Zone.Hand);
+            var victim = Add(s, "training-crane-samurai", 0, Zone.Battlefield, province: 0);
+            var onCardEngine = MatchEngine.FromTestState(s);
+            Accept(onCardEngine, Offer(onCardEngine, 1, "training-honor-cost-attack", strategy.Id, victim.Id));
+            return onCardEngine;
+        }
         var attacker = Add(s, ProvinceAttacker, 1, Zone.Battlefield, province: 0);
         var e = MatchEngine.FromTestState(s);
         Accept(e, e.QueryActions(1).Single(a => a.Type == "useAbility" && a.CardId == attacker.Id && a.Command?.AbilityId == ProvinceAttack).Command! with { TargetId = null, Province = 0 });
@@ -48,7 +59,7 @@ internal static class ProvinceAttackReactionTests
         ("khol-regulars-reaction", 0, "follower"), ("archery-range-reaction", 0, "holding"), ("tf-steal-candle-interrupt", 0, "spell"),
     ];
 
-    private static (MatchEngine E, CardInstance Card) Place(string ability, int owner, string kind, bool present)
+    private static (MatchEngine E, CardInstance Card) Place(string ability, int owner, string kind, bool present, bool onCard = false)
     {
         CardInstance card = null!;
         var e = Attack(s =>
@@ -63,7 +74,7 @@ internal static class ProvinceAttackReactionTests
                 "spell" => Add(s, Def(ability), owner, Zone.Attached, province: province, parent: Add(s, "training-shugenja", owner, zone, province: province).Id),
                 _ => Add(s, Def(ability), owner, Zone.Home), // a Holding is never at a battlefield
             };
-        });
+        }, onCard);
         return (e, card);
     }
 
@@ -72,10 +83,21 @@ internal static class ProvinceAttackReactionTests
         foreach (var (ability, owner, kind) in Cases)
         {
             var present = Place(ability, owner, kind, present: true);
-            var expected = kind != "holding";
-            Eq(Offered(present.E, owner, ability, present.Card.Id), expected, ability + (expected ? ": offered from the battlefield" : ": a Holding never has presence at a battlefield"));
+            Check(Offered(present.E, owner, ability, present.Card.Id), ability + ": offered from the battlefield");
             var absent = Place(ability, owner, kind, present: false);
-            Check(!Offered(absent.E, owner, ability, absent.Card.Id), ability + ": not offered from home");
+            Eq(Offered(absent.E, owner, ability, absent.Card.Id), kind == "holding", ability + (kind == "holding" ? ": Archery Range may react from home" : ": not offered from home"));
+        }
+    }
+
+    private static void CardAttackPresence()
+    {
+        foreach (var (ability, owner, kind) in Cases)
+        {
+            var present = Place(ability, owner, kind, present: true, onCard: true);
+            Check(present.E.State.PendingAttack is { TargetId: not null }, ability + ": the Attack names a card");
+            Check(Offered(present.E, owner, ability, present.Card.Id), ability + ": offered from the battlefield");
+            var absent = Place(ability, owner, kind, present: false, onCard: true);
+            Eq(Offered(absent.E, owner, ability, absent.Card.Id), kind == "holding", ability + (kind == "holding" ? ": Archery Range may react from home" : ": not offered from home"));
         }
     }
 

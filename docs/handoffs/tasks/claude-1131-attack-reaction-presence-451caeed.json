@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Attack reactions need presence at the battlefield for an Attack on a card as well as on a province (R-088 amended): Kaname, Umiko, Fumiko, Khol Regulars, Steal the Candle's Flame and the Strategies must be present; Archery Range reacts from home; a Fallow Lands on another province opens no window. One-copy-per-trigger is NOT enforced: it conflicts with issues #898 and #900 and awaits Mendon's answer.",
+  "validation": "bash tools/check.sh --skip-client passed; province-attack-reactions 5/5 (2 fail on the old engine), multi-window-reaction-1 44/44, reaction-window-settle 9/9, targeted-action-reactions 31/31, FallowLandsRegion updated",
+  "remaining": "One use of a Reaction per trigger (issue #1131 part 2) awaits Mendon's answer; no client check.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1131",
+  "branch": "claude/1131-attack-reaction-presence",
+  "updated": "2026-10-27T20:09:21.711991+00:00"
+}
