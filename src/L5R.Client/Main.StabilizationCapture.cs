@@ -55,7 +55,7 @@ public partial class Main
     private static IEnumerable<Button> StabilizationButtons(Node node) => node.GetChildren().SelectMany(c =>
         c is Button b ? new[] { b }.Concat(StabilizationButtons(c)) : StabilizationButtons(c));
     private Button StabilizationButton(string text) => StabilizationButtons(this).FirstOrDefault(b => b.IsVisibleInTree() && !b.Disabled && b.Text.StartsWith(text, StringComparison.Ordinal))
-        ?? throw new Exception("Missing enabled native button: " + text);
+        ?? throw new Exception("Missing enabled native button: " + text + " (visible: " + string.Join(" | ", StabilizationButtons(this).Where(b => b.IsVisibleInTree()).Select(b => (b.Disabled ? "[off] " : "") + b.Text)) + ")");
     private Button ReviewedCommitButton() => _paymentConfirm is { Disabled: false } button && button.IsVisibleInTree() && button.Name == "CommitAction"
         ? button : throw new Exception($"Missing visible enabled reviewed action commit (button: {(_paymentConfirm is null ? "none" : $"name={_paymentConfirm.Name} text={_paymentConfirm.Text} disabled={_paymentConfirm.Disabled} visible={_paymentConfirm.IsVisibleInTree()}")}; chosen: {_chosen?.Type}; sources: {_sources.Count})");
     private async Task StabilizationClick(Control target)

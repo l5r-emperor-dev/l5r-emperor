@@ -180,7 +180,14 @@ public partial class PersistentHomeProbe : Node
             reserveButton!.EmitSignal(BaseButton.SignalName.Pressed); await Settle(.4);
             // The Reserve button opens the reviewed Gold payment panel (issue #303); the engine action is submitted on Confirm.
             var confirmReserve = Field<Button?>("_paymentConfirm");
-            Require(confirmReserve is not null && confirmReserve.Name == "CommitAction" && confirmReserve.IsVisibleInTree() && !confirmReserve.Disabled, "Reserve did not open its reviewed payment with a visible enabled commit");
+            // A fixed cost shows Confirm only once the sources chosen cover it: tick the offered Gold sources one at a time, as a player does, until the commit appears.
+            for (var pick = 0; pick < 6 && !(confirmReserve is { Disabled: false } && confirmReserve.IsVisibleInTree()); pick++)
+            {
+                var source = Descendants<CheckBox>(Field<VBoxContainer>("_inspector")).FirstOrDefault(b => b.IsVisibleInTree() && !b.Disabled && !b.ButtonPressed);
+                if (source is null) break;
+                await Click(source); await Settle(.3); confirmReserve = Field<Button?>("_paymentConfirm");
+            }
+            Require(confirmReserve is not null && confirmReserve.Name == "CommitAction" && confirmReserve.IsVisibleInTree() && !confirmReserve.Disabled, $"Reserve did not open its reviewed payment with a visible enabled commit: confirm={(confirmReserve is null ? "none" : confirmReserve.Name + "/" + confirmReserve.Text + "/disabled=" + confirmReserve.Disabled + "/visible=" + confirmReserve.IsVisibleInTree())}, chosen={Field<ActionOption?>("_chosen")?.Type}, buttons: {string.Join(" | ", Descendants<Button>(Field<VBoxContainer>("_inspector")).Where(x => x.IsVisibleInTree()).Select(x => (x.Disabled ? "[off] " : "") + x.Text))}");
             await Click(confirmReserve!); await Settle(.5);
             Require(Engine.State.Cards[reserve.Id].Zone == Zone.Battlefield, "Reserve button did not submit the engine action");
             GD.Print("HOME_PASS: consolidated battle flow exposes and executes authoritative Reserve recruitment");
@@ -198,7 +205,8 @@ public partial class PersistentHomeProbe : Node
             var pendingEngine = typeof(MatchEngine).GetMethod("FromTestState", BindingFlags.NonPublic | BindingFlags.Static)!.Invoke(null, [pending]);
             typeof(MatchSession).GetField("_engine", Private)!.SetValue(_session, pendingEngine);
             typeof(MatchSession).GetMethod("RefreshLocal", Private)!.Invoke(_session, null); await Settle(.4);
-            Require(Descendants<Button>(Field<VBoxContainer>("_inspector")).Any(b => b.Text.StartsWith("Discard 1") && !b.Disabled), "Inspected Favor swallowed the new hand-limit decision");
+            // The hand-limit decision is now "click cards in your hand, then Confirm discard": the sidebar names the choice and counts the selection, and the draft is the chosen action.
+            Require(Field<ActionOption?>("_chosen")?.Type == "discardHand" && Field<VBoxContainer>("_inspector").FindChild("DiscardStatus", true, false) is not null, "Inspected Favor swallowed the new hand-limit decision");
             await Capture("pending-decision");
             Call("StartFromMenu", 0); await Settle(); Require(Field<object?>("_selectedHomeReminder") is null, "New game retained old reminder selection");
             GD.Print("HOME_PASS: Ring input/action/bowing, required decision while inspecting, new-game reset");

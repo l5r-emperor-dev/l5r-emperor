@@ -67,7 +67,20 @@ public partial class Main
         var path = Path.ChangeExtension(_capturePath, null) + suffix + ".png";
         if (GetViewport().GetTexture().GetImage().SavePng(path) != Error.Ok) throw new Exception("Could not save " + path);
     }
-    private async Task SupportClick(Control control)
+    // A card another card partly covers (an attached Region: a strip above its Dynasty card, or the sides in a crowded province) is clicked where the pointer really reaches it: try points around the tile's
+    // edge and return the first one whose hover lands on this card.
+    private async Task<Vector2> ReachablePoint(CardTile tile)
+    {
+        var w = tile.Size.X; var h = tile.Size.Y;
+        foreach (var local in new[] { new Vector2(w / 2, RegionStrip / 2), new Vector2(w / 2, 4), new Vector2(w * .25f, RegionStrip / 2), new Vector2(w * .75f, RegionStrip / 2), new Vector2(4, h * .3f), new Vector2(w - 4, h * .3f), new Vector2(4, h * .6f), new Vector2(w - 4, h * .6f), new Vector2(4, h * .85f), new Vector2(w - 4, h * .85f) })
+        {
+            var p = _tableSurface.ProjectCanvas(tile.GetGlobalTransform() * local);
+            var motion = new InputEventMouseMotion { Position = p, GlobalPosition = p }; motion.SetMeta(CaptureMouseTag, true); GetViewport().PushInput(motion, true); await EventFrames(3);
+            if ((TableHovered as CardTile)?.Card.Id == tile.Card.Id) return p;
+        }
+        throw new Exception($"No visible, reachable part of {tile.Card.Id} to click");
+    }
+    private async Task SupportClick(Control control, bool reachable = false)
     {
         if (control is not CardTile)
         {
@@ -75,7 +88,7 @@ public partial class Main
                 if (parent is ScrollContainer scroll) scroll.EnsureControlVisible(control);
             await EventFrames(5);
         }
-        var p = control is CardTile tile ? ScreenCenter(tile) : control.GetGlobalRect().GetCenter();
+        var p = control is CardTile tile ? reachable ? await ReachablePoint(tile) : ScreenCenter(tile) : control.GetGlobalRect().GetCenter();
         void Push(InputEventMouse input) { input.SetMeta(CaptureMouseTag, true); GetViewport().PushInput(input, true); }
         Push(new InputEventMouseMotion { Position = p, GlobalPosition = p }); await EventFrames(3);
         if (control is CardTile clicked) GD.Print($"SUPPORT_CLICK: {clicked.Card.Id} at {p}; focus={GetWindow().HasFocus()}, blocked={CameraBlocked}, hovered={(TableHovered as CardTile)?.Card.Id}, busy={PresentationBusy}, viewer={View.ViewerId}");
@@ -124,28 +137,30 @@ public partial class Main
             }
             await SupportCapture(""); var version = View.Version;
             var region = Self.Provinces.First(p => p.Region?.Definition?.Id == "oracle-l5r-4777").Region!;
-            await SupportClick(_tiles.Single(t => t.Card.Id == region.Id));
+            await SupportClick(_tiles.Single(t => t.Card.Id == region.Id), reachable: true);
             SupportRequire(_selected?.Id == region.Id && View.Version == version, $"Projected Region inspection failed or mutated game: expected {region.Id}, selected {_selected?.Id}, version {version}->{View.Version}");
             await SupportCapture("-region-inspector");
             var regionBounds = _matTargets.Single(t => t.Id == $"province:{seat}:{region.ProvinceIndex}").Bounds.Grow(100);
             _cameraFitted = false; _cameraCenter = regionBounds.GetCenter(); _cameraZoom = FitRegion(regionBounds) * .65f; ApplyTableCamera(); await SupportCapture("-region-detail");
-            DeselectCard(); ResetTableCamera(); await EventFrames(6);
+            if (_chosen is not null) CancelChoice(); else DeselectCard(); ResetTableCamera(); await EventFrames(6); // selecting a card can open its action choice, which DeselectCard leaves alone
             var celestial = Self.Celestials!.Single(); await SupportClick(_tiles.Single(t => t.Card.Id == celestial.Id));
-            SupportRequire(_selected?.Id == celestial.Id, "Projected Celestial inspection failed");
+            SupportRequire(_selected?.Id == celestial.Id, $"Projected Celestial inspection failed: expected {celestial.Id}, selected {_selected?.Id}");
             SupportRequire(StabilizationButtons(_inspector).Any(b => b.Text == "Inspect card"), "Missing full-card inspection");
             await SupportCapture("-celestial-inspector");
             var home = _persistentBounds[seat].Grow(55); _cameraFitted = false; _cameraCenter = home.GetCenter(); _cameraZoom = FitRegion(home) * .8f; ApplyTableCamera(); await SupportCapture("-celestial-detail");
             await SupportClick(StabilizationButton("Inspect card")); await SupportCapture("-full-inspection");
             var dialog = GetChildren().OfType<AcceptDialog>().Last(); await StabilizationClick(dialog.GetOkButton()); await EventFrames(5);
             SupportRequire(View.Version == version, "Full-card inspection submitted a command");
-            DeselectCard(); ResetTableCamera(); await EventFrames(6);
+            if (_chosen is not null) CancelChoice(); else DeselectCard(); ResetTableCamera(); await EventFrames(6); // selecting a card can open its action choice, which DeselectCard leaves alone
             GD.Print("SUPPORT_PASS: both-owner public layout, projected inspection, independent Region/Dynasty slots, full original scan, no inspection command");
             if (!crowded && seat == 0)
             {
-                await SupportClick(_tiles.Single(t => t.Card.Id == region.Id));
+                await SupportClick(_tiles.Single(t => t.Card.Id == region.Id), reachable: true);
                 var option = Actions.First(a => a.Enabled && a.CardId == region.Id && a.Command?.AbilityId == "low-market-equip" && QuoteFor(a)?.Cost > 0);
                 var beforeProvince = Self.Provinces[region.ProvinceIndex!.Value].Card!.Id;
-                var actionButton = StabilizationButton("Use Open ability"); await SupportClick(actionButton);
+                // The choosing flow (#1004) opens the drafted ability at once and asks for the performer first; click the row for the performer the engine offered.
+                var performerRow = StabilizationButtons(_inspector).FirstOrDefault(b => b.GetMeta("performer_row", "").AsString() == option.Command!.PerformerId);
+                await SupportClick(performerRow ?? StabilizationButton("Use Open ability"));
                 SupportRequire(_chosen?.Command?.AbilityId == "low-market-equip", "Region ability button did not choose authoritative option");
                 // Pick the engine's offered payment through actual checkboxes, then confirm.
                 var payment = QuoteFor(option)!.Payments.First();
@@ -167,7 +182,8 @@ public partial class Main
                 engine = SupportFixture(battle: true); await LoadSupportFixture(engine, 0);
                 celestial = Self.Celestials!.Single(); await SupportClick(_tiles.Single(t => t.Card.Id == celestial.Id));
                 option = Actions.First(a => a.Enabled && a.CardId == celestial.Id && a.Command?.AbilityId == "lady-matsus-rage-bow-destroy");
-                await SupportClick(StabilizationButton("Use Battle ability"));
+                performerRow = StabilizationButtons(_inspector).FirstOrDefault(b => b.GetMeta("performer_row", "").AsString() == option.Command!.PerformerId);
+                await SupportClick(performerRow ?? StabilizationButton("Use Battle ability"));
                 SupportRequire(_chosen?.Command?.AbilityId == "lady-matsus-rage-bow-destroy", "Native Celestial ability button did not open a draft");
                 await SupportCapture("-celestial-confirm"); await SupportClick(StabilizationButton("Confirm action")); await EventFrames(40);
                 SupportRequire(engine.State.Cards[celestial.Id].Zone == Zone.DynastyDiscard, "Celestial ability did not pay discard cost");
@@ -199,12 +215,16 @@ public partial class Main
         await LoadSupportFixture(engine, 1);
         await SupportClick(_tiles.Single(t => t.Card.Id == region.Id));
         var option = Actions.First(a => a.Enabled && a.CardId == region.Id && a.Command?.AbilityId == "fallow-lands-reaction");
-        await SupportClick(StabilizationButton(option.Label));
+        await SupportClick(StabilizationButton(ReactionOptionLabel(option))); // a reaction window labels its options "Use <card>" (ReactionOptionLabel), not the engine label
         SupportRequire(_chosen?.Command?.AbilityId == "fallow-lands-reaction", "Fallow Lands reaction did not open confirmation");
         await SupportCapture("-reaction-confirm"); await SupportClick(StabilizationButton("Confirm action")); await EventFrames(25);
-        SupportRequire(engine.State.PendingAttack?.Strength == 3, "Native Region reaction did not reduce the engine's attack");
+        // The reaction window closes itself once nobody has a reaction left (with motion on, after its animation), so the probe proves the native click used the Region's reaction by the engine's own event.
+        // The numeric -2 is not observable here any more: PendingAttack is gone once the window closes.
+        bool FallowUsed() => View.Events.Any(e => e.Type == "abilityUsed" && e.Message.StartsWith("Lion: Fallow Lands"));
+        for (var wait = 0; wait < 12 && !FallowUsed(); wait++) await EventFrames(10);
+        SupportRequire(FallowUsed(), "Native Region reaction was not used through the reaction window");
         await SupportCapture("-reaction-used");
-        GD.Print("SUPPORT_PASS: Fallow Lands native reaction during a real attack window, confirmation reduces strength 5 to 3");
+        GD.Print("SUPPORT_PASS: Fallow Lands native reaction used during a real attack window; the window closes and the attack resolves");
     }
     private async Task CheckSupportLifecycle()
     {
@@ -235,7 +255,8 @@ public partial class Main
             await _session.Submit(action.Command!); await EventFrames(70);
         }
         SupportRequire(engine.State.Players[1].Provinces[0].Destroyed && engine.State.Cards[doomed.Id].Zone == Zone.DynastyDiscard, "Province destruction did not discard its Region");
-        await EventFrames(100); SupportRequire(_tiles.All(t => t.Card.Id != doomed.Id), "Destroyed province retained its Region tile");
+        for (var wait = 0; wait < 40 && _tiles.Any(t => t.Card.Id == doomed.Id); wait++) await EventFrames(20); // the removal animation is time-based, so the frames it needs depend on the frame rate
+        SupportRequire(_tiles.All(t => t.Card.Id != doomed.Id), "Destroyed province retained its Region tile");
         ResetTableCamera(); await SupportCapture("-province-fallen");
         GD.Print("SUPPORT_PASS: real battle resolution removes destroyed province and its Region");
 
