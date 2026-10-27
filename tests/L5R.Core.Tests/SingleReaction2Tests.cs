@@ -1158,6 +1158,7 @@ internal static partial class SingleReaction2Tests
                 var shadows = Add(s, def, 0, Zone.Hand);
                 var magistrate = Kw(Put(s, "training-lion-samurai", 1, l), "Magistrate");
                 var moved = Put(s, "training-crane-samurai", 0, l); if (ninjaUnit) Kw(moved, "Ninja");
+                Put(s, "training-lion-samurai", 0, l); // presence (issue #1133): the Strategy's player keeps a unit at the battlefield after the Ninja was moved home
                 var e = MatchEngine.FromTestState(s);
                 Accept(e, Offer(e, 1, "captured-convict-move", convict.Id, moved.Id, magistrate.Id));
                 Eq(e.State.Cards[moved.Id].Zone, Zone.Home, "the Personality was moved home from battlefield 0");
@@ -1366,7 +1367,7 @@ internal static partial class SingleReaction2Tests
                     var shig = Add(s, shigeyuki, 0, Zone.Battlefield, province: 0);
                     var foe = Add(s, targetDef, 1, Zone.Battlefield, province: 0);
                     foe.Modifiers.Add(new("test-source", "test", "PersonalHonor", -CardCatalog.Get(targetDef).PersonalHonor));
-                    Add(s, yataku, yatakuOwner, Zone.Home);
+                    Add(s, yataku, yatakuOwner, Zone.Battlefield, province: 0); // presence (issue #1133): a Personality's Reaction in a battle needs him at the battlefield
                     edit?.Invoke(s);
                     var e = MatchEngine.FromTestState(s);
                     Accept(e, Offer(e, 0, "shigeyuki-duel", shig.Id, foe.Id));

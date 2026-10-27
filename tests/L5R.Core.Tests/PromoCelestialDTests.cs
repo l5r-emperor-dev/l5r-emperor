@@ -263,7 +263,7 @@ internal static class PromoCelestialDTests
         {
             var s = Table(Phase.Battle, 1); s.PriorityPlayerId = 1;
             wielder = Add(s, Samurai, 0, Zone.Battlefield, province: 0);
-            mark = Add(s, ColonistsMark, 0, Zone.Attached, parent: wielder.Id);
+            mark = Add(s, ColonistsMark, 0, Zone.Attached, province: 0, parent: wielder.Id); // province 0: an attachment is at the battlefield with its wielder (presence, issue #1133)
             handCard = Add(s, "training-focus-strategy", 0, Zone.Hand);
             monk = Add(s, "training-crane-samurai", 1, Zone.Battlefield, province: 0); monk.GrantedKeywords.Add(new("Monk", "test-fixture", GrantDuration.Permanent));
             breeze = Add(s, RideTheBreeze, 1, Zone.Hand);
@@ -291,7 +291,7 @@ internal static class PromoCelestialDTests
         // With an empty hand there is no card to discard: the Reaction is not usable.
         var s3 = Table(Phase.Battle, 1); s3.PriorityPlayerId = 1;
         var w3 = Add(s3, Samurai, 0, Zone.Battlefield, province: 0);
-        Add(s3, ColonistsMark, 0, Zone.Attached, parent: w3.Id);
+        Add(s3, ColonistsMark, 0, Zone.Attached, province: 0, parent: w3.Id);
         var m3 = Add(s3, "training-crane-samurai", 1, Zone.Battlefield, province: 0); m3.GrantedKeywords.Add(new("Monk", "test-fixture", GrantDuration.Permanent));
         var b3 = Add(s3, RideTheBreeze, 1, Zone.Hand);
         var e3 = MatchEngine.FromTestState(s3);
