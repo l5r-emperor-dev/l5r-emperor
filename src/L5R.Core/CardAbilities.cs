@@ -4961,7 +4961,7 @@ public sealed partial class MatchEngine
     private string? BattleReactionPresenceRefusal(AbilityDefinition ability, string id, CardInstance? source, int playerId)
     {
         if (ability.Timing != "Reaction" || _state.CurrentBattleProvince is not int battlefield) return null;
-        if (ability.Absent || ability.MovesToBattle || id is "archery-range-reaction" || id.StartsWith("training-", StringComparison.Ordinal)) return null; // training-*: scenario fixtures with no location rule
+        if (ability.Absent || ability.MovesToBattle || id is "tsukimi-battlefield" /* moves her own unit to the battlefield: the Rules of Presence and Location' move-in exception */ || id is "archery-range-reaction" || id.StartsWith("training-", StringComparison.Ordinal)) return null; // training-*: scenario fixtures with no location rule
         if (!(Army(playerId, battlefield).Any() || Wave735WaivesPresence(playerId) || PresenceHeldUntilWindowCloses(playerId))) return "You need a unit at the current battlefield to take a Reaction in a battle.";
         if (source is null || !InPlay(source)) return null;
         if (source.Zone == Zone.Region) return source.ProvinceIndex == battlefield && source.OwnerId != _state.ActivePlayerId ? null : "A Region is present only at a battle on its own province.";
