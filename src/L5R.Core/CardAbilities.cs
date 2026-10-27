@@ -4929,6 +4929,9 @@ public sealed partial class MatchEngine
             && (id != "kakihara-attack-force-bonus" || targetId == c.Id && KakiharaCanReact(c, attackerId)))
         || AnyOutOfPlayReactionAvailable(playerId, "before-attack-resolves")
         || OwnsTargetedActionReaction(playerId, SubjectForAttack(_runningCommand, targetId));
+    // An Attack that targets a province (issue #1124): the one in-play Reaction written for it is Fallow Lands', on the attacked province of the player the Attack is against.
+    private bool ProvinceAttackReactionAvailableTo(int playerId, int attackerId, int province) =>
+        playerId != attackerId && AnyInPlayReactionAvailable("before-attack-resolves", (c, id) => c.OwnerId == playerId && id == "fallow-lands-reaction" && c.ProvinceIndex == province && Army(playerId, province).Any());
     private bool AnyAttackReactionAvailable(int attackerId, string? targetId) =>
         AttackReactionAvailableTo(0, attackerId, targetId) || AttackReactionAvailableTo(1, attackerId, targetId);
     // Akodo Kakihara (oracle-l5r-223, issue #305): "Reaction: After another player's action targets
@@ -5127,8 +5130,12 @@ public sealed partial class MatchEngine
     {
         var strength = strengthOverride is int overridden ? overridden + ShishidoRangedBonus(abilityId, sourceId) + P2AttackStrengthBonus(abilityId, attacker.Id) /* issue #503 */ + TfRangedBonus(abilityId, sourceId) /* issue #622 */ : EffectiveAttackStrength(abilityId, attacker, targetId is null ? null : Card(targetId), sourceId);
         strength += ConsumeAnnouncedAttackModifiers(abilityId, attacker.Id); // No Hiding Place (issue #498): "Give one Ranged Attack from the action -1 strength".
-        // An Attack that targets no card (no target, or a province) opens no reaction window: nothing card-targeted can react to it (issue #335).
-        if (targetId is null || !AnyAttackReactionAvailable(attacker.Id, targetId))
+        // An Attack that targets no card opens no reaction window: nothing card-targeted can react to it (issue #335). The exception is an Attack that targets a province
+        // (Mendon, issue #1124): Fallow Lands reacts to that, so the window opens when it can (and only it can use the window, see ValidateAbility).
+        var attackedProvince = targetId is null && AbilityCatalog.All[abilityId].AttackTargetsProvince ? _runningCommand?.Province : null;
+        if (attackedProvince is int provinceUnderAttack
+            ? !ProvinceAttackReactionAvailableTo(0, attacker.Id, provinceUnderAttack) && !ProvinceAttackReactionAvailableTo(1, attacker.Id, provinceUnderAttack)
+            : targetId is null || !AnyAttackReactionAvailable(attacker.Id, targetId))
         {
             var province = targetId is null && AbilityCatalog.All[abilityId].AttackTargetsProvince ? _runningCommand?.Province : null;
             ResolveAttackNow(abilityId, attacker.Id, targetId, strength, sourceId, province);
@@ -5141,7 +5148,7 @@ public sealed partial class MatchEngine
         // they could react with (the usual case: the attacker is the active player and only reacts with
         // something of their own when they actually hold such a card).
         OpenAlternatingReactionWindow(new("attackReaction", attacker.Id, null, "An attack is pending: react or pass."),
-            FirstReactionOpportunity(p => AttackReactionAvailableTo(p, attacker.Id, targetId)), "Attack reaction window opened.", attacker.Id);
+            FirstReactionOpportunity(p => attackedProvince is int province ? ProvinceAttackReactionAvailableTo(p, attacker.Id, province) : AttackReactionAvailableTo(p, attacker.Id, targetId)), "Attack reaction window opened.", attacker.Id);
         return true;
     }
     // "If this targeted a card, ..." (Carpenter Castle: gain 2 Honor; Mendon, issue #335): an effect of the Attack's TARGETING, not of its hit. It is gained whether the
@@ -5163,7 +5170,7 @@ public sealed partial class MatchEngine
         if (!attack.Negated)
         {
             _attackCommandInResolution = attack.Command; // Yoritomo Hiromi (issue #477): the deferred Attack's own destruction is from her Battle action.
-            try { ResolveAttackNow(attack.AbilityId, attack.PlayerId, attack.TargetId, attack.Strength, attack.SourceId); }
+            try { ResolveAttackNow(attack.AbilityId, attack.PlayerId, attack.TargetId, attack.Strength, attack.SourceId, attack.TargetId is null && AbilityCatalog.All[attack.AbilityId].AttackTargetsProvince ? attack.Command?.Province : null); }
             finally { _attackCommandInResolution = null; }
         }
         else
@@ -5819,6 +5826,8 @@ public sealed partial class MatchEngine
         if (id is "kaname-attack-boost" or "umiko-attack-boost" or "umiko-attack-reduce") { if (!(_state.PendingAttack!.Kind == "Ranged")) return "This only reacts to a Ranged Attack."; }
         if (id == "umiko-attack-reduce")
         { if (!(!_state.RangedAttackStrengthReductionImmune)) return "This Ranged Attack is immune to strength reduction for the remainder of its resolution."; }
+        // An Attack that targets a province names no card (issue #1124): only Fallow Lands is written to react to it, every other Attack reaction needs a card target.
+        if (AbilityCatalog.All[id].Trigger == "before-attack-resolves" && _state.PendingAttack is { TargetId: null } && id != "fallow-lands-reaction") return "This Attack targets a province, not a card.";
         if (id == "flesh-cutter-arrows-reaction")
         {
             if (!(_state.PendingAttack!.Kind == "Ranged" && _state.PendingAttack.SourceId == Card(source!.AttachedTo!).Id

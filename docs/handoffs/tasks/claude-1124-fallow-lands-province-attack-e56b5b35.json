@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Fallow Lands can now react to an Attack that targets its province (Mendon's ruling, R-087): ResolveOrDeferAttack opens the attack reaction window for a province Attack when Fallow Lands can react, ValidateAbility refuses every other Attack reaction against it, and the deferred Attack still resolves its province effect. New Core suite fallow-lands-reaction.",
+  "validation": "dotnet fallow-lands-reaction 3/3 pass and 0/3 on the old engine; bash tools/check.sh --skip-client all passed. Client not changed or run natively.",
+  "remaining": "Other 'after an Attack is targeted' reactions (Khol Regulars, Precision...) still do not react to a province Attack; not asked for. Client window with no card target not checked natively.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1124",
+  "branch": "claude/1124-fallow-lands-province-attack",
+  "updated": "2026-10-27T09:59:15.515817+00:00"
+}
