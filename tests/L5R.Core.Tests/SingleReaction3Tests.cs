@@ -213,19 +213,20 @@ internal static partial class SingleReaction3Tests
         foreach (var me in new[] { 0, 1 })
             foreach (var own in new[] { false, true })
             {
-                // Player 1 attacks. The enemy action moves Mitsuo home (the move-both-home fixture moves its target and its source); his own Trusting Instinct moves
-                // him from home to the battlefield. Either way the controller holds the window and the extra action it grants.
-                var s = Table(Phase.Battle, 1); s.PriorityPlayerId = own ? me : 1 - me;
-                var mitsuo = own ? Add(s, def, me, Zone.Home) : Bf(s, def, me);
-                var mover = Bf(s, "training-move-source", own ? me : 1 - me);
+                // Player 1 attacks. Presence (issue #1133): a Reaction in a battle needs its source at the battlefield, so an action that moved Mitsuo HOME could never be
+                // answered by him. His own Trusting Instinct (own) or a Battle fixture of his controller's (training-move-current, !own) moves him from home to the
+                // battlefield. Either way the controller holds the window and the extra action it grants.
+                var s = Table(Phase.Battle, 1); s.PriorityPlayerId = me;
+                var mitsuo = Add(s, def, me, Zone.Home);
+                var mover = Bf(s, "training-move-source", me);
                 var bower = Bf(s, "training-battle-bower", me); var foe = Bf(s, "training-lion-samurai", 1 - me);
                 var instinct = own ? Add(s, Def("trusting-instinct-move"), me, Zone.Hand) : null;
                 var bystander = Bf(s, "training-crane-samurai", me);
                 var e = MatchEngine.FromTestState(s);
                 var label = $"me={me} own={own}";
                 if (own) Accept(e, Use(e, me, "trusting-instinct-move", instinct!.Id, null, mitsuo.Id));
-                else Accept(e, Offer(e, 1 - me, "training-move-both-home", mover.Id, mitsuo.Id));
-                Eq(e.State.Cards[mitsuo.Id].Zone, own ? Zone.Battlefield : Zone.Home, label + ": the action moved Mitsuo");
+                else Accept(e, Offer(e, me, "training-move-current", mover.Id, mitsuo.Id));
+                Eq(e.State.Cards[mitsuo.Id].Zone, Zone.Battlefield, label + ": the action moved Mitsuo");
                 Eq(Window(e), "afterActionResolvedReaction", label);
                 var command = InWindow(e, me, ability, mitsuo.Id, windowType: "afterActionResolvedReaction");
                 Check(e.State.AdditionalActions.All(g => g.PlayerId != me), label + ": no extra action yet");
@@ -538,6 +539,7 @@ internal static partial class SingleReaction3Tests
                     play = Add(s, favorDef, performer, Zone.Hand);
                     unit = Add(s, "training-lion-samurai", performer, phase == Phase.Battle ? Zone.Battlefield : Zone.Home, bowed: true, province: phase == Phase.Battle ? 0 : null);
                     answer = Add(s, def, holder, Zone.Hand);
+                    if (phase == Phase.Battle) Add(s, "training-crane-samurai", holder, Zone.Battlefield, province: 0); // presence (issue #1133): a Reaction in a battle needs a unit at the battlefield
                     return MatchEngine.FromTestState(s);
                 }
                 var label = $"holder {holder} in {phase}";
@@ -1525,7 +1527,7 @@ internal static partial class SingleReaction3Tests
                 CardInstance hayan = null!, unicorn = null!, tired = null!, crane = null!;
                 var e = Engage(attacker, s =>
                 {
-                    hayan = Add(s, def, owner, Zone.Home, bowed: true); // a trait: usable while he is bowed
+                    hayan = Bf(s, def, owner, bowed: true); // a trait: usable while he is bowed; at the battlefield (presence, issue #1133)
                     Bf(s, "training-crane-samurai", owner); Bf(s, "training-lion-samurai", foe);
                     unicorn = Add(s, unicornDef, owner, Zone.Home); tired = Add(s, unicornDef, owner, Zone.Home, bowed: true); crane = Add(s, "training-crane-veteran", owner, Zone.Home);
                 });
