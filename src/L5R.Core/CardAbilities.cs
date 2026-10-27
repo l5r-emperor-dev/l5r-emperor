@@ -5467,6 +5467,7 @@ public sealed partial class MatchEngine
         if (slotAbility is not null) ability = slotAbility;
         ability = RulebookAbility(ability!, id, command); // P19 (issue #717, RulebookModifiers.cs): a rulebook action's timing / Absent as the performer's modifiers leave them
         RequireNotBarredFromTargeting(command, ability!);
+        if (ability!.Timing == "Reaction" && ability.UsesPerTurn == 1 && ReactionTriggerKey(command.CardId, id) is { } takenKey && _state.ReactionsTakenThisTrigger.Contains(takenKey)) return "This card has already taken this Reaction to this trigger.";
         var __valid1 = ability!.Timing switch
         {
             "Limited" => _state.Phase == Phase.Action && (command.PlayerId == _state.ActivePlayerId || LimitedInsteadOfOpen(command.PlayerId) || TurnRuleLimitedAsOpen(command.PlayerId, command.CardId))
@@ -7401,6 +7402,18 @@ public sealed partial class MatchEngine
     private void FizzleMove(PlayerState player, CardInstance source) =>
         Emit("abilityFizzled", $"{Definition(source).Name}'s move does nothing: there are no enemy units at the current battlefield.", player.Id, source.Id);
 
+    // Core rules (Abilities, Jan 2013): "any single copy of a Reaction action (from a single given source) may not be taken more than once to the same trigger, even if a more general effect makes it
+    // possible to take the Reaction more than once per turn". A Reaction whose own text allows several uses a turn ("twice per turn", Governor's Estate, Matsu Rika) is outside the rule: it is the general
+    // effect that gives a once-per-turn Reaction another use that the rule answers. A trigger is the reaction window it is taken in: the key names the window by the last window event and its type, so a window opened later is a new trigger.
+    private string? ReactionTriggerKey(string? cardId, string abilityId) =>
+        cardId is null || _state.PendingChoice is not { } window || _state.Events.LastOrDefault(e => e.Type == "reactionWindow") is not { } opened ? null : $"{cardId}|{abilityId}|{opened.Sequence}|{window.Type}";
+    private void NoteReactionTaken(GameCommand command, AbilityDefinition ability)
+    {
+        if (ability.Timing != "Reaction" || ability.UsesPerTurn != 1 || ReactionTriggerKey(command.CardId, command.AbilityId!) is not { } key) return;
+        var window = key[(key.IndexOf('|', key.IndexOf('|') + 1) + 1)..];
+        _state.ReactionsTakenThisTrigger.RemoveAll(k => !k.EndsWith("|" + window, StringComparison.Ordinal));
+        if (!_state.ReactionsTakenThisTrigger.Contains(key)) _state.ReactionsTakenThisTrigger.Add(key);
+    }
     private void UseAbility(GameCommand command)
     {
         // A multi-target action's first card target also rides in TargetId (issue #336), so everything written for a single target sees it.
@@ -7429,7 +7442,8 @@ public sealed partial class MatchEngine
     {
         // Seeds of Decay pass (issue #453), batch 1: a standing redirect of another player's rewrites this action's target as it is announced (StandingRedirects.cs).
         command = ApplyStandingRedirects(command);
-        var ability = RulebookAbility(AbilityCatalog.All[command.AbilityId!], command.AbilityId!, command); // P19 (RulebookModifiers.cs): the timing the action was taken under
+        var ability = RulebookAbility(AbilityCatalog.All[command.AbilityId!], command.AbilityId!, command);
+        NoteReactionTaken(command, ability); // issue #1131: one use of this copy per trigger // P19 (RulebookModifiers.cs): the timing the action was taken under
         ClearActionMarkersForNewAction(command.AbilityId); // Emperor Edition Stronghold pass (issue #486), batch 2: Suitengu's Torch's and Shiro Chugo's marks belong to one announced action.
         // Additional Action (issue #181): a Battle-timed use that matches one of this player's
         // currently available grants is taken "out of order" -- deferred through the same
