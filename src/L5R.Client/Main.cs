@@ -464,13 +464,13 @@ public partial class Main : Node
         inspectorPanel.AddThemeStyleboxOverride("panel", SidebarSkin.Surface());
         var side = new VBoxContainer(); side.AddThemeConstantOverride("separation", 10); inspectorPanel.AddChild(side);
         _seatLabel = Palette.Text("", 13, Palette.Gold); _seatLabel.Visible = false; side.AddChild(_seatLabel);
-        _sidebarHeader = new VBoxContainer(); side.AddChild(_sidebarHeader);
+        _sidebarHeader = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; side.AddChild(new SidebarScroll { MaxHeight = 250 }); side.GetChild<SidebarScroll>(-1).AddChild(_sidebarHeader);
         var scroll = new ScrollContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }; side.AddChild(scroll);
         _inspector = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; _inspector.AddThemeConstantOverride("separation", 10); scroll.AddChild(_inspector);
         side.AddChild(new HSeparator());
-        _guide = Palette.Wrapped("", 17, Palette.PaperDim); _guide.MouseFilter = Control.MouseFilterEnum.Stop; side.AddChild(_guide);
-        _decisionActions = new VBoxContainer(); side.AddChild(_decisionActions);
-        _phaseActions = new VBoxContainer(); side.AddChild(_phaseActions);
+        _guide = Palette.Wrapped("", 17, Palette.PaperDim); _guide.MouseFilter = Control.MouseFilterEnum.Stop; side.AddChild(new SidebarScroll { MaxHeight = 110 }); side.GetChild<SidebarScroll>(-1).AddChild(_guide);
+        _decisionActions = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; side.AddChild(new SidebarScroll { MaxHeight = 210 }); side.GetChild<SidebarScroll>(-1).AddChild(_decisionActions);
+        _phaseActions = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; side.AddChild(new SidebarScroll { MaxHeight = 170 }); side.GetChild<SidebarScroll>(-1).AddChild(_phaseActions);
         _notice = Place(_root, Palette.Text("", 13, Palette.PaperDim), 26, 1060, 1868, 19);
         _notice.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis; _notice.MouseFilter = Control.MouseFilterEnum.Stop;
         _intentOverlay = new BoardIntentOverlay { MouseFilter = Control.MouseFilterEnum.Ignore, Arrows = IntentArrows };

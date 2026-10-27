@@ -129,6 +129,28 @@ public partial class Main
         await EventFrames(6);
     }
 
+    /// <summary>
+    /// A bot that plays many Reactions fills the sidebar's header with one line per announced or queued Reaction. The header scrolls, and the buttons below it stay on the panel where they can be pressed.
+    /// Stuffs the header with far more lines than fit and checks the panel did not grow, the buttons below are still inside it, and the header's scroll bar appears and moves.
+    /// </summary>
+    private async Task CheckSidebarOverflow()
+    {
+        var panel = _inspectorPanel.GetGlobalRect();
+        for (var i = 1; i <= 60; i++) _sidebarHeader.AddChild(Palette.Wrapped($"Announced: Mantis Reaction number {i} with a long description that wraps onto a second line of the sidebar", 15, Palette.PaperDim));
+        await EventFrames(6);
+        var scroll = (ScrollContainer)_sidebarHeader.GetParent();
+        SupportRequire(_inspectorPanel.GetGlobalRect().Size.Y <= panel.Size.Y + 1, "A long list of Reactions grew the sidebar past its panel");
+        var bar = scroll.GetVScrollBar();
+        SupportRequire(bar.Visible && bar.MaxValue > bar.Page + 50, "The sidebar header has no scroll bar for a long list of Reactions");
+        foreach (var button in StabilizationButtons(_inspectorPanel).Where(b => b.IsVisibleInTree() && b.Text.Length > 0 && !_sidebarHeader.IsAncestorOf(b)))
+            SupportRequire(_inspectorPanel.GetGlobalRect().Encloses(button.GetGlobalRect()), "A sidebar button is pushed off the panel by the long list: " + button.Text);
+        scroll.ScrollVertical = (int)bar.MaxValue; await EventFrames(3);
+        SupportRequire(scroll.ScrollVertical > 0, "The sidebar header does not scroll");
+        scroll.ScrollVertical = 0;
+        for (var i = _sidebarHeader.GetChildCount() - 1; i >= _sidebarHeader.GetChildCount() - 60; i--) _sidebarHeader.GetChild(i).QueueFree();
+        await EventFrames(3);
+    }
+
     private void CheckReactionCaptureLayout()
     {
         var header = ReactionControl<Label>("ReactionDecisionHeader");
@@ -287,6 +309,7 @@ public partial class Main
             CheckReactionCaptureLayout(); await SupportCapture("-offer");
             if (layout)
             {
+                await CheckSidebarOverflow();
                 GD.Print("REACTION_FLOW_LAYOUT_PASS: rendered public context and decision bounds; seat=" + seat + "; reduced=" + _preferences.ReducedMotion + "; input not exercised.");
                 GetTree().Quit(); return;
             }
