@@ -211,7 +211,7 @@ internal static class TfGearTests
         CardInstance? lookout = null;
         if (withLookout)
         {
-            var ninja = Kw(Add(s, Lion, 1, lookoutAtHome ? Zone.Home : Zone.Battlefield, province: lookoutAtHome ? null : 0), "Ninja");
+            var ninja = Kw(Add(s, Lion, 1, Zone.Battlefield, province: 0), "Ninja");
             lookout = Attach(s, Lookout, ninja);
         }
         var e = MatchEngine.FromTestState(s);
@@ -230,7 +230,7 @@ internal static class TfGearTests
         var plain = LookoutTable(withLookout: false);
         Reject(plain.Engine, Use(plain.Engine, 1, "tsuruchi-daikyu-attack", plain.Bow.Id, plain.HomeTarget.Id));
 
-        // With it (the Lookout's Ninja unit at HOME: it may react from anywhere in play): announce, react, then choose the home target.
+        // With it (the Lookout's Ninja unit stands at the battlefield: presence rule, #1133): announce, react, then choose the home target.
         var (e, lookout, bow, archer, present, homeTarget) = LookoutTable();
         Accept(e, Use(e, 1, "tsuruchi-daikyu-attack", bow.Id, present.Id));
         Eq(e.State.PendingChoice?.Type, "announceReaction", "the announce window is open for the watcher");
@@ -263,7 +263,7 @@ internal static class TfGearTests
         // A Melee Attack announces no Ranged Attack: the Lookout is not offered a window.
         var m = Table(Phase.Battle, 1);
         var attacker = Add(m, Lion, 1, Zone.Battlefield, province: 0); var sword = Attach(m, "oracle-l5r-10124", attacker); // Unparalleled Sword: Battle: Melee 4 Attack
-        var ninja = Kw(Add(m, Lion, 1, Zone.Home), "Ninja"); var lookoutM = Attach(m, Lookout, ninja);
+        var ninja = Kw(Add(m, Lion, 1, Zone.Battlefield, province: 0), "Ninja"); var lookoutM = Attach(m, Lookout, ninja);
         var victim = Add(m, Crane, 0, Zone.Battlefield, province: 0);
         var me = MatchEngine.FromTestState(m);
         Accept(me, Use(me, 1, "unparalleled-sword-attack", sword.Id, victim.Id));
@@ -803,7 +803,7 @@ internal static class TfGearTests
         var l = Table(Phase.Battle, 1);
         var archer = Add(l, Lion, 1, Zone.Battlefield, province: 0); var bow = Attach(l, TsuruchiDaikyu, archer);
         var present = Add(l, Crane, 0, Zone.Battlefield, province: 0); var homeCard = Add(l, Crane, 0, Zone.Home);
-        var ninja = Kw(Add(l, Lion, 1, Zone.Home), "Ninja"); var lookout = Attach(l, Lookout, ninja);
+        var ninja = Kw(Add(l, Lion, 1, Zone.Battlefield, province: 0), "Ninja"); var lookout = Attach(l, Lookout, ninja);
         var le = MatchEngine.FromTestState(l);
         Accept(le, Use(le, 1, "tsuruchi-daikyu-attack", bow.Id, present.Id));
         le.NegateEveryAction = true;
@@ -822,7 +822,7 @@ internal static class TfGearTests
         // A bowed Lookout cannot react at all.
         var b = Table(Phase.Battle, 1);
         var barcher = Add(b, Lion, 1, Zone.Battlefield, province: 0); var bbow = Attach(b, TsuruchiDaikyu, barcher); var btarget = Add(b, Crane, 0, Zone.Battlefield, province: 0);
-        var bninja = Kw(Add(b, Lion, 1, Zone.Home), "Ninja"); Attach(b, Lookout, bninja, bowed: true);
+        var bninja = Kw(Add(b, Lion, 1, Zone.Battlefield, province: 0), "Ninja"); Attach(b, Lookout, bninja, bowed: true);
         var be = MatchEngine.FromTestState(b);
         Accept(be, Use(be, 1, "tsuruchi-daikyu-attack", bbow.Id, btarget.Id));
         Check(be.State.PendingChoice?.Type != "announceReaction", "a bowed Lookout opens no announce window");

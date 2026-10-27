@@ -570,7 +570,7 @@ internal static class Wave737Tests
         Eq(Honor(recruit, 0), honor - 3, "Taigo costs 3 Honor on entering play");
 
         var (s, source, target) = MoveRig();
-        var taigo = Add(s, Taigo, 0, Zone.Home);
+        var taigo = Add(s, Taigo, 0, Zone.Battlefield, province: 1);
         var e = MatchEngine.FromTestState(s);
         var move = Batch336Support.Enabled(e, 1, "training-move-anywhere", source.Id).Command! with { TargetId = target.Id, Province = 3 };
         Accept(e, move);
@@ -588,7 +588,7 @@ internal static class Wave737Tests
 
         // A unit with an attachment is not itself a choice, but its attachment is: the Follower can be destroyed, the host cannot.
         var (s2, source2, target2) = MoveRig();
-        Add(s2, Taigo, 0, Zone.Home);
+        Add(s2, Taigo, 0, Zone.Battlefield, province: 1);
         var follower = Fx(s2, "training-follower", "w737-taigo-follower", 0, Zone.Attached, parent: target2.Id);
         var f = MatchEngine.FromTestState(s2);
         Accept(f, Batch336Support.Enabled(f, 1, "training-move-anywhere", source2.Id).Command! with { TargetId = target2.Id, Province = 3 });
@@ -603,7 +603,7 @@ internal static class Wave737Tests
         var fires = Add(t, DefinitionWith("fires-of-turmoil"), 1, Zone.Hand);
         var victim = Add(t, "training-battle-bower", 0, Zone.Battlefield, province: 0);
         Add(t, LionSamurai, 1, Zone.Battlefield, province: 0);
-        Add(t, Taigo, 0, Zone.Home);
+        Add(t, Taigo, 0, Zone.Battlefield, province: 0);
         var g = MatchEngine.FromTestState(t);
         Accept(g, Batch336Support.Offer(g, 1, "fires-of-turmoil", fires.Id, victim.Id));
         Check(g.State.PendingChoice is not { Type: "beforeActionReaction" }, "no unit moves, so no Interrupt window: " + g.State.PendingChoice?.Type);
@@ -617,8 +617,8 @@ internal static class Wave737Tests
             var fires = Add(s, DefinitionWith("fires-of-turmoil"), 1, Zone.Hand);
             var victim = Add(s, "training-battle-bower", 0, Zone.Battlefield, province: 0);
             Add(s, LionSamurai, 1, Zone.Battlefield, province: 0);
-            var host = Fx(s, CraneSamurai, "w737-void-shugenja", 0, Zone.Home, d => d with { Keywords = ["Shugenja", "Void"] });
-            var spell = Add(s, ReverseFate, 0, Zone.Attached, parent: host.Id);
+            var host = Fx(s, CraneSamurai, "w737-void-shugenja", 0, Zone.Battlefield, d => d with { Keywords = ["Shugenja", "Void"] }, province: 0);
+            var spell = Add(s, ReverseFate, 0, Zone.Attached, province: 0, parent: host.Id);
             var topId = s.Players[1].FateDeck[0];
             var printed = CardCatalog.Get(s.Cards[topId].DefinitionId).Focus;
             var e = MatchEngine.FromTestState(s);
@@ -636,14 +636,14 @@ internal static class Wave737Tests
         var fires2 = Add(t, DefinitionWith("fires-of-turmoil"), 1, Zone.Hand);
         var victim2 = Add(t, "training-battle-bower", 0, Zone.Battlefield, province: 0);
         Add(t, LionSamurai, 1, Zone.Battlefield, province: 0);
-        var water = Fx(t, CraneSamurai, "w737-water-shugenja", 0, Zone.Home, d => d with { Keywords = ["Shugenja", "Water"] });
-        Add(t, ReverseFate, 0, Zone.Attached, parent: water.Id);
+        var water = Fx(t, CraneSamurai, "w737-water-shugenja", 0, Zone.Battlefield, d => d with { Keywords = ["Shugenja", "Water"] }, province: 0);
+        Add(t, ReverseFate, 0, Zone.Attached, province: 0, parent: water.Id);
         var f = MatchEngine.FromTestState(t);
         Accept(f, Batch336Support.Offer(f, 1, "fires-of-turmoil", fires2.Id, victim2.Id));
         Check(f.State.PendingChoice is not { Type: "beforeActionReaction" }, "a Shugenja who is not Void cannot use it");
         var (u, source, target) = MoveRig();
-        var vh = Fx(u, CraneSamurai, "w737-void2", 0, Zone.Home, d => d with { Keywords = ["Shugenja", "Void"] });
-        Add(u, ReverseFate, 0, Zone.Attached, parent: vh.Id);
+        var vh = Fx(u, CraneSamurai, "w737-void2", 0, Zone.Battlefield, d => d with { Keywords = ["Shugenja", "Void"] }, province: 1);
+        Add(u, ReverseFate, 0, Zone.Attached, province: 1, parent: vh.Id);
         var g = MatchEngine.FromTestState(u);
         Accept(g, Batch336Support.Enabled(g, 1, "training-move-anywhere", source.Id).Command! with { TargetId = target.Id, Province = 3 });
         Check(g.State.PendingChoice is not { Type: "beforeActionReaction" }, "an action that discards nothing opens no window");

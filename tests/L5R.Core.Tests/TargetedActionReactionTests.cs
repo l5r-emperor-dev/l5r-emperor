@@ -677,7 +677,7 @@ internal static class TargetedActionReactionTests
         {
             // The Earth Flows: the Defender moves a Personality to the current battlefield -- no need for him to be there. Player 0 is the Attacker here.
             var s = Table(actor: 0); s.PriorityPlayerId = 1; s.UnresolvedBattlefields = [0, 1];
-            var y = Add(s, Yurishi, 0, Zone.Battlefield, province: 1); Add(s, "training-lion-samurai", 0, Zone.Battlefield, province: 0);
+            var y = Add(s, Yurishi, 0, Zone.Battlefield, province: 0); Add(s, "training-lion-samurai", 0, Zone.Battlefield, province: 0);
             var shugenja = Add(s, "training-shugenja", 1, Zone.Battlefield, province: 0); var spell = Add(s, EarthFlows, 1, Zone.Attached, province: 0, parent: shugenja.Id);
             var e = MatchEngine.FromTestState(s);
             Accept(e, Offer(e, 1, "earth-flows-move", spell.Id, y.Id));
