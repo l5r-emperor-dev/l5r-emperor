@@ -19,8 +19,17 @@ internal static class AbilityGrantTests
     private static void Check(bool ok, string message = "Assertion failed") { if (!ok) throw new Exception(message); }
     private static CardInstance Add(MatchState s, string def, int owner = 0, Zone zone = Zone.Home, bool bowed = false, string? parent = null)
     {
-        var c = new CardInstance { Id = $"grant-{s.Cards.Count}", DefinitionId = def, OwnerId = owner, Zone = zone, FaceUp = zone != Zone.Hand,
-            Bowed = bowed, ProvinceIndex = zone == Zone.Battlefield ? 0 : null, AttachedTo = parent };
+        var c = new CardInstance
+        {
+            Id = $"grant-{s.Cards.Count}",
+            DefinitionId = def,
+            OwnerId = owner,
+            Zone = zone,
+            FaceUp = zone != Zone.Hand,
+            Bowed = bowed,
+            ProvinceIndex = zone == Zone.Battlefield ? 0 : null,
+            AttachedTo = parent
+        };
         s.Cards.Add(c.Id, c);
         if (zone == Zone.Hand) s.Players[owner].Hand.Add(c.Id);
         return c;
@@ -74,7 +83,8 @@ internal static class AbilityGrantTests
     private static void BattleUse()
     {
         var e = Grant(); var id = Receiver(e); string target = "", armored = "", other = "";
-        e = Edit(e, s => {
+        e = Edit(e, s =>
+        {
             s.Phase = Phase.Battle; s.CurrentBattleProvince = 0; s.UnresolvedBattlefields = [0]; s.PriorityPlayerId = 0;
             s.Cards[id].Zone = Zone.Battlefield; s.Cards[id].ProvinceIndex = 0;
             other = s.Cards.Values.Last(c => c.DefinitionId == "training-crane-samurai").Id;
@@ -98,7 +108,8 @@ internal static class AbilityGrantTests
     private static void Regrant()
     {
         var e = Grant(); var id = Receiver(e); string strategy = "";
-        e = Edit(e, s => {
+        e = Edit(e, s =>
+        {
             s.PriorityPlayerId = 0; s.Cards[id].GrantedAbilities.Clear();
             s.Cards[id].GrantedAbilities.Add(new(Bow, "temporary-source", GrantDuration.Turn));
             s.Cards[id].AbilityUses[Bow] = s.TurnNumber;
@@ -121,7 +132,8 @@ internal static class AbilityGrantTests
             var roundtrip = JsonSerializer.Deserialize<MatchView>(JsonSerializer.Serialize(e.GetView(viewer)))!;
             Check(roundtrip.Players[0].Home.Single(c => c.Id == id).GrantedAbilities!.Single() == grant);
         }
-        e = Edit(e, s => {
+        e = Edit(e, s =>
+        {
             var hidden = s.Cards[s.Players[0].Provinces[0].CardId!]; hidden.FaceUp = false;
             hidden.GrantedAbilities.Add(new(Bow, "secret-grant-source", GrantDuration.Permanent));
             var hand = Add(s, Spirit, zone: Zone.Hand); hand.GrantedAbilities.Add(new(Bow, "private-hand-grant", GrantDuration.Permanent));
@@ -134,8 +146,11 @@ internal static class AbilityGrantTests
     private static void DeathAndTurn()
     {
         var e = Grant(); var id = Receiver(e);
-        e = Edit(e, s => { s.PriorityPlayerId = 0; s.Cards[id].DefinitionId = "training-skin-donor"; s.Cards[id].Dishonorable = true;
-            s.Cards[id].GrantedAbilities.Add(new("training-bow-any", "temporary", GrantDuration.Turn)); });
+        e = Edit(e, s =>
+        {
+            s.PriorityPlayerId = 0; s.Cards[id].DefinitionId = "training-skin-donor"; s.Cards[id].Dishonorable = true;
+            s.Cards[id].GrantedAbilities.Add(new("training-bow-any", "temporary", GrantDuration.Turn));
+        });
         Accept(e, e.QueryActions(0).Single(a => a.Type == "orderSeppuku" && a.CardId == id).Command!);
         Check(e.State.Cards[id].Zone == Zone.Dead && View(e, id, 1).GrantedAbilities!.Single().AbilityId == Bow);
         e = Edit(e, s => { s.Phase = Phase.Dynasty; s.PriorityPlayerId = 0; s.PendingChoice = null; });
