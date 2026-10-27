@@ -357,7 +357,7 @@ internal static partial class EmperorP4Tests
         {
             var s = Table(Phase.Battle, 1); s.PriorityPlayerId = 1;
             wielder = Add(s, "training-lion-samurai", 0, Zone.Battlefield, province: 0);
-            hunger = Add(s, Hunger, 0, Zone.Attached, parent: wielder.Id);
+            hunger = Add(s, Hunger, 0, Zone.Attached, province: 0, parent: wielder.Id);
             monk = Add(s, Samurai, 1, Zone.Battlefield, province: 0); GiveKeyword(monk, "Monk");
             breeze = Add(s, RideTheBreeze, 1, Zone.Hand);
             return MatchEngine.FromTestState(s);

@@ -177,7 +177,7 @@ internal static class MoveDestinationTests
     private static void EachMoveNegatedSeparately()
     {
         // (1) Predator's own movement negated: the target still moves, Predator and his Item stay.
-        var r = Map(); Add(r.S, "training-mover-negator", 0, Zone.Home);
+        var r = Map(); Add(r.S, "training-mover-negator", 0, Zone.Battlefield, province: 1);
         var e = MatchEngine.FromTestState(r.S);
         Accept(e, MoveTo(e, r, 2));
         Eq(e.State.PendingChoice?.Type, "beforeActionReaction", "the negator opens the before-action window");
@@ -187,19 +187,19 @@ internal static class MoveDestinationTests
         Check(e.State.Events.Any(x => x.Type == "moveNegated"), "the negation is in the log");
         Check(e.State.Cards[r.Predator.Id].AbilityUses.ContainsKey(Move), "the action was still taken");
         // (2) The target's movement negated by a real card (Tamori Tamoko's reaction): only the target stays, Predator goes.
-        var r2 = Map(); Add(r2.S, "training-tamoko", 0, Zone.Home);
+        var r2 = Map(); Add(r2.S, "training-tamoko", 0, Zone.Battlefield, province: 1);
         var e2 = MatchEngine.FromTestState(r2.S);
         Accept(e2, MoveTo(e2, r2, 2));
         Accept(e2, e2.QueryActions(0).Single(a => a.Type == "useAbility" && a.Enabled && a.Command!.AbilityId == "tamoko-negate").Command!); CloseWindows(e2);
         Eq(e2.State.Cards[r2.Target.Id].ProvinceIndex, 1, "the target stayed"); Eq(e2.State.Cards[r2.TargetItem.Id].ProvinceIndex, 1, "and so did his Item");
         Eq(e2.State.Cards[r2.Predator.Id].ProvinceIndex, 2, "Predator went on his own"); Eq(e2.State.Cards[r2.PredatorItem.Id].ProvinceIndex, 2);
         // (2b) ...and the same by naming the target through the mover-negating fixture.
-        var r2b = Map(); Add(r2b.S, "training-mover-negator", 0, Zone.Home);
+        var r2b = Map(); Add(r2b.S, "training-mover-negator", 0, Zone.Battlefield, province: 1);
         var e2b = MatchEngine.FromTestState(r2b.S);
         Accept(e2b, MoveTo(e2b, r2b, 0)); Accept(e2b, NegateMover(e2b, r2b.Target.Id)); CloseWindows(e2b);
         Check(e2b.State.Cards[r2b.Target.Id].ProvinceIndex == 1 && e2b.State.Cards[r2b.Predator.Id].ProvinceIndex == 0, "the target stayed, Predator went to the chosen battlefield");
         // (3) Both negated by two effects: neither moves (the action itself is not negated -- it was taken).
-        var r3 = Map(); Add(r3.S, "training-mover-negator", 0, Zone.Home); Add(r3.S, "training-tamoko", 0, Zone.Home);
+        var r3 = Map(); Add(r3.S, "training-mover-negator", 0, Zone.Battlefield, province: 1); Add(r3.S, "training-tamoko", 0, Zone.Battlefield, province: 1);
         var e3 = MatchEngine.FromTestState(r3.S);
         Accept(e3, MoveTo(e3, r3, 2));
         Accept(e3, NegateMover(e3, r3.Predator.Id));
@@ -208,14 +208,14 @@ internal static class MoveDestinationTests
         Check(new[] { r3.Predator, r3.Target, r3.PredatorItem, r3.TargetItem }.All(c => e3.State.Cards[c.Id].ProvinceIndex == 1), "both negated: nothing moved");
         Eq(e3.State.Events.Count(x => x.Type == "moveNegated"), 2, "two negations logged");
         // (4) The whole action negated: neither moves.
-        var r4 = Map(); Add(r4.S, "training-action-negator", 0, Zone.Home);
+        var r4 = Map(); Add(r4.S, "training-action-negator", 0, Zone.Battlefield, province: 1);
         var e4 = MatchEngine.FromTestState(r4.S);
         Accept(e4, MoveTo(e4, r4, 2));
         Accept(e4, e4.QueryActions(0).Single(a => a.Type == "useAbility" && a.Enabled && a.Command!.AbilityId == "training-negate-action").Command!); CloseWindows(e4);
         Check(new[] { r4.Predator, r4.Target, r4.PredatorItem, r4.TargetItem }.All(c => e4.State.Cards[c.Id].ProvinceIndex == 1), "the action negated whole: neither moved");
         Check(e4.State.Cards[r4.Predator.Id].AbilityUses.ContainsKey(Move), "it was still taken");
         // (5) No reaction played: both move (the baseline the cases above differ from).
-        var r5 = Map(); Add(r5.S, "training-mover-negator", 0, Zone.Home);
+        var r5 = Map(); Add(r5.S, "training-mover-negator", 0, Zone.Battlefield, province: 1);
         var e5 = MatchEngine.FromTestState(r5.S);
         Accept(e5, MoveTo(e5, r5, 2)); CloseWindows(e5);
         Check(new[] { r5.Predator, r5.Target }.All(c => e5.State.Cards[c.Id].ProvinceIndex == 2), "a window passed unused: both moved");

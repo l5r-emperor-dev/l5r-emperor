@@ -449,6 +449,7 @@ internal static class EmperorPersonalityBatch4Tests
         // An enemy Battle action moves Mitsuo home (the move-both-home fixture moves its target and its source).
         var s = Table(Phase.Battle, 1); s.PriorityPlayerId = 1;
         var mitsuo = Bf(s, Mitsuo, 0);
+        Bf(s, "training-crane-samurai", 0); // another unit of his controller's stays at the battlefield: presence for the Reaction
         var mover = Bf(s, "training-move-source", 1);
         var e = MatchEngine.FromTestState(s);
         Accept(e, Offer(e, 1, "training-move-both-home", mover.Id, mitsuo.Id));
