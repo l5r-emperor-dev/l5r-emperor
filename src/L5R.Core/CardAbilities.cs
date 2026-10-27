@@ -4965,7 +4965,8 @@ public sealed partial class MatchEngine
         if (!(Army(playerId, battlefield).Any() || Wave735WaivesPresence(playerId) || PresenceHeldUntilWindowCloses(playerId))) return "You need a unit at the current battlefield to take a Reaction in a battle.";
         if (source is null || !InPlay(source)) return null;
         if (source.Zone == Zone.Region) return source.ProvinceIndex == battlefield && source.OwnerId != _state.ActivePlayerId ? null : "A Region is present only at a battle on its own province.";
-        var inUnit = Definition(source).Type == CardType.Personality || source.Zone == Zone.Attached;
+        // Engage Reactions listed in EngageSourceElsewhere (Rokku, Hayan, the Sled) move a unit to the battlefield from elsewhere (issues #838/#840), and Mitsuo reacts to an action that moved him away: neither can need the card at the battlefield.
+        var inUnit = (Definition(source).Type == CardType.Personality || source.Zone == Zone.Attached) && !EngageSourceElsewhere.Contains(id) && id != "mitsuo-additional-action";
         if (inUnit && !SourceMayBeAway(ability, source) && !HomeWaivesSourceLocation(ability, source) && !AtBattle(source)) return "The card taking this Reaction must be at the current battlefield.";
         return null;
     }
