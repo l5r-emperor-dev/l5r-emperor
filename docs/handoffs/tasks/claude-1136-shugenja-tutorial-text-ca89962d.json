@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Shugenja tutorial text: Isawa Tomohiro is she/her; removed 'Scouring Flood moves a defender...' and the 'strictly, targeting isn't a cost' parenthetical; step 10 now says to attach The Swell of Strength to Natsumi; step 21 says to attach The Earth's Hunger to Isawa Tomohiro.",
+  "validation": "bash tools/check.sh --skip-client (pending); text only, no client run",
+  "remaining": "None; ready for review. Not seen in the client.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1136",
+  "branch": "claude/1136-shugenja-tutorial-text",
+  "updated": "2026-10-28T10:14:14.919323+00:00"
+}
