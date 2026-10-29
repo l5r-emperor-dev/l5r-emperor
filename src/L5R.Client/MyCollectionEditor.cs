@@ -17,7 +17,7 @@ public static class MyCollection
         }
     }
     private static CollectionPrinting[]? _printings;
-    /// <summary>The printings the collection file lists (Content/collection-printings.txt): set, edition code and rarity of each card, which the catalogue itself does not record.</summary>
+    /// <summary>The printings the collection file lists (Content/collection-printings.txt): set, rarity, clan and copy limit of each card, which the catalogue itself does not record.</summary>
     public static CollectionPrinting[] Printings => _printings ??= Load();
     private static CollectionPrinting[] Load()
     {
