@@ -205,6 +205,35 @@ public partial class Main
             if (tile is null) { GD.Print("TUTORIAL_UI no tile in play for " + arg); return; }
             SelectCard(tile.Card);
         }
+        else if (verb == "hover") // the pointer moves over one of the table's cards (hover:Bayushi Waru)
+        {
+            var tile = _tiles.FirstOrDefault(t => IsInstanceValid(t) && t.Card.Definition?.Name == arg) ?? throw new InvalidOperationException("no tile to hover for " + arg);
+            var at = ScreenCenter(tile);
+            GetViewport().PushInput(new InputEventMouseMotion { Position = at, GlobalPosition = at }, true); await CoverageFrames(); await CoverageFrames();
+            for (var i = 1; i <= 4; i++)
+            {
+                var p2 = at + new Vector2(i, i / 2f);
+                GetViewport().PushInput(new InputEventMouseMotion { Position = p2, GlobalPosition = p2, Relative = new Vector2(1, .5f) }, true); await ToSignal(GetTree().CreateTimer(.08), SceneTreeTimer.SignalName.Timeout);
+            }
+        }
+        else if (verb == "key") // a native key press and release (key:S, key:Escape)
+        {
+            var code = Enum.Parse<Key>(arg, true);
+            Input.ParseInputEvent(new InputEventKey { Keycode = code, PhysicalKeycode = code, Pressed = true }); await CoverageFrames();
+            Input.ParseInputEvent(new InputEventKey { Keycode = code, PhysicalKeycode = code, Pressed = false }); await CoverageFrames(); await CoverageFrames();
+        }
+        else if (verb == "clickat") // a real left click at a screen point (clickat:900/500)
+        {
+            var at = new Vector2(float.Parse(arg.Split('/')[0]), float.Parse(arg.Split('/')[1]));
+            GetViewport().PushInput(new InputEventMouseMotion { Position = at, GlobalPosition = at }, true); await CoverageFrames();
+            foreach (var pressed in new[] { true, false })
+                GetViewport().PushInput(new InputEventMouseButton { Position = at, GlobalPosition = at, ButtonIndex = MouseButton.Left, Pressed = pressed, ButtonMask = pressed ? MouseButtonMask.Left : 0 }, true);
+            await CoverageFrames(); await CoverageFrames();
+        }
+        else if (verb == "wait") await ToSignal(GetTree().CreateTimer(double.Parse(arg)), SceneTreeTimer.SignalName.Timeout);
+        else if (verb == "shot") GetViewport().GetTexture().GetImage().SavePng(ProjectSettings.GlobalizePath("res://../../artifacts/tutorial/" + arg + ".png"));
+        else if (verb == "report") GD.Print($"TUTORIAL_UI report {arg}: cardShowOpen={CardShowOpen} hovered={CardTile.HoveredCard?.Definition?.Name} selected={_selected?.Definition?.Name} zoom={_cameraZoom:0.00} fitted={_cameraFitted} tooltip={IsInstanceValid(_tableTooltip)}");
+        else if (verb == "zoom") ZoomTable(float.Parse(arg), _tableViewport.GetGlobalRect().GetCenter() - _tableViewport.GetGlobalRect().Position);
         else if (verb == "selectprovince")
         {
             var tile = _tiles.FirstOrDefault(t => IsInstanceValid(t) && t.Card.Zone == Zone.Province && t.Card.OwnerId == int.Parse(arg.Split('/')[0]) && t.Card.ProvinceIndex == int.Parse(arg.Split('/')[1]));

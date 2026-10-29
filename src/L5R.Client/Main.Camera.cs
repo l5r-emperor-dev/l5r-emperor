@@ -292,7 +292,7 @@ public partial class Main
             var focus = GetViewport().GuiGetFocusOwner() ?? TableFocus;
             if (focus is LineEdit or TextEdit) return;
             if (focus is not null && _world.IsAncestorOf(focus) && key.Keycode is Key.Left or Key.Right or Key.Up or Key.Down) ReleaseTableFocus();
-            if (key.Keycode == Key.Home)
+            if (key.Keycode == Key.Home || key.Keycode == Key.C && !key.CtrlPressed && !key.MetaPressed && !key.AltPressed) // C: back to the starting view (issue #1138)
             {
                 ResetTableCamera(); GetViewport().SetInputAsHandled();
             }
@@ -358,7 +358,7 @@ public partial class Main
             _syncTablePointer = false;
             _tableSurface.ForwardMouse(new InputEventMouseMotion { Position = _lastTableMouse });
         }
-        if (_cameraDragging || (CameraBlocked && token?.Inline != true) || (token is null && !PointerOnTable(_lastTableMouse)))
+        if (_cameraDragging || CardShowOpen || (CameraBlocked && token?.Inline != true) || (token is null && !PointerOnTable(_lastTableMouse)))
         { _matSections.Emphasize(null, hover: true); HideTableTooltip(); return; }
         Control? hovered = token ?? _matSections.IconAt(_lastTableMouse) ?? TableHovered;
         if (token is null)

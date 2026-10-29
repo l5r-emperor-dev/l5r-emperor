@@ -1,9 +1,9 @@
 {
   "lane": "shared",
-  "summary": "S key shows the hovered (else selected) card large, like the card-play showcase with animations off, until S, Esc or an outside click (new Main.CardShow.cs, CardTile.HoveredCard, input hooks in Main.cs and Main.Camera.cs).",
-  "validation": "dotnet build src/L5R.Client: 0 warnings, 0 errors. No native graphical or input run yet.",
-  "remaining": "Native check of hover/selected S, S/Esc/outside-click close, and that an outside click is not also a table click. No automated test added.",
+  "summary": "S shows the hovered (else selected) card large with the card-play entrance animation, untimed; closes on S, Esc or any click; the hover tooltip is dismissed and stays off while it shows. C returns the table view to its starting position (same as Home).",
+  "validation": "dotnet build client 0 errors. Native lab (tutorial table) with real hover, key and click events: S opens, S/Esc/click close, tooltip present before and gone after (screenshots reviewed), C restores camera zoom 0.64 to fitted 0.40. No automated test added; hover/key/clickat/zoom/shot lab tokens added to Main.Tutorial.cs.",
+  "remaining": "Mendon's hands-on check; Esc priority over other Esc handlers only exercised on the tutorial table.",
   "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1138",
   "branch": "claude/1138-s-key-card-display",
-  "updated": "2026-10-29T12:36:44.304969+00:00"
+  "updated": "2026-10-29T15:42:57.095932+00:00"
 }
