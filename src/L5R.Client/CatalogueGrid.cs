@@ -59,7 +59,7 @@ public partial class CatalogueGrid : ScrollContainer
         {
             if (!_tiles.TryGetValue(i, out var tile))
             {
-                var card = _cards[i]; tile = new CatalogueCardTile(card, _scans); tile.Pressed += () => { Hover?.Dismiss(); Selected?.Invoke(card); }; Hover?.Track(tile, () => card); _sheet.AddChild(tile); _tiles[i] = tile;
+                var card = _cards[i]; tile = new CatalogueCardTile(card, _scans); tile.Pressed += () => { Hover?.Dismiss(); Selected?.Invoke(card); }; tile.Step = direction => EditNeighbour(card.Id, direction); Hover?.Track(tile, () => card); _sheet.AddChild(tile); _tiles[i] = tile;
             }
             tile.Position = new Vector2(i % _columns * _cellWidth + (_cellWidth - _cardWidth) / 2, i / _columns * _rowHeight + 7);
             tile.Size = new Vector2(_cardWidth, _rowHeight - 12); tile.Chosen = tile.Card.Id == _selected; tile.QueueRedraw();
@@ -73,6 +73,13 @@ public partial class CatalogueGrid : ScrollContainer
         if (top < ScrollVertical) ScrollVertical = (int)top;
         else if (bottom > ScrollVertical + Size.Y) ScrollVertical = (int)(bottom - Size.Y);
         Refresh();
+    }
+    /// <summary>Opens the Owned editor of the card after (+1) or before (-1) this one in reading order, scrolling it into view; the end of the list stops.</summary>
+    public void EditNeighbour(string id, int direction)
+    {
+        var index = Array.FindIndex(_cards, c => c.Id == id) + direction;
+        if (index < 0 || index >= _cards.Length) return;
+        EnsureCard(_cards[index].Id); Tile(_cards[index].Id)?.BeginEdit();
     }
     public CatalogueCardTile? Tile(string id) => _tiles.Values.FirstOrDefault(t => t.Card.Id == id);
 }
@@ -104,7 +111,9 @@ public partial class CatalogueCardTile : Button
         var prefix = font.GetStringSize("Owned: ", HorizontalAlignment.Left, -1, 16).X; var number = font.GetStringSize(count, HorizontalAlignment.Left, -1, 16).X;
         return new Rect2((Size.X - prefix - number) / 2 + prefix - 4, Size.X * 1.4f + 3, Math.Max(number, 10) + 8, 22);
     }
-    private void BeginEdit()
+    /// <summary>Asked to move editing to the next (+1) or previous (-1) card; the grid knows the order.</summary>
+    public Action<int>? Step;
+    public void BeginEdit()
     {
         if (_editor is not null) return;
         var row = new HBoxContainer { Name = "OwnedEditor", MouseFilter = MouseFilterEnum.Stop }; row.AddThemeConstantOverride("separation", 3);
@@ -114,7 +123,12 @@ public partial class CatalogueCardTile : Button
         field.AddThemeStyleboxOverride("focus", CatalogueArt.ControlStyle(new Color("16212a"), CatalogueArt.Gold, 3, 0));
         field.TextChanged += text => { var digits = new string(text.Where(char.IsAsciiDigit).ToArray()); if (digits != text) { field.Text = digits; field.CaretColumn = digits.Length; } };
         field.TextSubmitted += _ => Accept();
-        field.GuiInput += e => { if (e is InputEventKey { Pressed: true, Keycode: Key.Escape }) { field.GetViewport().SetInputAsHandled(); Revert(); } };
+        field.GuiInput += e =>
+        {
+            if (e is not InputEventKey { Pressed: true } key) return;
+            if (key.Keycode == Key.Escape) { field.GetViewport().SetInputAsHandled(); Revert(); }
+            else if (key.Keycode == Key.Tab) { field.GetViewport().SetInputAsHandled(); var step = Step; var direction = key.ShiftPressed ? -1 : 1; Accept(); step?.Invoke(direction); }
+        };
         var yes = new OwnedGlyph(true) { Name = "OwnedAccept", TooltipText = "Keep this number (Enter).", AccessibilityName = "Accept owned copies" }; yes.Pressed += Accept;
         var no = new OwnedGlyph(false) { Name = "OwnedRevert", TooltipText = "Put the old number back (Esc).", AccessibilityName = "Revert owned copies" }; no.Pressed += Revert;
         row.AddChild(field); row.AddChild(yes); row.AddChild(no);
