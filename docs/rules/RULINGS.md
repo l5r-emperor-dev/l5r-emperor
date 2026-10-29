@@ -65,6 +65,13 @@ Left/Right choice, replaced by the card's own title once it is face up.
 - **Date:** 2026-09-30
 - **Source:** [Plains of Otosan Uchi province rules](../decisions/2026-09-30-otosan-uchi-province-rules.md)
 
+### R-091 — Conquest is used once per turn, across every battlefield
+The rulebook Conquest ability is not Repeatable, so a player uses it once per turn. The limit covers every battlefield that turn: once a Conqueror is chosen and kept unbowed, no other Conqueror may be straightened and kept unbowed by Conquest that turn, at that battle or a later one. The Plain of Glass's "twice per turn during the same battle" gives two uses, both at one battle, which spend the turn's Conquest. Conquest is offered only when the attacker wins the battle (the engine's existing behaviour, kept: no change).
+
+- **Cards/primitives:** `PlayerState.ConquestTurn`; `ContinueAfterResolution` and `FinishBattleResolution` (MatchEngine.cs); The Plain of Glass.
+- **Date:** 2026-10-29
+- **Source:** Mendon, issue #1147.
+
 ## Delays and negation
 
 ### R-003 — The shared delay mechanism
