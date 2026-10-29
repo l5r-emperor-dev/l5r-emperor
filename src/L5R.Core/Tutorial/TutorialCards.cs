@@ -38,6 +38,9 @@ internal static class TutorialCards
     public const string ObscuredPathways = "oracle-l5r-5649", PeaceOfTheKami = "oracle-l5r-10130", ScouringFlood = "oracle-l5r-6502", TheEarthsHunger = "oracle-l5r-9889",
         StrengthOfTheTsunami = "oracle-l5r-7562", TheSwellOfStrength = "oracle-l5r-8366";
 
+    // The Attachments lesson (issue #1077): Scorpion Lethargy (you, The Towers of the Yogo) against Phoenix (Library of Rebirth). Its Spells are the Spells lesson's.
+    public const string NightingaleBlade = "oracle-l5r-5556", ClanStandard = "oracle-l5r-1407", SoshiHouseGuard = "oracle-l5r-7347", RedCraneDojo = "oracle-l5r-6219";
+
     /// <summary>A forty-card deck: the lesson's cards on top, then the rest of the side's deck in its own order. A card the deck does not hold displaces the last card.</summary>
     internal static string[] Deck(string[] top, TutorialSide side, bool dynasty)
     {

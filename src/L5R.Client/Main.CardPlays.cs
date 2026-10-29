@@ -33,7 +33,12 @@ internal static class CardPlayTiming
 public partial class Main
 {
     /// <summary>Flip: the face-down card is turned over where it lies on the table (Cover covers it until its turn). Holdable: Paused Animation may stop on it (the flip of a card that merely stays in its province never does).</summary>
-    private sealed record PlayBeat(CardView Card, string Caption, bool Discarded, CardFlip? Cover = null, bool Holdable = true);
+    /// <summary>Issue #1077: <paramref name="HoldSeconds"/> overrides how long the card is held (a tutorial Spell being attached: 8 seconds), and <paramref name="AnimateAttach"/> plays the slide out from under its Personality when the show ends.</summary>
+    private sealed record PlayBeat(CardView Card, string Caption, bool Discarded, CardFlip? Cover = null, bool Holdable = true, double? HoldSeconds = null, bool AnimateAttach = false);
+
+    /// <summary>Spells whose attachment is being shown (tutorial): the table's own slide waits for the show to end, then <see cref="AnimateAttachment"/> plays it.</summary>
+    private readonly HashSet<string> _spellAttachShown = [];
+    private const double SpellAttachHold = 8;
 
     // An attachment ("equipped") is not showcased: the large card would cover the very Personality it attaches to. It slides out from under that Personality on the table instead (Main.Motion.cs).
     // What an opponent playing a card looks like in the public log: a strategy or ability, a card brought into play (a purchase or "put into play"), an attachment, a Terrain, a Kata, an overlay.
@@ -111,6 +116,11 @@ public partial class Main
                 beats[id] = new(card, e.Message, discarded, cover, entering); order.Add(id);
                 continue;
             }
+            if (e.Type == "equipped" && TutorialActive && card.Definition.Type == CardType.Spell && card.AttachedTo is not null && !beats.ContainsKey(id))
+            {
+                beats[id] = new(card, e.Message, false, null, false, SpellAttachHold, true); order.Add(id); _spellAttachShown.Add(id);
+                continue;
+            }
             if (!CardPlayEvents.Contains(e.Type) || who == View.ViewerId && !CardPlayTiming.ShowOwnPlays || beats.ContainsKey(id)) continue;
             if (!discarded && !CardPlayTiming.ShowBoardAbilities) continue;
             beats[id] = new(card, e.Message, discarded); order.Add(id);
@@ -159,7 +169,7 @@ public partial class Main
     private void ClearCardPlays()
     {
         foreach (var queued in _playQueue) if (queued.Cover is { } cover && IsInstanceValid(cover)) cover.QueueFree();
-        _playQueue.Clear(); _playsStarted.Clear();
+        _playQueue.Clear(); _playsStarted.Clear(); _spellAttachShown.Clear();
         if (_playCurrent is not null && IsInstanceValid(_playCurrent)) _playCurrent.QueueFree();
         _playCurrent = null; _playsMatchKey = null; _playsSeen = -1;
         _playProceed = null; _proceedButton = null; _proceedHintShown = false; SetPlayHeld(false);
@@ -209,7 +219,7 @@ public partial class Main
 
         var waiting = _playQueue.Count > 0 && !paused;
         var slow = TutorialSlow; // the tutorial can ask for a card to be shown for four times as long
-        var hold = (beat.Discarded ? CardPlayTiming.Hold : CardPlayTiming.BoardHold) * (waiting ? CardPlayTiming.QueuedHoldScale : 1) * slow;
+        var hold = beat.HoldSeconds ?? (beat.Discarded ? CardPlayTiming.Hold : CardPlayTiming.BoardHold) * (waiting ? CardPlayTiming.QueuedHoldScale : 1) * slow;
         var tween = stage.CreateTween();
         if (_reducedMotion)
         {
@@ -223,7 +233,7 @@ public partial class Main
                 })));
                 return;
             }
-            tween.TweenInterval(Math.Max(.2, CardPlayTiming.ReducedHold * (waiting ? CardPlayTiming.QueuedHoldScale : 1) * slow - .3));
+            tween.TweenInterval(Math.Max(.2, beat.HoldSeconds ?? CardPlayTiming.ReducedHold * (waiting ? CardPlayTiming.QueuedHoldScale : 1) * slow - .3));
             tween.TweenProperty(stage, "modulate:a", 0.0, .15);
         }
         else
@@ -238,7 +248,7 @@ public partial class Main
             else { tween.TweenInterval(hold); tween.TweenCallback(Callable.From(() => PlayCardOutro(stage, face, caption, beat))); }
             return;
         }
-        tween.TweenCallback(Callable.From(() => FinishCardPlay(stage)));
+        tween.TweenCallback(Callable.From(() => FinishCardPlay(stage, beat)));
     }
 
     /// <summary>The card is fully shown: float a Proceed button beneath it and wait. Enter reaches the button through ordinary GUI focus.</summary>
@@ -287,11 +297,22 @@ public partial class Main
         }
         else tween.TweenProperty(stage, "modulate:a", 0.0, CardPlayTiming.Outro * .6);
         tween.SetParallel(false);
-        tween.TweenCallback(Callable.From(() => FinishCardPlay(stage)));
+        tween.TweenCallback(Callable.From(() => FinishCardPlay(stage, beat)));
     }
 
-    private void FinishCardPlay(Control stage)
+    /// <summary>A Spell shown being attached (issue #1077) now slides out from under its Personality, as an attachment does on the table, so the player sees where it went.</summary>
+    private void AnimateAttachment(string cardId)
     {
+        _spellAttachShown.Remove(cardId);
+        var tile = _tiles.FirstOrDefault(t => IsInstanceValid(t) && t.Card.Id == cardId && _world.IsAncestorOf(t));
+        if (tile is null || tile.Card.AttachedTo is not { } wielderId || tile.GetParent() is not Control stack) return;
+        if (stack.GetChildren().OfType<CardTile>().FirstOrDefault(t => t.Card.Id == wielderId) is { } wielder && wielder.Position.DistanceTo(tile.Position) > .5f)
+            tile.AddChild(new TableCardReflow { Card = tile, From = wielder.Position, To = tile.Position, ReducedMotion = () => _reducedMotion });
+    }
+
+    private void FinishCardPlay(Control stage, PlayBeat? beat = null)
+    {
+        if (beat is { AnimateAttach: true }) AnimateAttachment(beat.Card.Id);
         if (IsInstanceValid(stage)) stage.QueueFree();
         if (_playCurrent == stage) StartNextCardPlay();
     }

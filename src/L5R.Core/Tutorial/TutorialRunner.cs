@@ -103,6 +103,60 @@ internal sealed class TutorialContext(TutorialRunner runner)
     }
     /// <summary>The opponent plays its script until <paramref name="stop"/> holds or a decision is yours.</summary>
     public void Foe(Func<MatchState, bool>? stop = null) => runner.PlayFoe(stop, scripted: true);
+    /// <summary>The opponent takes one named move now (an Equip (Battle), an ability of a Spell or Stronghold), so a lesson can have it act between the player's moves in a battle. <paramref name="performer"/> is the
+    /// definition id of the Personality that performs it, <paramref name="card"/> the card the ability is on (or, for Equip (Battle), the Spell attached from its hand), <paramref name="target"/> what it targets.
+    /// Gold for an Equip is the first payment the engine quotes. A refusal is a mistake in the lesson, so it throws.</summary>
+    /// <summary>The opponent declines the optional additional action an ability just gave it (Library of Rebirth's), which hands the next action to you.</summary>
+    public void FoeDeclineAdditionalAction()
+    {
+        var option = Engine.QueryActions(1 - TutorialRunner.Seat).FirstOrDefault(a => a.Enabled && a.Command?.Type == "declineAdditionalAction")
+            ?? throw new InvalidOperationException("The lesson expected the opponent to hold an additional action to decline.");
+        var result = Engine.Execute(option.Command!);
+        if (!result.Accepted) throw new InvalidOperationException("The opponent's decline was refused: " + result.Error);
+    }
+    /// <summary>The opponent answers the choice its last move opened ("You may move him home"): the open option whose label contains <paramref name="label"/>.</summary>
+    public void FoeDecide(string label)
+    {
+        var options = Engine.QueryActions(1 - TutorialRunner.Seat).Where(a => a.Enabled && a.Command is not null).ToArray();
+        var option = options.FirstOrDefault(a => a.Label.Contains(label, StringComparison.OrdinalIgnoreCase) && a.Type != "pass")
+            ?? throw new InvalidOperationException($"The lesson expected a '{label}' decision for the opponent: " + string.Join("; ", options.Select(a => $"{a.Type}/{a.Command?.Type}/{a.Command?.Choice}/{a.Label}")));
+        var result = Engine.Execute(option.Command!);
+        if (!result.Accepted) throw new InvalidOperationException("The opponent's decision was refused: " + result.Error);
+    }
+    /// <summary><see cref="LibraryReaction"/> is a Reaction Gold source of its own (4 Gold, even while its card is bowed); the others name a Holding by definition id.</summary>
+    public const string LibraryReaction = "library-reaction";
+    private string[] PaymentFrom(ActionOption option, string cardId, string[] pay, TutorialLookup look)
+    {
+        var quote = option.TargetGold?.GetValueOrDefault(cardId) ?? option.Gold;
+        var used = new HashSet<string>();
+        return [.. pay.Select(d => d == LibraryReaction
+            ? quote?.Sources?.FirstOrDefault(s => s.Produced == 4 && s.Id != s.CardId)?.Id ?? throw new InvalidOperationException("The lesson expected Library of Rebirth's Reaction to be a source of Gold.")
+            : look.Foe(d, Zone.Home).First(used.Add))];
+    }
+    public void FoeUse(string ability, string? performer = null, string? card = null, string? target = null, string? choice = null, string[]? pay = null)
+    {
+        var foe = 1 - TutorialRunner.Seat; var look = new TutorialLookup(Engine);
+        string? InPlay(string? definition) => definition is null ? null : look.Foe(definition, Zone.Home, Zone.Battlefield, Zone.Stronghold, Zone.Attached).FirstOrDefault();
+        var performerId = InPlay(performer);
+        var cardId = card is null ? null : look.Foe(card, Zone.Hand).FirstOrDefault() ?? InPlay(card);
+        var targetId = target is null ? null : look.Own(target, Zone.Home, Zone.Battlefield, Zone.Attached).FirstOrDefault() ?? InPlay(target);
+        var options = Engine.QueryActions(foe).Where(a => a.Enabled && a.Command is { } c && c.AbilityId == ability).ToArray();
+        var option = options.FirstOrDefault(a => (performerId is null || a.Command!.PerformerId == performerId) && (cardId is null || a.Command!.CardId == cardId || a.CardId == cardId || a.TargetGold?.ContainsKey(cardId) == true))
+            ?? options.FirstOrDefault(a => performerId is null || a.Command!.PerformerId is null)
+            ?? throw new InvalidOperationException($"The lesson expected the opponent to be able to use '{ability}': " + string.Join("; ", Engine.QueryActions(foe).Where(a => a.Enabled || a.Command?.AbilityId == ability).Select(a => $"{(a.Enabled ? "" : "DISABLED: " + a.Reason + " ")}{a.Type}/{a.Command?.AbilityId}/{a.Label}")));
+        var command = option.Command!;
+        if (performerId is not null && (command.PerformerId is not null || ability is "equip-battle" or "library-rebirth-straighten")) command = command with { PerformerId = performerId };
+        if (ability == "equip-battle" && cardId is not null)
+            command = command with { TargetId = cardId, SourceIds = pay is null ? option.TargetGold?.GetValueOrDefault(cardId)?.Payments.FirstOrDefault()?.SourceIds ?? option.Gold?.Payments.FirstOrDefault()?.SourceIds ?? [] : PaymentFrom(option, cardId, pay, look) };
+        else
+        {
+            if (targetId is not null) command = command with { TargetId = targetId };
+            if (cardId is not null && command.CardId is null) command = command with { CardId = cardId };
+        }
+        if (choice is not null) command = command with { Choice = choice };
+        var result = Engine.Execute(command);
+        if (!result.Accepted) throw new InvalidOperationException($"The opponent's '{ability}' was refused: {result.Error}");
+    }
 }
 
 /// <summary>Plays a scripted lesson over the real engine (issue #935). The engine stays the only authority on legality: the runner narrows what is offered, plays the practice opponent's side of the script,
