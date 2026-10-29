@@ -87,6 +87,61 @@ public partial class CatalogueCardTile : Button
         MouseDefaultCursorShape = CursorShape.PointingHand; TextureFilter = TextureFilterEnum.LinearWithMipmaps;
         foreach (var state in new[] { "normal", "hover", "pressed", "focus" }) AddThemeStyleboxOverride(state, new StyleBoxEmpty());
         MouseEntered += QueueRedraw; MouseExited += QueueRedraw; FocusEntered += QueueRedraw; FocusExited += QueueRedraw;
+        // The Owned numeral is its own small button, so a click on it edits the count instead of selecting the card.
+        _numeral = new Button { Name = "OwnedNumeral", Flat = true, FocusMode = FocusModeEnum.None, MouseDefaultCursorShape = CursorShape.Ibeam, TooltipText = "Click to change how many you own.", AccessibilityName = "Edit owned copies of " + card.Name };
+        foreach (var state in new[] { "normal", "hover", "pressed", "focus" }) _numeral.AddThemeStyleboxOverride(state, new StyleBoxEmpty());
+        _numeral.MouseEntered += QueueRedraw; _numeral.MouseExited += QueueRedraw; _numeral.Pressed += BeginEdit; AddChild(_numeral);
+        TreeExiting += () => { if (_editor is not null) Accept(); };
+    }
+    private readonly Button _numeral;
+    private Control? _editor;
+    private LineEdit? _field;
+    /// <summary>True while the Owned count is being typed.</summary>
+    public bool Editing => _editor is not null;
+    private Rect2 NumeralRect()
+    {
+        var font = Palette.Body; var count = MyCollection.Store.Count(Card.Id).ToString();
+        var prefix = font.GetStringSize("Owned: ", HorizontalAlignment.Left, -1, 16).X; var number = font.GetStringSize(count, HorizontalAlignment.Left, -1, 16).X;
+        return new Rect2((Size.X - prefix - number) / 2 + prefix - 4, Size.X * 1.4f + 3, Math.Max(number, 10) + 8, 22);
+    }
+    private void BeginEdit()
+    {
+        if (_editor is not null) return;
+        var row = new HBoxContainer { Name = "OwnedEditor", MouseFilter = MouseFilterEnum.Stop }; row.AddThemeConstantOverride("separation", 3);
+        var field = new LineEdit { Name = "OwnedField", Text = MyCollection.Store.Count(Card.Id).ToString(), Alignment = HorizontalAlignment.Center, MaxLength = 5, CustomMinimumSize = new Vector2(62, 26), AccessibilityName = "Owned copies of " + Card.Name };
+        field.AddThemeFontSizeOverride("font_size", 16); field.AddThemeConstantOverride("minimum_character_width", 1);
+        field.AddThemeStyleboxOverride("normal", CatalogueArt.ControlStyle(new Color("0a1014"), new Color("8c754b"), 3, 0));
+        field.AddThemeStyleboxOverride("focus", CatalogueArt.ControlStyle(new Color("16212a"), CatalogueArt.Gold, 3, 0));
+        field.TextChanged += text => { var digits = new string(text.Where(char.IsAsciiDigit).ToArray()); if (digits != text) { field.Text = digits; field.CaretColumn = digits.Length; } };
+        field.TextSubmitted += _ => Accept();
+        field.GuiInput += e => { if (e is InputEventKey { Pressed: true, Keycode: Key.Escape }) { field.GetViewport().SetInputAsHandled(); Revert(); } };
+        var yes = new OwnedGlyph(true) { Name = "OwnedAccept", TooltipText = "Keep this number (Enter).", AccessibilityName = "Accept owned copies" }; yes.Pressed += Accept;
+        var no = new OwnedGlyph(false) { Name = "OwnedRevert", TooltipText = "Put the old number back (Esc).", AccessibilityName = "Revert owned copies" }; no.Pressed += Revert;
+        row.AddChild(field); row.AddChild(yes); row.AddChild(no);
+        var width = row.GetCombinedMinimumSize().X;
+        row.Position = new Vector2(Math.Max(0, (Size.X - width) / 2 + (Size.X >= 190 ? 26 : 0)), Size.X * 1.4f + 2); row.Size = new Vector2(width, 26);
+        _editor = row; _field = field; _numeral.Visible = false; AddChild(row); QueueRedraw();
+        field.GrabFocus(); field.SelectAll();
+    }
+    private void CloseEdit()
+    {
+        _editor?.QueueFree(); _editor = null; _field = null; _numeral.Visible = true; QueueRedraw();
+    }
+    /// <summary>Keeps the typed number: an empty field counts as no change.</summary>
+    private void Accept()
+    {
+        if (_editor is null || _field is null) return;
+        var ok = int.TryParse(_field.Text, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var value);
+        CloseEdit();
+        if (!ok) return;
+        try { MyCollection.Store.Set(Card.Id, value); }
+        catch (Exception e) when (e is FormatException or IOException or UnauthorizedAccessException or InvalidOperationException) { GD.PushWarning("Owned count not saved: " + e.Message); }
+    }
+    private void Revert() => CloseEdit();
+    public override void _Input(InputEvent @event)
+    {
+        // A click anywhere outside the field and its buttons keeps the number (the click itself still does what it was aimed at).
+        if (_editor is not null && @event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } click && !_editor.GetGlobalRect().HasPoint(click.GlobalPosition)) Accept();
     }
     public override void _Draw()
     {
@@ -108,7 +163,34 @@ public partial class CatalogueCardTile : Button
             DrawString(Palette.Body, new Vector2(8, face.Size.Y - 24), _scans.State(Card.Printings.FirstOrDefault()).Split(" · ")[0], HorizontalAlignment.Center, face.Size.X - 16, 13, CatalogueArt.Muted);
         }
         if (hot) DrawRect(face.Grow(2), CatalogueArt.Gold, false, 2);
-        DrawString(Palette.Body, new Vector2(0, face.Size.Y + 19), $"Owned: {MyCollection.Store.Count(Card.Id)}", HorizontalAlignment.Center, Size.X, 16, CatalogueArt.Ivory);
+        if (_editor is null)
+        {
+            var numeral = NumeralRect(); _numeral.Position = numeral.Position; _numeral.Size = numeral.Size;
+            var number = MyCollection.Store.Count(Card.Id).ToString(); var lit = _numeral.IsHovered();
+            DrawString(Palette.Body, new Vector2(numeral.Position.X + 4 - Palette.Body.GetStringSize("Owned: ", HorizontalAlignment.Left, -1, 16).X, face.Size.Y + 19), "Owned: ", HorizontalAlignment.Left, -1, 16, CatalogueArt.Ivory);
+            DrawString(Palette.Body, new Vector2(numeral.Position.X + 4, face.Size.Y + 19), number, HorizontalAlignment.Left, -1, 16, lit ? CatalogueArt.Gold : CatalogueArt.Ivory);
+            if (lit) DrawLine(new Vector2(numeral.Position.X + 4, face.Size.Y + 22), new Vector2(numeral.End.X - 4, face.Size.Y + 22), CatalogueArt.Gold, 1);
+        }
+        else if (Size.X >= 190) DrawString(Palette.Body, new Vector2(_editor.Position.X - 56, face.Size.Y + 19), "Owned:", HorizontalAlignment.Left, -1, 16, CatalogueArt.Ivory);
         if (!Card.Playable) DrawString(Palette.Body, new Vector2(0, face.Size.Y + 40), "Not yet playable", HorizontalAlignment.Center, Size.X, 14, CatalogueArt.Muted);
+    }
+}
+/// <summary>The small check (accept) and x (revert) beside an Owned number being edited; drawn, so no font needs the glyphs.</summary>
+public partial class OwnedGlyph : Button
+{
+    private readonly bool _accept;
+    public OwnedGlyph(bool accept)
+    {
+        _accept = accept; Flat = true; FocusMode = FocusModeEnum.None; CustomMinimumSize = new Vector2(24, 26); MouseDefaultCursorShape = CursorShape.PointingHand;
+        foreach (var state in new[] { "normal", "hover", "pressed", "focus" }) AddThemeStyleboxOverride(state, new StyleBoxEmpty());
+        MouseEntered += QueueRedraw; MouseExited += QueueRedraw;
+    }
+    public override void _Draw()
+    {
+        var color = _accept ? new Color("5fbf6a") : new Color("d9534f"); var box = new Rect2(Vector2.Zero, Size);
+        DrawRect(box, new Color(color, IsHovered() ? .30f : .14f)); DrawRect(box, color, false, 1);
+        var c = Size / 2;
+        if (_accept) DrawPolyline([c + new Vector2(-6, 0), c + new Vector2(-2, 5), c + new Vector2(6, -5)], color, 2.4f, true);
+        else { DrawLine(c + new Vector2(-5, -5), c + new Vector2(5, 5), color, 2.4f, true); DrawLine(c + new Vector2(-5, 5), c + new Vector2(5, -5), color, 2.4f, true); }
     }
 }

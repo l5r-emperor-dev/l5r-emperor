@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Card Library: the Owned numeral under each card is click-to-edit. Clicking it opens a number field with a green check (accept) and red x (revert); Enter and clicking elsewhere accept, Esc reverts. Writes through the shared collection store.",
+  "validation": "Client builds; native MyCollectionProbe run (real mouse and key events): 43 assertions pass, including 7 new ones for open/check/Esc/x/Enter/click-elsewhere/zero; screenshot checked. Also fixed the probe's export-header check left stale by #1142.",
+  "remaining": "Deck Builder's Owned labels are not editable (not requested). Not tried by hand on Windows beyond the native probe.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1143",
+  "branch": "claude/1143-owned-inline-edit",
+  "updated": "2026-10-29T21:19:18.019940+00:00"
+}
