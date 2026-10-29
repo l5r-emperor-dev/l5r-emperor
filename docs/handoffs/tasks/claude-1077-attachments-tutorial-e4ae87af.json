@@ -1,9 +1,9 @@
 {
   "lane": "shared",
-  "summary": "Attachments tutorial (id attachments): Scorpion Lethargy vs Phoenix. Equip (Limited) of a Follower, Weapon, Armor and General Item, Honor Requirement, a battle where the Phoenix attaches Spells with Equip (Battle), and abilities on a bowed Personality's unbowed attachments. New TutorialContext.FoeUse/FoeDeclineAdditionalAction/FoeDecide for scripted opponent plays in a battle. Script errors corrected against the CR (see docs/TUTORIAL.md); a Large Farm added so the 16 Gold of attachments is payable.",
-  "validation": "dotnet run tests/L5R.Core.Tests --filter tutorial: 41/41 (6 new tutorial-attachments). bash tools/check-tutorial.sh (native Godot, real controls): 59/22/25/26/32 steps, all five lessons pass. Two screenshots reviewed. bash tools/check.sh --skip-client result recorded in the PR.",
-  "remaining": "Mendon's human playtest of the lesson text and pacing (32 steps, over the 30-step budget by two); no Windows packaged preview built.",
+  "summary": "Attachments tutorial (id attachments): Scorpion Lethargy vs Phoenix. Equip (Limited) of a Follower, Weapon, Armor and General Item, Honor Requirement, a battle where the Phoenix attaches Spells with Equip (Battle), abilities on a bowed Personality's unbowed attachments. FoeUse/FoeDeclineAdditionalAction/FoeDecide for scripted opponent plays. Tutorial-only: an attached Spell is shown 8 seconds then slides into place. Clan Standard payable by Remote Village or Red Crane Dojo. Script errors corrected against the CR (docs/TUTORIAL.md).",
+  "validation": "tutorial tests 41/41; tools/check-tutorial.sh native run passes all five lessons incl. a timed 8s Spell show (9.4s with fades) and a frame reviewed; click-and-drag assignment confirmed natively; tools/check.sh --skip-client exit 0 (before the last UI edits).",
+  "remaining": "Mendon's human playtest of text and pacing; 32 steps (budget 30); no Windows packaged preview.",
   "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1077",
   "branch": "claude/1077-attachments-tutorial",
-  "updated": "2026-10-29T14:02:51.412145+00:00"
+  "updated": "2026-10-29T15:01:14.763899+00:00"
 }

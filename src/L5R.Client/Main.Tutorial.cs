@@ -205,6 +205,15 @@ public partial class Main
             if (tile is null) { GD.Print("TUTORIAL_UI no tile in play for " + arg); return; }
             SelectCard(tile.Card);
         }
+        else if (verb == "drag") // a real press-move-release from one of your cards to a Province bay (drag:Bayushi Utoro>1/0), as the table's click-and-drag (issue #993) takes it
+        {
+            var (name, where) = arg.Split('>') is [var n, var w] ? (n, w) : throw new InvalidOperationException("drag: wants Name>owner/province");
+            var tile = _tiles.FirstOrDefault(t => IsInstanceValid(t) && t.Card.Definition?.Name == name && t.Card.OwnerId == View.ViewerId) ?? throw new InvalidOperationException("no tile to drag for " + name);
+            var from = DragPointOf(tile.Card.Id); var to = DragBay(int.Parse(where.Split('/')[0]), int.Parse(where.Split('/')[1]));
+            await DragBegin(from); await DragMove(from, to);
+            if (!_dragging) GD.Print("TUTORIAL_UI the drag of " + name + " did not start (CanDrag=" + CanDrag(tile.Card) + ")");
+            await DragRelease(to);
+        }
         else if (verb == "selectprovince")
         {
             var tile = _tiles.FirstOrDefault(t => IsInstanceValid(t) && t.Card.Zone == Zone.Province && t.Card.OwnerId == int.Parse(arg.Split('/')[0]) && t.Card.ProvinceIndex == int.Parse(arg.Split('/')[1]));
@@ -479,6 +488,7 @@ public partial class Main
             {
                 var before = coach.StepId;
                 await RunTutorialUiToken("mouse:coach"); await CoverageFrames(); await CoverageFrames();
+                if (before == "phoenix-first") await CheckSpellAttachmentShown("Strength of the Tsunami");
                 if (_session.Tutorial is { Finished: false } moved && moved.Coach.StepId == before) throw new InvalidOperationException($"{before}: a real click on the coach's button did nothing.");
                 continue;
             }
@@ -492,6 +502,23 @@ public partial class Main
         if (_session.Tutorial is { Finished: false }) throw new InvalidOperationException("Attachments did not finish.");
         if (!MenuVisible || _titleMenu?.Page != "tutorial-track") throw new InvalidOperationException("Tutorial Menu did not return to the Level Up Your Play list.");
         return seen.Count;
+    }
+
+    /// <summary>Issue #1077: the Phoenix's Spell is shown large for 8 seconds, then slides into place under its Shugenja. Times the show on the real table and saves a frame of it.</summary>
+    private async Task CheckSpellAttachmentShown(string name)
+    {
+        var started = Time.GetTicksMsec();
+        for (var wait = 0; wait < 40 && !PlayShowcaseBusy; wait++) await CoverageFrames();
+        if (!PlayShowcaseBusy || _playsStarted.Count == 0) throw new InvalidOperationException($"{name} was not shown when it was attached.");
+        if (_spellAttachShown.Count == 0) throw new InvalidOperationException($"{name}'s attachment slide is not held back for the show.");
+        await ToSignal(GetTree().CreateTimer(2), SceneTreeTimer.SignalName.Timeout);
+        GetViewport().GetTexture().GetImage().SavePng(ProjectSettings.GlobalizePath("res://../../artifacts/tutorial/spell-show.png"));
+        var shown = Time.GetTicksMsec();
+        while (PlayShowcaseBusy && Time.GetTicksMsec() - started < 25000) await ToSignal(GetTree().CreateTimer(.1), SceneTreeTimer.SignalName.Timeout);
+        var seconds = (Time.GetTicksMsec() - started) / 1000.0;
+        if (PlayShowcaseBusy || seconds < 7.5 || seconds > 11) throw new InvalidOperationException($"{name} was shown for {seconds:0.0}s, not about 8.");
+        if (_spellAttachShown.Count != 0) throw new InvalidOperationException("The attachment slide was never played after the show.");
+        GD.Print($"TUTORIAL_SPELL_SHOW: {name} shown for {seconds:0.0}s");
     }
 
     /// <summary>Plays Spells and Shugenja (issue #1076) start to finish with the controls a player uses: Equip (Limited) offers only the Shugenja for a Spell, the Spells in hand cannot be equipped on the

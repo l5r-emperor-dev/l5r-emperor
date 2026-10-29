@@ -36,6 +36,8 @@ Corrections to the original script, checked against the comprehensive rules and 
 
 Corrections to the original script, checked against the comprehensive rules and the cards: Clan Standard was not in the hand and the five attachments cost 16 Gold against the 15 the table made, so a Large Farm was added to the Scorpion table (Mendon's choice) and every attachment is paid by exactly one named source; Spells have no Force or Chi bonus (Strength of the Tsunami's +6F is its text); there is no "Battle Phase" (a Spell attaches during a battle with Equip (Battle), which needs an unbowed, opposed Shugenja); the Follower is attached before Spells are introduced; the second ability of Strength of the Tsunami, not the first, is the one that works while it is bowed; Bayushi Hurunayi's Force before The Swell of Strength is 9 (Clan Standard's +1F); a Personality's unbowed attachments' abilities are usable while he is bowed (RULINGS, 2026-10-12).
 
+In a tutorial, a Spell being attached is shown large for 8 seconds (`PlayBeat.HoldSeconds`, `Main.CardPlays.cs`) and then slides out from under its Shugenja (`AnimateAttachment`); the table's own slide is held back meanwhile (`_spellAttachShown`). Clan Standard may be paid by the Remote Village or the Red Crane Dojo, and Soshi House Guard by whatever is left. The UI check has a `drag:` token (a real press, move and release) for click-and-drag assignment.
+
 ## Writing or changing the lesson
 
 1. Pick cards from `TutorialCards.cs` (add constants there; the test checks every number the text quotes against the catalogue and the engine).

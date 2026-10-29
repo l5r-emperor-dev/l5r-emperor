@@ -126,7 +126,7 @@ public partial class Main
                     restingTile.AddChild(new TableCardReflow { Card = restingTile, From = start, To = restingTile.Position, ReducedMotion = () => _reducedMotion });
             }
             // Issue #1014: a newly attached card slides out from under its Personality. It is already a child of that unit's stack, below the Personality's own tile, so it can never be drawn over it.
-            if (attaching && old.Count > 0 && previous?.AttachedTo != card.AttachedTo && restingTile is not null && !restingTile.GetChildren().OfType<TableCardReflow>().Any()
+            if (attaching && old.Count > 0 && previous?.AttachedTo != card.AttachedTo && !_spellAttachShown.Contains(card.Id) && restingTile is not null && !restingTile.GetChildren().OfType<TableCardReflow>().Any()
                 && restingTile.GetParent() is Control unitStack && unitStack.GetChildren().OfType<CardTile>().FirstOrDefault(t => t.Card.Id == card.AttachedTo) is { } wielder && wielder.Position.DistanceTo(restingTile.Position) > .5f)
                 restingTile.AddChild(new TableCardReflow { Card = restingTile, From = wielder.Position, To = restingTile.Position, ReducedMotion = () => _reducedMotion });
             if (attaching) continue;
