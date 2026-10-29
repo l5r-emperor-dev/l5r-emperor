@@ -223,6 +223,7 @@ public partial class Main
         if (IsMouseInputCapture && @event is InputEventMouse && !@event.HasMeta(CaptureMouseTag))
         { GetViewport().SetInputAsHandled(); return; }
         if (_tableSurface is null || MenuVisible || _transitionReview || MatchDuelOpen) return;
+        if (CardShowSwallows(@event)) { GetViewport().SetInputAsHandled(); return; } // issue #1138
         if (_dragging && @event is InputEventKey { Pressed: true, Keycode: Key.Escape }) { CancelDrag(); GetViewport().SetInputAsHandled(); return; } // issue #993
         if (@event is InputEventMouse location) _lastTableMouse = location.Position;
         // The token buttons live above the projected viewport; let native GUI input

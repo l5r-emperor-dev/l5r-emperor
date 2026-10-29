@@ -65,6 +65,8 @@ public partial class CardTile : Button
     private static ulong _lastPointerMotion;
     private static CardTile? _hoveredTile;
     private static string? _hoveredCardId; // a rebuilt tile for the same card keeps the hover the pointer already had
+    /// <summary>The card under the pointer, as projected to this viewer (null when none, or when the tile has been freed).</summary>
+    public static CardView? HoveredCard => _hoveredTile is { } tile && IsInstanceValid(tile) ? tile.Card : null;
     private static bool RecentPointerMotion() => Time.GetTicksMsec() - _lastPointerMotion < 150;
     private void EnterHover()
     {

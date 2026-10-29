@@ -514,6 +514,8 @@ public partial class Main : Node
             GetViewport().SetInputAsHandled();
         }
         else if (MenuVisible || PracticeVisible || _transitionReview || MatchDuelOpen) return;
+        else if (key.Keycode == Key.Escape && CardShowOpen) { CloseCardShow(); GetViewport().SetInputAsHandled(); } // issue #1138
+        else if (key.Keycode == Key.S && !key.CtrlPressed && !key.MetaPressed && !key.AltPressed && ToggleCardShow()) GetViewport().SetInputAsHandled();
         else if (key.Keycode == Key.Escape && _playProceed is not null) { ProceedCardPlay(); GetViewport().SetInputAsHandled(); }
         else if (key.Keycode == Key.Escape && _shownPreview is not null) { HideShownPreview(); GetViewport().SetInputAsHandled(); }
         else if (key.Keycode == Key.Escape && _shownOpen) { ToggleShownCards(false); GetViewport().SetInputAsHandled(); }
