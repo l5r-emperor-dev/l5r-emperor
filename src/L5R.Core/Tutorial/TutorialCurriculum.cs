@@ -25,7 +25,7 @@ public static class TutorialCurriculum
             new("dynasty-deck", "Events, Regions, and Celestials", "The rest of the Dynasty Deck"),
             new("recruiting", "Recruiting Personalities", "Clan Alignment, Honor Requirement, Recruitment Effects, Overlays"),
             new("spells", "Spells and Shugenja", "Attaching and using spells in the Action and Battle Phases"),
-            new("attachments", "Attachments", "Using actions on attachments"),
+            new("attachments", "Attachments", "Followers, Items and Spells: Equip, Honor Requirement, Weapon and Armor, and the abilities on attachments"),
             new("keywords", "Keywords", "Functional vs Non-functional Keywords"),
             new("traits-actions", "Traits and Actions", "Timing and limitations of Traits and Actions"),
             new("cost-effect", "Cost and Effect", "The difference between paying costs and applying effects"),
