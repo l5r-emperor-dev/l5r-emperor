@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Attachments tutorial (id attachments): Scorpion Lethargy vs Phoenix. Equip (Limited) of a Follower, Weapon, Armor and General Item, Honor Requirement, a battle where the Phoenix attaches Spells with Equip (Battle), and abilities on a bowed Personality's unbowed attachments. New TutorialContext.FoeUse/FoeDeclineAdditionalAction/FoeDecide for scripted opponent plays in a battle. Script errors corrected against the CR (see docs/TUTORIAL.md); a Large Farm added so the 16 Gold of attachments is payable.",
+  "validation": "dotnet run tests/L5R.Core.Tests --filter tutorial: 41/41 (6 new tutorial-attachments). bash tools/check-tutorial.sh (native Godot, real controls): 59/22/25/26/32 steps, all five lessons pass. Two screenshots reviewed. bash tools/check.sh --skip-client result recorded in the PR.",
+  "remaining": "Mendon's human playtest of the lesson text and pacing (32 steps, over the 30-step budget by two); no Windows packaged preview built.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1077",
+  "branch": "claude/1077-attachments-tutorial",
+  "updated": "2026-10-29T14:02:51.412145+00:00"
+}

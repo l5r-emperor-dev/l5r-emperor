@@ -321,6 +321,16 @@ public partial class Main
         ["utoro-home"] = "click:Bow this card and target an enemy Personality;click:Bayushi Utoro;click:Use Strength of the Tsunami",
         ["redirect"] = "click:Use Shiba Sansesuke;click:Play Reaction",
         ["defend"] = "select:Isawa Tomohiro;selectprovince:0/0;select:Natsumi;selectprovince:0/0;select:Shiba Sansesuke;selectprovince:0/0;click:Confirm assignments",
+        // Attachments (issue #1077): Equip (Limited) of a Follower, two Items and a Follower again, the attack, and the abilities on your own unbowed attachments in the battle.
+        ["equip-elite"] = "select:Seppun Heavy Elite;click:Bayushi Waru;selecthome:Geisha House;click:Attach",
+        ["equip-blade"] = "select:Nightingale Blade;click:Bayushi Hurunayi;select:The Towers of the Yogo;click:Attach",
+        ["equip-light-armor"] = "select:Light Armor;click:Bayushi Hurunayi;selecthome:Large Farm;click:Attach",
+        ["equip-standard"] = "select:Clan Standard;click:Bayushi Utoro;selecthome:Remote Village;click:Attach",
+        ["equip-soshi"] = "select:Soshi House Guard;click:Bayushi Utoro;selecthome:Red Crane Dojo;click:Attach",
+        ["assign-attackers"] = "select:Bayushi Hurunayi;selectprovince:1/0;select:Bayushi Utoro;selectprovince:1/0;select:Bayushi Waru;selectprovince:1/0;click:Confirm assignments",
+        ["soshi-bow"] = "select:Soshi House Guard;click:Natsumi;click:Use Soshi House Guard",
+        ["towers-bow"] = "select:Bayushi Hurunayi;click:Isawa Tomohiro;click:Use Bayushi Hurunayi",
+        ["blade-bow"] = "select:Nightingale Blade;click:Isawa Tomohiro;click:Use Nightingale Blade",
     };
 
 
@@ -367,7 +377,8 @@ public partial class Main
             var dynastySteps = await CheckTutorialDynastyUi();
             var recruitingSteps = await CheckTutorialRecruitingUi();
             var spellsSteps = await CheckTutorialSpellsUi();
-            GD.Print($"TUTORIAL_UI_CHECK: completed {seen.Count} steps; Honor {honor}; left mid-lesson through the table menu; Events, Regions and Celestials: {dynastySteps} steps; Recruiting Personalities: {recruitingSteps} steps; Spells and Shugenja: {spellsSteps} steps");
+            var attachmentsSteps = await CheckTutorialAttachmentsUi();
+            GD.Print($"TUTORIAL_UI_CHECK: completed {seen.Count} steps; Honor {honor}; left mid-lesson through the table menu; Events, Regions and Celestials: {dynastySteps} steps; Recruiting Personalities: {recruitingSteps} steps; Spells and Shugenja: {spellsSteps} steps; Attachments: {attachmentsSteps} steps");
             GetTree().Quit();
         }
         catch (Exception e) { GD.PushError("TUTORIAL_UI_CHECK failed: " + e.Message); GetTree().Quit(1); }
@@ -451,6 +462,34 @@ public partial class Main
                 throw new InvalidOperationException($"{coach.StepId}: the step did not advance. {TutorialControls()} notice={_status.Text}");
         }
         if (_session.Tutorial is { Finished: false }) throw new InvalidOperationException("Recruiting Personalities did not finish.");
+        if (!MenuVisible || _titleMenu?.Page != "tutorial-track") throw new InvalidOperationException("Tutorial Menu did not return to the Level Up Your Play list.");
+        return seen.Count;
+    }
+
+    /// <summary>Plays Attachments (issue #1077) start to finish with the controls a player uses: Equip (Limited) for a Follower, a Weapon, an Armor and a General Item, each paid by the one source the note names, the
+    /// attack, and the abilities on your unbowed attachments (and The Towers of the Yogo's) once the Phoenix has attached its Spells with Equip (Battle).</summary>
+    private async Task<int> CheckTutorialAttachmentsUi()
+    {
+        StartTutorial("attachments"); for (var i = 0; i < 6; i++) await CoverageFrames();
+        var seen = new List<string>();
+        for (var guard = 0; guard < 200 && _session.Tutorial is { Finished: false } lesson; guard++)
+        {
+            var coach = lesson.Coach; seen.Add(coach.StepId);
+            if (coach.Button is not null)
+            {
+                var before = coach.StepId;
+                await RunTutorialUiToken("mouse:coach"); await CoverageFrames(); await CoverageFrames();
+                if (_session.Tutorial is { Finished: false } moved && moved.Coach.StepId == before) throw new InvalidOperationException($"{before}: a real click on the coach's button did nothing.");
+                continue;
+            }
+            if (!TutorialUiScripts.TryGetValue(coach.StepId, out var script)) throw new InvalidOperationException($"{coach.StepId}: no UI script for this step.");
+            await WaitTutorialRest();
+            foreach (var token in script.Split(';')) await RunTutorialUiToken(token);
+            for (var wait = 0; wait < 60 && _session.Tutorial is { Finished: false } still && still.Coach.StepId == coach.StepId; wait++) await ToSignal(GetTree().CreateTimer(.25), SceneTreeTimer.SignalName.Timeout);
+            if (_session.Tutorial is { Finished: false } after && after.Coach.StepId == coach.StepId)
+                throw new InvalidOperationException($"{coach.StepId}: the step did not advance. {TutorialControls()} notice={_status.Text}");
+        }
+        if (_session.Tutorial is { Finished: false }) throw new InvalidOperationException("Attachments did not finish.");
         if (!MenuVisible || _titleMenu?.Page != "tutorial-track") throw new InvalidOperationException("Tutorial Menu did not return to the Level Up Your Play list.");
         return seen.Count;
     }
