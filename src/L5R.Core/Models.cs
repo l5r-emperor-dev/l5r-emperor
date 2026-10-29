@@ -404,6 +404,8 @@ public sealed class PlayerState
     public string? ProclaimedCardId { get; set; }
     /// <summary>The turn this player last bought a Personality from a province (issue #639): the next purchase that turn is no longer the one that defaults to Proclaim.</summary>
     public int PersonalityPurchaseTurn { get; set; } = -1;
+    /// <summary>The turn this player last used the rulebook Conquest ability (issue #1147, ruling R-091): it is not Repeatable, so once a Conqueror is kept unbowed no other may be that turn, at any battlefield.</summary>
+    public int ConquestTurn { get; set; } = -1;
     /// <summary>True once this player has bought, overlaid or discarded a province card since the current Dynasty Phase began; reset when a Dynasty Phase begins. Lets a client confirm an End Dynasty that would do neither. Derived from commands, so replay recomputes it.</summary>
     public bool DynastyActionTaken { get; set; }
     public bool DishonorLossPending { get; set; }

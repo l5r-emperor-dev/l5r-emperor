@@ -1773,7 +1773,9 @@ public sealed partial class MatchEngine
         // Conqueror (core rules Glossary): only relevant when the attacker won -- the attacking army
         // (a) is untouched in that branch (only defenders are destroyed), so candidates read off it
         // here are still accurate even if the choice must be deferred to the attacker.
-        var conquerorCandidates = attackerWon ? a.Where(c => c.Zone == Zone.Battlefield && Keyword(c, "Conqueror")).Select(c => c.Id).ToArray() : [];
+        // Conquest is not Repeatable (issue #1147, ruling R-091): once per turn across every battlefield, so a Conqueror already kept unbowed this turn leaves none to choose.
+        var conquestUsed = Player(attacker).ConquestTurn == _state.TurnNumber;
+        var conquerorCandidates = attackerWon && !conquestUsed ? a.Where(c => c.Zone == Zone.Battlefield && Keyword(c, "Conqueror")).Select(c => c.Id).ToArray() : [];
         // The Plain of Glass (issue #503, EmperorP5.cs): "You may use the rulebook Conquest ability twice per turn during the same battle" -- two Conquerors of the battle.
         if (PlainOfGlassConquestTwice(attacker) && conquerorCandidates.Length == 2) { FinishBattleResolution(attacker, provinceIndex, a, conquerorCandidates[0], conquerorCandidates[1]); return; }
         if (conquerorCandidates.Length > 1)
@@ -1804,6 +1806,7 @@ public sealed partial class MatchEngine
     private void FinishBattleResolution(int attacker, int provinceIndex, CardInstance[] a, string? conquerorUnbowedId, string? secondConquerorId = null)
     {
         P5.FirstConquerorId = null; // issue #503: The Plain of Glass's pending first choice is spent
+        if (conquerorUnbowedId is not null) Player(attacker).ConquestTurn = _state.TurnNumber; // issue #1147: the turn's Conquest is spent
         var willNotBow = _state.ResolutionWillNotBowPlayerIds.ToArray();
         Wave737NatsuMarksUnbowed(a); // Natsu-Togumara's Guidance (issue #737, Wave737.cs): "battle resolution does not bow cards in that Personality's unit."
         // Hiruma Hikazu (The Shadow's Embrace pass, issue #476 batch 1): the Personalities with unbowed Followers in his army, read before anything bows.
