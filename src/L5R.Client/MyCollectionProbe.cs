@@ -37,6 +37,30 @@ public partial class MyCollectionProbe : Node
             Check(library.Grid.Cards.Length == 1 && library.Grid.Cards[0].Id == card.Id, "Library Owned filter uses shared physical inventory");
             library.Browser.SetOwnership(OwnershipFilter.Unowned); await Wait(.2); Check(!library.Grid.Cards.Any(c => c.Id == card.Id), "Library Unowned filter excludes owned card");
             library.Browser.SetOwnership(OwnershipFilter.All); await Capture("library");
+            // The Owned numeral under a card edits in place: check or Enter or an outside click keeps the number, x or Esc puts the old one back.
+            var libraryTile = library.Grid.Tile(card.Id) ?? throw new Exception("library tile for " + card.Name + " is not showing");
+            async Task<LineEdit> OpenOwned()
+            {
+                Click(libraryTile.GetChildren().OfType<Button>().Single(b => b.Name == "OwnedNumeral")); await Wait(.2);
+                var field = libraryTile.GetChildren().OfType<Control>().Single(c => c.Name == "OwnedEditor").GetChildren().OfType<LineEdit>().Single();
+                field.SelectAll(); return field;
+            }
+            void Type(char digit) => Input.ParseInputEvent(new InputEventKey { Unicode = digit, Keycode = (Key)digit, Pressed = true });
+            var owned = await OpenOwned(); Check(libraryTile.Editing && owned.Text == "3", "clicking the Owned numeral opens an editable field holding the current number");
+            await Capture("owned-editing");
+            Type('7'); await Wait(.1); Click(libraryTile.GetChildren().OfType<Control>().Single(c => c.Name == "OwnedEditor").GetChildren().OfType<Button>().Single(b => b.Name == "OwnedAccept")); await Wait(.2);
+            Check(!libraryTile.Editing && MyCollection.Store.Count(card.Id) == 7, "the green check keeps the typed number");
+            owned = await OpenOwned(); Type('9'); await Wait(.1); KeyPress(Key.Escape); await Wait(.2);
+            Check(!libraryTile.Editing && MyCollection.Store.Count(card.Id) == 7, "Esc puts the old number back");
+            owned = await OpenOwned(); Type('2'); await Wait(.1); Click(libraryTile.GetChildren().OfType<Control>().Single(c => c.Name == "OwnedEditor").GetChildren().OfType<Button>().Single(b => b.Name == "OwnedRevert")); await Wait(.2);
+            Check(!libraryTile.Editing && MyCollection.Store.Count(card.Id) == 7, "the red x puts the old number back");
+            owned = await OpenOwned(); Type('4'); await Wait(.1); KeyPress(Key.Enter); await Wait(.2);
+            Check(!libraryTile.Editing && MyCollection.Store.Count(card.Id) == 4, "Enter keeps the typed number");
+            owned = await OpenOwned(); Type('6'); await Wait(.1); Click(library.Browser.Search); await Wait(.2);
+            Check(!libraryTile.Editing && MyCollection.Store.Count(card.Id) == 6, "clicking elsewhere keeps the typed number");
+            owned = await OpenOwned(); Type('0'); await Wait(.1); KeyPress(Key.Enter); await Wait(.2);
+            Check(MyCollection.Store.Count(card.Id) == 0, "0 is a valid number");
+            MyCollection.Store.Set(card.Id, 3); await Wait(.2);
             Click(library.Browser.EditCollectionButton); await Wait(.3);
             var editor = library.GetChildren().OfType<MyCollectionEditor>().Single();
             Check(editor.GetGlobalRect().Size == library.Size, "focused editor covers screen and blocks background");
@@ -67,7 +91,7 @@ public partial class MyCollectionProbe : Node
             Click(Walk(editor).OfType<Button>().Single(b => b.Text == "Export CSV")); await Wait(.2);
             var saveDialog = editor.GetChildren().OfType<FileDialog>().Single(); saveDialog.CurrentPath = exported;
             saveDialog.GetOkButton().GrabFocus(); KeyPress(Key.Enter); await Wait(.2);
-            Check(File.Exists(exported) && File.ReadAllText(exported).Contains("Set,Card Name,Card Type,Rarity,Edition Code,Count") && File.ReadAllText(exported).Contains(MyCollection.Identities(library.Data).Single(i => i.Id == card.Id).VersionName), "native export file chooser writes the per-printing file with current inventory");
+            Check(File.Exists(exported) && File.ReadAllText(exported).Contains("Set,Card Name,Card Type,Rarity,Clan,Limit,Count") && File.ReadAllText(exported).Contains(MyCollection.Identities(library.Data).Single(i => i.Id == card.Id).VersionName), "native export file chooser writes the per-printing file with current inventory");
             Click(Walk(editor).OfType<Button>().Single(b => b.Text == "Import CSV")); await Wait(.2);
             var openDialog = editor.GetChildren().OfType<FileDialog>().Single(); openDialog.CurrentDir = Path.GetDirectoryName(exported)!;
             var filenameInput = openDialog.GetLineEdit(); filenameInput.GrabFocus(); filenameInput.SelectAll(); KeyPress(Key.Backspace);
