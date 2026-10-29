@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Collection import/export uses one detailed file: Set, Card Name, Card Type, Rarity, Clan, Limit (U/S/N/X), Count. Export and template list all 2,374 shipped rows with 0 where none owned; Tokens counted; old edition-code buckets migrate to set names; promotional set names cleaned.",
+  "validation": "dotnet run tests/L5R.Client.Collection.Tests: 88 assertions pass (new: every row reported at 0, legacy bucket migration, new header/roundtrip); client builds; dotnet format clean on changed files. Template resolves 2302 of 2374 rows to catalogue cards without review. Not checked in the native UI (Export CSV / CSV template buttons).",
+  "remaining": "Native check of the Export/Import screens; 72 shipped rows (tokens/names the catalogue spells differently) still need choosing on import; Limit X does not carry the stated copy count.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1141",
+  "branch": "claude/1141-collection-detailed-format",
+  "updated": "2026-10-29T20:04:24.000351+00:00"
+}
