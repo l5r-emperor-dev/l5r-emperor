@@ -92,7 +92,7 @@ internal static partial class Wave734Tests
         Check(CardCatalog.Get(Farm).GoldProduction == 2, "Well-Defended Farm produces 2 Gold");
         Check(CardCatalog.Cards.ContainsKey(Kokujin) && CardCatalog.Cards.ContainsKey(Warded), "Kokujin was wired afterwards (issue #827); Warded Premises was wired afterwards (Wave835.cs, issue #835) (Kachiko was wired afterwards, issue #778)");
         Check(TraitReactions.Is("w734-hantei-search") && !TraitReactions.Is("w734-jiyun-lock"), "Hantei's search is a trait; Ji-Yun's Reaction is not");
-        Check(Experienced.Level(CardCatalog.Get(Hoturi).Keywords) == 0 && Experienced.IsInexperienced(CardCatalog.Get(Hoturi).Keywords) && Experienced.Level(CardCatalog.Get(Tsuke).Keywords) == 1, "Inexperienced is level 0, ExperiencedCoM is level 1");
+        Check(Experienced.Level(CardCatalog.Get(Hoturi).Keywords) == -1 && Experienced.IsInexperienced(CardCatalog.Get(Hoturi).Keywords) && Experienced.Level(CardCatalog.Get(Tsuke).Keywords) == 1, "Inexperienced is level -1, ExperiencedCoM is level 1");
     }
 
     private static void ProvinceCeiling()

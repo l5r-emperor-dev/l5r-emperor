@@ -4431,7 +4431,7 @@ static void ExperiencedKeywordAndOverlay()
     Equal(Experienced.Level([]), 0, "No Experienced keyword means level 0");
     Equal(Experienced.Level(["Experienced"]), 1, "Experienced without a number means level 1");
     Equal(Experienced.Level(["Experienced 5"]), 5, "Experienced N supplies level N");
-    Equal(Experienced.Level(["Inexperienced"]), 0, "Inexperienced is not the Experienced keyword");
+    Equal(Experienced.Level(["Inexperienced"]), -1, "Inexperienced is experience level -1 (Comprehensive Rules)");
     Equal(Experienced.BaseTitle("Mirumoto Yozo - exp2"), "Mirumoto Yozo", "Imported Experience suffixes are not part of the in-game title");
 
     var s = MatchEngine.CreateEconomyScenario().State;

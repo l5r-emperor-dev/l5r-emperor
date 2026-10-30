@@ -340,7 +340,8 @@ public sealed class TutorialRunner
         ActionOption? Attacks(int province)
         {
             if (options.FirstOrDefault(a => a.Type == "declareAttack") is { } declare) return declare;
-            if (options.FirstOrDefault(a => a.Type == "attack") is not { } attack) return options.FirstOrDefault(a => a.Type == "selectBattle" && a.Command!.Province == province);
+            // once the battle at the attacked Province is over, it fights the Provinces nobody attacked in turn
+            if (options.FirstOrDefault(a => a.Type == "attack") is not { } attack) return options.FirstOrDefault(a => a.Type == "selectBattle" && a.Command!.Province == province) ?? options.FirstOrDefault(a => a.Type == "selectBattle");
             var foe = 1 - Seat;
             var units = _engine.TutorialState.Cards.Values.Where(c => c.OwnerId == foe && c.Zone == Zone.Home && !c.Bowed && CardCatalog.Get(c.DefinitionId).Type == CardType.Personality).Select(c => c.Id);
             return attack with { Command = attack.Command! with { Assignments = units.ToDictionary(id => id, _ => province) } };

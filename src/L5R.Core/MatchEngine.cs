@@ -2156,10 +2156,13 @@ public sealed partial class MatchEngine
             // lets the Defender take an additional Battle action.
             NoteForthrightnessStrategyAction(command.PlayerId, card);
             ResolveForthrightnessWatches(command.PlayerId, card);
+            var unscopedGrantUsed = !_state.AdditionalActions.Any(g => g.PlayerId == command.PlayerId && GrantUsableNow(g) && g.ScopeCardIds is not null && g.ScopeCardIds.Contains(card.Id)) && ConsumeAdditionalActionGrant(command.PlayerId, null); // an additional Battle action already held (Bayushi Wateru's Interrupt, issue #1150) is spent by this Terrain, before Crowded Streets grants its own
             var terrainGrant = CrowdedStreetsDefenderGrant(command.PlayerId, card);
             // Plain of Gold (Emperor Edition Stronghold pass, issue #486 batch 2): "Take an additional Battle action to play it" -- a grant scoped to this very card is spent by its play, and the
             // player keeps priority only while he holds another.
             var scopedGrantUsed = _state.AdditionalActions.Any(g => g.PlayerId == command.PlayerId && GrantUsableNow(g) && g.ScopeCardIds is not null && g.ScopeCardIds.Contains(card.Id)) && ConsumeAdditionalActionGrant(command.PlayerId, card.Id);
+            // A Terrain played as the additional Battle action Bayushi Wateru's Interrupt grants (issue #1150) spends that grant too, and the player keeps priority only while he holds another.
+            scopedGrantUsed = scopedGrantUsed || unscopedGrantUsed;
             var scopedStays = scopedGrantUsed && _state.AdditionalActions.Any(g => g.PlayerId == command.PlayerId && Forfeitable(g));
             if (OpenEntryReactionWindow(command.PlayerId, card, terrainGrant || scopedStays ? command.PlayerId : 1 - command.PlayerId)) return;
             NextAction(command.PlayerId, terrainGrant || scopedStays);
