@@ -229,6 +229,8 @@ public partial class CatalogueBrowserBar : Control
         var boxes = c.Clans.Where(ClanNames.Contains).ToList(); if (boxes.Count == 0) boxes.Add("Unaligned");
         // Imperial is a keyword on Personalities rather than a Clan: it adds a box to a Personality without removing the Clan it also has.
         if (c.Types.Contains("Personality") && c.Keywords.Contains("Imperial") && !boxes.Contains("Imperial")) boxes.Add("Imperial");
+        // Journey's End Keep (either printing) makes its player Imperial, though the catalogue lists the Experienced one with no Clan.
+        if (c.Types.Contains("Stronghold") && c.Name.StartsWith("Journey's End Keep", StringComparison.Ordinal) && !boxes.Contains("Imperial")) { boxes.Remove("Unaligned"); boxes.Add("Imperial"); }
         return [.. boxes];
     }
     private static string[] GoldFeature(CatalogueData.Card c) => [c.Numeric("cost") is var cost && cost != double.MaxValue ? (cost >= 10 ? "10+" : ((int)cost).ToString()) : NoneChoice];

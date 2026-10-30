@@ -77,6 +77,12 @@ internal sealed class TutorialContext(TutorialRunner runner)
     /// <summary>Stop at the start of this phase of this player's turn (see <see cref="MatchEngine.TutorialHoldAt"/>).</summary>
     public void HoldAt(Phase phase, int playerId) => Engine.TutorialHoldAt(phase, playerId);
     public void Resume() => Engine.TutorialResume();
+    /// <summary>Clears the table and sets up a new one (the Keywords lesson changes its board between topics). The new table is dealt as a lesson's first is: <paramref name="opening"/> runs on it.</summary>
+    public void Reset(TutorialSetup setup, Action<TutorialContext>? opening = null) => runner.Reset(setup, opening);
+    /// <summary>The lesson turns your Personalities dishonorable, as an opponent's card would have.</summary>
+    public void Dishonor(params string[] definitionIds) => Engine.TutorialDishonor(TutorialRunner.Seat, definitionIds);
+    /// <summary>Puts a Personality of yours into play (one that lies dead comes back), honorable, with these attachments.</summary>
+    public void PutInPlay(string definitionId, params string[] attachments) => Engine.TutorialPutInPlay(TutorialRunner.Seat, definitionId, attachments);
     public void StartTurn() => Engine.TutorialBeginTurn();
     public void Draw(int count) => Engine.TutorialDraw(TutorialRunner.Seat, count);
     /// <summary>Stop the Events phase at one of this player's provinces: before its card is turned face up, or (<paramref name="after"/>) with it face up and not yet resolved (see <see cref="MatchEngine.TutorialHoldReveal"/>).</summary>
@@ -133,6 +139,17 @@ internal sealed class TutorialContext(TutorialRunner runner)
             ? quote?.Sources?.FirstOrDefault(s => s.Produced == 4 && s.Id != s.CardId)?.Id ?? throw new InvalidOperationException("The lesson expected Library of Rebirth's Reaction to be a source of Gold.")
             : look.Foe(d, Zone.Home).First(used.Add))];
     }
+    /// <summary>The opponent uses Tactical Advantage: it discards <paramref name="discard"/> (a card in its hand, by definition id) to give its Tactician <paramref name="tactician"/> a Force bonus equal to its Focus Value.</summary>
+    public void FoeTacticalAdvantage(string tactician, string discard)
+    {
+        var foe = 1 - TutorialRunner.Seat; var look = new TutorialLookup(Engine);
+        var performerId = look.Foe(tactician, Zone.Home, Zone.Battlefield).FirstOrDefault() ?? throw new InvalidOperationException("The lesson expected the opponent's Tactician to be in play.");
+        var discardId = look.Foe(discard, Zone.Hand).FirstOrDefault() ?? throw new InvalidOperationException("The lesson expected the opponent to hold the card it discards.");
+        var option = Engine.QueryActions(foe).FirstOrDefault(a => a.Enabled && a.Command?.AbilityId == "tactical-advantage" && (a.CardId == performerId || a.Command.PerformerId == performerId || a.Label.Contains(performerId)))
+            ?? throw new InvalidOperationException("The lesson expected the opponent to be able to use Tactical Advantage.");
+        var result = Engine.Execute(option.Command! with { PerformerId = performerId, TargetId = discardId });
+        if (!result.Accepted) throw new InvalidOperationException("The opponent's Tactical Advantage was refused: " + result.Error);
+    }
     public void FoeUse(string ability, string? performer = null, string? card = null, string? target = null, string? choice = null, string[]? pay = null)
     {
         var foe = 1 - TutorialRunner.Seat; var look = new TutorialLookup(Engine);
@@ -165,10 +182,10 @@ internal sealed class TutorialContext(TutorialRunner runner)
 public sealed class TutorialRunner
 {
     public const int Seat = 0;
-    private readonly MatchEngine _engine;
+    private MatchEngine _engine;
     private readonly TutorialLesson _lesson;
     private readonly TutorialStep[] _steps;
-    private readonly TutorialLookup _lookup;
+    private TutorialLookup _lookup;
     private readonly TutorialContext _context;
     private readonly List<GameCommand?> _inputs = [];
     private int _index;
@@ -249,6 +266,12 @@ public sealed class TutorialRunner
         _inputs.Add(null);
         Advance(step);
         return true;
+    }
+
+    internal void Reset(TutorialSetup setup, Action<TutorialContext>? opening)
+    {
+        _engine = MatchEngine.CreateTutorial(setup); _lookup = new(_engine); _attackedProvince = null; _bought.Clear();
+        opening?.Invoke(_context);
     }
 
     private void Advance(TutorialStep step)
