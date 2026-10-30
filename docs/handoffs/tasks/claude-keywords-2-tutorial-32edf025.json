@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Keywords 2 tutorial (three tables: Unique/Singular/Loyal/Sensei, Destined/Brash/Expendable/Reserve/Terrain/Overconfident, Kharmic/Experienced/Inexperienced/Duelist); Inexperienced is now Experience level -1 per the Comprehensive Rules; Wateru's additional Battle action stays with the recruiter and a Terrain spends it",
+  "validation": "tools/check.sh --skip-client passed; client builds; native lab capture of step unique",
+  "remaining": "Lesson not hand-played in the client; native lab has no UI scripts for Keywords 2 move steps; Hand/Ring wording and ruling questions in the PR",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1150",
+  "branch": "claude/keywords-2-tutorial",
+  "updated": "2026-10-30T20:03:35.650098+00:00"
+}

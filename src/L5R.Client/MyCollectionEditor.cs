@@ -260,7 +260,7 @@ public partial class MyCollectionEditor : Control
                     var candidate = _data.Cards.Single(c => c.Id == identity.Id); var level = Experienced.Level(candidate.Definition?.Keywords ?? candidate.Keywords);
                     var column = new VBoxContainer(); choices.AddChild(column);
                     var face = new DeckFace(candidate, _scans) { CustomMinimumSize = new Vector2(110, 154) }; column.AddChild(face); face.Pressed += () => { row.Id = identity.Id; BuildImport(); };
-                    var button = CatalogueArt.Button(level == 0 ? "Base" : level == 1 ? "Experienced" : "Experienced " + level, () => { row.Id = identity.Id; BuildImport(); });
+                    var button = CatalogueArt.Button(level < 0 ? "Inexperienced" : level == 0 ? "Base" : level == 1 ? "Experienced" : "Experienced " + level, () => { row.Id = identity.Id; BuildImport(); });
                     button.AddThemeFontSizeOverride("font_size", 15); button.TooltipText = identity.VersionName; button.CustomMinimumSize = new Vector2(110, 30); column.AddChild(button);
                 }
             }

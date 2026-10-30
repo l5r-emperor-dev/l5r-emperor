@@ -33,6 +33,8 @@ public sealed partial class MatchEngine
             foreach (var id in TutorialCards.Deck(side.FateTop, side, dynasty: false)) player.FateDeck.Add(Add(seat, id, Zone.FateDeck).Id);
             var strength = CardCatalog.Get(side.StrongholdId).ProvinceStrength;
             player.Provinces = Enumerable.Range(0, 4).Select(i => new ProvinceState { Index = i, Strength = strength, PrintedStrength = strength }).ToList();
+            foreach (var id in side.DynastyDiscard ?? []) Add(seat, id, Zone.DynastyDiscard, true);
+            foreach (var (index, id) in side.Regions ?? []) { var region = Add(seat, id, Zone.Region, true); region.ProvinceIndex = index; player.Provinces[index].RegionId = region.Id; }
         }
         state.ActivePlayerId = setup.FirstPlayer; state.PriorityPlayerId = setup.FirstPlayer; state.TurnNumber = 1 + 2 * setup.TurnsTaken;
         foreach (var player in state.Players) player.TurnsTaken = setup.TurnsTaken;

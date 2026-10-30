@@ -11,7 +11,7 @@ internal static class TutorialKeywordsTests
         ("The lesson opens in your Action phase as Crane against Scorpion with four Personalities in play", OpensAsCrane),
         ("Every step tells the player what to do and the lesson ends on a button back to the menu", EveryStepSaysWhatToDo),
         ("Back rebuilds the table as it was before the last button or move, across the table changes too", BackUndoesTheLastStep),
-        ("Keywords 1 and Keywords 2 are both listed, the first built and the second not yet", Curriculum),
+        ("Keywords 1 and Keywords 2 are both listed and built", Curriculum),
     ]);
 
     private static void Expect(bool condition, string message) { if (!condition) throw new Exception(message); }
@@ -192,7 +192,7 @@ internal static class TutorialKeywordsTests
     private static void Curriculum()
     {
         var first = TutorialCurriculum.All.Single(e => e.Id == "keywords"); var second = TutorialCurriculum.All.Single(e => e.Id == "keywords-2");
-        Expect(first.Title == "Keywords 1" && first.Built && second.Title == "Keywords 2" && !second.Built, "Keywords 1 is built, Keywords 2 is listed");
+        Expect(first.Title == "Keywords 1" && first.Built && second.Title == "Keywords 2" && second.Built, "Keywords 1 and Keywords 2 are built");
         Expect(TutorialCurriculum.After("keywords")?.Id == "keywords-2", "Keywords 2 follows Keywords 1");
     }
 }

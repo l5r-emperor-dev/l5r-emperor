@@ -48,6 +48,15 @@ internal static class TutorialCards
     public const string AParagonsStrength = "oracle-l5r-61", ControlTheBoard = "oracle-l5r-1486", UnorthodoxAttack = "oracle-l5r-8999", Focus = "oracle-l5r-2619";
     public const string MotoTaha = "oracle-l5r-5379", HorseArchers = "oracle-l5r-3456", BayushiKasumi = "oracle-l5r-10247", ShibaJikaro = "oracle-l5r-10244";
 
+    // The Keywords 2 lesson (issue #1150): Phoenix (you, Library of Rebirth) against Dragon (Foothills Keep); then Scorpion (The Towers of the Yogo) against Dragon; then Scorpion against Crane (Shinden Asahina).
+    public const string DragonStronghold = "oracle-l5r-2626";
+    public const string IsawaSanetomo = "oracle-l5r-3892", TravelingPeddler = "oracle-l5r-8729", AsakoRikateExp = "oracle-l5r-10075", TemplesOfGiseiToshi = "oracle-l5r-7898", SilkWorks = "oracle-l5r-7265", ImperialGift = "oracle-l5r-3694";
+    public const string Renewal = "oracle-l5r-6261", BladesOfTheBlackDragon = "oracle-l5r-10111", EliteSentry = "oracle-l5r-2304", RingOfWater = "oracle-l5r-6339", Hanabi = "oracle-l5r-2954";
+    public const string KitsukiMinori = "oracle-l5r-10052", TogashiNoboru = "oracle-l5r-10058", YogoTakashi = "oracle-l5r-10657", BayushiWateru = "oracle-l5r-10870", FloatingReserve = "oracle-l5r-10896",
+        ThickMarsh = "oracle-l5r-8445", AStainCleansed = "oracle-l5r-82", CelestialSwordOfTheDragonExp = "oracle-l5r-10112", GoldMine = "oracle-l5r-2867";
+    public const string BayushiNitoshi = "oracle-l5r-850", BayushiNitoshiExp = "oracle-l5r-10480", BayushiNitoshiInexperienced = "oracle-l5r-10248", TravelingMarket = "oracle-l5r-10571", Slanderer = "oracle-l5r-7291",
+        DojiMakoto = "oracle-l5r-2118", DojiHakusekiExp2 = "oracle-l5r-2082", DamagedPort = "oracle-l5r-10264", SecondCityPort = "oracle-l5r-10037";
+
     /// <summary>A forty-card deck: the lesson's cards on top, then the rest of the side's deck in its own order. A card the deck does not hold displaces the last card.</summary>
     internal static string[] Deck(string[] top, TutorialSide side, bool dynasty)
     {
