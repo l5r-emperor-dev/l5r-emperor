@@ -10,7 +10,7 @@ internal static class TutorialCards
     public const string BorderKeep = "oracle-l5r-1106";
     public const string BambooHarvesters = "oracle-l5r-679";
 
-    public const string IkomaSugo = "oracle-l5r-3641", MatsuHachiro = "oracle-l5r-4915", CopperMine = "oracle-l5r-1497", SmallFarm = "oracle-l5r-7303", LargeFarm = "oracle-l5r-4664";
+    public const string IkomaSugo = "oracle-l5r-3641", MatsuHachiro = "oracle-l5r-4915", CopperMine = "oracle-l5r-1497", SmallFarm = "oracle-l5r-7303", ShinomenMarsh = "oracle-l5r-6984", LargeFarm = "oracle-l5r-4664";
     public const string DaidojiTsunehiko = "oracle-l5r-9812", DaidojiKenshi = "oracle-l5r-1645";
     public const string LightArmor = "oracle-l5r-10118", VeteranSkirmishers = "oracle-l5r-9147", BlockSupplyLines = "oracle-l5r-1045", Incapacitated = "oracle-l5r-3730",
         PreparedForDeath = "oracle-l5r-6051", DefensiveStance = "oracle-l5r-10368", PaidOff = "oracle-l5r-5861", NeverAfraid = "oracle-l5r-9916";

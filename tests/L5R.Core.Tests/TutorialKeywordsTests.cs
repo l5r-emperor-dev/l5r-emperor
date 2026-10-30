@@ -132,11 +132,14 @@ internal static class TutorialKeywordsTests
                 Expect(runner.Actions().Count(a => a.Enabled && a.Command?.Type == "chooseConqueror") == 2, "both Conquerors may be chosen");
                 var pick = runner.Actions().First(a => a.Enabled && a.Command?.Type == "chooseConqueror"); chosen = pick.CardId ?? pick.Command!.TargetId ?? pick.Command.CardId;
                 break;
-            case "stalwart-intro":
+            case "conqueror-result":
                 Expect(state.Players[1].Provinces[0].Destroyed, "Province 1 was destroyed");
                 var picked = chosen; var conquerors = Cards(runner, 0, TutorialCards.DaigotsuShiraume).Concat(Cards(runner, 0, TutorialCards.DaigotsuShikenuro)).ToArray();
                 Expect(!conquerors.Single(c => c.Id == picked).Bowed, "the chosen Conqueror did not bow");
                 Expect(conquerors.Single(c => c.Id != picked).Bowed, "the other Conqueror bowed from the resolution");
+                break;
+            case "stalwart-intro":
+                Expect(InPlay(runner, 1, TutorialCards.ShibaJikaro).Zone == Zone.Home && Mine(runner, TutorialCards.ShinomenMarsh).Zone == Zone.Home && Cards(runner, 0, TutorialCards.SmallFarm).Count(c => c.Zone == Zone.Home) == 1, "the Stalwart table is drawn at the intro: Jikaro, one Marsh and one Small Farm");
                 break;
             case "paid-off-1":
                 Expect(state.Players[1].Clan == "Unicorn" && !InPlay(runner, 1, TutorialCards.ShibaJikaro).Bowed && state.Players[0].Hand.Count == 2, "a lone unbowed Shiba Jikaro and two Paid Offs");

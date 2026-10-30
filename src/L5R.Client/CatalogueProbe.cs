@@ -74,8 +74,9 @@ public partial class CatalogueProbe : Node
             Check(_screen.Browser.ExcludedClans.Count == 0 && _screen.Browser.Types.Active, "removable clan tag checks only the clans again");
             {
                 var bar = _screen.Browser; bool Imp(CatalogueData.Card c) => c.Types.Contains("Personality") && c.Keywords.Contains("Imperial");
+                bool Keep(CatalogueData.Card c) => c.Types.Contains("Stronghold") && c.Name.StartsWith("Journey's End Keep");
                 bar.Reset(); bar.OnlyClans("Imperial"); await Wait(.2);
-                Check(bar.Results.Length > 0 && bar.Results.All(Imp), "Imperial clan box shows only Imperial Personalities, whatever their Clan");
+                Check(bar.Results.Length > 0 && bar.Results.All(c => Imp(c) || Keep(c)) && bar.Results.Any(Keep), "Imperial clan box shows Imperial Personalities, whatever their Clan, and the Journey's End Keeps");
                 bar.ExcludedClans.Clear(); bar.ExcludedClans.Add("Imperial"); bar.Refresh(); await Wait(.2);
                 Check(_screen.Data.Cards.Where(c => Imp(c) && c.Clans.Contains("Crane")).All(c => bar.Results.Contains(c)), "unchecking Imperial keeps Imperial Personalities that have another Clan");
                 bar.Reset(); bar.Sets.Only("Embers of War"); bar.ExcludedClans.Add("Lion"); bar.Search.Text = "a"; bar.Refresh(); await Wait(.2);
