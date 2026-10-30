@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Keywords 1 tutorial (id keywords, 33 steps, three tables: Crane vs Scorpion, Spider vs Unicorn, Spider vs lone Stalwart Jikaro) and a Keywords 2 curriculum entry (not built) with a draft script in docs/drafts. Adds TutorialContext.Reset (mid-lesson table swap; MatchSession follows the new engine), Dishonor, PutInPlay, FoeTacticalAdvantage.",
+  "validation": "L5R.Core.Tests --filter tutorial: 11/11 (5 new keywords cases incl. per-step rule assertions: seppuku offered for Courtier/Shugenja/Samurai only and free of Honor loss, Naval Invasion bars other performers, one Tactical action per Tactician, bowed Elite contributes, Conqueror choice, Stalwart negates first bow but pays); client builds; dotnet format clean; native lab capture of the Spider table. No decisions/ruling found contradicting the Comprehensive Rules for these keywords.",
+  "remaining": "Not hand-played in the native client end to end; lab UI scripts exist only for the seppuku steps. Keywords 2 is a draft awaiting Mendon's review; Destined and Reserve are not in the repo Comprehensive Rules. 33 steps exceeds the usual 30-step guideline.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1078",
+  "branch": "claude/1147-keywords-tutorial",
+  "updated": "2026-10-29T23:49:43.640951+00:00"
+}

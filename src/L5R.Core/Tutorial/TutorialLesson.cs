@@ -36,7 +36,7 @@ internal sealed record TutorialLesson(string Id, string Title, TutorialSetup Set
 /// <summary>Every lesson, in the order the menu suggests. The menu never locks one.</summary>
 internal static class TutorialLessons
 {
-    public static readonly TutorialLesson[] All = [TutorialLessonOne.Lesson, TutorialLessonDynasty.Lesson, TutorialLessonRecruiting.Lesson, TutorialLessonSpells.Lesson, TutorialLessonAttachments.Lesson];
+    public static readonly TutorialLesson[] All = [TutorialLessonOne.Lesson, TutorialLessonDynasty.Lesson, TutorialLessonRecruiting.Lesson, TutorialLessonSpells.Lesson, TutorialLessonAttachments.Lesson, TutorialLessonKeywords.Lesson];
     public static TutorialLesson Default => All[0];
     public static TutorialLesson Get(string id) => All.Single(l => l.Id == id);
 }

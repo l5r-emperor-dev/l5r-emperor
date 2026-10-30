@@ -360,6 +360,10 @@ public partial class Main
         ["redirect"] = "click:Use Shiba Sansesuke;click:Play Reaction",
         ["defend"] = "select:Isawa Tomohiro;selectprovince:0/0;select:Natsumi;selectprovince:0/0;select:Shiba Sansesuke;selectprovince:0/0;click:Confirm assignments",
         // Attachments (issue #1077): Equip (Limited) of a Follower, two Items and a Follower again, the attack, and the abilities on your own unbowed attachments in the battle.
+        // Keywords (issue #1078): seppuku, one Personality at a time.
+        ["seppuku-1"] = "select:Doji Dainagon;click:Seppuku",
+        ["seppuku-2"] = "select:Asahina Konomi;click:Seppuku",
+        ["seppuku-3"] = "select:Daidoji Kenshi;click:Seppuku",
         ["equip-elite"] = "select:Seppun Heavy Elite;click:Bayushi Waru;selecthome:Geisha House;click:Attach",
         ["equip-blade"] = "select:Nightingale Blade;click:Bayushi Hurunayi;select:The Towers of the Yogo;click:Attach",
         ["equip-light-armor"] = "select:Light Armor;click:Bayushi Hurunayi;selecthome:Large Farm;click:Attach",

@@ -168,6 +168,8 @@ public sealed partial class MatchSession : IDisposable
 
     private void RefreshLocal()
     {
+        // A lesson that sets up a new table partway (Keywords) hands the session a new engine; the table redraws as for a new match.
+        if (_tutorial is not null && !ReferenceEquals(_engine, _tutorial.Engine)) { _engine = _tutorial.Engine; Generation++; MatchKey = Guid.NewGuid().ToString("N"); }
         if (_engine is null) return;
         Snapshot = new(NamedView(_engine.GetView(_localSeat)), _tutorial?.Actions() ?? _engine.QueryActions(_localSeat), _engine.GetView(_localSeat).Scenario.StartsWith("duel-demo/", StringComparison.Ordinal) ? "Duel Demo" : _tutorial is not null ? "Tutorial" : "Practice");
         Changed?.Invoke();

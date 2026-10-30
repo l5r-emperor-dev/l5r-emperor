@@ -88,4 +88,26 @@ public sealed partial class MatchEngine
         _state.Cards.Values.Where(c => c.OwnerId == owner && c.DefinitionId == definitionId && (zones.Length == 0 || zones.Contains(c.Zone))).Select(c => c.Id).ToArray();
     internal string? TutorialProvinceCardId(int owner, int index) => Player(owner).Provinces[index].CardId;
     internal string TutorialStrongholdId(int owner) => Player(owner).StrongholdId;
+
+    private int _tutorialAdded;
+    /// <summary>The lesson turns these Personalities of this player dishonorable, as an opponent's card would have (Keywords: Seppuku). Tutorial-only.</summary>
+    internal void TutorialDishonor(int owner, params string[] definitionIds)
+    {
+        foreach (var card in _state.Cards.Values.Where(c => c.OwnerId == owner && c.Zone is Zone.Home or Zone.Battlefield && definitionIds.Contains(c.DefinitionId))) card.Dishonorable = true;
+    }
+
+    /// <summary>Puts a Personality of this player into play at home, honorable, unbowed and face up, with these attachments on it; one that lies dead is brought back, otherwise a new card is made. Tutorial-only.</summary>
+    internal void TutorialPutInPlay(int owner, string definitionId, params string[] attachments)
+    {
+        CardInstance Make(string definition, Zone zone)
+        {
+            _ = CardCatalog.Get(definition);
+            var card = new CardInstance { Id = "tutorial-added-" + _tutorialAdded++, DefinitionId = definition, OwnerId = owner, Zone = zone, FaceUp = true };
+            _state.Cards.Add(card.Id, card); return card;
+        }
+        var host = _state.Cards.Values.FirstOrDefault(c => c.OwnerId == owner && c.DefinitionId == definitionId && c.Zone == Zone.Dead) ?? Make(definitionId, Zone.Home);
+        host.Zone = Zone.Home; host.FaceUp = true; host.Bowed = false; host.Dishonorable = false;
+        foreach (var attachment in attachments) Make(attachment, Zone.Attached).AttachedTo = host.Id;
+        Emit("tutorialPlaced", "The tutorial put a Personality into play.");
+    }
 }

@@ -41,6 +41,13 @@ internal static class TutorialCards
     // The Attachments lesson (issue #1077): Scorpion Lethargy (you, The Towers of the Yogo) against Phoenix (Library of Rebirth). Its Spells are the Spells lesson's.
     public const string NightingaleBlade = "oracle-l5r-5556", ClanStandard = "oracle-l5r-1407", SoshiHouseGuard = "oracle-l5r-7347", RedCraneDojo = "oracle-l5r-6219";
 
+    // The Keywords lesson (issue #1078): Crane (you, Shinden Asahina) against Scorpion, then Spider (The Spider's Web) against Unicorn (Plains of the Maiden), then Spider against a lone Stalwart Phoenix.
+    public const string SpiderStronghold = "oracle-l5r-8352";
+    public const string DojiDainagon = "oracle-l5r-2070", AsahinaKonomi = "oracle-l5r-502", KakitaMaratai = "oracle-l5r-4197", ScentOfDishonor = "oracle-l5r-10131";
+    public const string DaigotsuShiraume = "oracle-l5r-10317", DaigotsuShikenuro = "oracle-l5r-1765", DaigotsuHotako = "oracle-l5r-1726", Ohaba = "oracle-l5r-5685", BladeOfPerfection = "oracle-l5r-1010", Hunger = "oracle-l5r-3514";
+    public const string AParagonsStrength = "oracle-l5r-61", ControlTheBoard = "oracle-l5r-1486", UnorthodoxAttack = "oracle-l5r-8999", Focus = "oracle-l5r-2619";
+    public const string MotoTaha = "oracle-l5r-5379", HorseArchers = "oracle-l5r-3456", BayushiKasumi = "oracle-l5r-10247", ShibaJikaro = "oracle-l5r-10244";
+
     /// <summary>A forty-card deck: the lesson's cards on top, then the rest of the side's deck in its own order. A card the deck does not hold displaces the last card.</summary>
     internal static string[] Deck(string[] top, TutorialSide side, bool dynasty)
     {
