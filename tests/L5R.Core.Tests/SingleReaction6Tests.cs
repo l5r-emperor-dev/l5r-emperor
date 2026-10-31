@@ -697,7 +697,7 @@ internal static partial class SingleReaction6Tests
         Check(e.State.Cards[guards[0].Id].Zone == Zone.RemovedFromGame, "removed from the game after the battle ended");
         // No units of his at the battlefield: nothing is created. A Tower guarding another Province, or no battle at all: not offered.
         var empty = Build(false);
-        Check(empty.State.PendingChoice?.Type != "engageReaction" && !CanUse(empty, 1, ability, tower.Id), "no units at the battlefield: the Tower is not offered (presence rule)");
+        // "If you have any units at this battlefield" is a condition of the effect, not of the action: the Tower may still be used, and creates nothing.
         Check(empty.State.Cards.Values.All(c => c.DefinitionId != Wave741Guard), "no units, no Guard");
         var other = Build(true, guarded: 1);
         Check(other.State.PendingChoice?.Type != "engageReaction" || !CanUse(other, 1, ability, tower.Id), "a Tower guarding another Province is not offered");

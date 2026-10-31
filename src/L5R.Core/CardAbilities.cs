@@ -4944,6 +4944,7 @@ public sealed partial class MatchEngine
         if (id == "fallow-lands-reaction") return card is not null && card.OwnerId != attackerId && card.ProvinceIndex == battlefield && Army(playerId, battlefield).Any();
         return BattleReactionPresenceRefusal(AbilityCatalog.All[id], id, card, playerId) is null;
     }
+    // REVERSED 2026-10-31 (issue #1152, R-092): only a card printed with an Interrupt designator follows this presence rule; any other Reaction needs presence only if its text says so. The 2026-10-27 text follows.
     // Mendon's ruling (2026-10-27, issue #1133): a Reaction taken during a battle is an Interrupt action and follows the Rules of Presence and Location (Comprehensive Rules, Combat Segment); a
     // Reaction taken outside a battle has no presence rule. So in a battle (CurrentBattleProvince) its player needs a unit at the battlefield, and a Reaction on a card in a unit needs that unit
     // there too unless the action is Absent / moves a unit to the battle, may be used away (SourceUnitMayBeAway) or has Home (its unit home). A Holding or a Strategy played from a hand gives
@@ -4958,16 +4959,20 @@ public sealed partial class MatchEngine
         "afterResolutionReaction" => _state.PendingAfterResolution?.Losers.Contains(playerId) == true,
         _ => false,
     };
+    private bool PrintedInterrupt(CardInstance card) => System.Text.RegularExpressions.Regex.IsMatch(Definition(card).Text, @"\bInterrupt\b\s*[,:]");
     private string? BattleReactionPresenceRefusal(AbilityDefinition ability, string id, CardInstance? source, int playerId)
     {
         if (ability.Timing != "Reaction" || _state.CurrentBattleProvince is not int battlefield) return null;
         if (ability.Absent || ability.MovesToBattle || id is "tsukimi-battlefield" or "rokku-move" or "wave-persists-move" /* moves its own unit to the battlefield (Tsukimi, Rokku, The Wave Persists): the Rules of Presence and Location' move-in exception */ || id is "archery-range-reaction" || id.StartsWith("training-", StringComparison.Ordinal)) return null; // training-*: scenario fixtures with no location rule
-        if (!(Army(playerId, battlefield).Any() || Wave735WaivesPresence(playerId) || PresenceHeldUntilWindowCloses(playerId))) return "You need a unit at the current battlefield to take a Reaction in a battle.";
+        // Mendon's ruling (2026-10-31, issue #1152, reverses R-090): a Reaction is not tied to presence unless its own text requires it (Utaku Ryoko, Khol Regulars check their own text). The Comprehensive Rules
+        // do tie an Interrupt to the Rules of Presence and Location, and that counts as text on the card: only a card printed with an Interrupt designator needs presence in the battle.
+        if (source is null || !PrintedInterrupt(source)) return null;
+        if (!(Army(playerId, battlefield).Any() || Wave735WaivesPresence(playerId) || PresenceHeldUntilWindowCloses(playerId))) return "You need a unit at the current battlefield to take an Interrupt in a battle.";
         if (source is null || !InPlay(source)) return null;
         if (source.Zone == Zone.Region) return source.ProvinceIndex == battlefield && source.OwnerId != _state.ActivePlayerId ? null : "A Region is present only at a battle on its own province.";
         // Engage Reactions listed in EngageSourceElsewhere (Rokku, Hayan, the Sled) move a unit to the battlefield from elsewhere (issues #838/#840), and Mitsuo reacts to an action that moved him away: neither can need the card at the battlefield.
         var inUnit = (Definition(source).Type == CardType.Personality || source.Zone == Zone.Attached) && !EngageSourceElsewhere.Contains(id) && id != "mitsuo-additional-action";
-        if (inUnit && !SourceMayBeAway(ability, source) && !HomeWaivesSourceLocation(ability, source) && !AtBattle(source)) return "The card taking this Reaction must be at the current battlefield.";
+        if (inUnit && !SourceMayBeAway(ability, source) && !HomeWaivesSourceLocation(ability, source) && !AtBattle(source)) return "The card taking this Interrupt must be at the current battlefield.";
         return null;
     }
     private bool ProvinceAttackReactionAvailableTo(int playerId, int attackerId, int province) =>

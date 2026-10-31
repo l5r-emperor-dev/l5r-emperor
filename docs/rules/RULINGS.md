@@ -739,7 +739,7 @@ Fallow Lands' Reaction ("after a Melee or Ranged Attack is targeted: -2 strength
 - **Date:** 2026-10-27
 - **Source:** Mendon, issue #1124.
 
-### R-088 — Attack reactions: a province is a target, and presence at the attacked battlefield is required (generalised by R-089)
+### R-088 — Attack reactions: a province is a target, and presence at the attacked battlefield is required (generalised by R-089; the presence part is narrowed by R-092)
 An Attack on a province is targeted (as is any card the Attack affects), so every "after an Attack is targeted" Reaction triggers on it. Unless its text lets it be used from another location, a Reaction to an Attack, whether it targets a province or a card, needs presence at the battlefield of the Attack: an in-play card must be at that battlefield (a Follower, Item or Spell through its wielder) and a Strategy played from a hand needs its player to have a Personality there. Isawa Kaname, Moshi Umiko and Kaiu Fumiko must stand at the battlefield. Archery Range may react from home. A Reaction that needs a card to be targeted (A Close Call, Akodo Kakihara, Flesh Cutter Arrows) cannot react to an Attack that targets no card. An Attack that names neither a card nor a province cannot be reacted to.
 
 - **Cards/primitives:** `before-attack-resolves` Reactions (Khol Regulars, Archery Range, Isawa Kaname, Moshi Umiko, Kaiu Fumiko, Strong Defenses, Trusting Instinct, Precision, Sniping, Unholy Strike, Steal the Candle's Flame, Fallow Lands); `AttackReactionOffered`. The `training-attack-boost` / `training-attack-negate` fixture has no location rule.
@@ -753,7 +753,7 @@ Core rules (Abilities, 31 Jan 2013): a single copy of a Reaction (one source) ma
 - **Date:** 2026-10-27
 - **Source:** Mendon, issue #1131 (reading of Comprehensive Rules, Abilities: "single copy ... from a single given source").
 
-### R-090 — A Reaction taken in a battle follows the Rules of Presence and Location
+### R-090 — A Reaction taken in a battle follows the Rules of Presence and Location (reversed by R-092)
 A Reaction taken during a battle is an Interrupt action, so it follows the Rule of Presence and the Rule of Location (Comprehensive Rules, Combat Segment); this overrides the sentence "Reactions are not subject to rules of Presence and Location". A Reaction taken outside a battle has no presence rule. In a battle:
 - The player needs a unit at the current battlefield. Absent Reactions and those that move a unit to the battle are exempt (the CR exception).
 - A Reaction printed on a Personality needs that Personality at the battlefield, and one on an attachment needs its wielder there, unless the ability may be used away or from home (Home). Engage Reactions are the same. The ones already listed in `EngageSourceElsewhere` (Rokku, Hayan, the Sled), Tsukimi's, Rokku's and The Wave Persists' moves of their own unit to the battlefield, and Mitsuo (who reacts to being moved away) are exempt from the location half.
@@ -773,3 +773,10 @@ Oracle of the Void's current text for Ring of Fire is the Twenty Festivals readi
 - **Cards/primitives:** Ring of Fire (oracle-l5r-6335); `ring-of-fire-recruit`, `ring-of-fire-destroy`; `content/oracle/printing-readings.json`, `tools/content/apply_printing_readings.py`.
 - **Date:** 2026-10-18
 - **Source:** Mendon — [decision](../decisions/2026-10-18-tutorial-lion-crane-rulings.md). Issue #935.
+
+### R-092 — A Reaction needs presence only if its text says so; an Interrupt is a Reaction that does
+A Reaction may be taken from anywhere unless its own text requires the card to be at the battlefield (Utaku Ryoko, Khol Regulars). An Interrupt is a Reaction taken in the window its text names, and the Comprehensive Rules' tie between Interrupts and presence counts as text on the card. Engage abilities are Reactions taken at engagement (R-064 unchanged).
+
+- **Cards/primitives:** `BattleReactionPresenceRefusal`, `PrintedInterrupt` (CardAbilities.cs); Unholy Strike and Steal the Candle's Flame (Interrupts) still need presence; Kaname, Umiko, Fumiko, Tamoko and Strategy Reactions no longer do. Reverses R-090 and narrows R-088.
+- **Date:** 2026-10-31
+- **Source:** Mendon, issue #1152 — [decision](../decisions/2026-10-31-reactions-not-tied-to-presence.md).
