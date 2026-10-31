@@ -1313,13 +1313,12 @@ internal static partial class SingleReaction4Tests
             Accept(go, Offer(go, 0, "training-straighten-at-battle", straightener.Id, victim.Id));
             Check(go.State.Cards[victim.Id].Bowed, "the first straightening was negated");
         }
-        // Two provinces away, a bowed Region, or the Attacker's Region: no window.
-        foreach (var (province, owner, bowed, why) in new[] { (1, 0, false, "an adjacent province (the Region is not at the battle)"), (2, 0, false, "two provinces away"), (0, 0, true, "a bowed Region"), (0, 1, false, "the Attacker's Region") })
+        // Two provinces away, a bowed Region, or the Attacker's Region: no window. (An adjacent province is in range of its text, and a Reaction needs no presence at the battle: issue #1152.)
+        foreach (var (province, owner, bowed, why) in new[] { (2, 0, false, "two provinces away"), (0, 0, true, "a bowed Region"), (0, 1, false, "the Attacker's Region") })
         {
             var (e, victim, bower, region) = Setup(province, owner, bowed);
             Accept(e, Offer(e, 1, "training-bow-at-battle", bower.Id, victim.Id));
-            // An adjacent Region still opens an (unusable) bowReaction window in the engine (OpenBowReactionWindow ignores the presence rule): there the Region must at least be unusable.
-            Check((province == 1 || e.State.PendingChoice is not { Type: "bowReaction" }) && !CanUse(e, 0, ability, region.Id), "no window for " + why);
+            Check(e.State.PendingChoice is not { Type: "bowReaction" } && !CanUse(e, 0, ability, region.Id), "no window for " + why);
             Check(e.State.Cards[victim.Id].Bowed && e.State.Cards[victim.Id].StraightenBlockedTurn != e.State.TurnNumber, "he stays bowed and nothing is negated");
         }
     }

@@ -38,7 +38,7 @@ internal static partial class MultiWindowReaction3Tests
         ("Shosuro Makiko (Political Reaction, bow her): the Honor GAIN from another player's action is reduced by 2; not for a loss, not while bowed, not outside the window; her Open Favor action is independent", MakikoReduce),
         ("Unimpeachable Name (Reaction before an Honor loss): a loss from another player's action is reduced by 3 for its holder; not offered to the actor or mid-Action phase without a loss; its Battle bow is independent", UnimpeachableNameReduce),
         ("Tamori Tamoko (Reaction before an action resolves): another player's movement of a Personality can be negated; offered to her controller only; not outside the window; her Open action is independent", TamokoNegate),
-        ("A Reaction taken in a battle follows the Rules of Presence and Location (issue #1133): a Personality's own Reaction needs her at the battlefield, and her player needs a unit there", ReactionNeedsPresence),
+        ("A Reaction is not tied to presence unless its text says so (issue #1152, reverses #1133): Tamoko's Reaction is offered from home and with no unit at the battlefield", ReactionNeedsPresence),
         ("Bayushi Irezu (Reaction before a duel begins, bow): a Scorpion Clan Personality challenged by another player's duel is replaced by Irezu; not once he is bowed, not outside the duel window; his Battle move is independent", IrezuDuelEnter),
         ("Asako Kikugoro (Reaction after your Henshin enters play): another Henshin purchased opens the look at the top two Dynasty cards; not for a non-Henshin, not to the other player or outside the entry window", KikugoroHenshinEntry),
         ("Kaiu Village (Reaction after your Personality enters play from a province, pay 2 Gold): creates and attaches a +1F Armor; not to the other player, not outside the entry window; the Weapon half is the sibling", KaiuVillageArmor),
@@ -863,8 +863,8 @@ internal static partial class MultiWindowReaction3Tests
         Check(Options(q, 0, "tamoko-open", tm.Id).Any(x => x.Enabled && (x.TargetIds ?? []).Contains(active.Id)), "her Open action is independent of the Reaction");
     }
 
-    // Mendon's ruling (2026-10-27, issue #1133): a Reaction taken in a battle is an Interrupt action and follows the Rules of Presence and Location. Tamoko's Reaction is offered only when she stands at the
-    // battlefield: not from home even though her player has another unit there, and not when her player has no unit there at all.
+    // Mendon's ruling (2026-10-31, issue #1152, reverses #1133): a Reaction is not tied to presence unless its text requires it. Tamoko's Reaction says nothing of the kind, so it is offered wherever she is:
+    // at the battlefield, at home with another unit of her player's there, and at home with none.
     private static void ReactionNeedsPresence()
     {
         (MatchEngine E, CardInstance Tam) Play(bool tamokoAtBattle, bool otherUnit)
@@ -882,9 +882,9 @@ internal static partial class MultiWindowReaction3Tests
         var (present, tamoko) = Play(tamokoAtBattle: true, otherUnit: false);
         Check(Listed(present, 0, "tamoko-negate", tamoko.Id), "she is at the battlefield: her Reaction is offered");
         var (home, homeTamoko) = Play(tamokoAtBattle: false, otherUnit: true);
-        Check(!Listed(home, 0, "tamoko-negate", homeTamoko.Id), "she is at home: her player has presence, but her own Reaction needs her at the battlefield");
+        Check(Listed(home, 0, "tamoko-negate", homeTamoko.Id), "she is at home: her Reaction is offered");
         var (alone, aloneTamoko) = Play(tamokoAtBattle: false, otherUnit: false);
-        Check(!Listed(alone, 0, "tamoko-negate", aloneTamoko.Id), "no unit of her player's at the battlefield: no Reaction at all");
+        Check(Listed(alone, 0, "tamoko-negate", aloneTamoko.Id), "no unit of her player's at the battlefield: a Reaction needs no presence");
     }
 
     private static void IrezuDuelEnter()

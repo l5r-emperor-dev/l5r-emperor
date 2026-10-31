@@ -3,17 +3,17 @@ using static Batch336Support;
 using static RegressionAssertions;
 
 // Issues #1129 and #1131 (Mendon's rulings, 2026-10-27): an Attack on a province is targeted, so every "after an Attack is targeted" Reaction triggers on it; unless its text lets it be used from another location
-// it needs presence at the battlefield of the attacked province (an Attack on a card too: #1131); a Reaction that needs a CARD to be targeted cannot react to a province. Position: the economy table, player 1 the Attacker with a Ranged 3
+// it needs presence at the battlefield of the attacked province (an Attack on a card too: #1131); amended 2026-10-31 (#1152): a Reaction needs presence only if its text says so, and an Interrupt does (Comprehensive Rules); a Reaction that needs a CARD to be targeted cannot react to a province. Position: the economy table, player 1 the Attacker with a Ranged 3
 // province Attack at province 0 (the battlefield), player 0 the Defender. For each Reaction the card is placed where it has presence and where it has none, driven only through QueryActions.
 internal static class ProvinceAttackReactionTests
 {
     private const string ProvinceAttacker = "training-province-attacker", ProvinceAttack = "training-province-attack";
 
     public static void Run(TestRunner runner) => runner.Run("province-attack-reactions", [
-        ("Each 'after an Attack is targeted' Reaction reacts to an Attack on a province from where it has presence at the battlefield, and never from home", PresenceMatrix),
-        ("A Strategy played from a hand needs its player to have a Personality at the attacked battlefield", StrategyNeedsPresence),
+        ("Each 'after an Attack is targeted' Reaction reacts to an Attack on a province from anywhere; an Interrupt (Steal the Candle's Flame) needs presence at the battlefield (#1152)", PresenceMatrix),
+        ("A Strategy Reaction played from a hand needs no Personality at the attacked battlefield; Unholy Strike, an Interrupt, does (#1152)", StrategyNeedsPresence),
         ("A Reaction that needs a card to be targeted (A Close Call, Akodo Kakihara, Flesh Cutter Arrows) never reacts to a province Attack", CardTargetReactionsRefused),
-        ("An Attack on a card gives the same answer: Kaname, Umiko, Fumiko, Khol Regulars and Steal the Candle's Flame need presence at the battlefield, Archery Range reacts from home", CardAttackPresence),
+        ("An Attack on a card gives the same answer: Kaname, Umiko and Fumiko react from anywhere, Khol Regulars (its text) and Steal the Candle's Flame (an Interrupt) need presence at the battlefield", CardAttackPresence),
         ("The reaction takes effect: Strong Defenses' -3 leaves the province with all its strength", ReactionTakesEffect),
     ]);
 
@@ -78,6 +78,9 @@ internal static class ProvinceAttackReactionTests
         return (e, card);
     }
 
+    // Khol Regulars says "if this card is at the current battlefield"; Steal the Candle's Flame and Unholy Strike are Interrupts, which the Comprehensive Rules tie to presence.
+    private static bool NeedsPresence(string ability) => ability is "khol-regulars-reaction" or "tf-steal-candle-interrupt" or "unholy-strike-boost";
+
     private static void PresenceMatrix()
     {
         foreach (var (ability, owner, kind) in Cases)
@@ -85,7 +88,7 @@ internal static class ProvinceAttackReactionTests
             var present = Place(ability, owner, kind, present: true);
             Check(Offered(present.E, owner, ability, present.Card.Id), ability + ": offered from the battlefield");
             var absent = Place(ability, owner, kind, present: false);
-            Eq(Offered(absent.E, owner, ability, absent.Card.Id), kind == "holding", ability + (kind == "holding" ? ": Archery Range may react from home" : ": not offered from home"));
+            Eq(Offered(absent.E, owner, ability, absent.Card.Id), !NeedsPresence(ability), ability + (NeedsPresence(ability) ? ": needs presence at the battlefield" : ": reacts from anywhere"));
         }
     }
 
@@ -97,7 +100,7 @@ internal static class ProvinceAttackReactionTests
             Check(present.E.State.PendingAttack is { TargetId: not null }, ability + ": the Attack names a card");
             Check(Offered(present.E, owner, ability, present.Card.Id), ability + ": offered from the battlefield");
             var absent = Place(ability, owner, kind, present: false, onCard: true);
-            Eq(Offered(absent.E, owner, ability, absent.Card.Id), kind == "holding", ability + (kind == "holding" ? ": Archery Range may react from home" : ": not offered from home"));
+            Eq(Offered(absent.E, owner, ability, absent.Card.Id), !NeedsPresence(ability), ability + (NeedsPresence(ability) ? ": needs presence at the battlefield" : ": reacts from anywhere"));
         }
     }
 
@@ -109,7 +112,7 @@ internal static class ProvinceAttackReactionTests
             var with = Attack(s => { Add(s, "training-crane-samurai", 0, Zone.Battlefield, province: 0); card = Add(s, Def(ability), 0, Zone.Hand); });
             Check(Offered(with, 0, ability, card.Id), ability + ": offered with a Personality at the battlefield");
             var without = Attack(s => { card = Add(s, Def(ability), 0, Zone.Hand); Add(s, "training-crane-samurai", 0, Zone.Home); });
-            Check(!Offered(without, 0, ability, card.Id), ability + ": not offered with no Personality at the battlefield");
+            Eq(Offered(without, 0, ability, card.Id), !NeedsPresence(ability), ability + (NeedsPresence(ability) ? ": an Interrupt is not offered with no Personality at the battlefield" : ": a Reaction is offered with no Personality at the battlefield"));
         }
     }
 
