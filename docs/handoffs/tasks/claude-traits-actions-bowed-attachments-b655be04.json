@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Traits and Actions tutorial: restore the CR note that Spells and Items can use printed actions while their bowed Personality (unless bowing him is a cost)",
+  "validation": "tutorial-traits-actions 5/5; CR lines 1066/1797 and Scouring Flood engine path read",
+  "remaining": "None; ready for review.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1035",
+  "branch": "claude/traits-actions-bowed-attachments",
+  "updated": "2026-10-31T17:23:23.944551+00:00"
+}
