@@ -66,7 +66,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Attaches to an Air Shugenja paying 2 less Gold.\nReaction: Before an action resolves, bow this card: Negate its effects which give Kolat, Ninja, or Shadowlands to Personalities you control.\nAttaches to an Air Shugenja paying 2 less Gold.\nReaction: Before an action resolves, bow this card: Negate its effects which give Kolat, Ninja, or Shadowlands to Personalities you control.",
+      "Text": "Attaches to an Air Shugenja paying 2 less Gold.\nReaction: Before an action resolves, bow this card: Negate its effects which give Kolat, Ninja, or Shadowlands to Personalities you control.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9887.jpg",
       "Keywords": [
@@ -91,7 +91,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "While this Shugenja is Air or Fire, he has +1F.\nBattle: Target a Terrain and destroy this card: Destroy the Terrain.\nOpen: Target a Region and destroy this card: The Region's abilities may not be used.\nLimited: Target a Holding and destroy this card: Bow the Holding.\nWhile this Shugenja is Air or Fire, he has +1F.\nBattle: Target a Terrain and destroy this card: Destroy the Terrain.\nOpen: Target a Region and destroy this card: The Region's abilities may not be used.\nLimited: Target a Holding and destroy this card: Bow the Holding.",
+      "Text": "While this Shugenja is Air or Fire, he has +1F.\nBattle: Target a Terrain and destroy this card: Destroy the Terrain.\nOpen: Target a Region and destroy this card: The Region's abilities may not be used.\nLimited: Target a Holding and destroy this card: Bow the Holding.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9888.jpg",
       "Keywords": [
@@ -119,7 +119,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "This Shugenja has +3F.\nWhile this Shugenja is Thunder, battle resolution will not bow cards in this unit.\nThis Shugenja has +3F.\nWhile this Shugenja is Thunder, battle resolution will not bow cards in this unit.",
+      "Text": "This Shugenja has +3F.\nWhile this Shugenja is Thunder, battle resolution will not bow cards in this unit.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9891.jpg",
       "Keywords": [
@@ -193,7 +193,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Battle: Target an enemy Personality with lower Chi than this Shugenja: Give the target -4F. If this Shugenja is Air, actions the target performs may not target this Shugenja.\nBattle: Target an enemy Personality with lower Chi than this Shugenja: Give the target -4F. If this Shugenja is Air, actions the target performs may not target this Shugenja.",
+      "Text": "Battle: Target an enemy Personality with lower Chi than this Shugenja: Give the target -4F. If this Shugenja is Air, actions the target performs may not target this Shugenja.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9895.jpg",
       "Keywords": [
