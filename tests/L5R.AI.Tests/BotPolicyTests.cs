@@ -107,7 +107,7 @@ internal static class BotPolicyTests
         {
             var decision = TrainingOpponent.Choose(view, [pass, ability(id)]);
             var intent = AbilityIntent.Of(id);
-            if (intent.TakesFavor || intent.DiscardsFavor) continue; // spending or taking the Favor has its own spec; a tie with passing goes to passing
+            if (intent.TakesFavor || intent.DiscardsFavor || intent.SelfHonorLoss) continue; // spending or taking the Favor, or losing the bot's own Honor, has its own spec; a tie with passing goes to passing (Akuma's Power joined the first 40 once Ring of the Void's recruit left the Limited timing, issue #1157)
             Check(decision.Command?.AbilityId == id, $"{id} scored below passing");
         }
     }

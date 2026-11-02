@@ -459,9 +459,10 @@ internal static class EmperorPersonalityBatch6Tests
     {
         MatchEngine Setup(Action<MatchState>? edit = null)
         {
-            var s = Table(Phase.Action, 0);
+            var s = Table(Phase.Battle, 0);
             Add(s, Yung, 0, Zone.Home);
-            Add(s, RingOfVoid, 0, Zone.Hand);
+            var recruit = Add(s, RingOfVoid, 0, Zone.Hand);
+            s.AdditionalActions.Add(new AdditionalActionGrant(0, [recruit.Id], Battle: s.BattleNumber)); // the grant a fourth Strategy action in a phase hands out
             // A Ring on top of the Fate deck, and the rest as the scenario had it.
             var ring = Add(s, RingOfAir, 0, Zone.FateDeck); s.Players[0].Hand.Remove(ring.Id); s.Players[0].FateDeck.Insert(0, ring.Id);
             edit?.Invoke(s);
@@ -493,9 +494,10 @@ internal static class EmperorPersonalityBatch6Tests
         Check(!CanUse(e2, 0, "yung-search-ring", yung2.Id), "nothing to react to");
 
         // Another player's Ring entering play is not "one of your Rings".
-        var s3 = Table(Phase.Action, 1);
+        var s3 = Table(Phase.Battle, 1);
         Add(s3, Yung, 0, Zone.Home);
         var enemyRing = Add(s3, RingOfVoid, 1, Zone.Hand);
+        s3.AdditionalActions.Add(new AdditionalActionGrant(1, [enemyRing.Id], Battle: s3.BattleNumber));
         var e3 = MatchEngine.FromTestState(s3);
         Accept(e3, Use(e3, 1, "ring-of-void-recruit", enemyRing.Id));
         Check(e3.State.PendingChoice?.Type != "afterActionResolvedReaction" || !e3.QueryActions(0).Any(a => a.Command?.AbilityId == "yung-search-ring" && a.Enabled), "an enemy Ring gives Yung nothing");

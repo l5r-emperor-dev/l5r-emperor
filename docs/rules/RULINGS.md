@@ -780,3 +780,10 @@ A Reaction may be taken from anywhere unless its own text requires the card to b
 - **Cards/primitives:** `BattleReactionPresenceRefusal`, `PrintedInterrupt` (CardAbilities.cs); Unholy Strike and Steal the Candle's Flame (Interrupts) still need presence; Kaname, Umiko, Fumiko, Tamoko and Strategy Reactions no longer do. Reverses R-090 and narrows R-088.
 - **Date:** 2026-10-31
 - **Source:** Mendon, issue #1152 — [decision](../decisions/2026-10-31-reactions-not-tied-to-presence.md).
+
+### R-093 — Ring of the Void reads as the Emperor Edition scan, not the Twenty Festivals text
+Oracle of the Void's current text for Ring of the Void is the Twenty Festivals reading ("Limited: Play if you have two or fewer Rings in play. Discard your hand."), which does not match the Emperor Edition scan or the Comprehensive Rules. The card uses the scan's text everywhere: "After you resolve your fourth or later non-Kiho action from Strategies in one phase: You may put this card into play from your hand. Open: Bow this card or discard it from your hand: If any player has more cards in his hand than you do, or if this card is in play, draw a card." Nothing discards a hand. Like the other Rings, the recruit is a granted Additional Battle Action for the next battle (or the battle in progress), not a mid-resolution interrupt; the count restarts each phase.
+
+- **Cards/primitives:** Ring of the Void (oracle-l5r-6338); `ring-of-void-recruit` (granted from `CompleteAbilityResolution` through `StrategyActionsThisPhase`), `ring-of-void-draw`; `content/published/ring-wave-1.json`.
+- **Date:** 2026-11-02
+- **Source:** Mendon, issue #1157.

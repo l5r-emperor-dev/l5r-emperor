@@ -17,7 +17,7 @@ internal static class RingGrantTests
             ("Ring of Earth from the hand at a battle where the player DOES control units: the same offers and the same effect", EarthHandWithUnits),
             ("Ring of Earth IN PLAY (bow): offered enabled, bows the Ring (which stays in play) and moves the Strength; a bowed Ring is offered disabled and refused; once per turn across both abilities", EarthInPlay),
             ("Ring of Earth is a Battle action: not offered enabled outside a battle (Action phase, from the hand or in play), and refused if submitted", EarthNotOutsideBattle),
-            ("The other true Rings' hand plays are offered enabled through QueryActions and run: Air straightens, Water moves home, Void draws (Limited, Action phase), Fire destroys (performer plus enemy target); each Ring goes to the discard pile", OtherTrueRingsFromHand),
+            ("The other true Rings' hand plays are offered enabled through QueryActions and run: Air straightens, Water moves home, Void draws (Open, Action phase), Fire destroys (performer plus enemy target); each Ring goes to the discard pile", OtherTrueRingsFromHand),
             ("A recruit grant lapses with its battle: granted at battle 1 it is offered in the after-battle window and is gone at battle 2 in the same turn; a NEW grant at battle 2 is offered only in battle 2's window", GrantBelongsToItsBattle),
             ("The after-battle window is closed by its holder's pass (an opponent with nothing to play is not asked to pass) and the grant does not survive it; the Ring stays in the hand; using the grant in the window puts the Ring into play with no presence needed", AfterBattleWindow),
             ("A recruit grant survives the other actions and the passes of its own battle (its holder's ordinary actions, the opponent's, a pass) and is still there for the after-battle window", GrantSurvivesItsBattlesActions),
@@ -188,9 +188,10 @@ internal static class RingGrantTests
         Accept(ew, home.Command! with { TargetId = mine.Id });
         Eq(ew.State.Cards[mine.Id].Zone, Zone.Home); Eq(ew.State.Cards[water.Id].Zone, Zone.FateDiscard);
 
-        // Ring of the Void (Limited): draw a card.
+        // Ring of the Void (Open): draw a card.
         var v = MatchEngine.CreateEconomyScenario().State; v.Phase = Phase.Action; v.ActivePlayerId = 0; v.PriorityPlayerId = 0;
         var voidRing = Add(v, Void, 0, Zone.Hand);
+        while (v.Players[1].Hand.Count <= v.Players[0].Hand.Count) Add(v, "training-follower", 1, Zone.Hand); // the Open draws only while an opponent holds more cards (issue #1157)
         var ev = MatchEngine.FromTestState(v);
         var libraryBefore = ev.State.Players[0].FateDeck.Count;
         var draw = Offered(ev, voidRing, "ring-of-void-draw").Single();
@@ -366,7 +367,7 @@ internal static class RingGrantTests
         }
         // A duel-won False Ring of Earth (Dueling) and the six ids the scoping covers are exactly the grant-based recruits.
         var scoped = AbilityCatalog.All.Where(p => p.Key.EndsWith("-recruit") && p.Value.Absent).Select(p => p.Key).OrderBy(k => k, StringComparer.Ordinal).ToArray();
-        Eq(string.Join(",", scoped), "false-ring-of-air-recruit,false-ring-of-earth-recruit,ring-of-air-recruit,ring-of-earth-recruit,ring-of-fire-recruit,ring-of-water-recruit,wl-false-ring-of-void-recruit");
+        Eq(string.Join(",", scoped), "false-ring-of-air-recruit,false-ring-of-earth-recruit,ring-of-air-recruit,ring-of-earth-recruit,ring-of-fire-recruit,ring-of-void-recruit,ring-of-water-recruit,wl-false-ring-of-void-recruit");
         // Every other Additional Action grant stays untagged (it is cleared at battle end whatever its battle).
         var t = BattleTable(1, 0, 0);
         var host = Add(t, "training-crane-samurai", 0, Zone.Battlefield, province: 0);

@@ -69,7 +69,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "You may discard this Ring from your hand to use its Void ability without cost.\nLimited: Play if you have two or fewer Rings in play. Discard your hand. \nVoid Limited, Bow this card: Draw a card. If you now have more cards in your hand than any other player, discard a card.",
+      "Text": "After you resolve your fourth or later non-Kiho action from Strategies in one phase: You may put this card into play from your hand.\nOpen: Bow this card or discard it from your hand: If any player has more cards in his hand than you do, or if this card is in play, draw a card.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-6338.jpg",
       "Keywords": [

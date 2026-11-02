@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Ring of the Void rewired to the Emperor Edition scan (R-093): recruited after a fourth non-Kiho Strategy action in one phase; Open bow-or-discard draws if an opponent has more cards or the Ring is in play. No longer discards a hand.",
+  "validation": "bash tools/check.sh --skip-client before merging main: python and small stages pass; core 3/3 shards pass (1550/1551/1550); AI shards 1 and 3 pass, shard 2 failed bot-policy/NeverBelowPass (Akuma's Power entered the 40-ability window), fixed by exempting self-Honor-loss abilities, bot-policy 16/16 re-run passing; AI shard 2 not re-run in full. Kiho exclusion from the count has no regression test. No client change; no native playtest.",
+  "remaining": "None for Void. Audit of Air, Water, Earth against their scans reported to the user, not changed.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1157",
+  "branch": "claude/1157-ring-of-void-emperor-text",
+  "updated": "2026-11-02T20:15:45.561571+00:00"
+}

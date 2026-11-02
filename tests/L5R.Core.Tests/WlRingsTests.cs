@@ -76,7 +76,7 @@ internal static class WlRingsTests
         var ring = Add(s, RingOfVoid, 0, Zone.Hand);
         var e = MatchEngine.FromTestState(s);
         Check(Entry(e, ring.Id) is null, "no record before it enters play");
-        Accept(e, Use(e, 0, "ring-of-void-recruit", ring.Id));
+        e = Batch336Support.GrantVoid(e, 0, ring.Id); Accept(e, Use(e, 0, "ring-of-void-recruit", ring.Id));
         Eq(e.State.Cards[ring.Id].Zone, Zone.Home, "in play");
         var record = Entry(e, ring.Id)!;
         Check(record.Mode == WlRingsState.OwnText && record.SourceCardId == ring.Id && record.AbilityId == "ring-of-void-recruit" && record.Turn == e.State.TurnNumber, "own text, its own recruit, this turn");
@@ -175,7 +175,7 @@ internal static class WlRingsTests
         var s = e.State;
         var back = s.Cards[ring.Id]; back.DefinitionId = RingOfVoid; back.Zone = Zone.Hand; s.Players[0].Hand.Add(back.Id); s.Players[0].RingPutIntoPlayTurn = -1; s.TurnNumber += 2; s.Phase = Phase.Action; s.PriorityPlayerId = 0; s.ActivePlayerId = 0;
         var again = MatchEngine.FromTestState(s);
-        Accept(again, Use(again, 0, "ring-of-void-recruit", ring.Id));
+        again = Batch336Support.GrantVoid(again, 0, ring.Id); Accept(again, Use(again, 0, "ring-of-void-recruit", ring.Id));
         var record = Entry(again, ring.Id)!;
         Check(record.Mode == WlRingsState.OwnText && record.SourceCardId == ring.Id && record.Turn == again.State.TurnNumber, "second entry: its own text, this turn");
         Check(!Marked(again, ring.Id), "the older mark is cleared as well");
@@ -263,7 +263,7 @@ internal static class WlRingsTests
         var e = WitnessRig();
         var witness = SpellOf(e);
         Check(!CanUse(e, 0, WlRingsAbilities.WitnessLook, witness.Id), "no Ring has entered play yet");
-        Accept(e, Use(e, 0, "ring-of-void-recruit", HandRing(e, 0).Id));
+        e = Batch336Support.GrantVoid(e, 0, HandRing(e, 0).Id); Accept(e, Use(e, 0, "ring-of-void-recruit", HandRing(e, 0).Id));
         Eq(e.State.PendingChoice?.Type, "afterActionResolvedReaction", "the after-action window opens for the Ring's entry");
         Check(Offered(e, 0, WlRingsAbilities.WitnessLook), "Witness the Untold is offered");
         Accept(e, e.QueryActions(0).First(a => a.Type == "declineReaction" && a.Enabled).Command!);
@@ -271,7 +271,7 @@ internal static class WlRingsTests
         Check(!e.State.Cards[witness.Id].Bowed && e.State.PendingChoice is null && e.State.PendingLook is null, "declined: the Spell is still unbowed, nothing was looked at");
         // The opponent's Ring entering play: not "your Ring".
         var o = WitnessRig(actor: 1, opponentRing: true);
-        Accept(o, Use(o, 1, "ring-of-void-recruit", HandRing(o, 1).Id));
+        o = Batch336Support.GrantVoid(o, 1, HandRing(o, 1).Id); Accept(o, Use(o, 1, "ring-of-void-recruit", HandRing(o, 1).Id));
         Check(!Offered(o, 0, WlRingsAbilities.WitnessLook) && !Offered(o, 1, WlRingsAbilities.WitnessLook), "an opponent's Ring does not trigger my Witness the Untold");
         // Another card's effect: Togashi's Guidance.
         var t = TogashiRig(out var togashi, out var ring, st => { var h = Add(st, Shugenja, 0, Zone.Home); Attach(st, Witness, h); });
@@ -332,7 +332,7 @@ internal static class WlRingsTests
         var witness = SpellOf(e);
         var top = e.State.Players[0].FateDeck.Take(3).ToArray();
         var deckSize = e.State.Players[0].FateDeck.Count; var dynastySize = e.State.Players[0].DynastyDeck.Count;
-        Accept(e, Use(e, 0, "ring-of-void-recruit", HandRing(e, 0).Id));
+        e = Batch336Support.GrantVoid(e, 0, HandRing(e, 0).Id); Accept(e, Use(e, 0, "ring-of-void-recruit", HandRing(e, 0).Id));
         Accept(e, Enabled(e, 0, WlRingsAbilities.WitnessLook, witness.Id).Command!);
         Check(e.State.Cards[witness.Id].Bowed, "the Spell bowed as the cost");
         Eq(e.State.PendingChoice?.Type, "lookDeck", "the Dynasty or Fate deck is chosen first");
@@ -347,17 +347,17 @@ internal static class WlRingsTests
         Check(e.State.PendingLook is null && e.State.PendingChoice is null || e.State.PendingChoice is { Type: "afterActionResolvedReaction" }, "the look is over");
         // The Dynasty deck is the other choice.
         var d = WitnessRig();
-        Accept(d, Use(d, 0, "ring-of-void-recruit", HandRing(d, 0).Id));
+        d = Batch336Support.GrantVoid(d, 0, HandRing(d, 0).Id); Accept(d, Use(d, 0, "ring-of-void-recruit", HandRing(d, 0).Id));
         Accept(d, Enabled(d, 0, WlRingsAbilities.WitnessLook, SpellOf(d).Id).Command!);
         Accept(d, new GameCommand("chooseLookDeck", 0, d.Version, Choice: "Dynasty", TargetPlayerId: 0));
         Eq(d.GetView(0).PendingLook!.Deck, "Dynasty", "the Dynasty deck");
         Eq(d.GetView(1).PendingLook, null, "the opponent sees nothing of the look");
         // A bowed Witness, one in a hand, and one that is not the Ring's controller's are not offered.
         var b = WitnessRig((s, _) => s.Cards.Values.Single(c => c.DefinitionId == Witness).Bowed = true);
-        Accept(b, Use(b, 0, "ring-of-void-recruit", HandRing(b, 0).Id));
+        b = Batch336Support.GrantVoid(b, 0, HandRing(b, 0).Id); Accept(b, Use(b, 0, "ring-of-void-recruit", HandRing(b, 0).Id));
         Check(!Offered(b, 0, WlRingsAbilities.WitnessLook), "a bowed Spell cannot pay its cost");
         var o = WitnessRig((s, h) => { var spell = s.Cards.Values.Single(c => c.DefinitionId == Witness); spell.OwnerId = 1; });
-        Accept(o, Use(o, 0, "ring-of-void-recruit", HandRing(o, 0).Id));
+        o = Batch336Support.GrantVoid(o, 0, HandRing(o, 0).Id); Accept(o, Use(o, 0, "ring-of-void-recruit", HandRing(o, 0).Id));
         Check(!Offered(o, 0, WlRingsAbilities.WitnessLook) && !Offered(o, 1, WlRingsAbilities.WitnessLook), "the other player's Spell does not answer my Ring");
         // Rejected use leaves the state unchanged: no Ring has entered play.
         var r = WitnessRig();
@@ -431,7 +431,7 @@ internal static class WlRingsTests
         var e = MatchEngine.FromTestState(s);
         Check(AbilityCatalog.All["yung-search-ring"].Trigger == ReactionTriggers.RingEntersPlay, "Yung is on the new trigger");
         Check(!CanUse(e, 0, "yung-search-ring", yung.Id), "no Ring has entered play");
-        Accept(e, Use(e, 0, "ring-of-void-recruit", ring.Id));
+        e = Batch336Support.GrantVoid(e, 0, ring.Id); Accept(e, Use(e, 0, "ring-of-void-recruit", ring.Id));
         Accept(e, Enabled(e, 0, "yung-search-ring", yung.Id).Command!);
         Eq(e.State.PendingChoice?.Type, "searchSelect", "his search opens");
     }
