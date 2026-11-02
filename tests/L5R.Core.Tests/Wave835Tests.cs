@@ -13,7 +13,7 @@ internal static class Wave835Tests
     private const string Farm = Wave829Abilities.Farm, FaceOfNinube = "oracle-l5r-2431", TravelingPeddler = "oracle-l5r-8729";
     private const string CraneSamurai = "training-crane-samurai", LionSamurai = "training-lion-samurai", Item = "training-item";
     // Fixtures: published Personalities carrying the keywords the rulings turn on.
-    private const string Kensai = "oracle-l5r-10663" /* Lao-she */, Monk = "oracle-l5r-9998" /* Guest */, Yojimbo = "oracle-l5r-9819" /* Mirumoto Rokai, 3 Gold */, Courtier = "oracle-l5r-10013" /* Rokuta's Apprentice */,
+    private const string Kensai = "oracle-l5r-10663" /* Lao-she */, Monk = "oracle-l5r-9998" /* Guest */, Yojimbo = "oracle-l5r-10310" /* Bayushi Wakui, 4 Gold */, Courtier = "oracle-l5r-10013" /* Rokuta's Apprentice */,
         Shugenja = "oracle-l5r-11328" /* Ashalan */;
 
     private static void Check(bool ok, string message = "Assertion failed") => Batch336Support.Check(ok, message);
@@ -37,6 +37,14 @@ internal static class Wave835Tests
     {
         var s = Batch336Support.Table(phase, actor);
         foreach (var card in s.Cards.Values.Where(c => c.OwnerId == 0 && CardCatalog.Get(c.DefinitionId).GoldProduction > 0)) card.Bowed = true;
+        return s;
+    }
+    /// <summary>Poor, except for the cheapest Gold producers that together make <paramref name="gold"/> (the discounted Yojimbo costs 4 - 3 = 1).</summary>
+    private static MatchState PoorWith(int gold, Phase phase = Phase.Action, int actor = 0)
+    {
+        var s = Poor(phase, actor); var made = 0;
+        foreach (var card in s.Cards.Values.Where(c => c.OwnerId == 0 && c.Zone is Zone.Home or Zone.Stronghold && CardCatalog.Get(c.DefinitionId).GoldProduction > 0).OrderBy(c => CardCatalog.Get(c.DefinitionId).GoldProduction))
+        { if (made >= gold) break; card.Bowed = false; made += CardCatalog.Get(card.DefinitionId).GoldProduction; }
         return s;
     }
     private static void Pass(MatchEngine e)
@@ -248,8 +256,8 @@ internal static class Wave835Tests
 
     private static void DutyOverAllThings()
     {
-        // With a Courtier in play: three Gold cheaper -- the 3 Gold Yojimbo is free, and the player has no Gold at all.
-        var s = Poor(Phase.Battle, 0);
+        // With a Courtier in play: three Gold cheaper -- the 4 Gold Yojimbo costs 1, which is all the Gold the player has.
+        var s = PoorWith(1, Phase.Battle, 0);
         Bf(s, CraneSamurai, 0); Add(s, Courtier, 0, Zone.Home);
         Bf(s, LionSamurai, 1);
         var duty = Add(s, Duty, 0, Zone.Hand);
@@ -267,7 +275,7 @@ internal static class Wave835Tests
         Eq(e.State.Cards[discarded.Id].ProvinceIndex, 0, "at province 0");
         Eq(e.State.Cards[duty.Id].Zone, Zone.FateDiscard, "the Strategy is spent");
         // A Shugenja counts as well as a Courtier.
-        var sh = Poor(Phase.Battle, 0);
+        var sh = PoorWith(1, Phase.Battle, 0);
         Bf(sh, CraneSamurai, 0); Add(sh, Shugenja, 0, Zone.Home); Bf(sh, LionSamurai, 1);
         var d2 = Add(sh, Duty, 0, Zone.Hand); var y2 = Add(sh, Yojimbo, 0, Zone.DynastyDiscard);
         var e2 = Engine(sh);
@@ -279,7 +287,7 @@ internal static class Wave835Tests
         var e3 = Engine(plain);
         Check(!Batch336Support.CanUse(e3, 0, Wave835Abilities.DutyDiscount, d3.Id), "the discounted version needs a Courtier or Shugenja");
         Check(Batch336Support.Options(e3, 0, Wave835Abilities.DutyFull, d3.Id).Any(), "the plain version is listed");
-        Check(!Batch336Support.CanUse(e3, 0, Wave835Abilities.DutyFull, d3.Id), "but not payable without Gold (it costs the full 3)");
+        Check(!Batch336Support.CanUse(e3, 0, Wave835Abilities.DutyFull, d3.Id), "but not payable without Gold (it costs the full 4)");
         // And affordable with the Gold: the Strategy is played, paying the whole cost.
         var rich = Batch336Support.Table(Phase.Battle, 0);
         Bf(rich, CraneSamurai, 0); Bf(rich, LionSamurai, 1);

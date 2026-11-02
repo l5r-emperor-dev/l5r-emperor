@@ -15,7 +15,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Battle: Remove this card from the game: Each player chooses zero to two Personalities at the current battlefield. Remove them from the game; cards and tokens stay attached to them. After the next turn begins, each unit enters play in its owner's home, ignoring costs, restrictions, and entering-play effects; then, give them each three +1F Blood tokens.\nBattle: Remove this card from the game: Each player chooses zero to two Personalities at the current battlefield. Remove them from the game; cards and tokens stay attached to them. After the next turn begins, each unit enters play in its owner's home, ignoring costs, restrictions, and entering-play effects; then, give them each three +1F Blood tokens.",
+      "Text": "Battle: Remove this card from the game: Each player chooses zero to two Personalities at the current battlefield. Remove them from the game; cards and tokens stay attached to them. After the next turn begins, each unit enters play in its owner's home, ignoring costs, restrictions, and entering-play effects; then, give them each three +1F Blood tokens.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9875.jpg",
       "Keywords": [
@@ -40,7 +40,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Will only attach to a Crab Clan Personality.\nThis card has +1F for each Crab Clan Personality you control. \nAfter this card enters play: Gain 2 Honor.\nBattle/Open: Even if this card is bowed: Straighten this unit.\nWill only attach to a Crab Clan Personality.\nThis card has +1F for each Crab Clan Personality you control. \nAfter this card enters play: Gain 2 Honor.\nBattle/Open: Even if this card is bowed: Straighten this unit.",
+      "Text": "Will only attach to a Crab Clan Personality.\nThis card has +1F for each Crab Clan Personality you control. \nAfter this card enters play: Gain 2 Honor.\nBattle/Open: Even if this card is bowed: Straighten this unit.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9876.jpg",
       "Keywords": [
@@ -101,7 +101,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Will only attach to a Phoenix Clan Personality.\nThis card has +1F for each Phoenix Clan Personality you control.\nAfter this card enters play: Gain 2 Honor.\nBattle/Open: Target your honorably dead Phoenix Clan Personality: Bring him into play at this card's location, ignoring costs. Remove him from the game before the turn ends.\nWill only attach to a Phoenix Clan Personality.\nThis card has +1F for each Phoenix Clan Personality you control.\nAfter this card enters play: Gain 2 Honor.\nBattle/Open: Target your honorably dead Phoenix Clan Personality: Bring him into play at this card's location, ignoring costs. Remove him from the game before the turn ends.",
+      "Text": "Will only attach to a Phoenix Clan Personality.\nThis card has +1F for each Phoenix Clan Personality you control.\nAfter this card enters play: Gain 2 Honor.\nBattle/Open: Target your honorably dead Phoenix Clan Personality: Bring him into play at this card's location, ignoring costs. Remove him from the game before the turn ends.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9878.jpg",
       "Keywords": [
@@ -131,7 +131,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Battle: Bow this card: Ranged 5 Attack.\nBattle: Bow this card: Ranged 5 Attack.",
+      "Text": "Battle: Bow this card: Ranged 5 Attack.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9880.jpg",
       "Keywords": [
@@ -156,7 +156,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "This Personality has Conqueror.\nThis Personality has Conqueror.",
+      "Text": "This Personality has Conqueror.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9881.jpg",
       "Keywords": [
@@ -180,7 +180,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Melee and Ranged Attacks targeting this Personality have -5 strength.\nMelee and Ranged Attacks targeting this Personality have -5 strength.",
+      "Text": "Melee and Ranged Attacks targeting this Personality have -5 strength.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9882.jpg",
       "Keywords": [

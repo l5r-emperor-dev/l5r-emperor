@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Card library audit: add Quelsa to the library; fix stats of 10 wired Personalities (waves 14-16) and doubled text on 49 cards; library-vs-wired regression test",
+  "validation": "check.sh --skip-client passed; tools/content unittest 204 OK; wave-835 15/15",
+  "remaining": "Ikoma Shika (pinned deck cost 4 vs Oracle 2) and A Game of Dice left for review; Kaiu Iemasa report not reproduced; Quelsa scan needs an art-pack release; 6 unwired cards are by decision.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/812",
+  "branch": "claude/library-missing-cards",
+  "updated": "2026-11-02T18:40:51.625091+00:00"
+}

@@ -31013,6 +31013,36 @@
       ]
     },
     {
+      "clans": [
+        "Unaligned"
+      ],
+      "deckTypes": [
+        "Dynasty"
+      ],
+      "id": "oracle-l5r-9857",
+      "keywords": [
+        "Jakla",
+        "Naga",
+        "Nonhuman",
+        "Pearl",
+        "Shugenja"
+      ],
+      "name": "Quelsa",
+      "playable": false,
+      "stats": {
+        "chi": "3",
+        "cost": "7",
+        "force": "6",
+        "honor": "-",
+        "ph": "0"
+      },
+      "supplemental": true,
+      "text": "Quelsa has +2F while he has a Spell.\nQuelsa attaches Spells paying 2 less Gold.",
+      "types": [
+        "Personality"
+      ]
+    },
+    {
       "clans": [],
       "deckTypes": [
         "Dynasty"
@@ -49833,7 +49863,7 @@
       ]
     }
   ],
-  "count": 2150,
+  "count": 2151,
   "schemaVersion": 1,
   "sourceArc": "Age of Conquest (Emperor)"
 }

@@ -47,7 +47,7 @@
       "HonorRequirement": 10,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Limited: Bow your target Temple: Draw a card.\nLimited: Bow your target Temple: Draw a card.",
+      "Text": "Limited: Bow your target Temple: Draw a card.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9810.jpg",
       "Keywords": [
@@ -76,7 +76,7 @@
       "HonorRequirement": 4,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Open: Give Hayate Cavalry, Naval, or Tactician.\nOpen: Give Hayate Cavalry, Naval, or Tactician.",
+      "Text": "Open: Give Hayate Cavalry, Naval, or Tactician.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9836.jpg",
       "Keywords": [
@@ -106,7 +106,7 @@
       "HonorRequirement": 8,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Open: Target a Personality: If he is Kolat, Ninja, or Shadowlands, his base abilities may not be used. Give him Kolat, Ninja, or Shadowlands.\nOpen: Target a Personality: If he is Kolat, Ninja, or Shadowlands, his base abilities may not be used. Give him Kolat, Ninja, or Shadowlands.",
+      "Text": "Open: Target a Personality: If he is Kolat, Ninja, or Shadowlands, his base abilities may not be used. Give him Kolat, Ninja, or Shadowlands.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9837.jpg",
       "Keywords": [
@@ -137,7 +137,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "After Atosa enters play: Lose 2 Honor and discard all other Sensei Personalities you control.\nYour Gaijin Personalities in and out of play (including Atosa) have your Clan alignment.\nAfter Atosa enters play: Lose 2 Honor and discard all other Sensei Personalities you control.\nYour Gaijin Personalities in and out of play (including Atosa) have your Clan alignment.",
+      "Text": "After Atosa enters play: Lose 2 Honor and discard all other Sensei Personalities you control.\nYour Gaijin Personalities in and out of play (including Atosa) have your Clan alignment.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9854.jpg",
       "Keywords": [
@@ -162,7 +162,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Open: If it is another player's turn, target one of his Personalities: Before this phase ends, straighten him. Before this turn ends, if the Personality was not assigned to attack this turn, dishonor him and his controller loses Honor equal to his base Personal Honor.\nOpen: If it is another player's turn, target one of his Personalities: Before this phase ends, straighten him. Before this turn ends, if the Personality was not assigned to attack this turn, dishonor him and his controller loses Honor equal to his base Personal Honor.",
+      "Text": "Open: If it is another player's turn, target one of his Personalities: Before this phase ends, straighten him. Before this turn ends, if the Personality was not assigned to attack this turn, dishonor him and his controller loses Honor equal to his base Personal Honor.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9842.jpg",
       "Keywords": [
@@ -190,7 +190,7 @@
       "HonorRequirement": 0,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Enters play paying 2 less Gold if you control a Courtier.\nEnters play paying 2 less Gold if you control a Courtier.",
+      "Text": "Enters play paying 2 less Gold if you control a Courtier.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9843.jpg",
       "Keywords": [
@@ -217,7 +217,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Battle: Target an enemy Personality: Bow him. If you control a Courtier, negate the effects of the next action the target performs (this turn).\nBattle: Target an enemy Personality: Bow him. If you control a Courtier, negate the effects of the next action the target performs (this turn).",
+      "Text": "Battle: Target an enemy Personality: Bow him. If you control a Courtier, negate the effects of the next action the target performs (this turn).",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9844.jpg",
       "Keywords": [
@@ -248,7 +248,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Will not attach Items. May not perform Iaijutsu or Political actions. Melee Attacks may not target Chiisai's Followers.\nFear Battle: Target an enemy Personality with 5 or lower Force: Chiisai charges him. Move him home.\nWill not attach Items. May not perform Iaijutsu or Political actions. Melee Attacks may not target Chiisai's Followers.\nFear Battle: Target an enemy Personality with 5 or lower Force: Chiisai charges him. Move him home.",
+      "Text": "Will not attach Items. May not perform Iaijutsu or Political actions. Melee Attacks may not target Chiisai's Followers.\nFear Battle: Target an enemy Personality with 5 or lower Force: Chiisai charges him. Move him home.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9803.jpg",
       "Keywords": [
@@ -275,7 +275,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "After Hitaka enters play: Lose 4 Honor.\nLimited: Target a non-Stronghold Jade card: Destroy it.\nLimited: Destroy Hitaka and target an Oni in your discard pile: Bring it into play, paying 9 less Gold.\nAfter Hitaka enters play: Lose 4 Honor.\nLimited: Target a non-Stronghold Jade card: Destroy it.\nLimited: Destroy Hitaka and target an Oni in your discard pile: Bring it into play, paying 9 less Gold.",
+      "Text": "After Hitaka enters play: Lose 4 Honor.\nLimited: Target a non-Stronghold Jade card: Destroy it.\nLimited: Destroy Hitaka and target an Oni in your discard pile: Bring it into play, paying 9 less Gold.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9855.jpg",
       "Keywords": [
@@ -333,7 +333,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "After Arakan enters play: Lose 1 Honor.\nBattle: Target an enemy Personality or Follower: Give it -4F. Bow it if its Force is now 0 or it is Lion Clan.\nAfter Arakan enters play: Lose 1 Honor.\nBattle: Target an enemy Personality or Follower: Give it -4F. Bow it if its Force is now 0 or it is Lion Clan.",
+      "Text": "After Arakan enters play: Lose 1 Honor.\nBattle: Target an enemy Personality or Follower: Give it -4F. Bow it if its Force is now 0 or it is Lion Clan.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9848.jpg",
       "Keywords": [
@@ -363,7 +363,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "After Rafu enters play: Lose 1 Honor.\nBattle: Melee 4 Attack.\nAfter Rafu enters play: Lose 1 Honor.\nBattle: Melee 4 Attack.",
+      "Text": "After Rafu enters play: Lose 1 Honor.\nBattle: Melee 4 Attack.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9849.jpg",
       "Keywords": [
@@ -393,7 +393,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "After Bunoro enters play: Lose 2 Honor.\nBattle: Target a non-Unique enemy Personality: Turn all cards in his controller's provinces face-up. You may overlay a face-up Personality in one of the provinces on the target, refilling the province with the target.\nAfter Bunoro enters play: Lose 2 Honor.\nBattle: Target a non-Unique enemy Personality: Turn all cards in his controller's provinces face-up. You may overlay a face-up Personality in one of the provinces on the target, refilling the province with the target.",
+      "Text": "After Bunoro enters play: Lose 2 Honor.\nBattle: Target a non-Unique enemy Personality: Turn all cards in his controller's provinces face-up. You may overlay a face-up Personality in one of the provinces on the target, refilling the province with the target.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9850.jpg",
       "Keywords": [
@@ -422,7 +422,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Bakari has -4F while he is unopposed.\nBakari has -4F while he is unopposed.",
+      "Text": "Bakari has -4F while he is unopposed.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9804.jpg",
       "Keywords": [
@@ -446,7 +446,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Battle resolution will not bow Personalities with unbowed Followers in Hikazu's army. (Their Followers still bow.)\nBattle resolution will not bow Personalities with unbowed Followers in Hikazu's army. (Their Followers still bow.)",
+      "Text": "Battle resolution will not bow Personalities with unbowed Followers in Hikazu's army. (Their Followers still bow.)",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9805.jpg",
       "Keywords": [
@@ -471,7 +471,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Nikaru uses his Force as his duel stat in duels from other players' cards.\nBattle: Negate the effects of the next Battle action this battle another player takes which targets Nikaru.\nNikaru uses his Force as his duel stat in duels from other players' cards.\nBattle: Negate the effects of the next Battle action this battle another player takes which targets Nikaru.",
+      "Text": "Nikaru uses his Force as his duel stat in duels from other players' cards.\nBattle: Negate the effects of the next Battle action this battle another player takes which targets Nikaru.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9806.jpg",
       "Keywords": [
@@ -499,7 +499,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Battle: Bow one of Haruma's Spells: Give him +2F. Ranged 4 Attack.\nBattle: Bow one of Haruma's Spells: Give him +2F. Ranged 4 Attack.",
+      "Text": "Battle: Bow one of Haruma's Spells: Give him +2F. Ranged 4 Attack.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9859.jpg",
       "Keywords": [
@@ -528,7 +528,7 @@
       "HonorRequirement": 4,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Reaction: After your Ranged Attack is targeted: Give it +2 strength. Gain 1 Honor.\nBattle: Target an enemy card with Force lower than this battlefield's province's strength: Bow it. Give the current battlefield's province +2 or -2 strength.\nReaction: After your Ranged Attack is targeted: Give it +2 strength. Gain 1 Honor.\nBattle: Target an enemy card with Force lower than this battlefield's province's strength: Bow it. Give the current battlefield's province +2 or -2 strength.",
+      "Text": "Reaction: After your Ranged Attack is targeted: Give it +2 strength. Gain 1 Honor.\nBattle: Target an enemy card with Force lower than this battlefield's province's strength: Bow it. Give the current battlefield's province +2 or -2 strength.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9807.jpg",
       "Keywords": [
@@ -584,7 +584,7 @@
       "HonorRequirement": 10,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Iaijutsu Battle/Limited: Target another player's Personality: Tadanobu duels him. If it is your turn, the winner's controller draws a card. Bow the duel's loser.\nIaijutsu Battle/Limited: Target another player's Personality: Tadanobu duels him. If it is your turn, the winner's controller draws a card. Bow the duel's loser.",
+      "Text": "Iaijutsu Battle/Limited: Target another player's Personality: Tadanobu duels him. If it is your turn, the winner's controller draws a card. Bow the duel's loser.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9815.jpg",
       "Keywords": [
@@ -614,7 +614,7 @@
       "HonorRequirement": 6,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Your maximum hand size is increased by one.\nYour maximum hand size is increased by one.",
+      "Text": "Your maximum hand size is increased by one.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9816.jpg",
       "Keywords": [

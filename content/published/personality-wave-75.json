@@ -15,7 +15,7 @@
       "HonorRequirement": 6,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Reaction: After Sorano enters play or overlays: Create two 2F/2C/3PH Lion Clan • Samurai • Ancestor • Spirit Personalities.\nReaction: After Sorano enters play or overlays: Create two 2F/2C/3PH Lion Clan • Samurai • Ancestor • Spirit Personalities.",
+      "Text": "Reaction: After Sorano enters play or overlays: Create two 2F/2C/3PH Lion Clan \u2022 Samurai \u2022 Ancestor \u2022 Spirit Personalities.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9826.jpg",
       "Keywords": [
@@ -73,7 +73,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Will not attach cards.\nBattle: Target an enemy Follower or Personality without Followers: Destroy it.\nWill not attach cards.\nBattle: Target an enemy Follower or Personality without Followers: Destroy it.",
+      "Text": "Will not attach cards.\nBattle: Target an enemy Follower or Personality without Followers: Destroy it.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9860.jpg",
       "Keywords": [
@@ -103,7 +103,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "You may ignore M'rika's Loyal restriction if your Stronghold is The Forgotten Temple.\nAfter M'rika enters play: Gain 2 Honor.\nYou may ignore M'rika's Loyal restriction if your Stronghold is The Forgotten Temple.\nAfter M'rika enters play: Gain 2 Honor.",
+      "Text": "You may ignore M'rika's Loyal restriction if your Stronghold is The Forgotten Temple.\nAfter M'rika enters play: Gain 2 Honor.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9852.jpg",
       "Keywords": [
@@ -132,7 +132,7 @@
       "HonorRequirement": 0,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Battle: Target an opposed attachment: Put it into its owner's hand. You may take an additional Battle action.\nBattle: Target an opposed attachment: Put it into its owner's hand. You may take an additional Battle action.",
+      "Text": "Battle: Target an opposed attachment: Put it into its owner's hand. You may take an additional Battle action.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9830.jpg",
       "Keywords": [
@@ -245,7 +245,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Quelsa has +2F while he has a Spell.\nQuelsa attaches Spells paying 2 less Gold.\nQuelsa has +2F while he has a Spell.\nQuelsa attaches Spells paying 2 less Gold.",
+      "Text": "Quelsa has +2F while he has a Spell.\nQuelsa attaches Spells paying 2 less Gold.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9857.jpg",
       "Keywords": [
@@ -272,7 +272,7 @@
       "HonorRequirement": 6,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Battle: Target an enemy Personality: Kudome duels him. Destroy the duel's loser. Give Kudome a +1F Fire token if she won and you control a Shugenja.\nBattle: Target an enemy Personality: Kudome duels him. Destroy the duel's loser. Give Kudome a +1F Fire token if she won and you control a Shugenja.",
+      "Text": "Battle: Target an enemy Personality: Kudome duels him. Destroy the duel's loser. Give Kudome a +1F Fire token if she won and you control a Shugenja.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9840.jpg",
       "Keywords": [
@@ -305,7 +305,7 @@
       "HonorRequirement": 3,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Shirou has +2F while you control a Shugenja.\nBattle: Melee 4 Attack.\nShirou has +2F while you control a Shugenja.\nBattle: Melee 4 Attack.",
+      "Text": "Shirou has +2F while you control a Shugenja.\nBattle: Melee 4 Attack.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9841.jpg",
       "Keywords": [
@@ -361,7 +361,7 @@
       "HonorRequirement": 0,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Limited: Target a Follower in your discard pile: Put it into your hand.\nTactical Battle: Target an enemy card without attachments: Destroy it. Remove it from the game if it is Dragon Clan. You may discard a Follower (from your hand); if you did, draw a card.\nLimited: Target a Follower in your discard pile: Put it into your hand.\nTactical Battle: Target an enemy card without attachments: Destroy it. Remove it from the game if it is Dragon Clan. You may discard a Follower (from your hand); if you did, draw a card.",
+      "Text": "Limited: Target a Follower in your discard pile: Put it into your hand.\nTactical Battle: Target an enemy card without attachments: Destroy it. Remove it from the game if it is Dragon Clan. You may discard a Follower (from your hand); if you did, draw a card.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9863.jpg",
       "Keywords": [
@@ -394,7 +394,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Battle: Target an enemy Personality: Move him home.\nBattle: Target an enemy Personality: Move him home.",
+      "Text": "Battle: Target an enemy Personality: Move him home.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9846.jpg",
       "Keywords": [
@@ -420,7 +420,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Political Reaction: After Ryoken enters play, target a Personality: Dishonor him.\nPolitical Reaction: After a battle resolves, if Ryoken was at its battlefield during its resolution in which you destroyed a province or army: The enemy leader loses 2 Honor.\nPolitical Reaction: After Ryoken enters play, target a Personality: Dishonor him.\nPolitical Reaction: After a battle resolves, if Ryoken was at its battlefield during its resolution in which you destroyed a province or army: The enemy leader loses 2 Honor.",
+      "Text": "Political Reaction: After Ryoken enters play, target a Personality: Dishonor him.\nPolitical Reaction: After a battle resolves, if Ryoken was at its battlefield during its resolution in which you destroyed a province or army: The enemy leader loses 2 Honor.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9847.jpg",
       "Keywords": [
@@ -448,7 +448,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Shugorei has -2F while it is your turn.\nLimited: If you are a Dragon Clan player and none of your provinces have been destroyed since your last turn ended: Gain 2 Honor.\nShugorei has -2F while it is your turn.\nLimited: If you are a Dragon Clan player and none of your provinces have been destroyed since your last turn ended: Gain 2 Honor.",
+      "Text": "Shugorei has -2F while it is your turn.\nLimited: If you are a Dragon Clan player and none of your provinces have been destroyed since your last turn ended: Gain 2 Honor.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9820.jpg",
       "Keywords": [
@@ -509,7 +509,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Reaction: After another player's Battle action targets one of your Merchants, pay 2 Gold: Either negate its effects on him or make the player lose 2 Honor.\nBattle: Even if Ikke is not at the current battlefield, target your Merchant: Move him home.\nReaction: After another player's Battle action targets one of your Merchants, pay 2 Gold: Either negate its effects on him or make the player lose 2 Honor.\nBattle: Even if Ikke is not at the current battlefield, target your Merchant: Move him home.",
+      "Text": "Reaction: After another player's Battle action targets one of your Merchants, pay 2 Gold: Either negate its effects on him or make the player lose 2 Honor.\nBattle: Even if Ikke is not at the current battlefield, target your Merchant: Move him home.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9809.jpg",
       "Keywords": [
@@ -539,7 +539,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Other players' Personalities and attachments (in play) have -2 Gold Cost.\nBattle: Target an enemy Personality: Move him home. If he is Crane Clan, bow him.\nOther players' Personalities and attachments (in play) have -2 Gold Cost.\nBattle: Target an enemy Personality: Move him home. If he is Crane Clan, bow him.",
+      "Text": "Other players' Personalities and attachments (in play) have -2 Gold Cost.\nBattle: Target an enemy Personality: Move him home. If he is Crane Clan, bow him.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9833.jpg",
       "Keywords": [
