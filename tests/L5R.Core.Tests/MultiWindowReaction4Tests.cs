@@ -574,9 +574,10 @@ internal static partial class MultiWindowReaction4Tests
 
     private static void KikugoroRing()
     {
-        var s = Table(Phase.Action, 0); s.PriorityPlayerId = 0;
+        var s = Table(Phase.Battle, 0); s.PriorityPlayerId = 0;
         var k = Add(s, Kikugoro, 0, Zone.Home);
         var ring = Add(s, "training-ring-of-void", 0, Zone.Hand);
+        s.AdditionalActions.Add(new AdditionalActionGrant(0, [ring.Id], Battle: s.BattleNumber)); // the grant a fourth Strategy action in a phase hands out
         var e = MatchEngine.FromTestState(s);
         Check(!CanUse(e, 0, "kikugoro-ring-entry", k.Id), "not offered before a Ring entered play");
         Accept(e, Enabled(e, 0, "ring-of-void-recruit", ring.Id).Command!);

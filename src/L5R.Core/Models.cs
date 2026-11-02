@@ -417,6 +417,9 @@ public sealed class PlayerState
     // actions in one turn." Incremented at each Favor-consuming ability's own execution case
     // (shunya-honor, favor-cycle, favor-battle); reset every StartTurn.
     public int FavorActionsThisTurn { get; set; }
+    // Ring of the Void's own recruitment condition (issue #1157): non-Kiho actions from Strategies resolved in the phase named by the "turn:phase" stamp.
+    public int StrategyActionsThisPhase { get; set; }
+    public string? StrategyActionsPhase { get; set; }
     // Moshi Madoka - exp (Gempukku pass, issue #461): "If you have attached a card from your hand this turn" -- set wherever a card leaves the hand to become an attachment, reset every StartTurn.
     public bool AttachedFromHandThisTurn { get; set; }
     // Emperor Edition remaining-cards pass (issue #492), group F. Alter History: "until the game ends, he may ignore Honor Requirements when bringing Personalities into play". Benefices of the Emperor:

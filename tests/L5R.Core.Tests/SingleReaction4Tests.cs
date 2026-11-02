@@ -1334,7 +1334,7 @@ internal static partial class SingleReaction4Tests
         var top = Add(s, airRing, 0, Zone.FateDeck); s.Players[0].Hand.Remove(top.Id); s.Players[0].FateDeck.Insert(0, top.Id);
         var e = MatchEngine.FromTestState(s);
         Check(!CanUse(e, 0, ability, yung.Id), "no Ring has entered play yet");
-        Accept(e, Use(e, 0, "ring-of-void-recruit", ring.Id));
+        e = Batch336Support.GrantVoid(e, 0, ring.Id); Accept(e, Use(e, 0, "ring-of-void-recruit", ring.Id));
         Eq(e.State.Cards[ring.Id].Zone, Zone.Home, "the Ring entered play");
         var command = InWindow(e, "afterActionResolvedReaction", 0, ability, yung.Id);
         Accept(e, command);
@@ -1350,7 +1350,7 @@ internal static partial class SingleReaction4Tests
         var t = Table(Phase.Action, 1);
         var y2 = Add(t, def, 0, Zone.Home); var enemyRing = Add(t, voidRing, 1, Zone.Hand);
         var f = MatchEngine.FromTestState(t);
-        Accept(f, Use(f, 1, "ring-of-void-recruit", enemyRing.Id));
+        f = Batch336Support.GrantVoid(f, 1, enemyRing.Id); Accept(f, Use(f, 1, "ring-of-void-recruit", enemyRing.Id));
         Check(!CanUse(f, 0, ability, y2.Id), "an enemy Ring gives Yung nothing");
         Reject(f, Use(f, 0, ability, y2.Id));
     }

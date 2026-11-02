@@ -27,6 +27,14 @@ internal static class Batch336Support
     }
     public static MatchEngine Edit(MatchEngine e, Action<MatchState> edit) { var st = e.State; edit(st); return MatchEngine.FromTestState(st); }
 
+    // Ring of the Void's recruit is a granted Battle action (issue #1157: a fourth non-Kiho Strategy action in a phase grants it). For a test that only needs a Ring to enter play:
+    // the table moves to a battle and the grant is made, on a rebuilt engine (the state is a copy).
+    public static MatchEngine GrantVoid(MatchEngine e, int player, string ringId) => Edit(e, st =>
+    {
+        st.Phase = Phase.Battle; st.PriorityPlayerId = player;
+        st.AdditionalActions.Add(new AdditionalActionGrant(player, [ringId], Battle: st.BattleNumber));
+    });
+
     public static void Force(CardInstance card, int amount) => card.Modifiers.Add(new("test-source", "test", "Force", amount));
 
     // The economy scenario with both hands emptied, so every hand card in a test is one the test put there. Battle: province 0 is the

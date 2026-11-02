@@ -301,9 +301,10 @@ internal static partial class EmperorP3Tests
         Accept(h, Enabled(h, 0, "kikugoro-henshin-entry", watcher!.Id).Command!);
         Eq(h.State.PendingChoice?.Type, "lookArrange", "the look");
         // One of his Rings enters play (the Ring's own recruit, an action): the after-action window.
-        var s = Table(Phase.Action, 0);
+        var s = Table(Phase.Battle, 0);
         var k = Add(s, Kikugoro, 0, Zone.Home);
         var ring = Add(s, "training-ring-of-void", 0, Zone.Hand);
+        s.AdditionalActions.Add(new AdditionalActionGrant(0, [ring.Id], Battle: s.BattleNumber)); // the grant a fourth Strategy action in a phase hands out
         var r = MatchEngine.FromTestState(s);
         Accept(r, Enabled(r, 0, "ring-of-void-recruit", ring.Id).Command!);
         PassUntil(r, () => Offered(r, 0, "kikugoro-ring-entry") || r.State.PendingChoice is null);

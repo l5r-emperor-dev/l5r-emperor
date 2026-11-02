@@ -710,11 +710,10 @@ public static class AbilityCatalog
         // current battlefield (the shared Battle-timing target rule), only the acting player's own presence
         // is waived.
         ["ring-of-water-move-home"] = new("Battle", "Move your target Personality home", "own-personality", Absent: true, UsesPerTurn: AbilityUseLimit.Unlimited, Costs: ActionCost.BowSourceUnlessInHand),
-        // Ring of the Void (issue #194): a Limited ability (not a granted Additional Action) -- see
-        // its own Require (two or fewer Rings in play) -- whose cost is discarding the player's
-        // entire hand (except the Void ring itself).
-        ["ring-of-void-recruit"] = new("Limited", "Play if you have two or fewer Rings in play. Discard your hand", "none"),
-        ["ring-of-void-draw"] = new("Limited", "Void Limited, bow: Draw a card. If you now have more cards in your hand than any other player, discard a card", "none", Costs: ActionCost.BowSourceUnlessInHand),
+        // Ring of the Void (issue #1157), the Emperor Edition scan (printing 1; the Twenty Festivals "discard your hand" text is not played): recruited on the shared
+        // grant shape once its player has resolved a fourth non-Kiho Strategy action in one phase (StrategyActionsThisPhase, counted in CompleteAbilityResolution).
+        ["ring-of-void-recruit"] = new("Battle", "After you resolve your fourth or later non-Kiho action from Strategies in one phase, you may put this Ring into play from your hand", "none", Absent: true),
+        ["ring-of-void-draw"] = new("Open", "Open: Bow this card or discard it from your hand: If any player has more cards in his hand than you do, or if this card is in play, draw a card", "none", Costs: ActionCost.BowSourceUnlessInHand),
         ["false-ring-of-air-recruit"] = new("Battle", "After you win a battle in which there was ever a unit on the opposing side, you may put this Ring into play and lose 2 Honor", "none", Absent: true),
         // False Ring of Earth (oracle-l5r-10532, issue #295): Dueling (issue #204) and the own-won-duel
         // Reaction trigger (issue #209) cover "after a duel resolves" generally, but this Ring's own
@@ -5049,10 +5048,10 @@ public sealed partial class MatchEngine
             GrantAdditionalAction(player.Id, [ring.Id], battle: battle);
     }
     // The abilities that put a Ring into play on a GRANT ("After ...: you may put this Ring into play", issue #194): their Rings' recruit rights. (False Ring of
-    // Water's and Ring of the Void's recruits are standing checks with no grant.)
+    // Water's recruit is a standing check with no grant.)
     private static readonly HashSet<string> RingRecruitGrantIds = new(StringComparer.Ordinal)
     {
-        "ring-of-air-recruit", "ring-of-water-recruit", "ring-of-earth-recruit", "ring-of-fire-recruit", "false-ring-of-air-recruit", "false-ring-of-earth-recruit", "wl-false-ring-of-void-recruit" // issue #674: False Ring of the Void
+        "ring-of-air-recruit", "ring-of-water-recruit", "ring-of-earth-recruit", "ring-of-fire-recruit", "ring-of-void-recruit", "false-ring-of-air-recruit", "false-ring-of-earth-recruit", "wl-false-ring-of-void-recruit" // issue #674: False Ring of the Void
     };
     // The battle a recruit grant made NOW belongs to (Mendon's ruling, issue #379: "A recruit grant at one battle is limited to that battle"): the battle in
     // progress -- its Battle phase, through its resolution and aftermath -- or, made anywhere else (the Action phase's Favor actions), the next battle to be fought.
@@ -5842,12 +5841,8 @@ public sealed partial class MatchEngine
         // played/destroyed this battle, an opposing unit ever present in a won battle) is not itself
         // re-checked here. This also naturally makes the grant, not a separate flag, the single
         // source of truth for "was this satisfied."
-        if (id is "ring-of-air-recruit" or "ring-of-water-recruit" or "false-ring-of-air-recruit" or "ring-of-earth-recruit" or "ring-of-fire-recruit" or "false-ring-of-earth-recruit")
+        if (id is "ring-of-air-recruit" or "ring-of-water-recruit" or "false-ring-of-air-recruit" or "ring-of-earth-recruit" or "ring-of-fire-recruit" or "ring-of-void-recruit" or "false-ring-of-earth-recruit")
         { if (!(_state.AdditionalActions.Any(g => g.PlayerId == player.Id && GrantUsableNow(g) && g.ScopeCardIds is { Length: 1 } grantIds && grantIds[0] == source!.Id))) return "This Ring's recruitment condition has not been granted at this battle."; }
-        // Ring of the Void's own entry condition (issue #194): a Limited ability (not a granted
-        // Additional Action), gated only by how many Rings this player already controls.
-        if (id == "ring-of-void-recruit")
-        { if (!(_state.Cards.Values.Count(c => c.OwnerId == player.Id && InPlay(c) && Definition(c).Type == CardType.Ring) <= 2)) return "You may only play this Ring with two or fewer Rings in play."; }
         // False Ring of Water's own entry condition (issue #194): a standing check, not a Reaction --
         // usable any time it holds, like an ordinary Battle ability. The current battlefield's own
         // province always belongs to the Defender.
@@ -9279,6 +9274,7 @@ public sealed partial class MatchEngine
             case "ring-of-water-recruit":
             case "ring-of-earth-recruit":
             case "ring-of-fire-recruit":
+            case "ring-of-void-recruit":
                 player.Hand.Remove(source!.Id); source.Zone = Zone.Home; source.FaceUp = true;
                 RingEntersPlay(player, source!, true, source, id); // issue #699 (WlRings.cs): entry by its own text, Brotherhood Schism's turn, "after your Ring enters play"
                 break;
@@ -9288,11 +9284,6 @@ public sealed partial class MatchEngine
                 player.Hand.Remove(source!.Id); source.Zone = Zone.Home; source.FaceUp = true;
                 RingEntersPlay(player, source!, true, source, id); // issue #699 (WlRings.cs): entry by its own text, Brotherhood Schism's turn, "after your Ring enters play"
                 GainHonor(player.Id, -2, Definition(source).Name);
-                break;
-            case "ring-of-void-recruit":
-                foreach (var handId in player.Hand.Where(h => h != source!.Id).ToArray()) DiscardFate(player, Card(handId));
-                player.Hand.Remove(source!.Id); source.Zone = Zone.Home; source.FaceUp = true;
-                RingEntersPlay(player, source!, true, source, id); // issue #699 (WlRings.cs): entry by its own text, Brotherhood Schism's turn, "after your Ring enters play"
                 break;
             case "ring-of-air-straighten": Straighten(target!); break;
             case "ring-of-water-move-home": MoveHome(target!, false); break;
@@ -9383,13 +9374,8 @@ public sealed partial class MatchEngine
                 DestroyUnits([source!], false, player.Id);
                 break;
             case "ring-of-void-draw":
-
-                Draw(player);
-                // Two-player simplification (issue #194): "more cards in hand than any other player"
-                // is exactly "more than the one opponent" here. Which card to discard is the player's
-                // own choice in the printed text; auto-discarding the just-drawn card is a documented
-                // simplification rather than a new sub-choice mechanism.
-                if (player.Hand.Count > Player(1 - player.Id).Hand.Count) DiscardFate(player, Card(player.Hand[^1]));
+                // The cost is paid already, so a Ring discarded from the hand is no longer counted in it, and one bowed in play is "in play".
+                if (InPlay(source!) || Player(1 - player.Id).Hand.Count > player.Hand.Count) Draw(player);
                 break;
             case "soshi-conditional-bow":
                 if (_state.Phase == Phase.Battle && !StalwartNegatesBow(target!, player.Id)) target!.Bowed = true;
@@ -10700,6 +10686,15 @@ public sealed partial class MatchEngine
         {
             player.FavorActionsThisTurn++;
             GrantRingRecruit(player, player.FavorActionsThisTurn >= 2, "ring-of-air-recruit");
+        }
+        // Ring of the Void's own recruitment condition (issue #1157): "after you resolve your fourth or later non-Kiho action from Strategies in one phase". The count
+        // restarts whenever the (turn, phase) stamp moves on.
+        if (source is not null && Definition(source).Type == CardType.Strategy && !Keyword(source, "Kiho"))
+        {
+            var phaseStamp = $"{_state.TurnNumber}:{_state.Phase}";
+            if (player.StrategyActionsPhase != phaseStamp) { player.StrategyActionsPhase = phaseStamp; player.StrategyActionsThisPhase = 0; }
+            player.StrategyActionsThisPhase++;
+            GrantRingRecruit(player, player.StrategyActionsThisPhase >= 4, "ring-of-void-recruit");
         }
         // Forgotten Legacy pass (issue #467), batch 1: Doji Rengetsu's is a Favor action too (and, batch 4 of the Emperor Edition Personality pass, Kakita Tadanobu's).
         if (id is "rengetsu-disable" or "tadanobu-draw")

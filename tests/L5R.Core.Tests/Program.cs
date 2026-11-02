@@ -154,7 +154,7 @@ var tests = new (string Name, Action Run)[]
     ("Enlightenment victory (issue #194): all five real elemental Rings in play at the start of a turn wins; a False Ring's own matching elemental keyword never substitutes, even for a missing real Ring -- Fudo is the actual exclusion", EnlightenmentVictory),
     ("Ring of Air (issue #194): two Favor actions in one turn grants an Additional Battle Action scoped to the Ring rather than a forced interrupt; recruiting it, then its own Repeatable straighten action", RingOfAir),
     ("Ring of Water (issue #194): a battle resolving with a Terrain played, a Terrain destroyed, and something destroyed grants an Additional Battle Action scoped to the Ring, surviving battle-end cleanup", RingOfWater),
-    ("Ring of the Void (issue #194): a Limited ability gated on two or fewer Rings in play, discarding the rest of the player's hand as its own cost", RingOfTheVoid),
+    ("Ring of the Void (issue #1157): the Emperor Edition scan, recruited after a fourth non-Kiho Strategy action in a phase and drawing by the hand comparison, never discarding a hand", RingOfTheVoid),
     ("False Ring of Air (issue #194): winning a battle with an opposing unit present grants an Additional Battle Action scoped to the Ring; recruiting it costs 2 Honor, unlike a real Ring", FalseRingOfAir),
     ("False Ring of Water (issue #194): a standing Province-Strength-11-or-greater condition, not a Reaction/grant -- usable any time it holds, like an ordinary Battle ability", FalseRingOfWater),
     ("Review of previously Ring-blocked cards (issue #194): Moshi Ikako's 'Fire Battle' is a plain classification, not Ring-gated (confirmed, zero new primitives); Scholarly Hermit needed only a Ring-type check in a discard pile (new own-ring-in-discard Target)", RingBlockedCardsReview),
@@ -5895,16 +5895,48 @@ static void RingOfWater()
 }
 static void RingOfTheVoid()
 {
-    // Ring of the Void (issue #194): a Limited ability (not a granted Additional Action) -- gated
-    // only by controlling two or fewer Rings; its own cost discards the rest of the player's hand.
+    // Ring of the Void (issue #1157), the Emperor Edition scan: never discards a hand. Its recruit is granted by a fourth non-Kiho Strategy action in one phase,
+    // and its Open draws only when an opponent holds more cards than its player, or the Ring is already in play.
     var s = MatchEngine.CreateEconomyScenario().State; s.Phase = Phase.Action; s.PriorityPlayerId = 0; s.ActivePlayerId = 0;
     var ring = Add(s, "training-ring-of-void", 0, Zone.Hand);
-    var otherCard = Add(s, "training-follower", 0, Zone.Hand);
+    var bystander = Add(s, "training-follower", 0, Zone.Hand);
+    var strategies = Enumerable.Range(0, 4).Select(_ => Add(s, "training-plain-strategy", 0, Zone.Hand)).ToArray();
     var e = MatchEngine.FromTestState(s);
-    Accept(e, new GameCommand("useAbility", 0, e.Version, CardId: ring.Id, AbilityId: "ring-of-void-recruit"));
-    Equal(e.State.Cards[ring.Id].Zone, Zone.Home, "Recruited into play");
-    Equal(e.State.Cards[otherCard.Id].Zone, Zone.FateDiscard, "The rest of the hand is discarded");
-    Check(!e.State.Players[0].Hand.Contains(otherCard.Id) && !e.State.Players[0].Hand.Contains(ring.Id));
+    bool Granted() => e.State.AdditionalActions.Any(g => g.PlayerId == 0 && g.ScopeCardIds is { Length: 1 } ids && ids[0] == ring.Id);
+    for (var n = 0; n < 4; n++)
+    {
+        Check(!Granted(), $"{n} Strategy actions resolved: no recruit grant yet");
+        Accept(e, new GameCommand("useAbility", 0, e.Version, CardId: strategies[n].Id, AbilityId: "training-plain-open"));
+        Accept(e, new GameCommand("pass", 1, e.Version)); // the opponent passes back: the same player keeps acting
+    }
+    Check(Granted(), "the fourth Strategy action in the phase grants the recruit");
+    Check(e.State.Players[0].Hand.Contains(bystander.Id) && e.State.Players[0].Hand.Contains(ring.Id), "nothing was discarded from the hand");
+
+    // The recruit itself, on a battle table: the Ring enters play and the rest of the hand stays.
+    var b = MatchEngine.CreateEconomyScenario().State; b.Phase = Phase.Battle; b.PriorityPlayerId = 0; b.ActivePlayerId = 0;
+    var bRing = Add(b, "training-ring-of-void", 0, Zone.Hand);
+    var kept = Add(b, "training-follower", 0, Zone.Hand);
+    b.AdditionalActions.Add(new AdditionalActionGrant(0, [bRing.Id], Battle: b.BattleNumber));
+    var be = MatchEngine.FromTestState(b);
+    Accept(be, new GameCommand("useAbility", 0, be.Version, CardId: bRing.Id, AbilityId: "ring-of-void-recruit"));
+    Equal(be.State.Cards[bRing.Id].Zone, Zone.Home, "Recruited into play");
+    Equal(be.State.Cards[kept.Id].Zone, Zone.Hand, "The rest of the hand is kept");
+
+    // The draw: an opponent with more cards in hand, then the Ring in play, then neither. `lead` is how many cards the opponent holds beyond the player's hand
+    // once the Ring has left it; the result is how many cards the draw added to the player's hand (the Ring's own discard from the hand not counted).
+    int CardsDrawn(Zone ringZone, int lead)
+    {
+        var d = MatchEngine.CreateEconomyScenario().State; d.Phase = Phase.Action; d.PriorityPlayerId = 0; d.ActivePlayerId = 0;
+        var r = Add(d, "training-ring-of-void", 0, ringZone);
+        var own = d.Players[0].Hand.Count - (ringZone == Zone.Hand ? 1 : 0);
+        while (d.Players[1].Hand.Count < own + lead) Add(d, "training-follower", 1, Zone.Hand);
+        var m = MatchEngine.FromTestState(d);
+        Accept(m, new GameCommand("useAbility", 0, m.Version, CardId: r.Id, AbilityId: "ring-of-void-draw"));
+        return m.State.Players[0].Hand.Count - own;
+    }
+    Equal(CardsDrawn(Zone.Hand, lead: 2), 1, "discarded from the hand while an opponent holds more cards: draws");
+    Equal(CardsDrawn(Zone.Hand, lead: 0), 0, "discarded from the hand with no opponent ahead: no draw");
+    Equal(CardsDrawn(Zone.Home, lead: -1), 1, "bowed in play: draws whatever the opponent holds");
 }
 static void FalseRingOfAir()
 {
