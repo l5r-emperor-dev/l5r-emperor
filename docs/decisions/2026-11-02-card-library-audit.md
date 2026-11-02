@@ -12,4 +12,9 @@ Mendon asked for every wired card and every library card to be checked against e
 - Ten Personalities in waves 14-16 (Moshi Ikako, Mirumoto Hikaro, Rokai and Yozo, Tamori Tamoko and Shosei, Togashi Mitsu and Sakata, Xijkt) had their Gold cost, Force and Chi shifted into the wrong fields and a bogus Gold production. They now match Oracle. `Wave835Tests` used Rokai as a "3 Gold" Yojimbo; it uses Bayushi Wakui (4 Gold) and one Gold of income.
 - 49 wired cards repeated their text twice (Quelsa among them); the repeat is removed.
 
-**Left for review, not changed.** Ikoma Shika (pinned Lion/Crane deck): wired cost 4, Oracle cost 2. A Game of Dice: wired cost 0 with the cost in the ability, Oracle card cost 3. `tools/content/test_library_matches_published.py` records both as exceptions and keeps the library, the wired cards, their numbers and their text in agreement.
+**Rulings on the two open items (Mendon, 2026-11-02).**
+- **Ikoma Shika costs 4.** The wired card and the pinned Lion/Crane deck were right; Oracle's 2 is wrong. `content/oracle/stat-corrections.json` records it and `tools/content/stat_corrections.py` applies it to the card library and deck pool (the raw Oracle snapshots keep Oracle's value).
+- **A Game of Dice: the cost printed inside the Limited action is its Gold Cost.** It is wired with Gold Cost 3 (it was 0, so it was free) and is priced exactly as a card with a central cost, as A Small Favor already is. `ForgottenLegacyBatch3Tests.GameOfDiceCostTerms` checks it against Mysterious Deaths: with Yoritomo Kanaye - exp ("Actions on your Strategies cost 1 less Gold") in play A Game of Dice goes 3 to 2 and Mysterious Deaths 6 to 5.
+- **Kaiu Iemasa:** the report is withdrawn; no change.
+
+`tools/content/test_library_matches_published.py` now has no exceptions: the library, the wired cards, their numbers and their text agree.

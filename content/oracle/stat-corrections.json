@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "corrections": [
+    {
+      "card_id": "oracle-l5r-3636",
+      "name": "Ikoma Shika",
+      "stat": "cost",
+      "oracle_value": "2",
+      "value": "4",
+      "reason": "Oracle of the Void lists Ikoma Shika at 2 Gold; the printed card (and the pinned Lion/Crane deck) costs 4. Mendon (2026-11-02): 4. The raw Oracle snapshots under assets/reference keep Oracle's value as evidence; the card library and deck pool show 4.",
+      "decided_by": "mdornbrook",
+      "reviewed_on": "2026-11-02"
+    }
+  ]
+}
