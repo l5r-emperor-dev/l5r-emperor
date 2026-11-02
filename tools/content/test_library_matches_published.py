@@ -12,8 +12,8 @@ ROOT = Path(__file__).resolve().parents[2]
 
 # Not wired by decision: multiplayer-only (#742) or rejected by Mendon (2026-10-05); see docs/CARD_INVENTORY.xlsx blockers.
 UNWIRED_BY_DECISION = {"oracle-l5r-946", "oracle-l5r-2904", "oracle-l5r-10906", "oracle-l5r-10237", "oracle-l5r-6065", "oracle-l5r-9993"}
-# Pinned Lion/Crane deck printing and a Strategy whose cost is paid in the ability text: kept as wired, reviewed by hand.
-STAT_EXCEPTIONS = {"oracle-l5r-3636", "oracle-l5r-25"}
+# None: Ikoma Shika's cost is corrected in content/oracle/stat-corrections.json and A Game of Dice's printed 3 is its Gold Cost.
+STAT_EXCEPTIONS: set[str] = set()
 STATS = {"cost": "GoldCost", "force": "Force", "chi": "Chi", "focus": "Focus", "ph": "PersonalHonor", "honor": "HonorRequirement", "production": "GoldProduction",
          "startinghonor": "StartingHonor", "strength": "ProvinceStrength"}
 
