@@ -72,6 +72,10 @@ try
     var withUnassigned = ps.Export(shelf, list); Check(withUnassigned.Contains("\"\",\"Kyuden\",\"\",\"\",\"\",\"\",\"4\""), "copies of no recorded printing are exported on a row of their own");
     var round = ps.Preview(withUnassigned, shelf, list); ps.Apply(round, CollectionImportMode.Replace); Check(ps.CountOf("k") == 4 && ps.Count("t") == 5, "and import back as the same unassigned copies");
     ps.Set("t", 2); Check(ps.Count("t") == 2 && ps.CountOf("t@Embers of War@Rare") == 0 && ps.CountOf("t@Before the Dawn@Common") == 2, "removing copies comes off unassigned copies first, then printings from the last bucket name backwards");
+    ps.Set("t", 5); var merged = ps.Export(shelf, list); var mergedLines = merged.Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
+    Check(merged.Contains("\"Embers of War\",\"Itoku\",\"Personality\",\"Rare\",\"Crane\",\"U\",\"3\"") && merged.Contains("\"Before the Dawn\",\"Itoku\",\"Personality\",\"Common\",\"Crane\",\"U\",\"2\"") && mergedLines.Count(l => l.Contains("\"Itoku\"")) == 2 && !mergedLines.Any(l => l.StartsWith("\"\",\"Itoku\"")),
+        "copies of no recorded printing go in the Count of the card's first row; no second row is appended for a card the list names");
+    var mergedBack = ps.Preview(merged, shelf, list); ps.Apply(mergedBack, CollectionImportMode.Replace); Check(ps.Count("t") == 5 && ps.CountOf("t") == 0, "and import back with the same total");
     var template = MyCollectionStore.Template(list); Check(template.Contains("\"Assassin\",\"Token\",\"Token\",\"\",\"\",\"0\"") && template.Contains("\"Itoku\",\"Personality\",\"Rare\",\"Crane\",\"U\",\"0\""), "the template lists every printing with 0 owned");
     var zero = MyCollectionStore.Template(printings).Split("\r\n", StringSplitOptions.RemoveEmptyEntries).Skip(1).ToArray();
     Check(zero.Length == printings.Length && zero.All(line => line.EndsWith(",\"0\"")), "with nothing owned, every card is still reported, each on a line with 0 in the Count column");

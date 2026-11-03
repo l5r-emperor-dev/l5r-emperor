@@ -260,17 +260,24 @@ public sealed class MyCollectionStore
     public string Export(CollectionIdentity[] cards, CollectionPrinting[] printings)
     {
         var byKey = cards.ToLookup(c => CollectionPrintings.Key(c.VersionName));
-        var rows = new List<string[]>(); var written = new HashSet<string>(StringComparer.Ordinal);
+        var rows = new List<string[]>(); var written = new HashSet<string>(StringComparer.Ordinal); var unassigned = new HashSet<string>(StringComparer.Ordinal);
         foreach (var printing in printings)
         {
             var matches = byKey[CollectionPrintings.Key(printing.Name)].ToArray();
             var bucket = matches.Length == 1 ? matches[0].Id + printing.Suffix : null;
-            var count = bucket is not null && written.Add(bucket) ? CountOf(bucket).ToString(CultureInfo.InvariantCulture) : "0";
+            var owned = 0;
+            if (bucket is not null && written.Add(bucket))
+            {
+                owned = CountOf(bucket);
+                // Copies recorded against no printing sit on the card's first row, so the card keeps its one row rather than a second one after the list.
+                if (unassigned.Add(matches[0].Id)) owned += CountOf(matches[0].Id);
+            }
+            var count = owned.ToString(CultureInfo.InvariantCulture);
             rows.Add([printing.Set, printing.Name, printing.Type, printing.Rarity, printing.Clan, printing.Limit, count]);
         }
         foreach (var (bucket, owned) in _counts.OrderBy(p => p.Key, StringComparer.Ordinal))
         {
-            if (written.Contains(bucket)) continue;
+            if (written.Contains(bucket) || (!bucket.Contains('@') && unassigned.Contains(bucket))) continue;
             var id = CardOf(bucket); var parts = bucket.Split('@');
             var name = cards.FirstOrDefault(c => c.Id == id)?.VersionName ?? id;
             rows.Add([parts.Length > 1 ? parts[1] : "", name, "", parts.Length > 2 ? parts[2] : "", "", "", owned.ToString(CultureInfo.InvariantCulture)]);
