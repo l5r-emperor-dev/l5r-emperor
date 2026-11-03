@@ -42,7 +42,7 @@ internal static class ShadowsEmbraceBatch4Tests
         ("Social Grace: its Reaction negates the dishonoring of its player's targeted Courtier (Subtle Games still draws); its Open action gives the enemy a Force penalty of the Courtier's Personal Honor and 2 Honor each time he is assigned to attack", SocialGraceScenario),
         ("Subtle Games: its Courtier bows to dishonor a Personality and its player draws a card; a bowed Courtier may not perform", SubtleGamesScenario),
         ("Sudden Movement: two Personalities of one player at home and at the battlefield switch and both units straighten; a movement lock on either negates both movements; as a Focus Effect the duel's winner gets +3F", SuddenMovementScenario),
-        ("Tactical Assault: its Tactician destroys an enemy Follower or an enemy Personality without attachments; a Personality with an attachment is not a target", TacticalAssaultScenario),
+        ("Tactical Assault: its Tactician destroys an enemy Follower or an enemy Personality without attachments; an attached Item is; a Personality with an attachment is not a target", TacticalAssaultScenario),
         ("The Lesson of Earth: a Monk from home moves an enemy Personality to the battlefield and straightens his unit unless the Monk is Earth", LessonOfEarthScenario),
         ("Theological Indecision: its Limited action discards a Celestial; its Battle/Open action gives a Personality with 3 or higher Chi -2C, and one with less is not a target", TheologicalIndecisionScenario),
         ("Thuggish Techniques: a performer bows itself to bow a Personality without attachments and with lower Force, or any Follower; an equal-Force Personality is not a target", ThuggishTechniquesScenario),
@@ -356,6 +356,13 @@ internal static class ShadowsEmbraceBatch4Tests
         Accept(f, Offer(f, 0, "tactical-assault-destroy", card.Id, follower.Id, tactician.Id));
         Eq(f.State.Cards[follower.Id].Zone, Zone.FateDiscard, "the Follower destroyed");
         Eq(f.State.Cards[armed.Id].Zone, Zone.Battlefield, "its Personality stays");
+        // An attachment has no attachments of its own, so an attached Item (Blade of Perfection, reported untargetable) is a target too.
+        var blade = Add(s, "oracle-l5r-1010", 1, Zone.Attached, province: 0, parent: armed.Id);
+        var g = MatchEngine.FromTestState(s);
+        Check(Enabled(g, 0, "tactical-assault-destroy", card.Id, tactician.Id).TargetIds!.Contains(blade.Id), "an attached Item is a target");
+        Accept(g, Offer(g, 0, "tactical-assault-destroy", card.Id, blade.Id, tactician.Id));
+        Check(g.State.Cards[blade.Id].Zone != Zone.Attached, "the Item is destroyed");
+        Eq(g.State.Cards[armed.Id].Zone, Zone.Battlefield, "its Personality stays");
     }
 
     private static void LessonOfEarthScenario()
