@@ -29,7 +29,7 @@ internal static class DisciplineAndAbsentTests
             ("Return to Action: a negated movement (Tamori Tamoko) leaves him at home and bowed -- no straighten -- while the card is still spent (hand: discarded; discard pile: paid and removed); declining lets it resolve", NegatedMovement),
             ("Return to Action: every enabled offered command (hand and discard copies, every offered target) validates on a fresh replay", OfferedCommandsAllValidate),
             ("Banzai! and Lost in Transit from HAND (newly possible): the ordinary free play, ending in the Fate discard pile; the printed Battle verb still gates Banzai!, and Battle/Open in a battle needs presence", HandPlayOfExistingDisciplineCards),
-            ("Absent flag parity: Ring of Earth (no unit needed, Battle phase only), Ring of Water's move-home (its target is your own unit, so presence was already implied) and False Ring of Air (newly Absent: an enemy Personality is targetable with no unit of your own)", AbsentFlagParity),
+            ("Absent flag parity: Ring of Earth (no unit needed, Battle phase only), Ring of Water's move-home (not Absent: its performer must be at the battle) and False Ring of Air (newly Absent: an enemy Personality is targetable with no unit of your own)", AbsentFlagParity),
         ];
         runner.Run("discipline-absent", tests);
     }
@@ -99,7 +99,7 @@ internal static class DisciplineAndAbsentTests
         // siege-volley-raise/-lower (Siege Volley) are the Forgotten Legacy pass (issue #467), batch 4: "Even if you control no units at the current battlefield" / "Siege Absent Battle".
         // defensive-grill-move (Defensive Grill) is The Shadow's Embrace pass (issue #476), batch 3: "Even if you control no units at the current battlefield".
         // tfp-laoshe-move (Lao-she, issue #622, TfPersonalities.cs): "Home Battle" -- Home actions may be taken from home.
-        Eq(Ids(a => a.Absent), "back-to-the-front-move,breaking-rhythm-bonuses,breaking-rhythm-penalties,defensive-grill-move,disgraceful-conduct-bow,disgraceful-conduct-bow-unit,false-ring-of-air-force,false-ring-of-air-recruit,false-ring-of-earth-recruit,heavily-engaged-bow,hidden-defenses-bow,incite-phantoms-bow,indomitable-home-strength,isul-bow,isul-straighten,junpei-attack,makoto-lock,miro-create,munefusa-move,never-beyond-reach-attack,p2-turning-away-lower,p2-turning-away-raise,p5-perplexing-guests-create,p5-searching-look,p5-tokiko-battlefield,p5-yutaka-return,p5-yutaka-return-dark,pe-re-fortification-move,return-to-action-move,ring-of-air-recruit,ring-of-earth-lower,ring-of-earth-raise,ring-of-earth-recruit,ring-of-fire-recruit,ring-of-void-recruit,ring-of-water-move-home,ring-of-water-recruit,shadows-lair-move,shameful-injury-negate,siege-volley-lower,siege-volley-raise,stone-hewed-shrine-strength,sudden-guardian-move,tfp-laoshe-move,w835-warded-play,wl-false-ring-of-void-recruit,wl-sg-recovering-lost,wl-sg-tactical-setback,wlsac-way-of-the-world,yasuki-palaces-move"); // shadows-lair-move / yasuki-palaces-move: Emperor Edition Stronghold pass (issue #486), batch 3 -- "even if you control no units at the current battlefield"; heavily-engaged-bow and hidden-defenses-bow: Emperor Edition remaining-cards pass (issue #492, group B), "Even if you control no units at the current battlefield" / with no Personality of yours in play, hence no unit; p2-turning-away-raise/-lower (Turning Away, issue #503): "Even if you control no units at the current battlefield"
+        Eq(Ids(a => a.Absent), "back-to-the-front-move,breaking-rhythm-bonuses,breaking-rhythm-penalties,defensive-grill-move,disgraceful-conduct-bow,disgraceful-conduct-bow-unit,false-ring-of-air-force,false-ring-of-air-recruit,false-ring-of-earth-recruit,heavily-engaged-bow,hidden-defenses-bow,incite-phantoms-bow,indomitable-home-strength,isul-bow,isul-straighten,junpei-attack,makoto-lock,miro-create,munefusa-move,never-beyond-reach-attack,p2-turning-away-lower,p2-turning-away-raise,p5-perplexing-guests-create,p5-searching-look,p5-tokiko-battlefield,p5-yutaka-return,p5-yutaka-return-dark,pe-re-fortification-move,return-to-action-move,ring-of-air-recruit,ring-of-earth-lower,ring-of-earth-raise,ring-of-earth-recruit,ring-of-fire-recruit,ring-of-void-recruit,ring-of-water-move-battlefield,ring-of-water-recruit,shadows-lair-move,shameful-injury-negate,siege-volley-lower,siege-volley-raise,stone-hewed-shrine-strength,sudden-guardian-move,tfp-laoshe-move,w835-warded-play,wl-false-ring-of-void-recruit,wl-sg-recovering-lost,wl-sg-tactical-setback,wlsac-way-of-the-world,yasuki-palaces-move"); // shadows-lair-move / yasuki-palaces-move: Emperor Edition Stronghold pass (issue #486), batch 3 -- "even if you control no units at the current battlefield"; heavily-engaged-bow and hidden-defenses-bow: Emperor Edition remaining-cards pass (issue #492, group B), "Even if you control no units at the current battlefield" / with no Personality of yours in play, hence no unit; p2-turning-away-raise/-lower (Turning Away, issue #503): "Even if you control no units at the current battlefield"
         Check(!AbilityCatalog.All.Values.Any(a => a.Timing == "Discipline"), "no ability keeps the old Discipline timing");
         Eq(AbilityCatalog.All["banzai"].Timing, "Battle"); Eq(AbilityCatalog.All["lost-in-transit-bow"].Timing, "BattleOrOpen");
     }
@@ -458,22 +458,19 @@ internal static class DisciplineAndAbsentTests
             var h = MatchEngine.FromTestState(handTable);
             Accept(h, new GameCommand("useAbility", 0, h.Version, CardId: handRing.Id, AbilityId: ability, TargetPlayerId: 1, Province: 0));
         }
-        // Ring of Water's move-home (real card): the target is your own Personality AT the battlefield, so you already have
-        // presence -- the Absent flag changes nothing observable there.
+        // Ring of Water's move-home (real card, Emperor Edition scan): not Absent -- the performing Personality must be at the battlefield (Rule of Presence). Its battlefield half is the Absent one.
         {
             var s = BattleTable(); var ring = Add(s, "oracle-l5r-6339", 0, Zone.Home);
             var own = Add(s, "training-crane-samurai", 0, Zone.Battlefield, province: 0);
-            var enemy = Add(s, "training-lion-samurai", 1, Zone.Battlefield, province: 0);
             var ownHome = Add(s, "training-crane-courtier", 0, Zone.Home);
             var e = MatchEngine.FromTestState(s);
-            Reject(e, new GameCommand("useAbility", 0, e.Version, CardId: ring.Id, AbilityId: "ring-of-water-move-home", TargetId: enemy.Id));
-            Reject(e, new GameCommand("useAbility", 0, e.Version, CardId: ring.Id, AbilityId: "ring-of-water-move-home", TargetId: ownHome.Id));
-            Accept(e, new GameCommand("useAbility", 0, e.Version, CardId: ring.Id, AbilityId: "ring-of-water-move-home", TargetId: own.Id));
+            Reject(e, new GameCommand("useAbility", 0, e.Version, CardId: ring.Id, AbilityId: "ring-of-water-move-home", PerformerId: ownHome.Id));
+            Accept(e, new GameCommand("useAbility", 0, e.Version, CardId: ring.Id, AbilityId: "ring-of-water-move-home", PerformerId: own.Id));
             Eq(e.State.Cards[own.Id].Zone, Zone.Home);
             var action = BattleTable(Phase.Action); var actionRing = Add(action, "oracle-l5r-6339", 0, Zone.Home);
             var actionOwn = Add(action, "training-crane-samurai", 0, Zone.Battlefield, province: 0);
             var a = MatchEngine.FromTestState(action);
-            Reject(a, new GameCommand("useAbility", 0, a.Version, CardId: actionRing.Id, AbilityId: "ring-of-water-move-home", TargetId: actionOwn.Id));
+            Reject(a, new GameCommand("useAbility", 0, a.Version, CardId: actionRing.Id, AbilityId: "ring-of-water-move-home", PerformerId: actionOwn.Id));
         }
         // False Ring of Air (real card): "Absent Battle" -- newly Absent, so a player with NO unit at the battlefield may give an
         // enemy Personality there -3F (before, presence was required); with a unit of their own it is unchanged.

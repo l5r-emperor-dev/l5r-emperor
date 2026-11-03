@@ -221,7 +221,7 @@ internal static class TargetedActionReactionTests
     {
         // The exemptions ValidateAbility used to spell out as an id list (issue #335 moved them onto the definitions).
         var formerlyExempt = new[] { "tactical-advantage", "equip-battle", "training-ashigaru-boost", "ashigaru-elite-boost", "elite-sentry-straighten", "kharmic-discard",
-            "neiru-equip", "naval-invasion", "ring-of-air-straighten", "ring-of-water-move-home",
+            "neiru-equip", "naval-invasion",
             "wl-searing-siege-attack" /* "Repeatable" -- issue #674 */ };
         foreach (var (id, ability) in AbilityCatalog.All)
             Eq(ability.UsesPerTurn, id is "wl-pc-iaimiko-force" or "wl-pc-iaimiko-cavalry" or "wl-pc-iaimiko-conqueror" /* "three times per turn" -- issue #674 */ ? 3 : formerlyExempt.Contains(id) || id == "kaname-ranged-attack" || id == "wlpa-shusaku-boost" /* "Repeatable" -- issue #674 */ || id == "castle-of-order-redirect" /* once per BATTLE, its own stamp (issue #453) */

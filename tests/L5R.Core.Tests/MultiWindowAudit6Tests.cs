@@ -19,7 +19,7 @@ internal static class MultiWindowAudit6Tests
         ("Daigotsu Arakan - exp (wl-pc-arakan-battle), Battle: equips a Follower from the discard pile as attacker or defender, makes it Shadowlands Undead, loses 2 Honor; refused in the Action Phase", ArakanBattle),
         ("Daigotsu Arakan - exp (wl-pc-arakan-limited), Limited: the same equip in the Action Phase on your own turn; refused on another turn and in battle", ArakanLimited),
         ("False Ring of Air (false-ring-of-air-recruit), Battle: recruited from the hand in the after-battle window by the winning attacker and the winning defender, losing 2 Honor; never in the Action Phase", FalseRingAirRecruit),
-        ("Ring of Water (ring-of-water-recruit), Battle: recruited in the after-battle window by the attacker and the defender who played and destroyed a Terrain and destroyed cards; never in the Action Phase", RingOfWaterRecruit),
+        ("Ring of Water (ring-of-water-recruit), Battle: recruited in the after-battle window by the attacker and the defender holding the grant of a fourth Battle action of different titles; never in the Action Phase", RingOfWaterRecruit),
         ("Ring of Fire and Training Ring of Fire stub (ring-of-fire-recruit), Battle: recruited in the after-battle window by the winning attacker and defender who destroyed enemy cards; never in the Action Phase", RingOfFireRecruit),
         ("Folklore (promo-b-folklore-force), Battle/Open: -3F to an Unaligned Personality in all four windows (battle attacker, defender, Action Phase active player and other player)", FolkloreForce),
         ("Folklore (promo-b-folklore-move), Battle: a Human performer moves a Nonhuman Personality home as attacker and defender; refused in the Action Phase", FolkloreMove),
@@ -236,10 +236,34 @@ internal static class MultiWindowAudit6Tests
 
     private static void FalseRingAirRecruit() => RingRecruit(FalseRingOfAir, "false-ring-of-air-recruit", (_, _) => { }, 2);
 
-    private static void RingOfWaterRecruit() => RingRecruit(RingOfWater, "ring-of-water-recruit", (s, w) =>
+    // The grant a fourth Battle action of different titles hands out during the battle (RingGrantTests and the core Ring of Water case cover the count): it stays for the after-battle window.
+    private static void RingOfWaterRecruit()
     {
-        s.Players[w.Me].TerrainPlayedThisBattle = true; s.Players[w.Me].TerrainDestroyedThisBattle = true;
-    }, 0);
+        foreach (var w in BattleWins)
+        {
+            var s = Start(w);
+            var ring = Add(s, RingOfWater, w.Me, Zone.Hand);
+            Force(AtBattlefield(s, Veteran, w.Me), 20);
+            AtBattlefield(s, Crane, 1 - w.Me);
+            s.AdditionalActions.Add(new AdditionalActionGrant(w.Me, [ring.Id], Battle: s.BattleNumber));
+            var e = MatchEngine.FromTestState(s);
+            Accept(e, new GameCommand("pass", e.State.PriorityPlayerId, e.Version)); Accept(e, new GameCommand("pass", e.State.PriorityPlayerId, e.Version));
+            Eq(e.State.PendingChoice?.Type, "battleRecruit", $"Ring of Water [{w.Name}]: the after-battle window opened for the winner");
+            var option = Enabled(e, w.Me, "ring-of-water-recruit", ring.Id);
+            Check(option.Enabled, option.Reason ?? "");
+            Accept(e, option.Command!);
+            Eq(e.State.Cards[ring.Id].Zone, Zone.Home, $"Ring of Water [{w.Name}]: the Ring was put into play");
+        }
+        // Never an Action Phase action, for either player, even with the Ring in hand.
+        foreach (var w in ActionWins)
+        {
+            var s = Start(w);
+            var ring = Add(s, RingOfWater, w.Me, Zone.Hand);
+            var e = MatchEngine.FromTestState(s);
+            Check(!CanUse(e, w.Me, "ring-of-water-recruit", ring.Id), $"Ring of Water [{w.Name}]: not offered in the Action Phase");
+            Reject(e, Use(e, w.Me, "ring-of-water-recruit", ring.Id));
+        }
+    }
 
     private static void RingOfFireRecruit()
     {

@@ -420,6 +420,14 @@ public sealed class PlayerState
     // Ring of the Void's own recruitment condition (issue #1157): non-Kiho actions from Strategies resolved in the phase named by the "turn:phase" stamp.
     public int StrategyActionsThisPhase { get; set; }
     public string? StrategyActionsPhase { get; set; }
+    // Ring of Air and Ring of Water's recruitment conditions (Emperor Edition scans): the titles of the cards whose Spell/Kiho actions (this turn) or Battle actions (this battle) this player
+    // has resolved, each list valid for the stamp beside it ("turn" / "battle number"); a repeat of an already-counted title is not a further action of a different title.
+    public string? SpellKihoActionsStamp { get; set; }
+    public List<string> SpellKihoActionTitles { get; set; } = [];
+    public string? BattleActionsStamp { get; set; }
+    public List<string> BattleActionTitles { get; set; } = [];
+    // Ring of Earth's recruitment condition: one of this player's Personalities was destroyed while in play during this battle; cleared when the battle ends.
+    public bool PersonalityDestroyedThisBattle { get; set; }
     // Moshi Madoka - exp (Gempukku pass, issue #461): "If you have attached a card from your hand this turn" -- set wherever a card leaves the hand to become an attachment, reset every StartTurn.
     public bool AttachedFromHandThisTurn { get; set; }
     // Emperor Edition remaining-cards pass (issue #492), group F. Alter History: "until the game ends, he may ignore Honor Requirements when bringing Personalities into play". Benefices of the Emperor:
