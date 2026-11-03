@@ -21,7 +21,7 @@ internal static class RingGrantTests
             ("A recruit grant lapses with its battle: granted at battle 1 it is offered in the after-battle window and is gone at battle 2 in the same turn; a NEW grant at battle 2 is offered only in battle 2's window", GrantBelongsToItsBattle),
             ("The after-battle window is closed by its holder's pass (an opponent with nothing to play is not asked to pass) and the grant does not survive it; the Ring stays in the hand; using the grant in the window puts the Ring into play with no presence needed", AfterBattleWindow),
             ("A recruit grant survives the other actions and the passes of its own battle (its holder's ordinary actions, the opponent's, a pass) and is still there for the after-battle window", GrantSurvivesItsBattlesActions),
-            ("A grant made outside a battle (Ring of Air's two Favor actions) belongs to the NEXT battle: not usable before it, and cleared at the end of the turn if that battle is never fought", GrantMadeBetweenBattles),
+            ("A grant made outside a battle (Ring of Air's Spell and Kiho actions) belongs to the NEXT battle: not usable before it, and cleared at the end of the turn if that battle is never fought", GrantMadeBetweenBattles),
             ("Every Ring recruit grant is scoped: the grants the engine makes carry a battle, while the other Additional Action grants (Again!, Two Hands and the rest) carry none and keep their own removal", GrantsCarryTheirBattle),
         ];
         runner.Run("ring-grants", tests);
@@ -166,26 +166,24 @@ internal static class RingGrantTests
 
     private static void OtherTrueRingsFromHand()
     {
-        // Ring of Air (Battle/Open): straighten your bowed Personality.
+        // Ring of Air (Battle/Open): straighten your performing Personality's unit.
         var a = BattleTable();
         var air = Add(a, Air, 0, Zone.Hand);
         var bowed = Add(a, "training-crane-samurai", 0, Zone.Battlefield, bowed: true, province: 0);
         var ea = MatchEngine.FromTestState(a);
         var straighten = Offered(ea, air, "ring-of-air-straighten").Single();
         Check(straighten.Enabled, straighten.Reason ?? "Air is offered enabled");
-        Check(straighten.TargetIds?.Contains(bowed.Id) == true, "with the bowed Personality as a target");
-        Accept(ea, straighten.Command! with { TargetId = bowed.Id });
+        Accept(ea, straighten.Command! with { PerformerId = bowed.Id });
         Check(!ea.State.Cards[bowed.Id].Bowed); Eq(ea.State.Cards[air.Id].Zone, Zone.FateDiscard);
 
-        // Ring of Water (Battle, Absent): move your Personality home.
+        // Ring of Water (Battle): move your performing Personality home, and straighten his unit.
         var w = BattleTable();
         var water = Add(w, Water, 0, Zone.Hand);
         var mine = Add(w, "training-crane-samurai", 0, Zone.Battlefield, province: 0);
         var ew = MatchEngine.FromTestState(w);
         var home = Offered(ew, water, "ring-of-water-move-home").Single();
         Check(home.Enabled, home.Reason ?? "Water is offered enabled");
-        Check(home.TargetIds?.Contains(mine.Id) == true, "with the Personality at the battlefield as a target");
-        Accept(ew, home.Command! with { TargetId = mine.Id });
+        Accept(ew, home.Command! with { PerformerId = mine.Id });
         Eq(ew.State.Cards[mine.Id].Zone, Zone.Home); Eq(ew.State.Cards[water.Id].Zone, Zone.FateDiscard);
 
         // Ring of the Void (Open): draw a card.
@@ -319,13 +317,13 @@ internal static class RingGrantTests
 
     private static void GrantMadeBetweenBattles()
     {
-        // The Ring of Air test's own setup: the second Favor action of the turn, taken in the Action phase, grants the recruit.
+        // The Ring of Air test's own setup: the third Spell or Kiho action of a new title this turn, taken in the Action phase, grants the recruit.
         var s = MatchEngine.CreateEconomyScenario().State; s.Cards[s.Players[0].StrongholdId].DefinitionId = "oracle-l5r-1218";
-        s.ActivePlayerId = 0; s.PriorityPlayerId = 0; s.Phase = Phase.Action; s.FavorPlayerId = 0; s.Players[0].FavorActionsThisTurn = 1; s.BattleNumber = 0;
+        s.ActivePlayerId = 0; s.PriorityPlayerId = 0; s.Phase = Phase.Action; s.Players[0].SpellKihoActionsStamp = s.TurnNumber.ToString(); s.Players[0].SpellKihoActionTitles = ["Spell A", "Spell B"]; s.BattleNumber = 0;
         var ring = Add(s, "training-ring-of-air", 0, Zone.Hand);
-        var shunya = Add(s, "training-honor-personality", 0, Zone.Home);
+        var kiho = Add(s, "training-kiho-strategy", 0, Zone.Hand);
         var e = MatchEngine.FromTestState(s);
-        Accept(e, new GameCommand("useAbility", 0, e.Version, CardId: shunya.Id, AbilityId: "shunya-honor"));
+        Accept(e, new GameCommand("useAbility", 0, e.Version, CardId: kiho.Id, AbilityId: "training-plain-open"));
         var grant = e.State.AdditionalActions.Single(g => g.ScopeCardIds?.Contains(ring.Id) == true);
         Eq(grant.Battle, 1, "made between battles: it belongs to the first battle to be fought");
         Check(!RecruitOffered(e, ring, "ring-of-air-recruit"), "not usable in the Action phase");

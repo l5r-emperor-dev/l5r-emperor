@@ -15,7 +15,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Play after you resolve two or more Favor actions in one turn. You may discard this Ring from your hand to use its ability without cost.\nAir Repeatable Battle/Open, Bow this card: Straighten your target Personality or attachment.",
+      "Text": "After you resolve your third or later Spell or Kiho action in one turn from cards with different titles: You may put this card into play from your hand.\nBattle/Open: Bow this card or discard it from your hand, and choose your performing Personality: Straighten his unit.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-6333.jpg",
       "Keywords": [
@@ -42,7 +42,7 @@
       "HonorRequirement": null,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Play after a battle resolves in which you played a Terrain, destroyed a Terrain, and destroyed any cards or provinces during resolution. You may discard this Ring from your hand to use its ability without cost.\nWater Absent Repeatable Battle, Bow this card: Move your target Personality home or, if he would be opposed, move your target Personality at any location to the current battlefield.",
+      "Text": "After you resolve your fourth or later Battle action in one battle from cards with different titles: You may put this card into play from your hand.\nBattle: Bow this card or discard it from your hand, and choose your performing Personality: Move him home or to a battlefield with one or more enemy units. If he moved, straighten his unit.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-6339.jpg",
       "Keywords": [
@@ -52,7 +52,8 @@
       "Focus": 4,
       "Abilities": [
         "ring-of-water-recruit",
-        "ring-of-water-move-home"
+        "ring-of-water-move-home",
+        "ring-of-water-move-battlefield"
       ],
       "Effect": "none"
     },

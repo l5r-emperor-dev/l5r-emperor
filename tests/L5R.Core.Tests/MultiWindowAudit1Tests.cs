@@ -118,7 +118,7 @@ internal static partial class MultiWindowAudit1Tests
         ("Rugashi Bazaar: after losing Honor to another player's action, Revenge gives performers Force equal to their base Personal Honor, in the Battle phase and both Action phases", RugashiRevenge),
         ("Shadow Dragon: the Open action brings him back from the dead pile paying all costs, in either player's Action phase only", ShadowDragonReturn),
         ("Kuon's Legacy: the Battle/Open action straightens a 7-Force performer, gives +3F, locks his actions and bows a card at his location, in the Battle phase and both Action phases", KuonsLegacyRage),
-        ("Ring of Water: a battle where its player played and destroyed a Terrain and destroyed cards grants the recruit, for the attacker and for the defender", RingOfWaterAfterARealBattle),
+        ("Ring of Water: the fourth Battle action in a battle from a different title grants the recruit, for the attacker and for the defender", RingOfWaterAfterARealBattle),
     ]);
 
     private const string QuietTransaction = "oracle-l5r-70", Usohara = "oracle-l5r-10493", FalseRingOfFire = "oracle-l5r-10533", Schism = "oracle-l5r-10138";
@@ -458,27 +458,23 @@ internal static partial class MultiWindowAudit1Tests
         Check(e.State.Cards[f.Sel![0].CardIds![0]].Bowed, "the card at his location was bowed");
     });
 
-    // The real route to Ring of Water's grant: a battle in which its player played and destroyed a Terrain and then destroyed cards in the resolution.
+    // The real route to Ring of Water's grant: the fourth Battle action in a battle from a different title (three are already counted), taken by the attacker and by the defender; the recruit is then offered.
     private static void RingOfWaterAfterARealBattle()
     {
-        foreach (var me in new[] { 1, 0 }) // the attacker wins, then the defender wins
+        foreach (var me in new[] { 1, 0 }) // the attacker, then the defender
         {
-            var s = Table(Phase.Battle, 1); s.PriorityPlayerId = 1;
+            var s = Table(Phase.Battle, 1); s.PriorityPlayerId = me;
             var ring = Add(s, RingOfWater, me, Zone.Hand);
-            Add(s, "training-lion-veteran", me, Zone.Battlefield, province: 0);
+            var veteran = Add(s, "training-lion-veteran", me, Zone.Battlefield, province: 0);
             Add(s, "training-crane-samurai", 1 - me, Zone.Battlefield, province: 0);
-            s.Players[me].TerrainPlayedThisBattle = true; s.Players[me].TerrainDestroyedThisBattle = true;
+            var strategy = Add(s, "training-performer-strategy", me, Zone.Hand);
+            s.Players[me].BattleActionsStamp = s.BattleNumber.ToString(); s.Players[me].BattleActionTitles = ["Title A", "Title B", "Title C"];
             var e = MatchEngine.FromTestState(s);
-            Check(Options(e, me, "ring-of-water-recruit", ring.Id).All(o => !o.Enabled), "no grant before the battle resolves");
-            for (var guard = 0; guard < 20 && e.State.PendingChoice?.Type != "battleRecruit"; guard++)
-            {
-                var step = e.QueryActions(e.State.PendingChoice?.PlayerId ?? e.State.PriorityPlayerId).FirstOrDefault(a => a.Enabled && a.Command is not null && a.Type is "pass" or "declineReaction" or "passReaction");
-                Check(step is not null, $"nothing to pass in {e.State.Phase} ({e.State.PendingChoice?.Type})");
-                Accept(e, step!.Command!);
-            }
-            Eq(e.State.PendingChoice?.Type, "battleRecruit", $"player {me} won a battle with a Terrain played and destroyed: the recruit window opens");
+            Check(Options(e, me, "ring-of-water-recruit", ring.Id).All(o => !o.Enabled), "no grant before the fourth Battle action");
+            Accept(e, new GameCommand("useAbility", me, e.Version, CardId: strategy.Id, PerformerId: veteran.Id, AbilityId: "training-performer-boost"));
+            Accept(e, new GameCommand("pass", e.State.PriorityPlayerId, e.Version)); // the opponent passes back
             var command = Offered(e, new(me, "ring-of-water-recruit", ring.Id));
-            Check(command is not null, "the granted Ring of Water is offered in the recruit window");
+            Check(command is not null, $"player {me}: the fourth Battle action from a new title offers the Ring of Water");
             Accept(e, command!);
             Eq(e.State.Cards[ring.Id].Zone, Zone.Home, "the Ring is in play");
         }

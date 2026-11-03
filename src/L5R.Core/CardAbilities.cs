@@ -700,16 +700,15 @@ public static class AbilityCatalog
         // discard this Ring from your hand to use its ability without cost"). Recruitment for the
         // four Reaction-shaped Rings below is granted as an Additional Battle Action (GrantRingRecruit)
         // rather than a forced mid-resolution interrupt -- the user's own simplification.
-        ["ring-of-air-recruit"] = new("Battle", "Play after you resolve two or more Favor actions in one turn", "none", Absent: true),
-        ["ring-of-air-straighten"] = new("BattleOrOpen", "Air Repeatable Battle/Open, bow: Straighten your target Personality or attachment", "personality-or-attachment", UsesPerTurn: AbilityUseLimit.Unlimited, Costs: ActionCost.BowSourceUnlessInHand),
-        ["ring-of-water-recruit"] = new("Battle", "Play after a battle resolves in which you played a Terrain, destroyed a Terrain, and destroyed any cards or provinces during resolution", "none", Absent: true),
-        // Simplified from the printed "Absent Repeatable Battle" (issue #194): only the "move home" half
-        // of the dual move effect is wired -- the "or move him to the current battlefield if he would be
-        // opposed" half is deferred. See docs/ROADMAP.md. Its "Absent" (no-presence-required) half was
-        // not modeled until the general Absent flag existed (issue #331); the target must still be at the
-        // current battlefield (the shared Battle-timing target rule), only the acting player's own presence
-        // is waived.
-        ["ring-of-water-move-home"] = new("Battle", "Move your target Personality home", "own-personality", Absent: true, UsesPerTurn: AbilityUseLimit.Unlimited, Costs: ActionCost.BowSourceUnlessInHand),
+        ["ring-of-air-recruit"] = new("Battle", "After you resolve your third or later Spell or Kiho action in one turn from cards with different titles, you may put this card into play from your hand", "none", Absent: true),
+        ["ring-of-air-straighten"] = new("BattleOrOpen", "Battle/Open: Bow this card or discard it from your hand, and choose your performing Personality: Straighten his unit", "none", Performer: "own-personality-at-battle", Costs: ActionCost.BowSourceUnlessInHand),
+        ["ring-of-water-recruit"] = new("Battle", "After you resolve your fourth or later Battle action in one battle from cards with different titles, you may put this card into play from your hand", "none", Absent: true),
+        // Ring of Water, Emperor Edition scan: "Battle: Bow this card or discard it from your hand, and choose your performing Personality: Move him home or to a battlefield with one or more enemy units. If he
+        // moved, straighten his unit." Two offered actions of one use (the Ring is bowed or discarded either way): home needs the performer at the battle (the Rule of Presence); the battlefield half is
+        // chosen with the action (GameCommand.Province, MoveSpec.EnemyBattlefield) and, like Back to the Front, is an Absent Battle action when it moves him to the current battlefield (the Exception to the
+        // Rules of Presence and Location) -- ValidateRingOfWaterLate requires him at the battle for any other battlefield.
+        ["ring-of-water-move-home"] = new("Battle", "Bow this card or discard it from your hand, and choose your performing Personality: Move him home. If he moved, straighten his unit", "none", Performer: "own-personality-at-battle", Move: new(MoveSpec.Performer, MoveSpec.Home), Costs: ActionCost.BowSourceUnlessInHand),
+        ["ring-of-water-move-battlefield"] = new("Battle", "Bow this card or discard it from your hand, and choose your performing Personality: Move him to a battlefield with one or more enemy units. If he moved, straighten his unit", "none", Performer: "own-personality", Absent: true, Move: new(MoveSpec.Performer, MoveSpec.EnemyBattlefield), Costs: ActionCost.BowSourceUnlessInHand),
         // Ring of the Void (issue #1157), the Emperor Edition scan (printing 1; the Twenty Festivals "discard your hand" text is not played): recruited on the shared
         // grant shape once its player has resolved a fourth non-Kiho Strategy action in one phase (StrategyActionsThisPhase, counted in CompleteAbilityResolution).
         ["ring-of-void-recruit"] = new("Battle", "After you resolve your fourth or later non-Kiho action from Strategies in one phase, you may put this Ring into play from your hand", "none", Absent: true),
@@ -4195,7 +4194,7 @@ public sealed partial class MatchEngine
     // The actions whose ONLY effect is to straighten their target: against a card that may not be straightened this turn (Basic Lesson) they are refused outright, where an action that
     // also does something else (Defensive Stance's +3F) still resolves and only its straightening is skipped (Straighten refuses it).
     private static bool StraightensOnly(string abilityId) => abilityId is "slow-death-straighten" or "well-prepared-straighten" or "jinn-kuen-straighten" or "kodo-straighten" or "munefusa-straighten" or "mitsuko-straighten" or "ritual-preparation-straighten"
-        or "training-straighten-at-battle" or "horibe-straighten" or "furu-straighten" or "tsudoken-exp2-straighten" or "tsukasa-straighten" or "atsumichi-straighten" or "ring-of-air-straighten"
+        or "training-straighten-at-battle" or "horibe-straighten" or "furu-straighten" or "tsudoken-exp2-straighten" or "tsukasa-straighten" or "atsumichi-straighten"
         or "mitoshi-straighten" or "negishi-straighten" // Emperor Edition Personality pass (issue #477), batch 1
         or "tsujiken-exp-straighten" // Seeds of Decay pass (issue #453), batch 2
                                      // Seeds of Decay pass (issue #453), batch 4: Second City Port (a Holding); Katsuo's also grants an additional action, so it is not "only" a straighten.
@@ -4214,7 +4213,7 @@ public sealed partial class MatchEngine
     private static string? MoveOrStraightenKind(string abilityId) => abilityId switch
     {
         "incapacitated" or "favor-battle" or "journeys-end-move" or "shamate-move" or "effortless-counterattack-move"
-            or "ring-of-water-move-home" or "mihato-move" or "block-supply" or "insulting-gesture-shame"
+            or "mihato-move" or "block-supply" or "insulting-gesture-shame"
             // Shinjo Kinto (issue #299): negatable like any other move-home ability -- except when its
             // own acting player has Reconnaissance (MovementCannotBeNegated), checked per command.
             or "kinto-move"
@@ -4242,7 +4241,7 @@ public sealed partial class MatchEngine
         "air-straighten" or "paid-straighten" or "training-keyword-conditional-straighten" or "immovable-object-straighten"
             or "defensive-stance" or "ritual-preparation-straighten" or "training-straighten-at-battle" or "horibe-straighten"
             or "furu-straighten" or "tsudoken-exp2-straighten" or "tsukasa-straighten" or "atsumichi-straighten"
-            or "ring-of-air-straighten" or "mitoshi-straighten" or "negishi-straighten"
+            or "mitoshi-straighten" or "negishi-straighten"
             // Seeds of Decay (issue #453, batch 3): Utaku Hirononri straightens a Stables or Cavalry card.
             or "hirononri-straighten"
             // Isawa Mitsuko (issue #301): straightens an Air Shugenja (a Personality, so negatable) or a
@@ -5033,6 +5032,34 @@ public sealed partial class MatchEngine
         _state.AdditionalActions.Add(new(playerId, scopeCardIds, fromDiscard, battle, anyDiscardTiming, rangedTargetId, performerId, baseAbilityOnly, requiredActionKeyword, tag, id, mandatory, scopeAbilityIds));
         Emit("additionalActionGranted", $"{Player(playerId).Name} may take an additional {(anyDiscardTiming ? "" : "Battle ")}action.", playerId);
     }
+    // Ring of Air ("After you resolve your third or later Spell or Kiho action in one turn from cards with different titles") and Ring of Water ("...your fourth or later Battle action in one
+    // battle from cards with different titles"): each resolved action of that kind counts once per card title; the action that reaches the count grants the recruit. A repeat of a counted title
+    // is not another action "from cards with different titles", so it neither raises the count nor grants again.
+    private void NoteRingActionCounts(PlayerState player, AbilityDefinition ability, CardInstance? source)
+    {
+        if (source is null) return;
+        var title = Definition(source).Name;
+        if (Definition(source).Type == CardType.Spell || Keyword(source, "Spell") || Keyword(source, "Kiho"))
+        {
+            var turn = _state.TurnNumber.ToString();
+            if (player.SpellKihoActionsStamp != turn) { player.SpellKihoActionsStamp = turn; player.SpellKihoActionTitles = []; }
+            if (!player.SpellKihoActionTitles.Contains(title))
+            {
+                player.SpellKihoActionTitles.Add(title);
+                GrantRingRecruit(player, player.SpellKihoActionTitles.Count >= 3, "ring-of-air-recruit");
+            }
+        }
+        if (_state.Phase == Phase.Battle && ability.Timing is "Battle" or "BattleOrOpen")
+        {
+            var battle = _state.BattleNumber.ToString();
+            if (player.BattleActionsStamp != battle) { player.BattleActionsStamp = battle; player.BattleActionTitles = []; }
+            if (!player.BattleActionTitles.Contains(title))
+            {
+                player.BattleActionTitles.Add(title);
+                GrantRingRecruit(player, player.BattleActionTitles.Count >= 4, "ring-of-water-recruit");
+            }
+        }
+    }
     // Ring recruitment (issue #194): rather than a forced mid-resolution interrupt, a satisfied
     // condition grants an Additional Battle Action scoped to that specific Ring card in hand (the
     // user's own simplification) -- consumed like any other Additional Action, including the same
@@ -5074,12 +5101,6 @@ public sealed partial class MatchEngine
     }
     // A recruit grant is over when its battle is: this battle's and any older one's go; a grant for the NEXT battle (made between battles) waits.
     private void ExpireBattleRecruitGrants() => _state.AdditionalActions.RemoveAll(g => g.Battle is int b && b <= _state.BattleNumber);
-    // Ring of Water's own recruitment condition (issue #194): "played a Terrain, destroyed a
-    // Terrain, and destroyed any cards or provinces during resolution" -- the first two are this
-    // player's own battle-scoped flags; `destroyedSomething` is this specific resolution's own fact,
-    // passed in by the caller (no "win" requirement, unlike False Ring of Air).
-    private void CheckRingOfWaterRecruit(PlayerState player, bool destroyedSomething) =>
-        GrantRingRecruit(player, player.TerrainPlayedThisBattle && player.TerrainDestroyedThisBattle && destroyedSomething, "ring-of-water-recruit");
     // Removes and returns whether an available grant matches this specific use (unscoped, or scoped
     // to include cardId) -- the single check deciding whether a Battle-timed useAbility is an
     // ordinary action or one taken "out of order" as an Additional Action (see UseAbility).
@@ -9285,8 +9306,16 @@ public sealed partial class MatchEngine
                 RingEntersPlay(player, source!, true, source, id); // issue #699 (WlRings.cs): entry by its own text, Brotherhood Schism's turn, "after your Ring enters play"
                 GainHonor(player.Id, -2, Definition(source).Name);
                 break;
-            case "ring-of-air-straighten": Straighten(target!); break;
-            case "ring-of-water-move-home": MoveHome(target!, false); break;
+            case "ring-of-air-straighten": StraightenUnit(Card(command.PerformerId!)); break;
+            case "ring-of-water-move-home":
+            case "ring-of-water-move-battlefield":
+                {
+                    var wanderer = Card(command.PerformerId!);
+                    var wasAt = (wanderer.Zone, wanderer.ProvinceIndex);
+                    ExecuteMove(command, ability, source, null);
+                    if ((wanderer.Zone, wanderer.ProvinceIndex) != wasAt) StraightenUnit(wanderer); // "If he moved": already being there, or a negated move, is no move at all
+                    break;
+                }
             case "false-ring-of-air-force": ApplyModifier(target!, source!.Id, id, "Force", -3); break;
             case "ring-of-earth-raise": GiveProvinceStrengthThisTurn(command.TargetPlayerId!.Value, command.Province!.Value, 3, "Ring of Earth"); break; // until end of turn (issue #492 ruling R3)
             case "ring-of-earth-lower": GiveProvinceStrengthThisTurn(command.TargetPlayerId!.Value, command.Province!.Value, -3, "Ring of Earth"); break;
@@ -10678,15 +10707,10 @@ public sealed partial class MatchEngine
         if (source is not null && Keyword(source, "Ninja"))
             foreach (var shinobi in _state.Cards.Values.Where(c => InPlay(c) && Definition(c).Effect == "apprentice-shinobi-ninja-bonus"))
                 ApplyModifier(shinobi, shinobi.Id, "apprentice-shinobi-ninja-bonus", "Force", 1);
-        // Ring of Air's own recruitment condition (issue #194): "after you resolve two or more Favor
-        // actions in one turn" -- every Favor-consuming ability shares this one shared Require
-        // (see above), so the counter and the grant-check are shared here too, rather than
-        // duplicated across each of the three execution cases.
+        // Favor actions are still counted (FavorActionsThisTurn); the Emperor Edition Ring of Air no longer reads them (it counts Spell and Kiho actions, below).
         if (id is "shunya-honor" or "favor-cycle" or "favor-cycle-kurohito" or "favor-battle" or "jakuei-bow-favor" or "bonds-of-coin-draw" or "baiko-shame")
-        {
             player.FavorActionsThisTurn++;
-            GrantRingRecruit(player, player.FavorActionsThisTurn >= 2, "ring-of-air-recruit");
-        }
+        NoteRingActionCounts(player, ability, source);
         // Ring of the Void's own recruitment condition (issue #1157): "after you resolve your fourth or later non-Kiho action from Strategies in one phase". The count
         // restarts whenever the (turn, phase) stamp moves on.
         if (source is not null && Definition(source).Type == CardType.Strategy && !Keyword(source, "Kiho"))
@@ -10697,11 +10721,7 @@ public sealed partial class MatchEngine
             GrantRingRecruit(player, player.StrategyActionsThisPhase >= 4, "ring-of-void-recruit");
         }
         // Forgotten Legacy pass (issue #467), batch 1: Doji Rengetsu's is a Favor action too (and, batch 4 of the Emperor Edition Personality pass, Kakita Tadanobu's).
-        if (id is "rengetsu-disable" or "tadanobu-draw")
-        {
-            player.FavorActionsThisTurn++;
-            GrantRingRecruit(player, player.FavorActionsThisTurn >= 2, "ring-of-air-recruit");
-        }
+        if (id is "rengetsu-disable" or "tadanobu-draw") player.FavorActionsThisTurn++;
         if (opponentHonorBeforeBattleAction is int before && Player(target!.OwnerId).Honor < before && Definition(Card(player.StrongholdId)).Effect == "law-of-darkness-punish")
             // The source is the acting player's own Stronghold, never the losing player's -- "cards
             // you own" in a Honor-loss-immunity passive could never reach it regardless.
@@ -11668,7 +11688,7 @@ public sealed partial class MatchEngine
                                     int?[] destinations = ability.ChoosesOwnProvince ? player.Provinces.Where(p => !p.Destroyed && p.CardId is not null).Select(p => (int?)p.Index).ToArray()
                                         : ability.Target is "any-province" or "enemy-province" ? Enumerable.Range(0, _state.Players.Max(pl => pl.Provinces.Count)).Select(i => (int?)i).ToArray() /* either owner's province: sized to the larger count (bot soak, issue #642) */
                                         : id == "hawado-move-battlefield" ? _state.UnresolvedBattlefields.Select(p => (int?)p).ToArray()
-                                        : ability.Move is { ChoosesBattlefield: true } chosenMove && MoveDestinations(chosenMove) is { Length: > 0 } listed ? listed.Select(p => (int?)p).ToArray()
+                                        : ability.Move is { ChoosesBattlefield: true } chosenMove && MoveDestinations(chosenMove, playerId) is { Length: > 0 } listed ? listed.Select(p => (int?)p).ToArray()
                                         : ability.Target == "attack" && ability.AttackTargetsProvince && _state.CurrentBattleProvince is int battleProvince ? [null, battleProvince] : [null];
                                     foreach (var provinceOwner in ability.Target is "any-province" or "player" ? new int?[] { 0, 1 } : new int?[] { null })
                                     {

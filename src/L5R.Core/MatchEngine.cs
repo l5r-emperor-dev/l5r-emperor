@@ -1710,10 +1710,9 @@ public sealed partial class MatchEngine
             if (destroyedDefenders > 0 || destroyedProvince) AttackerDestructionBonus(attacker, a);
             // Ring recruitment (issue #194): checked with this resolution's own facts, before the
             // per-battle flags below reset. False Ring of Air and Ring of Earth require an outright
-            // win; Ring of Water and Ring of Fire do not (see the tie branch below).
+            // win (Ring of Earth also needs none of the winner's Personalities destroyed during the battle); Ring of Fire does not (see the tie branch below).
             GrantRingRecruit(Player(attacker), d.Length > 0, "false-ring-of-air-recruit");
-            GrantRingRecruit(Player(attacker), d.Length > 0, "ring-of-earth-recruit");
-            CheckRingOfWaterRecruit(Player(attacker), destroyedDefenders > 0 || destroyedProvince);
+            GrantRingRecruit(Player(attacker), d.Length > 0 && !Player(attacker).PersonalityDestroyedThisBattle, "ring-of-earth-recruit");
             GrantRingRecruit(Player(attacker), destroyedDefenders > 0 || destroyedProvince, "ring-of-fire-recruit");
         }
         else if (defenderWon)
@@ -1722,8 +1721,7 @@ public sealed partial class MatchEngine
             destroyedByPlayer[defender] = destroyedAttackers; losers.Add(attacker);
             if (!RehonorWinners(d)) { GainHonor(defender, ResolutionHonor(defender, attacker, destroyedAttackers * 2), "Battle victory"); CheckEarthFlowsBonus(defender, d); }
             GrantRingRecruit(Player(defender), a.Length > 0, "false-ring-of-air-recruit");
-            GrantRingRecruit(Player(defender), a.Length > 0, "ring-of-earth-recruit");
-            CheckRingOfWaterRecruit(Player(defender), destroyedAttackers > 0);
+            GrantRingRecruit(Player(defender), a.Length > 0 && !Player(defender).PersonalityDestroyedThisBattle, "ring-of-earth-recruit");
             GrantRingRecruit(Player(defender), destroyedAttackers > 0, "ring-of-fire-recruit");
         }
         else if (a.Length > 0 && d.Length > 0)
@@ -1741,10 +1739,8 @@ public sealed partial class MatchEngine
             if (!attackerHadDishonorable) GainHonor(attacker, ResolutionHonor(attacker, defender, destroyedD), "Tied battle");
             if (!defenderHadDishonorable) GainHonor(defender, ResolutionHonor(defender, attacker, destroyedA), "Tied battle");
             if (destroyedD > 0) AttackerDestructionBonus(attacker, a);
-            // Ring of Water/Fire (issue #194): no "win" requirement, unlike False Ring of Air/Ring of
+            // Ring of Fire (issue #194): no "win" requirement, unlike False Ring of Air/Ring of
             // Earth -- a tie still counts as "a battle resolves" for both players independently.
-            CheckRingOfWaterRecruit(Player(attacker), destroyedD > 0);
-            CheckRingOfWaterRecruit(Player(defender), destroyedA > 0);
             GrantRingRecruit(Player(attacker), destroyedD > 0, "ring-of-fire-recruit");
             GrantRingRecruit(Player(defender), destroyedA > 0, "ring-of-fire-recruit");
         }
@@ -1871,7 +1867,7 @@ public sealed partial class MatchEngine
         // Force redirection (issue #216) is "for the duration of the battle," same reasoning.
         _state.ForceRedirects.Clear();
         // Ring of Water's own recruitment condition (issue #194) is battle-scoped, same reasoning.
-        foreach (var p in _state.Players) { p.TerrainPlayedThisBattle = false; p.TerrainDestroyedThisBattle = false; }
+        foreach (var p in _state.Players) { p.TerrainPlayedThisBattle = false; p.TerrainDestroyedThisBattle = false; p.PersonalityDestroyedThisBattle = false; }
         if (_state.WinnerId is not null) return;
         // Overconfident (issue #223): a chance to react to anything this battle's own resolution
         // (DestroyUnits, above) just killed, before the battle actually closes out. Deferred here,
@@ -2545,6 +2541,7 @@ public sealed partial class MatchEngine
         if (InPlay(card)) QueueOverconfidentDraw(card);
         // Fair Warning (issue #453, batch 2): "after the next time this turn he ... is destroyed" -- a destruction while in play.
         if (InPlay(card)) FireDestroyedWatches(card);
+        if (InPlay(card) && _state.Phase == Phase.Battle && Definition(card).Type == CardType.Personality) Player(card.OwnerId).PersonalityDestroyedThisBattle = true; // Ring of Earth: "none of your Personalities were destroyed during the battle"
         card.Zone = Definition(card).Type == CardType.Personality ? Zone.Dead
             : Definition(card).Type is CardType.Follower or CardType.Item or CardType.Spell or CardType.Strategy or CardType.Ring ? Zone.FateDiscard
             : Zone.DynastyDiscard;
