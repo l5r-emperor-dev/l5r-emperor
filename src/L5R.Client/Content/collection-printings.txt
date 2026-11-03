@@ -28,7 +28,7 @@ Coils of Madness,Aberrations,Follower,Fixed,,N,0
 Aftermath,Absolution,Strategy,Uncommon,,N,0
 Gates of Chaos,Abundant Farmlands,Holding,Common,,N,0
 Seeds of Decay,Advanced Intelligence,Strategy,Rare,,N,0
-Before the Dawn,Advanced Warning,Strategy,Common,,N,0
+Before the Dawn,Advance Warning,Strategy,Common,,N,0
 Second City,Again!,Strategy,Uncommon,,N,0
 Second City,Agasha Kodo,Personality,Uncommon,Phoenix,N,0
 Emperor Edition,Agasha Ryo,Personality,Common,Phoenix,N,0
@@ -66,7 +66,7 @@ Emperor Edition,Aramoro's Promise,Strategy,Uncommon,,N,0
 Second City,Archery Range,Holding,Common,,N,0
 Emperor Edition,Armor of the Heavens,Item,Rare,,N,0
 Coils of Madness,Armor of the Mad,Item,Fixed,,N,0
-Embers of War,Armour of the Uruwashii,Item,Uncommon,,N,0
+Embers of War,Armor of the Uruwashii,Item,Uncommon,,N,0
 Torn Asunder,Asahina Akahiko,Personality,Common,Crane,N,0
 Emperor Edition,Asahina Keigo,Personality,Uncommon,Crane,N,0
 Embers of War,Asahina Konomi,Personality,Common,Crane,N,0
@@ -476,7 +476,7 @@ Second City,Shiba Kudome,Personality,Uncommon,Phoenix,N,0
 Before the Dawn,Shiba Ryuba,Personality,Uncommon,Phoenix,N,0
 Emperor Edition,Shiba Sansesuke,Personality,Uncommon,Phoenix,N,0
 Torn Asunder,Shiba Tetsaka,Personality,Uncommon,Phoenix,N,0
-Embers of War,Shiba Toshiugo,Personality,Common,Phoenix,N,0
+Embers of War,Shiba Toshisugo,Personality,Common,Phoenix,N,0
 Gates of Chaos,Shiba Tsurao,Personality,Uncommon,Phoenix,N,0
 Second City,Shikaro,Personality,Common,,N,0
 Emperor Edition,Shinjo Baeshuko,Personality,Common,Unicorn,N,0
@@ -729,10 +729,10 @@ Honor & Treachery,Border Keep (Inexp) (Scorpion Flavor),Holding,Fixed,,U,0
 Coils of Madness,Border Keep Experienced 2,Holding,Fixed,,U,0
 Emperor Edition,Carpenter Castle,Stronghold,Decks,Crab,N,0
 Seeds of Decay,Celestial Sword of the Dragon (Exp.),Item,Fixed,,U,0
-Embers of War,Celestial Sword of the Lion,Item,Decks,,U,0
+Embers of War,Celestial Sword of the Lion (Exp.),Item,Decks,,U,0
 Seeds of Decay,Celestial Sword of the Mantis (Exp.),Item,Fixed,,U,0
 Seeds of Decay,Celestial Sword of the Scorpion (Exp.),Item,Fixed,,U,0
-Embers of War,Celestial Sword of the Unicorn,Item,Decks,,U,0
+Embers of War,Celestial Sword of the Unicorn (Exp.),Item,Decks,,U,0
 Aftermath,Chagatai's Wrath,Celestial,Uncommon,,U,0
 Embers of War,Daidoji Akeha,Personality,Rare,Crane,U,0
 Gates of Chaos,Daidoji Tametaka (Exp),Personality,Uncommon,Crane,U,0
@@ -785,7 +785,7 @@ Torn Asunder,Harbingers of War,Event,Rare,,U,0
 Second City,Harsh Choices,Event,Rare,,U,0
 Coils of Madness,Heart of Fudo Experienced 2,Item,Fixed,,U,0
 Aftermath,Hida Kaiji (Exp.),Personality,Rare,Crab,U,0
-Emperor Edition,Hida Kisada,Personality,Decks,,,0
+Emperor Edition,Hida Kisada (Emperor),Personality,Decks,,,0
 Second City,Hida Mochitoko (Exp.),Personality,Rare,Crab,U,0
 Coils of Madness,Hida O-Ushi Inexperienced,Personality,Fixed,Crab,U,0
 Gates of Chaos,Hida Tadama,Personality,Uncommon,Crab,U,0
@@ -964,7 +964,7 @@ Coils of Madness,Temple of Tengen,Holding,Fixed,,U,0
 Emperor Edition,Tetsuo (exp.),Personality,Rare,Spider,U,0
 Emperor Edition,The Aerie,Stronghold,Decks,Crane,N,0
 Before the Dawn,The Agony of her Gaze,Event,Rare,,U,0
-Embers of War,The Ancestral Sword of Hantei,Item,Decks,,U,0
+Embers of War,The Ancestral Sword of Hantei (Exp.),Item,Decks,,U,0
 Seeds of Decay,The Castle of Order,Stronghold,Fixed,Scorpion,N,0
 Coils of Madness,The Dark Naga Experienced,Personality,Fixed,,U,0
 Seeds of Decay,The Deciding Moment,Strategy,Rare,,U,0
@@ -1121,7 +1121,6 @@ Coils of Madness,Colonial Temple,Holding,Fixed,,N,0
 Aftermath,Commander's Steed,Follower,Common,,N,0
 Honor & Treachery,Communion with Earth,Spell,Fixed,,N,0
 Aftermath,Concealed Reserves,Strategy,Rare,,N,0
-Emperor Edition,Confagration,Spell,Uncommon,,N,0
 Honor & Treachery,Conflagration,Spell,Fixed,,N,0
 Emperor Edition,Confusion at Court,Strategy,Common,,N,0
 Emperor Edition,Consecration,Spell,Rare,,N,0
@@ -1144,7 +1143,7 @@ Seeds of Decay,Deafening Thunder,Spell,Uncommon,,N,0
 Coils of Madness,Death of the Winds,Strategy,Fixed,,N,0
 Before the Dawn,"Death, Defeated",Spell,Uncommon,,N,0
 Seeds of Decay,Debt to the Kaiu,Strategy,Common,,N,0
-Emperor Edition,Deeds and Word,Holding,Rare,,N,0
+Emperor Edition,Deeds and Words,Holding,Rare,,N,0
 Embers of War,Deep Snows,Strategy,Common,,N,0
 Before the Dawn,Defending Their Home,Strategy,Common,,N,0
 Seeds of Decay,Defensive Blockade,Strategy,Common,,N,0
@@ -1286,7 +1285,7 @@ Embers of War,Hotei's Contentment,Celestial,Rare,,U,0
 Aftermath,House of Prophecy,Holding,Rare,,N,0
 Emperor Edition,I Give You My Name,Spell,Rare,,N,0
 Gates of Chaos,Iaijutsu Dojo,Strategy,Uncommon,,N,0
-Embers of War,Illusory Defence,Spell,Rare,,N,0
+Embers of War,Illusory Defense,Spell,Rare,,N,0
 Seeds of Decay,Immolation,Spell,Common,,N,0
 Emperor Edition,Immovable Object,Strategy,Rare,,N,0
 Torn Asunder,Imperial Deployment,Strategy,Uncommon,,N,0
@@ -1379,7 +1378,7 @@ Seeds of Decay,Merihiko's Swarm,Token,Token,Mantis,N,0
 Seeds of Decay,Metsubushi,Strategy,Rare,,N,0
 Seeds of Decay,Military Promotion,Strategy,Common,,N,0
 Torn Asunder,Miryoku no Shima,Holding,Rare,,N,0
-Emperor Edition,Modifcations,Item,Rare,,N,0
+Emperor Edition,Modifications,Item,Rare,,N,0
 Seeds of Decay,Moksha Patam,Item,Uncommon,,N,0
 Coils of Madness,Moments of Destiny,Strategy,Fixed,,N,0
 Emperor Edition,Moneylender,Holding,Rare,,N,0
@@ -1445,7 +1444,7 @@ Torn Asunder,Pierce the Tapestry,Strategy,Uncommon,,X,0
 Emperor Edition,Plans Within Plans,Strategy,Rare,,N,0
 Aftermath,Planted Evidence,Strategy,Rare,,N,0
 Gates of Chaos,Poison the Cup,Spell,Uncommon,,N,0
-Embers of War,Power of Strengh,Strategy,Rare,,N,0
+Embers of War,Power of Strength,Strategy,Rare,,N,0
 Gates of Chaos,Practicing Kata,Strategy,Common,,N,0
 Embers of War,Preceding Reputation,Strategy,Common,,N,0
 Embers of War,Precision,Strategy,Rare,,N,0
@@ -1551,7 +1550,7 @@ Second City,Skipping the Puddle,Strategy,Rare,,N,0
 Second City,Slanderer,Holding,Rare,,N,0
 Gates of Chaos,Slave Pits,Holding,Rare,,N,0
 Aftermath,Sleight of Hand,Strategy,Rare,,N,0
-Before the Dawn,Sly Deciever,Strategy,Uncommon,,N,0
+Before the Dawn,Sly Deceiver,Strategy,Uncommon,,N,0
 Emperor Edition,Small Farm,Holding,Common,,N,0
 Honor & Treachery,Small Farm,Holding,Fixed,,N,0
 Seeds of Decay,Small Library,Holding,Common,,N,0
@@ -1667,7 +1666,7 @@ Embers of War,The Snow Has Teeth,Strategy,Common,,N,0
 Before the Dawn,The Sound of Thunder,Strategy,Uncommon,,N,0
 Before the Dawn,The Spirit of Knowledge,Strategy,Common,,N,0
 Emperor Edition,The Strength of the Spider,Strategy,Decks,,N,0
-Embers of War,The Swell of Strengh,Spell,Common,,N,0
+Embers of War,The Swell of Strength,Spell,Common,,N,0
 Torn Asunder,The Tachikaze,Holding,Common,,N,0
 Coils of Madness,The Tale of the Disgraced,Strategy,Fixed,,N,0
 Before the Dawn,The Tapestry Perceived,Spell,Uncommon,,N,0
@@ -1704,7 +1703,7 @@ Seeds of Decay,Two Hands,Strategy,Rare,,N,0
 Aftermath,Two Steady Breaths,Strategy,Uncommon,,N,0
 Seeds of Decay,Two Stings,Strategy,Rare,,N,0
 Coils of Madness,Typhoon Surge,Spell,Fixed,,N,0
-Torn Asunder,Uji's Saboteur's,Follower,Uncommon,,N,0
+Torn Asunder,Uji's Saboteurs,Follower,Uncommon,,N,0
 Torn Asunder,Unbound Essence,Spell,Rare,,N,0
 Gates of Chaos,Uncovering Treasures,Strategy,Common,,N,0
 Gates of Chaos,Unexpected Discovery,Strategy,Common,,N,0
@@ -2005,7 +2004,7 @@ Forgotten Legacy,Wanted for Questioning,Strategy,Fixed,,N,0
 Forgotten Legacy,The Forgotten Temple,Stronghold,Fixed,,N,0
 Forgotten Legacy,Hisano's Guide,Token,Token,,,0
 War of Honor,Game of Sincerity,Strategy,Fixed,,N,0
-War of Honor,"Begon, Fool!",Strategy,Fixed,,N,0
+War of Honor,"Begone, Fool!",Strategy,Fixed,,N,0
 Promotional Celestial,A Brave New World,Strategy,Promo,,N,0
 Promotional Emperor,A Glimpse of Fate,Strategy,Promo,,N,0
 Promotional Emperor,A Great Victory,Event,Promo,,N,0

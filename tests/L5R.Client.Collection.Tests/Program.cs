@@ -47,7 +47,7 @@ try
     // ---- the collection file (issues #807, #1141): Set, Card Name, Card Type, Rarity, Clan, Limit, Count ----
     var root = new DirectoryInfo(AppContext.BaseDirectory); while (root is not null && !File.Exists(Path.Combine(root.FullName, "AGENTS.md"))) root = root.Parent;
     var printings = CollectionPrintings.Parse(CollectionPrintings.Decode(File.ReadAllBytes(Path.Combine(root!.FullName, "src/L5R.Client/Content/collection-printings.txt"))));
-    Check(printings.Length == 2374 && printings.All(p => p.Set.Length > 0 && p.Rarity.Length > 0) && printings.Any(p => p.Rarity == "Promo") && !printings.Any(p => p.Set.Contains("â")), "the shipped list has every printing, each with a set and rarity, and clean set names");
+    Check(printings.Length == 2373 && printings.All(p => p.Set.Length > 0 && p.Rarity.Length > 0) && printings.Any(p => p.Rarity == "Promo") && !printings.Any(p => p.Set.Contains("â")), "the shipped list has every printing, each with a set and rarity, and clean set names");
     Check(printings.Count(p => p.Type == "Token") == 35 && printings.Where(p => p.Type == "Token").All(p => p.Rarity == "Token") && printings.All(p => p.Limit is "U" or "S" or "N" or "X" or ""), "Tokens are labelled Token in type and rarity, and every limit is U, S, N or X");
     Check(new[] { ("Itoku (Exp)", "itoku - exp"), ("Kaiu Esumi (Exp.)", "kaiu esumi - exp"), ("Shadow Dragon (Exp2)", "shadow dragon - exp2"), ("Bayushi Nitoshi (Inexp)", "bayushi nitoshi - inexperienced"), ("Daigotsu Hotako (Exp. 3)", "daigotsu hotako - exp3"),
         ("Daigotsu Takayasu (Exp) Personality", "daigotsu takayasu - exp"), ("Akodo Tsudoken Experienced 2", "akodo tsudoken - exp2"), ("Doji Hoturi Inexperienced", "doji hoturi - inexperienced"), ("Bayushi Kachiko Experienced CoM", "bayushi kachiko - exp"),
@@ -92,6 +92,13 @@ try
     var unresolved = resolved.Rows.Count(r => r.Id is null);
     Console.WriteLine($"  template against the catalogue: {resolved.Rows.Length - unresolved} of {resolved.Rows.Length} rows resolve without review");
     Check(resolved.Rows.Length > 2000 && unresolved < 120, "all but a few of the template's rows resolve to a catalogue card without review");
+    // Every non-Token row names a library card, apart from the printings the library has no version of (an Experienced or flavour version, a card it lacks). A misspelt row exports as 0 with
+    // its copies on a trailing row (issue #1164), so a new row that matches nothing must be fixed or added here on purpose.
+    var versionKeys = real.Select(c => CollectionPrintings.Key(c.VersionName)).ToHashSet(); var baseKeys = real.Select(c => CollectionPrintings.Key(c.Name)).ToHashSet();
+    string[] notInLibrary = ["Itoku (Exp)", "Naka Mahatsu (Exp.)", "Bayushi Kachiko Experienced CoM", "Border Keep (Inexp) (Phoenix Flavor)", "Border Keep (Inexp) (Scorpion Flavor)", "Fukuzo (Chuda Fukuzo Exp.)",
+        "Isawa Tsuke Experienced CoM", "Iuchi Shunshi (Exp.2)", "Shiba Tsukimi (Exp 3.5)", "Tsubo (Exp.)", "Earth's Embrace", "Exquisite Gifts", "Frozen in Place", "Into the Wastes", "The Asahina's Shame", "Oblivious"];
+    var unmatched = printings.Where(p => p.Type != "Token" && !versionKeys.Contains(CollectionPrintings.Key(p.Name)) && !baseKeys.Contains(CollectionPrintings.Key(p.Name))).Select(p => p.Name).Distinct().Order().ToArray();
+    Check(unmatched.SequenceEqual(notInLibrary.Order()), "every printing in the list names a library card except the known absent ones; unexpected: " + string.Join(" | ", unmatched.Except(notInLibrary)) + "; now matched: " + string.Join(" | ", notInLibrary.Except(unmatched)));
     // ---- the closest-name guess (issue #807): the deck troubleshooter's scoring, for names the catalogue spells differently ----
     CollectionIdentity[] spelled = [new("w", "Advance Warning", "Advance Warning"), new("m", "Modifications", "Modifications"), new("i", "Itoku", "Itoku"), new("a", "Kaiu Esumi", "Kaiu Esumi"), new("b", "Kaiu Esumi", "Kaiu Esumi - exp")];
     var guessed = new MyCollectionStore(Path.Combine(dir, "guess.json")).Preview("Set,Card Name,Card Type,Rarity,Clan,Limit,Count\nBefore the Dawn,Advanced Warning,Strategy,Common,,N,2\nBefore the Dawn,Modifcations,Strategy,Common,,N,1\nEmbers of War,Itoku (Exp),Personality,Rare,,U,1\nEmbers of War,Kaiu Esumi (Exp.),Personality,Rare,,U,1\nBefore the Dawn,Zzzz Qqqq,Strategy,Common,,N,1\nBefore the Dawn,Zzzz Qqqq,Strategy,Common,,N,0\n", spelled, list);
