@@ -1121,7 +1121,6 @@ Coils of Madness,Colonial Temple,Holding,Fixed,,N,0
 Aftermath,Commander's Steed,Follower,Common,,N,0
 Honor & Treachery,Communion with Earth,Spell,Fixed,,N,0
 Aftermath,Concealed Reserves,Strategy,Rare,,N,0
-Emperor Edition,Conflagration,Spell,Uncommon,,N,0
 Honor & Treachery,Conflagration,Spell,Fixed,,N,0
 Emperor Edition,Confusion at Court,Strategy,Common,,N,0
 Emperor Edition,Consecration,Spell,Rare,,N,0
