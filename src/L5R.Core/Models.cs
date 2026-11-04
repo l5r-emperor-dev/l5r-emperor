@@ -1023,6 +1023,8 @@ public sealed partial class MatchState
     public GameCommand? PendingAnnouncedAction { get; set; }
     // Issue #917 (ResolutionArea.cs): the cards in the resolution area, oldest first (a Reaction played in response sits above the action it answers).
     public List<ResolutionEntry> ResolutionArea { get; set; } = [];
+    // Issue #1169 (BattleActionLog.cs): every action and pass of the battle in progress, oldest first; emptied when the next battle starts, so the last one stays reviewable after it resolves.
+    public List<BattleActionRecord> BattleActions { get; set; } = [];
     // Entrenched Position (Forgotten Legacy pass, issue #467 batch 3): set by its Reaction inside an "announceReaction" window; the announced action then resolves negated
     // (ResolveNegatedAction: taken, its costs paid, no effects) when the window closes. Cleared as it is read.
     public bool AnnouncedActionNegated { get; set; }
@@ -1629,6 +1631,9 @@ public sealed record MatchView(string ContentVersion, string Scenario, long Vers
     // Issue #917 (ResolutionArea.cs): the resolution area, oldest first, PUBLIC and identical for both seats; null when empty so a payload outside an open action is unchanged. Declared last.
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public ResolutionEntryView[]? ResolutionArea { get; init; }
+    // Issue #1169 (BattleActionLog.cs): the battle's actions and passes, oldest first, PUBLIC except that a face-down target is named only to its owner; null outside a battle that has had any.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public BattleActionView[]? BattleActions { get; init; }
 }
 /// <summary>Engine-private record of one face-down province card a player looked at (MatchState.ProvinceSights). Turn is the turn number it was looked at.</summary>
 public sealed record ProvinceSight(int ViewerId, int OwnerId, int Province, string CardId, string DefinitionId, int Turn);

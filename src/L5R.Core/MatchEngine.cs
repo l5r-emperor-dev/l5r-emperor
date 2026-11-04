@@ -1222,6 +1222,7 @@ public sealed partial class MatchEngine
     private void Pass()
     {
         Emit("passed", $"{Player(_state.PriorityPlayerId).Name} passed.", _state.PriorityPlayerId);
+        NoteBattlePass(_state.PriorityPlayerId); // issue #1169
         // Twist of Fate (Emperor Edition remaining-cards pass, issue #492, group D): passing the additional action ends it, and the Dynasty Phase carries on.
         if (_state.TwistOfFateActive) { EndTwistOfFateAction(); return; }
         switch (_state.Phase)
@@ -1445,7 +1446,7 @@ public sealed partial class MatchEngine
         if (OpenEngageWindow(battlefield))
         {
             if (firstOpportunity is int claimant) ClaimFirstOpportunity(claimant, claimant == _state.ActivePlayerId ? "Grant" : "Defender", null);
-            Emit("battleStarted", $"Battle at {label}: engaged.");
+            Emit("battleStarted", $"Battle at {label}: engaged."); _state.BattleActions = []; // issue #1169
             return;
         }
         if (firstOpportunity == _state.ActivePlayerId)
@@ -1456,7 +1457,7 @@ public sealed partial class MatchEngine
             Emit("firstOpportunity", $"{Player(_state.ActivePlayerId).Name} has the first opportunity to take a Battle action or pass ({BattleSteps.ReasonEngageGrant}).", _state.ActivePlayerId);
         }
         MarkCombatSegmentBegan(); // Issue #503 (EmperorP5.cs): no Engage window, so the Combat Segment begins now (Headbutt).
-        Emit("battleStarted", $"Battle at {label}: {(firstOpportunity == _state.ActivePlayerId ? "attacker" : "defender")} acts first.");
+        Emit("battleStarted", $"Battle at {label}: {(firstOpportunity == _state.ActivePlayerId ? "attacker" : "defender")} acts first."); _state.BattleActions = []; // issue #1169
     }
     private void ResolveBattle()
     {

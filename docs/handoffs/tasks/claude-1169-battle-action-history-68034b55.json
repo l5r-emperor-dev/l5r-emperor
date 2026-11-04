@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Battle sidebar action record (#1169): the engine records every action, Reaction and pass of a battle (BattleActionLog.cs, MatchView.BattleActions, per-seat face-down target hiding); the sidebar panel shows the newest with card thumbnail, performer, targets, choices and a terse effect, with back/forward arrows through the battle. Local worktree only, not pushed.",
+  "validation": "L5R.Core test 'Battle action record' passes; core and client projects build. Panel not yet seen rendered; full tools/check.sh not yet run.",
+  "remaining": "Playtest and screenshot the panel; replace the placeholder Pass plate with approved artwork; write hand-tuned effect lines (most use the ability's printed text); run check.sh and push only after playtest.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1169",
+  "branch": "claude/1169-battle-action-history",
+  "updated": "2026-11-04T12:10:35.266064+00:00"
+}
