@@ -1,7 +1,7 @@
 using L5R.Core;
 
 // The Attacks lesson: Dragon against Mantis, played through the runner the way a player would. A rules or card change that breaks something a step shows (Mantis attacking, the Reconnaissance bonus, a Follower
-// protecting its Personality, a Ranged Attack with no target, Strong Defenses, Michi's Melee Attack) fails here instead of in front of a new player.
+// protecting its Personality, a Follower destroyed by an Attack, Strong Defenses, Michi's Melee Attack) fails here instead of in front of a new player.
 internal static class TutorialAttacksTests
 {
     private const string Lesson = "special-attacks";
@@ -73,11 +73,8 @@ internal static class TutorialAttacksTests
             case "followers":
                 Expect(state.Phase == Phase.Battle && InPlay(runner, 0, TutorialCards.VeteranSkirmishers).AttachedTo == InPlay(runner, 0, TutorialCards.MirumotoMichi).Id, "the battle is on and Veteran Skirmishers is attached to Michi");
                 break;
-            case "pass-first":
-                Expect(state.PriorityPlayerId == 0 && state.Phase == Phase.Battle, "the defender holds the first action");
-                break;
-            case "no-target":
-                Expect(Has(runner, 0, TutorialCards.VeteranSkirmishers, Zone.Attached) && !InPlay(runner, 0, TutorialCards.VeteranSkirmishers).Bowed, "Tomaru's Attack with no target destroyed nothing: " + string.Join("; ", Cards(runner, 0, TutorialCards.VeteranSkirmishers).Select(c => c.Zone + "/" + c.Bowed)));
+            case "follower-destroyed":
+                Expect(!Cards(runner, 0, TutorialCards.VeteranSkirmishers).Any(c => c.Zone is Zone.Attached or Zone.Home or Zone.Battlefield), "Tomaru's Ranged 3 destroyed Veteran Skirmishers: " + string.Join("; ", Cards(runner, 0, TutorialCards.VeteranSkirmishers).Select(c => c.Zone + "/" + c.Bowed)));
                 break;
             case "strong-defenses":
                 Expect(Force(runner, 0, TutorialCards.TogashiTorazu) == 4, "Torazu has 4 Force (four Fire tokens)");
