@@ -9,6 +9,7 @@ public partial class Main
     // newest in view; the arrows step back and forward through the battle. Presentation only: nothing here reads engine internals or decides what an action did.
     private int _battleActionCursor, _battleActionCount;
     private bool _battleActionFollow = true;
+    private const float FaceHeight = 112, FaceWidth = 80; // the Reaction window's own small card face
     private const float BattleActionShare = .33f; // the record never takes more than this share of the sidebar's height
 
     private void RenderBattleActionPanel()
@@ -17,7 +18,7 @@ public partial class Main
         if (actions.Length != _battleActionCount) { _battleActionFollow = actions.Length > _battleActionCount || actions.Length == 0 || _battleActionFollow; _battleActionCount = actions.Length; }
         if (_battleActionFollow || _battleActionCursor >= actions.Length) _battleActionCursor = Math.Max(0, actions.Length - 1);
         var budget = Math.Max(190f, GetViewport().GetVisibleRect().Size.Y * BattleActionShare);
-        var panel = new PanelContainer { CustomMinimumSize = new Vector2(0, actions.Length == 0 ? 0 : budget), ClipContents = true };
+        var panel = new PanelContainer { CustomMinimumSize = Vector2.Zero, ClipContents = true };
         panel.AddThemeStyleboxOverride("panel", SidebarSkin.Inset());
         var column = new VBoxContainer(); column.AddThemeConstantOverride("separation", 6); panel.AddChild(column);
 
@@ -36,20 +37,20 @@ public partial class Main
         header.AddChild(back); header.AddChild(forward);
 
         var entry = actions[_battleActionCursor];
-        var body = new HBoxContainer(); body.AddThemeConstantOverride("separation", 12); column.AddChild(body);
-        var faceHeight = Math.Max(120f, budget - 84);
-        body.AddChild(BattleActionFace(entry, faceHeight));
-        var details = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, ClipContents = true }; details.AddThemeConstantOverride("separation", 3); body.AddChild(details);
+        var face = BattleActionFace(entry, FaceHeight, FaceWidth); face.SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin; column.AddChild(face); // the small face the Reaction window shows, with the text below it
+        var scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0, Math.Clamp(budget - FaceHeight - 64, 70f, 120f)) };
+        column.AddChild(scroll);
+        var details = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; details.AddThemeConstantOverride("separation", 4); scroll.AddChild(details);
         var clan = View.Players.FirstOrDefault(p => p.Id == entry.PlayerId)?.Clan ?? entry.PlayerName;
-        var who = Palette.Wrapped($"{clan}{(entry.PlayerId == View.ViewerId ? " (you)" : "")} · {entry.Kind}", 16, Palette.Gold); who.AddThemeFontOverride("font", SidebarSkin.Bold); details.AddChild(who);
-        if (entry.Kind == "Pass") details.AddChild(Palette.Wrapped("Passed.", 16, Palette.Paper));
+        var who = Palette.Wrapped($"{clan}{(entry.PlayerId == View.ViewerId ? " (you)" : "")} · {entry.Kind}", 19, Palette.Gold); who.AddThemeFontOverride("font", SidebarSkin.Bold); details.AddChild(who);
+        if (entry.Kind == "Pass") details.AddChild(Palette.Wrapped("Passed.", 19, Palette.Paper));
         else
         {
-            details.AddChild(Palette.Wrapped(entry.Source?.Definition?.Name ?? "Imperial Favor", 17, Palette.Paper));
-            if (entry.Performer is { } performer) details.AddChild(Palette.Wrapped("Performer: " + performer, 15, Palette.PaperDim));
-            if (entry.Targets.Length > 0) details.AddChild(Palette.Wrapped((entry.Targets.Length == 1 ? "Target: " : "Targets: ") + string.Join(", ", entry.Targets), 15, Palette.PaperDim));
-            if (entry.Chosen.Length > 0) details.AddChild(Palette.Wrapped("Chose: " + string.Join(", ", entry.Chosen), 15, Palette.PaperDim));
-            details.AddChild(Palette.Wrapped(entry.Brief, 15, Palette.Paper));
+            details.AddChild(Palette.Wrapped(entry.Source?.Definition?.Name ?? "Imperial Favor", 20, Palette.Paper));
+            if (entry.Performer is { } performer) details.AddChild(Palette.Wrapped("Performer: " + performer, 18, Palette.Paper));
+            if (entry.Targets.Length > 0) details.AddChild(Palette.Wrapped((entry.Targets.Length == 1 ? "Target: " : "Targets: ") + string.Join(", ", entry.Targets), 18, Palette.Paper));
+            if (entry.Chosen.Length > 0) details.AddChild(Palette.Wrapped("Chose: " + string.Join(", ", entry.Chosen), 18, Palette.Paper));
+            details.AddChild(Palette.Wrapped(entry.Brief, 18, Palette.Gold));
         }
         _inspector.AddChild(panel);
     }
@@ -63,9 +64,8 @@ public partial class Main
     }
 
     /// <summary>The card an action comes from (clickable, opens the full face), or the Pass plaque for a pass.</summary>
-    private Control BattleActionFace(BattleActionView entry, float height)
+    private Control BattleActionFace(BattleActionView entry, float height, float width)
     {
-        var width = height / 1.4f;
         if (entry.Source?.Definition is null) return PassPlaque(width, height);
         var button = new Button { Flat = true, CustomMinimumSize = new Vector2(width, height), FocusMode = Control.FocusModeEnum.None, TooltipText = "Show " + entry.Source.Definition.Name };
         var face = CardPreview.Face(entry.Source, height, width); face.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect); button.AddChild(face);
@@ -84,7 +84,7 @@ public partial class Main
     {
         var plate = new Control { CustomMinimumSize = new Vector2(width, height), MouseFilter = Control.MouseFilterEnum.Ignore };
         plate.Draw += () => PlacardPlate.Draw(plate, plate.Size, false, false);
-        PlacardPlate.Text(plate, "PASS", new Rect2(0, height / 2 - 22, width, 44), 30, Palette.Gold, true);
+        PlacardPlate.Text(plate, "PASS", new Rect2(0, height / 2 - 22, width, 44), 19, Palette.Gold, true);
         return plate;
     }
 }
