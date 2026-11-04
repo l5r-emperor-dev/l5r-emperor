@@ -22,8 +22,18 @@ internal static class TutorialLessonAttacks
         int[]? onlyProvinces = null) =>
         new()
         {
-            Id = id, Title = title, Body = body, Instruction = instruction, Allow = allow, Accept = accept, RefusalHint = hint ?? "Do the move the lesson asks for.", Then = then,
-            Highlight = highlight, Glow = glow, Targets = targets, OnlyProvinces = onlyProvinces
+            Id = id,
+            Title = title,
+            Body = body,
+            Instruction = instruction,
+            Allow = allow,
+            Accept = accept,
+            RefusalHint = hint ?? "Do the move the lesson asks for.",
+            Then = then,
+            Highlight = highlight,
+            Glow = glow,
+            Targets = targets,
+            OnlyProvinces = onlyProvinces
         };
 
     private static bool AttackedProvince(GameCommand command, int province) => command.Assignments is { Count: > 0 } assignments ? assignments.Values.All(p => p == province) : command.Province == province;
