@@ -1,8 +1,8 @@
 namespace L5R.Core;
 
 /// <summary>A card that starts in play at home, face up (a Border Keep, a bowed Bamboo Harvesters). <paramref name="Attachments"/> are cards already attached to it (a Personality's Item);
-/// <paramref name="ChiToken"/> is a token on it that changes its Chi by that amount (a -1C token).</summary>
-internal sealed record TutorialHomeCard(string DefinitionId, bool Bowed = false, string[]? Attachments = null, int ChiToken = 0);
+/// <paramref name="ChiToken"/> is a token on it that changes its Chi by that amount (a -1C token); <paramref name="FireTokens"/> is how many +1F Fire tokens it carries.</summary>
+internal sealed record TutorialHomeCard(string DefinitionId, bool Bowed = false, string[]? Attachments = null, int ChiToken = 0, int FireTokens = 0);
 
 /// <summary>One side of a lesson's table. The deck is the pinned deck of <see cref="Clan"/> (<c>content/published/lion-crane-v1.json</c>) unless <see cref="Deck"/> names another; the cards in
 /// <see cref="DynastyTop"/> and <see cref="FateTop"/> are put on top in that order, whether or not the deck holds them. A catalogue card outside the pinned decks takes the place of the deck's last card.
@@ -38,7 +38,7 @@ internal sealed record TutorialLesson(string Id, string Title, TutorialSetup Set
 /// <summary>Every lesson, in the order the menu suggests. The menu never locks one.</summary>
 internal static class TutorialLessons
 {
-    public static readonly TutorialLesson[] All = [TutorialLessonOne.Lesson, TutorialLessonDynasty.Lesson, TutorialLessonRecruiting.Lesson, TutorialLessonSpells.Lesson, TutorialLessonAttachments.Lesson, TutorialLessonKeywords.Lesson, TutorialLessonKeywords2.Lesson, TutorialLessonTraitsActions.Lesson];
+    public static readonly TutorialLesson[] All = [TutorialLessonOne.Lesson, TutorialLessonDynasty.Lesson, TutorialLessonRecruiting.Lesson, TutorialLessonSpells.Lesson, TutorialLessonAttachments.Lesson, TutorialLessonKeywords.Lesson, TutorialLessonKeywords2.Lesson, TutorialLessonTraitsActions.Lesson, TutorialLessonAttacks.Lesson];
     public static TutorialLesson Default => All[0];
     public static TutorialLesson Get(string id) => All.Single(l => l.Id == id);
 }

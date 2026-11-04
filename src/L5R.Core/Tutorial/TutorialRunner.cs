@@ -150,7 +150,8 @@ internal sealed class TutorialContext(TutorialRunner runner)
         var result = Engine.Execute(option.Command! with { PerformerId = performerId, TargetId = discardId });
         if (!result.Accepted) throw new InvalidOperationException("The opponent's Tactical Advantage was refused: " + result.Error);
     }
-    public void FoeUse(string ability, string? performer = null, string? card = null, string? target = null, string? choice = null, string[]? pay = null)
+    /// <summary><paramref name="noTarget"/>: the opponent chooses no target for an Attack, which needs none.</summary>
+    public void FoeUse(string ability, string? performer = null, string? card = null, string? target = null, string? choice = null, string[]? pay = null, bool noTarget = false)
     {
         var foe = 1 - TutorialRunner.Seat; var look = new TutorialLookup(Engine);
         string? InPlay(string? definition) => definition is null ? null : look.Foe(definition, Zone.Home, Zone.Battlefield, Zone.Stronghold, Zone.Attached).FirstOrDefault();
@@ -171,6 +172,7 @@ internal sealed class TutorialContext(TutorialRunner runner)
             if (cardId is not null && command.CardId is null) command = command with { CardId = cardId };
         }
         if (choice is not null) command = command with { Choice = choice };
+        if (noTarget) command = command with { TargetId = null };
         var result = Engine.Execute(command);
         if (!result.Accepted) throw new InvalidOperationException($"The opponent's '{ability}' was refused: {result.Error}");
     }

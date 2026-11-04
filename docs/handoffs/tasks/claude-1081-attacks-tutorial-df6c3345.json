@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Attacks tutorial (special-attacks): Dragon against Mantis. Mantis attacks Province 1; steps cover Ranged X and Melee X, Followers protecting a Personality, choosing no target, Reconnaissance raising Haruhiko's Ranged 3 to 5, Strong Defenses (-3) saving Torazu, and Michi's Melee 4 destroying Tomaru. Adds Fire tokens to a tutorial table's home cards and a no-target option to the foe's FoeUse.",
+  "validation": "tutorial-attacks tests (6) incl. numbers the notes quote; full tools/check.sh --skip-client passed; client not compiled locally (CI)",
+  "remaining": "Mendon to play it and review the wording; the Wasteland Scout on Haruhiko (his Reconnaissance, instead of Koshin Keep whose reaction would reduce Torazu's Force) is a choice to confirm.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1081",
+  "branch": "claude/1081-attacks-tutorial",
+  "updated": "2026-11-04T00:47:07.310188+00:00"
+}
