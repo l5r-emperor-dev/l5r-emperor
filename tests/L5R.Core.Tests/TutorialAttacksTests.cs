@@ -112,6 +112,12 @@ internal static class TutorialAttacksTests
         Expect(targets.Contains(InPlay(runner, 1, TutorialCards.TsuruchiTomaru).Id), "Tomaru can be targeted");
         Expect(!targets.Contains(InPlay(runner, 1, TutorialCards.YoritomoHaruhiko).Id), "Haruhiko has a Follower, so he cannot be targeted");
         Expect(Force(runner, 1, TutorialCards.TsuruchiTomaru) == 4, "Tomaru has 4 Force, the Melee 4's strength");
+        Expect(targets.Contains(InPlay(runner, 1, TutorialCards.WastelandScout).Id), "the Wasteland Scout can be targeted too");
+        // The player may pick the Scout instead of Tomaru, and the lesson accepts it.
+        var scout = InPlay(runner, 1, TutorialCards.WastelandScout).Id;
+        var pick = runner.Actions().First(a => a.Enabled && a.Command?.AbilityId == "unparalleled-sword-attack").Command! with { TargetId = scout };
+        Expect(runner.Execute(pick).Accepted, "the lesson accepts the Wasteland Scout as the Melee target");
+        Expect(Has(runner, 1, TutorialCards.WastelandScout, Zone.Dead) || !Cards(runner, 1, TutorialCards.WastelandScout).Any(c => c.Zone is Zone.Attached), "the Scout is destroyed");
     }
 
     private static void OpensAsMantis()
