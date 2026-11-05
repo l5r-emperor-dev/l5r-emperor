@@ -48,6 +48,10 @@ public sealed partial class MatchEngine
         _state.BattleActions.Add(new(_state.BattleActions.Count + 1, "Pass", playerId, "pass", null, null, [], []));
     }
 
+    // The first entry of every battle: the Attacker engaged this battlefield. Written after the record is emptied, so it always opens the list.
+    private void NoteBattleEngage(string battlefield) =>
+        _state.BattleActions.Add(new(1, "Engage", _state.ActivePlayerId, "engage", null, null, [], [battlefield]));
+
     private BattleActionView[]? BuildBattleActionViews(int viewerId)
     {
         if (_state.BattleActions.Count == 0) return null;
@@ -60,7 +64,7 @@ public sealed partial class MatchEngine
                 source = new(card.Id, Copy(def), card.OwnerId, card.Zone, true, false, null, null, def.Force); // an action's card is public once played
             }
             var known = AbilityCatalog.All.TryGetValue(r.AbilityId, out var ability);
-            return new BattleActionView(r.Sequence, r.Kind, r.PlayerId, Player(r.PlayerId).Name, source, r.AbilityId, known ? ability!.Label : "Pass", known ? BattleActionLog.Brief(r.AbilityId, ability!) : "",
+            return new BattleActionView(r.Sequence, r.Kind, r.PlayerId, Player(r.PlayerId).Name, source, r.AbilityId, known ? ability!.Label : r.Kind, known ? BattleActionLog.Brief(r.AbilityId, ability!) : r.Kind == "Engage" ? "Engage actions and Reactions may follow" : "",
                 r.Performer, r.Targets.Select(x => x.Secret && x.OwnerId != viewerId ? "a face-down card" : x.Name).ToArray(), r.Chosen);
         }).ToArray();
     }

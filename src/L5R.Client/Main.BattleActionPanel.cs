@@ -44,6 +44,7 @@ public partial class Main
         var clan = View.Players.FirstOrDefault(p => p.Id == entry.PlayerId)?.Clan ?? entry.PlayerName;
         var who = Palette.Wrapped($"{clan}{(entry.PlayerId == View.ViewerId ? " (you)" : "")} · {entry.Kind}", 19, Palette.Gold); who.AddThemeFontOverride("font", SidebarSkin.Bold); details.AddChild(who);
         if (entry.Kind == "Pass") details.AddChild(Palette.Wrapped("Passed.", 19, Palette.Paper));
+        else if (entry.Kind == "Engage") { details.AddChild(Palette.Wrapped("Engaged " + string.Join(", ", entry.Chosen), 19, Palette.Paper)); details.AddChild(Palette.Wrapped(entry.Brief, 18, Palette.Gold)); }
         else
         {
             details.AddChild(Palette.Wrapped(entry.Source?.Definition?.Name ?? "Imperial Favor", 20, Palette.Paper));
@@ -66,7 +67,7 @@ public partial class Main
     /// <summary>The card an action comes from (clickable, opens the full face), or the Pass plaque for a pass.</summary>
     private Control BattleActionFace(BattleActionView entry, float height, float width)
     {
-        if (entry.Source?.Definition is null) return PassPlaque(width, height);
+        if (entry.Source?.Definition is null) return PassPlaque(width, height, entry.Kind == "Engage" ? "ENGAGE" : "PASS");
         var button = new Button { Flat = true, CustomMinimumSize = new Vector2(width, height), FocusMode = Control.FocusModeEnum.None, TooltipText = "Show " + entry.Source.Definition.Name };
         var face = CardPreview.Face(entry.Source, height, width); face.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect); button.AddChild(face);
         var source = entry.Source;
@@ -80,11 +81,11 @@ public partial class Main
     }
 
     // The Pass plate: the game's brass-framed chalkboard plate (as the battle placards use) with PASS lettered on it. A stand-in for dedicated Pass artwork, which the repository does not have yet.
-    private static Control PassPlaque(float width, float height)
+    private static Control PassPlaque(float width, float height, string word)
     {
         var plate = new Control { CustomMinimumSize = new Vector2(width, height), MouseFilter = Control.MouseFilterEnum.Ignore };
         plate.Draw += () => PlacardPlate.Draw(plate, plate.Size, false, false);
-        PlacardPlate.Text(plate, "PASS", new Rect2(0, height / 2 - 22, width, 44), 19, Palette.Gold, true);
+        PlacardPlate.Text(plate, word, new Rect2(0, height / 2 - 22, width, 44), word.Length > 4 ? 14 : 19, Palette.Gold, true);
         return plate;
     }
 }

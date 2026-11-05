@@ -154,6 +154,7 @@ var tests = new (string Name, Action Run)[]
     ("Enlightenment victory (issue #194): all five real elemental Rings in play at the start of a turn wins; a False Ring's own matching elemental keyword never substitutes, even for a missing real Ring -- Fudo is the actual exclusion", EnlightenmentVictory),
     ("Ring of Air (Emperor Edition scan): a third Spell or Kiho action of a different title in one turn grants an Additional Battle Action scoped to the Ring rather than a forced interrupt; recruiting it, then its Battle/Open straighten of a performing Personality's unit", RingOfAir),
     ("Battle action record (issue #1169): actions, passes and innate actions are listed for both seats with their card, performer, target and a terse effect", BattleActionRecordTest),
+    ("Battle action record (issue #1169): engaging opens the record with an Engage entry, and a pass in the Engage window follows it", BattleActionRecordEngageTest),
     ("Ring of Water (Emperor Edition scan): a fourth Battle action of a different title in one battle grants an Additional Battle Action scoped to the Ring, surviving battle-end cleanup; its move-home and move-to-an-enemy-battlefield halves straighten the mover", RingOfWater),
     ("Ring of Earth (Emperor Edition scan): a won battle against enemy units grants the recruit unless one of the winner's Personalities was destroyed during the battle", RingOfEarthRecruit),
     ("Ring of the Void (issue #1157): the Emperor Edition scan, recruited after a fourth non-Kiho Strategy action in a phase and drawing by the hand comparison, never discarding a hand", RingOfTheVoid),
@@ -5905,6 +5906,23 @@ static void BattleActionRecordTest()
     var innate = e.GetView(0).BattleActions!.Last();
     Check(innate.Source?.Id == discard.Id && innate.Performer == NameOf(tactician) && innate.Targets.Length == 0, "an innate action shows the card discarded for it as its source, and that card is not also a target");
     Check(AbilityCatalog.All.All(a => BattleActionLog.Brief(a.Key, a.Value).Length <= BattleActionLog.BriefLimit), "every ability has an effect line within the sidebar's limit");
+}
+static void BattleActionRecordEngageTest()
+{
+    // Issue #1169: engaging opens the battle's record with an Engage entry, and a pass in the Engage window is recorded after it.
+    var s = StrongholdBattle("oracle-l5r-1218"); s.ActivePlayerId = 0;
+    Add(s, "training-crane-samurai", 0, Zone.Battlefield, province: 0);
+    Add(s, "training-crane-samurai", 1, Zone.Battlefield, province: 0);
+    s.Phase = Phase.BattleSelection; s.CurrentBattleProvince = null; s.UnresolvedBattlefields = [0]; s.PriorityPlayerId = 0;
+    var e = MatchEngine.FromTestState(s);
+    Accept(e, new GameCommand("selectBattle", 0, e.Version, Province: 0));
+    var log = e.GetView(1).BattleActions!;
+    Check(log.Length >= 1 && log[0].Kind == "Engage" && log[0].PlayerId == 0 && log[0].Source is null && log[0].Chosen.Length == 1, "engaging records who engaged and where, as the battle's first entry");
+    if (e.State.PendingChoice is { Type: "engageReaction" })
+    {
+        Accept(e, Cmd(e, "pass"));
+        Check(e.GetView(0).BattleActions!.Last().Kind == "Pass", "a pass in the Engage window is recorded");
+    }
 }
 static void RingOfWater()
 {
