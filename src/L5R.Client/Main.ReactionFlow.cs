@@ -97,6 +97,7 @@ public partial class Main
         if (BattleTracker.InBattle(View.Phase))
         {
             RenderBattlefieldNavigation();
+            RenderBattleActionPanel(); // issue #1169: the Engage window and every other battle Reaction window show the record too
         }
         if (View.PriorityPlayerId != View.ViewerId)
         {

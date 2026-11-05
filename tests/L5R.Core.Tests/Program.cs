@@ -153,6 +153,8 @@ var tests = new (string Name, Action Run)[]
     ("Focus-1 Battle-action wave (issue #192): Sankaku-Yari (target-keyword-conditional Attack strength, zero new primitives), Pearl of Embers (BattleOrOpen, zero new primitives), Ritual Preparation (the new own-unit-card Target category -- a Personality OR Follower, own, in play)", FocusOneBattleActionsWave),
     ("Enlightenment victory (issue #194): all five real elemental Rings in play at the start of a turn wins; a False Ring's own matching elemental keyword never substitutes, even for a missing real Ring -- Fudo is the actual exclusion", EnlightenmentVictory),
     ("Ring of Air (Emperor Edition scan): a third Spell or Kiho action of a different title in one turn grants an Additional Battle Action scoped to the Ring rather than a forced interrupt; recruiting it, then its Battle/Open straighten of a performing Personality's unit", RingOfAir),
+    ("Battle action record (issue #1169): actions, passes and innate actions are listed for both seats with their card, performer, target and a terse effect", BattleActionRecordTest),
+    ("Battle action record (issue #1169): engaging opens the record with an Engage entry, and a pass in the Engage window follows it", BattleActionRecordEngageTest),
     ("Ring of Water (Emperor Edition scan): a fourth Battle action of a different title in one battle grants an Additional Battle Action scoped to the Ring, surviving battle-end cleanup; its move-home and move-to-an-enemy-battlefield halves straighten the mover", RingOfWater),
     ("Ring of Earth (Emperor Edition scan): a won battle against enemy units grants the recruit unless one of the winner's Personalities was destroyed during the battle", RingOfEarthRecruit),
     ("Ring of the Void (issue #1157): the Emperor Edition scan, recruited after a fourth non-Kiho Strategy action in a phase and drawing by the hand comparison, never discarding a hand", RingOfTheVoid),
@@ -5881,6 +5883,46 @@ static void RingOfAir()
     Accept(e, Cmd(e, "pass"));
     Accept(e, new GameCommand("useAbility", 0, e.Version, CardId: ring.Id, PerformerId: sleeper.Id, AbilityId: "ring-of-air-straighten"));
     Check(!e.State.Cards[sleeper.Id].Bowed, "Straightens his unit"); Check(e.State.Cards[ring.Id].Bowed, "Bows itself as the in-play cost");
+}
+static void BattleActionRecordTest()
+{
+    // Issue #1169: the battle's actions and passes are recorded as they are announced, newest last, and shown to both seats.
+    var s = StrongholdBattle("oracle-l5r-1218"); s.ActivePlayerId = 0;
+    var host = Add(s, "training-shugenja", 0, Zone.Battlefield, province: 0);
+    var foe = Add(s, "training-crane-samurai", 1, Zone.Battlefield, province: 0);
+    var tactician = Add(s, "training-tactician", 0, Zone.Battlefield, province: 0);
+    var boost = Add(s, "training-spell-with-ability", 0, Zone.Attached, province: 0, attachedTo: host.Id);
+    var discard = Add(s, "training-focus-strategy", 0, Zone.Hand);
+    var e = MatchEngine.FromTestState(s);
+    string NameOf(CardInstance c) => e.GetView(0).Players.SelectMany(p => p.Home.Concat(p.Army).Concat(p.Hand)).First(v => v.Id == c.Id).Definition!.Name;
+    Check(e.GetView(0).BattleActions is null, "before anyone acts the battle has no record");
+    Accept(e, new GameCommand("useAbility", 0, e.Version, CardId: boost.Id, TargetId: host.Id, AbilityId: "training-spell-force-boost"));
+    Accept(e, Cmd(e, "pass"));
+    var log = e.GetView(1).BattleActions!;
+    Equal(log.Length, 2, "an action and the pass that answered it");
+    Check(log[0].Kind == "Action" && log[0].PlayerId == 0 && log[0].Source?.Id == boost.Id && log[0].Source!.Definition is not null && log[0].Targets.SequenceEqual([NameOf(host)]) && log[0].Brief.Length is > 0 and <= BattleActionLog.BriefLimit, "the action names its player, its card, its target and a terse effect, in the opponent's view too");
+    Check(log[1].Kind == "Pass" && log[1].PlayerId == 1 && log[1].Source is null, "the pass is a record with no card");
+    Accept(e, new GameCommand("useAbility", 0, e.Version, TargetId: discard.Id, AbilityId: "tactical-advantage", PerformerId: tactician.Id));
+    var innate = e.GetView(0).BattleActions!.Last();
+    Check(innate.Source?.Id == discard.Id && innate.Performer == NameOf(tactician) && innate.Targets.Length == 0, "an innate action shows the card discarded for it as its source, and that card is not also a target");
+    Check(AbilityCatalog.All.All(a => BattleActionLog.Brief(a.Key, a.Value).Length <= BattleActionLog.BriefLimit), "every ability has an effect line within the sidebar's limit");
+}
+static void BattleActionRecordEngageTest()
+{
+    // Issue #1169: engaging opens the battle's record with an Engage entry, and a pass in the Engage window is recorded after it.
+    var s = StrongholdBattle("oracle-l5r-1218"); s.ActivePlayerId = 0;
+    Add(s, "training-crane-samurai", 0, Zone.Battlefield, province: 0);
+    Add(s, "training-crane-samurai", 1, Zone.Battlefield, province: 0);
+    s.Phase = Phase.BattleSelection; s.CurrentBattleProvince = null; s.UnresolvedBattlefields = [0]; s.PriorityPlayerId = 0;
+    var e = MatchEngine.FromTestState(s);
+    Accept(e, new GameCommand("selectBattle", 0, e.Version, Province: 0));
+    var log = e.GetView(1).BattleActions!;
+    Check(log.Length >= 1 && log[0].Kind == "Engage" && log[0].PlayerId == 0 && log[0].Source is null && log[0].Chosen.Length == 1, "engaging records who engaged and where, as the battle's first entry");
+    if (e.State.PendingChoice is { Type: "engageReaction" })
+    {
+        Accept(e, Cmd(e, "pass"));
+        Check(e.GetView(0).BattleActions!.Last().Kind == "Pass", "a pass in the Engage window is recorded");
+    }
 }
 static void RingOfWater()
 {

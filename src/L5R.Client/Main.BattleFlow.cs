@@ -24,6 +24,7 @@ public partial class Main
         });
         RenderBattlefieldNavigation();
         RenderBattleFacts();
+        RenderBattleActionPanel(); // issue #1169: every action, Reaction and pass of the battle, newest in view
         if (View.ActionPhaseTurnPlayerId is not null)
             FlowText("Battle during the Action Phase", 17, Palette.Gold);
         if (!PresentationBusy && View.PendingChoice is { } pending)
@@ -53,7 +54,7 @@ public partial class Main
         {
             var clan = View.Players.Single(p => p.Id == View.PriorityPlayerId).Clan;
             FlowText(clan + (View.Phase == Phase.Battle ? " is choosing a Battle action." : View.Phase == Phase.BattleSelection ? " is choosing the next battle." : View.Phase == Phase.AttackDeclaration ? " is deciding whether to attack." : " is making assignments."), 20, Palette.Paper);
-            RenderBattleExchanges(); return true;
+            return true;
         }
         if (View.Phase == Phase.BattleSelection)
         {
@@ -91,7 +92,6 @@ public partial class Main
             // Concede flow; conceding is not a Battle action.
             var options = Actions.Where(a => a.Enabled && a.Command is not null &&
                 a.Type is not ("pass" or "passAllBattles" or "endDynasty" or "declineReaction" or "proclaim" or "chooseShinden" or "concede")).ToArray();
-            RenderBattleExchanges(1);
             foreach (var option in options) AddBattleAction(option);
             if (options.Length == 0) FlowText("No Battle action is currently available.", 17, Palette.PaperDim);
         }
@@ -139,21 +139,6 @@ public partial class Main
         var name = Palette.Wrapped(title, 19); name.AddThemeFontOverride("font", SidebarSkin.Bold); column.AddChild(name);
         column.AddChild(Palette.Wrapped(detail, 16, destroyed ? new Color("d79683") : Palette.PaperDim));
         _inspector.AddChild(panel);
-    }
-    private void RenderBattleExchanges(int count = 3)
-    {
-        var start = _journal.Exchanges.FindLastIndex(e => e.Events.Any(x => x.Type is "battleStarted" or "attackDeclared"));
-        if (start < 0) return;
-        var recent = _journal.Exchanges.Skip(start).TakeLast(count).ToArray();
-        if (recent.Length == 0) return;
-        _inspector.AddChild(new HSeparator()); FlowText("Recent exchanges", 17, Palette.PaperDim);
-        foreach (var exchange in recent)
-        {
-            var actor = exchange.Player is int player ? View.Players.Single(p => p.Id == player).Clan : "Battle";
-            var details = string.Join("\n", exchange.Events.Select(e => e.Message));
-            FlowCard(actor, details, exchange.Events.Any(e => e.Type is "unitDestroyed" or "attachmentDestroyed"));
-        }
-        _inspector.AddChild(SidebarSkin.Button("Earlier exchanges  ›", ShowBattleHistory));
     }
     private void ShowBattleHistory()
     {

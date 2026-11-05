@@ -7442,6 +7442,7 @@ public sealed partial class MatchEngine
         command = NormalizeSlotCommand(command);
         Require(command.CardId is null || !_state.Cards.TryGetValue(command.CardId, out var announcing) || !IsResolving(announcing), "This card is already being resolved.");
         ValidateAbility(command);
+        NoteBattleAction(command); // issue #1169 (BattleActionLog.cs): the battle's record of this action, taken before the card leaves its zone
         RequireOpposedForConditionalMove(command); // issue #967: the "if opposed" test is made when the action is announced
         EnterResolutionArea(command); // issue #917 (ResolutionArea.cs): a Strategy or Ring from the hand leaves the hand for the resolution area as it is announced
         ControlReturnsOnAnnouncement(command); // issue #501 (EmperorMechB.cs): Shadow Dragon's "return control of him ... after the next time this game this ability is announced".

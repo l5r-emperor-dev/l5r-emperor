@@ -72,6 +72,7 @@ public partial class Main
             _sidebarHeader.AddChild(new HSeparator());
         }
         if (pending?.Type is "beforeBattleOrder" or "beforeBattleOptional" or "encircledOrder" or "encircledSelect") RenderBattleFacts(true);
+        if (pending is not null && BattleTracker.InBattle(View.Phase) && View.BattleActions is { Length: > 0 }) RenderBattleActionPanel(); // issue #1169
         var sourceId = pending?.CardId ?? _chosen?.CardId;
         var source = sourceId is null ? null : FindCard(sourceId);
         var prompt = pending?.Prompt is { } rawPrompt ? BattleActionText.WithoutIds(rawPrompt) : null;
