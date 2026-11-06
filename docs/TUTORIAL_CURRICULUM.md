@@ -24,7 +24,7 @@ A track with a single built lesson has no list: choosing it starts the lesson.
 | Keywords 2 (`keywords-2`) | Unique, Singular, Loyal and Sensei; Destined, Brash, Expendable, Reserve, Terrain and Overconfident; Kharmic, Experienced and Inexperienced, and a word on Duelist, on three tables: Phoenix against Dragon, Scorpion against Dragon, Scorpion against Crane (built, issue #1150). |
 | Traits and Actions (`traits-actions`) | Traits (the Border Keep, Yoritomo Minori, Doji Dainagon, Chiisai) and the six steps of an action, then one attack: Naval Invasion, Unorthodox Attack, Asahina Munefusa and Back to the Front. Mantis against Crane. Built. |
 | Cost and Effect (`cost-effect`) | The difference between paying costs and applying effects |
-| Special Actions - Attacks (`special-attacks`) | Melee and Ranged Attacks |
+| Special Actions - Attacks (`special-attacks`) | Melee and Ranged Attacks: Dragon against Mantis, Mantis attacking your first Province. What Ranged X and Melee X mean (equal Force is destroyed), why a Personality with a Follower cannot be targeted, choosing no target, Reconnaissance raising Haruhiko's Ranged 3 to 5, Strong Defenses (-3) saving Togashi Torazu, and Mirumoto Michi's Melee 4. Built. |
 | Special Actions - Duels (`special-duels`) | Refusability, the Duel flow, and Focus Effects |
 | Special Actions - Dishonor (`special-dishonor`) | Dishonorable status, Dying Dishonorable, Dishonorable Dead, Rehonor, Seppuku |
 | Rings and Enlightenment (`rings`) | How to play a ring, How to win an Enlightenment Victory |

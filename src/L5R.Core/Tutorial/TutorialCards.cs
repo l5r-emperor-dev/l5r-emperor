@@ -60,6 +60,10 @@ internal static class TutorialCards
     // The Traits and Actions lesson: Mantis (you, Koshin Keep) against Crane (Shinden Asahina).
     public const string YoritomoMinori = "oracle-l5r-9605", YoritomoHama = "oracle-l5r-9552", AsahinaMunefusa = "oracle-l5r-505", Chiisai = "oracle-l5r-9803", BackToTheFront = "oracle-l5r-662";
 
+    // The Attacks lesson: Dragon (you, Foothills Keep) against Mantis (Koshin Keep).
+    public const string MirumotoMichi = "oracle-l5r-10054", UnparalleledSword = "oracle-l5r-10124", TogashiTorazu = "oracle-l5r-8590", StrongDefenses = "oracle-l5r-9931";
+    public const string TsuruchiTomaru = "oracle-l5r-8893", YoritomoHaruhiko = "oracle-l5r-9556", WastelandScout = "oracle-l5r-9874";
+
     /// <summary>A forty-card deck: the lesson's cards on top, then the rest of the side's deck in its own order. A card the deck does not hold displaces the last card.</summary>
     internal static string[] Deck(string[] top, TutorialSide side, bool dynasty)
     {

@@ -28,6 +28,7 @@ public sealed partial class MatchEngine
                 var placed = Add(seat, home.DefinitionId, Zone.Home, true, home.Bowed);
                 foreach (var attachment in home.Attachments ?? []) { var worn = Add(seat, attachment, Zone.Attached, true); worn.AttachedTo = placed.Id; }
                 if (home.ChiToken != 0) placed.Tokens.Add(new CardToken("token-tutorial-" + placed.Id, "Poison", "Tutorial", "Chi", home.ChiToken));
+                for (var n = 0; n < home.FireTokens; n++) placed.Tokens.Add(new CardToken($"token-tutorial-fire-{n}-{placed.Id}", "Fire", "Tutorial", "Force", 1));
             }
             foreach (var id in TutorialCards.Deck(side.DynastyTop, side, dynasty: true)) player.DynastyDeck.Add(Add(seat, id, Zone.DynastyDeck).Id);
             foreach (var id in TutorialCards.Deck(side.FateTop, side, dynasty: false)) player.FateDeck.Add(Add(seat, id, Zone.FateDeck).Id);
