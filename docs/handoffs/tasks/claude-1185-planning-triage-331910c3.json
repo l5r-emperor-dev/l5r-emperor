@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Planning bot slice 3 (#1185): ability triage behind BotContext.UsePlannerTriage (default off), on top of the planner branch. Enemy targets are ranked by what they can still do (Force, unspent printed abilities, unspent Tacticians worth up to +4 while their owner holds cards, battle keywords over descriptive ones); printed abilities in play go before hand cards; no Gold or card is spent on a battle that is comfortably won against units with nothing left to spring (a free printed ability still is). Spent abilities are remembered from the public battle action list: observe-only, no engine change. Arms: triage, planner-triage.",
+  "validation": "AI tests triage/TargetOrder and triage/NoWaste pass; builds with 0 errors. Smoke tournaments for arms triage and planner-triage (364 games each, seed block 1700) queued, results not in yet; smoke runs are soundness checks, not promotion evidence.",
+  "remaining": "Not ready to merge: no tournament result yet and no pre-registered decisive run; spent-ability memory only sees battle actions (Open-phase uses and same-named cards are not covered); Engage-reaction overuse not specifically targeted; local only, not pushed; check.sh not run.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1185",
+  "branch": "claude/1185-planning-triage",
+  "updated": "2026-11-07T21:43:17.533742+00:00"
+}
