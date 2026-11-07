@@ -21,6 +21,67 @@ public sealed class BotContext
     private int _favorTakenTurn = -1;
     private int _borderRefreshTurn = -1;
 
+    /// <summary>Issue #1185: the planning bot. True builds a turn plan (intent, Gold shape, purchase slate; TrainingOpponent.Planner.cs) and rebuilds it whenever the table changes. OFF by default: the champion plays as before.</summary>
+    public bool UsePlanner { get; init; } = false;
+
+    /// <summary>Issue #1185 (slice 3): ability triage. Targets are ranked by what they can still do (unspent printed abilities, unspent Tacticians, Force), printed abilities in play go before hand cards, and no Gold or card is spent on a battle already comfortably won. Works with or without <see cref="UsePlanner"/>. OFF by default.</summary>
+    public bool UsePlannerTriage { get; init; } = false;
+
+    // What each performer has used this turn, remembered from the battle's public action list (the view says nothing about a card's once-per-turn abilities). Keyed by performer NAME,
+    // as the list names them: two same-named cards are treated as one, the cautious reading.
+    private int _spentTurn = -1;
+    private readonly HashSet<string> _spent = new(StringComparer.Ordinal);
+    public void NoteBattleActions(MatchView view)
+    {
+        if (view.BattleActions is not { Length: > 0 } actions) return;
+        if (view.TurnNumber != _spentTurn) { _spent.Clear(); _spentTurn = view.TurnNumber; }
+        foreach (var a in actions) if (a.Performer is not null) _spent.Add(a.Performer + "|" + a.AbilityId);
+    }
+    public bool SpentThisTurn(int turn, string performerName, string abilityId) => turn == _spentTurn && _spent.Contains(performerName + "|" + abilityId);
+
+    /// <summary>Issue #1185 ablation switches, meaningful only with <see cref="UsePlanner"/>. PlannerReserve: Gold is kept untapped for Battle tricks (before this turn's attack, and at the end of the turn when an attack on the bot is likely). PlannerDiscard: Mendon's discard rule instead of the champion's.</summary>
+    public bool PlannerReserve { get; init; } = true;
+
+    /// <summary>
+    /// The Contender (issue #1185): the planning bot, as one named configuration, for the bot-vs-bot tournament against the champion. It keeps the parts that paired testing found harmless: the
+    /// purchase slate (Gold shape, bodies, Proclaim, clear-the-row buying) and triage's target ranking and printed-abilities-first ordering. The parts that paired testing found to LOSE games stay
+    /// off until they are fixed, each behind its own switch so a tournament can turn one on at a time: <paramref name="attack"/> (the swing-based attack estimate; about -14 games in 364),
+    /// <paramref name="discard"/> (the interview's discard rule; about -11), <paramref name="reserve"/> (Gold held for Battle tricks; no measurable effect) and <paramref name="wonCap"/> (no spending on a
+    /// comfortably won battle; about -3, not significant). See docs/bots/CONTENDER.md for the evidence and how to run it. The champion on main is unchanged.
+    /// </summary>
+    public static BotContext Contender(bool attack = false, bool discard = false, bool reserve = false, bool wonCap = false) => new()
+    {
+        UsePlanner = true,
+        UsePlannerTriage = true,
+        PlannerAttack = attack,
+        PlannerDiscard = discard,
+        PlannerReserve = reserve,
+        TriageWonCap = wonCap
+    };
+    /// <summary>PlannerAttack: the swing-based battle estimate decides whether and where to attack (slice 2); off leaves the champion's attack rules and only the purchase slate planned.</summary>
+    public bool PlannerAttack { get; init; } = true;
+    /// <summary>The three triage rules, each separately switchable (all on by default with <see cref="UsePlannerTriage"/>): TriageTargets ranks enemy targets by what they can still do; TriagePrintedFirst
+    /// scores printed abilities in play above hand cards; TriageWonCap stops spending resources on a comfortably won battle; TriageSpareKills exempts abilities that DESTROY from that cap
+    /// (a kill is permanent and shrinks their defence next turn; a bow is not). Off by default.</summary>
+    public bool TriageTargets { get; init; } = true;
+    public bool TriagePrintedFirst { get; init; } = true;
+    public bool TriageWonCap { get; init; } = true;
+    public bool TriageSpareKills { get; init; } = false;
+    public bool PlannerDiscard { get; init; } = true;
+
+    internal TurnPlan? Plan { get; private set; }
+    internal string? PlanKey { get; private set; }
+    internal string? PlanGroup { get; private set; }
+    /// <summary>Every plan made this match, in order (the trigger that made it is in each): a tournament report or a test can see when the bot re-thought.</summary>
+    internal List<TurnPlan> PlanHistory { get; } = [];
+    /// <summary>One line per plan made this match: the turn, what made the bot re-think, its intent, the Gold and its shape, and the purchase slate. For tests and tournament reports.</summary>
+    public List<string> PlanLog { get; } = [];
+    internal void NotePlan(TurnPlan plan, string key, string group)
+    {
+        Plan = plan; PlanKey = key; PlanGroup = group; PlanHistory.Add(plan);
+        PlanLog.Add($"T{plan.Turn} {plan.Trigger}: {plan.Intent}, Gold {plan.Gold} [{string.Join("+", plan.Sources)}], slate [{string.Join(",", plan.Slate)}] ({plan.Why}){(plan.Attack is { } a ? $", attack Province {a.Province + 1} {(a.Raze ? "raze" : "win")} net {a.Estimate.Net} reserve {a.Estimate.Reserve}" : "")}");
+    }
+
     /// <summary>Issue #788: false (the default while the arena results are inconclusive; see docs/parked) plays the bot as it was before the six battle changes (no pass-when-won, target priorities, send-home rule, reaction rule or Border Keep refresh). The arena uses it to measure the change.</summary>
     public bool UseBattlePolicy { get; init; } = false;
 

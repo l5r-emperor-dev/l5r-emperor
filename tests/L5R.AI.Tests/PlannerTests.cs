@@ -1,0 +1,178 @@
+using L5R.AI;
+using L5R.Core;
+
+// Issue #1185: the planning bot's turn plan. See TrainingOpponent.Planner.cs.
+internal static class PlannerTests
+{
+    public static readonly (string Name, Action Test)[] Tests = [
+        ("Planner (issue #1185): the purchase slate respects the shape of the Gold (a 5 and a 3 cannot pay for two 4-cost cards), and the plan is rebuilt at the start of a turn, when the phase moves on and when the table changes, but not when nothing did", SlateAndRebuilds),
+        ("Planner (issue #1185, slice 2): the attack decision is a swing estimate (my Force plus what my hand adds, against theirs plus a guessed enemy hand), so the planner attacks a battle it expects to win that the champion's printed-Force rule passes on, holds when a full enemy hand makes it risky, and counts a +Force card in hand", SwingAttack),
+        ("Planner (issue #1185): the end-of-Dynasty discard keeps what can be bought next turn (information plans the turn) and discards only a card too dear to pay for, or a non-Personality when behind in Personalities with none on offer", DiscardRule),
+        ("Contender (issue #1185): the named configuration keeps the harmless planner and triage parts on, leaves the parts that lost games off (each switchable), and behaves as the champion does on attacks until the estimate is switched on", ContenderConfiguration),
+        ("Planner (issue #1185): when the Gold can pay for the whole province row the plan buys it all, and Gold a likely attack will need for Battle tricks is held back from the purchases", ClearTheRowAndReserve),
+    ];
+
+    private static void Check(bool ok, string message) { if (!ok) throw new Exception(message); }
+
+    private static MatchView Table(Phase phase, int turn, int enemyForce)
+    {
+        var personality = BattlePolicyTests.Person(4) with { Clan = "Unaligned", GoldCost = 4 };
+        var holding = CardCatalog.Cards.Values.First(d => d.Type == CardType.Holding) with { GoldProduction = 3, Effect = "", GoldCost = 2 };
+        var view = MatchEngine.CreateStarterMatch().GetView(0);
+        CardView Row(string id) => new(id, personality, 0, Zone.Province, true, false, null, null, personality.Force);
+        var stronghold = view.Players[0].Stronghold with { Definition = view.Players[0].Stronghold.Definition! with { GoldProduction = 5, Effect = "" } };
+        var provinces = view.Players[0].Provinces.Select((p, i) => i == 0 ? p with { Card = Row("A") } : i == 1 ? p with { Card = Row("B") } : p with { Card = null }).ToArray();
+        var home = new[] { new CardView("hold", holding, 0, Zone.Home, true, false, null, null, 0) };
+        var foes = enemyForce == 0 ? [] : new[] { new CardView("foe", BattlePolicyTests.Person(enemyForce), 1, Zone.Home, true, false, null, null, enemyForce) };
+        var self = view.Players[0] with { Stronghold = stronghold, Provinces = provinces, Home = home, Army = [], Hand = [], HandCount = 0, TurnsTaken = 5 };
+        return view with { Phase = phase, TurnNumber = turn, PendingChoice = null, ActivePlayerId = 0, PriorityPlayerId = 0, Players = [self, view.Players[1] with { Home = foes, Army = [] }] };
+    }
+
+    // Attack declaration: my Personality (Force `own`) against one enemy Personality (Force 4) and Provinces of Strength 6, an enemy hand of `enemyHand` cards, and `hand` in mine.
+    private static MatchView AttackTable(int own, int enemyHand, params CardView[] hand)
+    {
+        var view = Table(Phase.AttackDeclaration, 5, 4);
+        var mine = new CardView("unit", BattlePolicy_Person(own), 0, Zone.Home, true, false, null, null, own);
+        var provinces = view.Players[1].Provinces.Select(p => p with { Strength = 6, Destroyed = false, Card = null }).ToArray();
+        return view with
+        {
+            Players = [view.Players[0] with { Home = view.Players[0].Home.Append(mine).ToArray(), Hand = hand, HandCount = hand.Length },
+            view.Players[1] with { Provinces = provinces, HandCount = enemyHand }]
+        };
+    }
+    private static CardDefinition BattlePolicy_Person(int force) => BattlePolicyTests.Person(force);
+
+    private static string Declare(MatchView v, BotContext memory)
+    {
+        var declare = new ActionOption("declareAttack", "Declare an attack", true, null);
+        return TrainingOpponent.Choose(v, [declare, BattlePolicyTests.Pass(v)], memory).Command?.Type ?? "none";
+    }
+
+    private static void SwingAttack()
+    {
+        var plan = () => new BotContext { UsePlanner = true };
+        // Force 5 against Force 4 and no enemy hand: the battle is won (net +1) though no Province falls (Strength 6). The champion needs to beat Strength AND defenders, so it passes.
+        Check(Declare(AttackTable(5, 0), new BotContext()) == "pass", "the champion does not attack a battle it cannot raze");
+        var calm = plan();
+        Check(Declare(AttackTable(5, 0), calm) == "declareAttack", "the planner attacks a battle it expects to win: " + string.Join(" | ", calm.PlanLog));
+        // The same board with five cards in the enemy hand: their guessed tricks swing it back (a hand that big is a risk), so the planner holds.
+        var risky = plan();
+        Check(Declare(AttackTable(5, 5), risky) == "pass", "a full enemy hand makes the same attack too risky: " + string.Join(" | ", risky.PlanLog));
+        // My own hand counts: Force 3 against 4 loses, but a +3 Force card in hand wins it.
+        var bonus = CardCatalog.Cards.Values.First(d => d.Effect == "force-three");
+        var card = new CardView("boost", bonus, 0, Zone.Hand, true, false, null, null, 0);
+        Check(Declare(AttackTable(3, 0), plan()) == "pass", "Force 3 against 4 with nothing in hand does not attack");
+        var boosted = plan();
+        Check(Declare(AttackTable(3, 0, card), boosted) == "declareAttack", "a +3 Force card in hand turns it into a win: " + string.Join(" | ", boosted.PlanLog));
+    }
+
+    // End of the Dynasty phase with `row` in the provinces (capacity: a 5 and a 3 = 8 Gold). Returns what the planner does when offered each card's discard or ending the phase.
+    private static string AtDiscard(CardView[] row, int ownBodies, int turnsTaken = 5)
+    {
+        var view = Table(Phase.DynastyDiscard, 5, 4); // one enemy Personality
+        var provinces = view.Players[0].Provinces.Select((p, i) => p with { Card = i < row.Length ? row[i] : null }).ToArray();
+        var home = view.Players[0].Home.Concat(Enumerable.Range(0, ownBodies).Select(i => new CardView("own" + i, BattlePolicyTests.Person(3), 0, Zone.Home, true, false, null, null, 3))).ToArray();
+        var v = view with { Players = [view.Players[0] with { Provinces = provinces, Home = home, TurnsTaken = turnsTaken }, view.Players[1]] };
+        var actions = row.Select(c => new ActionOption("discardProvince", "Discard " + c.Id, true, null, null, c.Id)).Append(new ActionOption("endDynasty", "End", true, null)).ToArray();
+        var command = TrainingOpponent.Choose(v, actions, new BotContext { UsePlanner = true }).Command;
+        return command?.Type == "discardProvince" ? "discard " + command.CardId : command?.Type ?? "none";
+    }
+
+    private static CardView Card(string id, CardType type, int cost, int production = 0)
+    {
+        var basis = type switch { CardType.Holding => CardCatalog.Cards.Values.First(d => d.Type == CardType.Holding), CardType.Event => CardCatalog.Cards.Values.First(d => d.Type == CardType.Event), _ => BattlePolicyTests.Person(4) };
+        var def = basis with { Clan = "Unaligned", GoldCost = cost, GoldProduction = production, Effect = "" };
+        return new(id, def, 0, Zone.Province, true, false, null, null, def.Force);
+    }
+
+    private static string SlateFor(MatchView v, BotContext memory)
+    {
+        TrainingOpponent.Choose(v, [BattlePolicyTests.Pass(v)], memory);
+        return memory.PlanLog[^1].Split("slate [")[1].Split(']')[0];
+    }
+
+    private static MatchView DynastyRow(CardView[] row, params CardView[] hand)
+    {
+        var view = Table(Phase.Dynasty, 5, hand.Length > 0 ? 9 : 0);
+        var provinces = view.Players[0].Provinces.Select((p, i) => p with { Strength = 4, Card = i < row.Length ? row[i] : null }).ToArray();
+        return view with { Players = [view.Players[0] with { Provinces = provinces, Hand = hand, HandCount = hand.Length }, view.Players[1]] };
+    }
+
+    private static void DiscardRule()
+    {
+        Check(AtDiscard([Card("P1", CardType.Personality, 4), Card("P2", CardType.Personality, 5)], 0) == "endDynasty", "two affordable Personalities are kept, even when behind: they plan the next turn");
+        Check(AtDiscard([Card("P1", CardType.Personality, 4), Card("H1", CardType.Holding, 3, 2)], 0) == "endDynasty", "a Personality and a Holding are both kept");
+        Check(AtDiscard([Card("P1", CardType.Personality, 4), Card("P9", CardType.Personality, 20)], 0) == "discard P9", "a card too dear for all of the bot's production is the one it discards");
+        Check(AtDiscard([Card("H1", CardType.Holding, 3, 2), Card("H2", CardType.Holding, 4, 2)], 0).StartsWith("discard"), "behind in Personalities with only Holdings on offer: it digs for the Personalities it needs");
+        Check(AtDiscard([Card("H1", CardType.Holding, 3, 2), Card("H2", CardType.Holding, 4, 2)], 3) == "endDynasty", "ahead in Personalities, affordable Holdings are kept");
+        // A 4-cost Holding that would make it forgo an affordable 5-cost Personality (5 + 4 is more than the 8 it makes): discarded early, or later when digging; kept later when not behind.
+        CardView[] blocking = [Card("P1", CardType.Personality, 5), Card("H4", CardType.Holding, 4, 2)];
+        Check(AtDiscard(blocking, 3, turnsTaken: 2) == "discard H4", "early in the game the Holding that blocks a Personality is discarded, though the bot is not behind");
+        Check(AtDiscard(blocking, 0, turnsTaken: 6) == "discard H4", "mid game and digging for Personalities, the blocking Holding is discarded");
+        Check(AtDiscard(blocking, 3, turnsTaken: 6) == "endDynasty", "mid game and not behind, the same Holding is kept");
+    }
+
+    private static void ClearTheRowAndReserve()
+    {
+        // The Gold (a 5 and a 3) can pay for the whole row, including a card the value scoring would pass over (an Event): the plan buys it all rather than leave anything to discard.
+        var row = new[] { Card("P1", CardType.Personality, 4), Card("E1", CardType.Event, 2) };
+        var slate = SlateFor(DynastyRow(row), new BotContext { UsePlanner = true });
+        Check(slate.Split(',').Contains("P1") && slate.Split(',').Contains("E1"), "the whole row is bought when the Gold's shape can pay for it: [" + slate + "]");
+
+        // The opponent has a Force 9 army against Provinces of Strength 4 and the bot holds a 2-Gold Battle trick: its 3 stays untapped for their turn, so the 5 and 3 no longer pay for both cards.
+        var boost = CardCatalog.Cards.Values.First(d => d.Effect == "force-three") with { GoldCost = 2 };
+        var trick = new CardView("boost", boost, 0, Zone.Hand, true, false, null, null, 0);
+        var pair = new[] { Card("P1", CardType.Personality, 5), Card("P2", CardType.Personality, 3) };
+        Check(SlateFor(DynastyRow(pair), new BotContext { UsePlanner = true }).Split(',').Length == 2, "with nothing to hold Gold for, both Personalities are bought");
+        var held = SlateFor(DynastyRow(pair, trick), new BotContext { UsePlanner = true });
+        Check(held.Split(',').Length == 1, "a likely attack and a trick in hand: Gold is held back, so only one Personality is planned: [" + held + "]");
+    }
+
+    private static void ContenderConfiguration()
+    {
+        var contender = BotContext.Contender();
+        Check(contender.UsePlanner && contender.UsePlannerTriage && !contender.PlannerAttack && !contender.PlannerDiscard && !contender.PlannerReserve && !contender.TriageWonCap, "the Contender keeps the harmless parts and leaves the parts that lost games off");
+        Check(BotContext.Contender(attack: true).PlannerAttack && BotContext.Contender(discard: true).PlannerDiscard && BotContext.Contender(reserve: true).PlannerReserve && BotContext.Contender(wonCap: true).TriageWonCap, "each experimental part switches on by itself");
+        // With the attack estimate off, the Contender attacks as the champion does (a battle it wins but cannot raze is passed on); with it on, it declares.
+        Check(Declare(AttackTable(5, 0), BotContext.Contender()) == "pass", "Contender: the champion's attack rule applies while the estimate is off");
+        Check(Declare(AttackTable(5, 0), BotContext.Contender(attack: true)) == "declareAttack", "Contender+attack: the swing estimate declares the battle it expects to win");
+        // The purchase slate is on: a plan is made at the Dynasty phase.
+        var memory = BotContext.Contender(); var dynasty = Table(Phase.Dynasty, 5, 0);
+        TrainingOpponent.Choose(dynasty, [Buy(dynasty, "A"), Buy(dynasty, "B"), BattlePolicyTests.Pass(dynasty)], memory);
+        Check(memory.PlanLog.Count == 1, "the Contender plans its purchases");
+    }
+
+    private static ActionOption Buy(MatchView v, string id) =>
+        new("purchase", "Buy " + id, true, null, new("purchase", 0, v.Version, id, ["hold"]), id, null, Gold: new GoldQuote(4, "Printed", "", null, []));
+
+    private static void SlateAndRebuilds()
+    {
+        var memory = new BotContext { UsePlanner = true };
+        var dynasty = Table(Phase.Dynasty, 5, 0);
+        TrainingOpponent.Choose(dynasty, [Buy(dynasty, "A"), Buy(dynasty, "B"), BattlePolicyTests.Pass(dynasty)], memory);
+        var first = memory.PlanLog.Single();
+        // Sources are 5 (Stronghold) and 3 (Holding): one 4-cost card fits the 5, the other cannot be paid from the 3, though the total (8) would cover both.
+        Check(first.Contains("[5+3]"), "the plan names the Gold and its shape: " + first);
+        var inSlate = new[] { "A", "B" }.Count(id => first.Contains("slate [") && first.Split("slate [")[1].Split(']')[0].Split(',').Contains(id));
+        Check(inSlate == 1, "only one of two 4-cost cards fits Gold of 5 and 3: " + first);
+
+        TrainingOpponent.Choose(dynasty, [Buy(dynasty, "A"), BattlePolicyTests.Pass(dynasty)], memory);
+        Check(memory.PlanLog.Count == 1, "the same table does not make a new plan");
+
+        var attack = Table(Phase.AttackDeclaration, 5, 0);
+        TrainingOpponent.Choose(attack, [BattlePolicyTests.Pass(attack)], memory);
+        Check(memory.PlanLog.Count == 2 && memory.PlanLog[1].Contains("phase attack"), "the attack phase beginning re-thinks the plan: " + string.Join(" | ", memory.PlanLog));
+
+        var stronger = Table(Phase.AttackDeclaration, 5, 9);
+        TrainingOpponent.Choose(stronger, [BattlePolicyTests.Pass(stronger)], memory);
+        Check(memory.PlanLog.Count == 3 && memory.PlanLog[2].Contains("table changed"), "an enemy army appearing re-thinks the plan: " + string.Join(" | ", memory.PlanLog));
+
+        var next = Table(Phase.Action, 6, 0);
+        TrainingOpponent.Choose(next, [BattlePolicyTests.Pass(next)], memory);
+        Check(memory.PlanLog.Count == 4 && memory.PlanLog[3].Contains("turn start"), "a new turn makes a new plan: " + string.Join(" | ", memory.PlanLog));
+
+        var champion = new BotContext();
+        TrainingOpponent.Choose(dynasty, [Buy(dynasty, "A"), BattlePolicyTests.Pass(dynasty)], champion);
+        Check(champion.PlanLog.Count == 0, "with the planner off nothing is planned");
+    }
+}

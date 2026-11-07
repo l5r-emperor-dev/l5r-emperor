@@ -282,6 +282,8 @@ runner.Run("sure-reactions", SureReactionsTests.Tests); // issue #963: bot loop 
 runner.Run("deck-archetype", DeckArchetypeTests.Tests); // issue #963: bot loop S0
 runner.Run("archetype-play", ArchetypePlayTests.Tests); // issue #963: archetype flags, split defense
 runner.Run("bodies-first", BodiesFirstTests.Tests); // issue #963: bot loop round 3
+runner.Run("planner", PlannerTests.Tests); // issue #1185: the turn-planning bot
+runner.Run("triage", TriageTests.Tests); // issue #1185 slice 3: ability triage
 runner.Run("informed-defense", InformedDefenseTests.Tests); // issue #963: bot loop round 2
 runner.Run("seppuku", SeppukuTests.Tests); // issue #963: bot loop round 1
 runner.Run("michi-stall", MichiStallReplayTests.Tests); // issue #967
