@@ -143,7 +143,7 @@ public static partial class TrainingOpponent
     /// outweigh its army). Mendon: hold Gold for equipping or Strategy costs "only if I think it is likely I'll need some or all of them". Untapped Holdings stay untapped through the opponent's turn.</summary>
     private static int DefenseReserve(Ctx x)
     {
-        if (PhaseGroup(x.View.Phase) != "dynasty") return 0;
+        if (!x.Memory.PlannerReserve || PhaseGroup(x.View.Phase) != "dynasty") return 0;
         var tricks = HandTricks(x);
         if (tricks.Length == 0) return 0;
         var theirs = TotalForce(x.Opponent);
@@ -213,14 +213,15 @@ public static partial class TrainingOpponent
         if (action.Type == "declareAttack" && !HonorRace(x)) return plan.Attack is null ? -50 : 150 + Math.Clamp(plan.Attack.Estimate.Net, 0, 50);
         if (action.Type == "attack" && plan.Attack is not null && !HonorRace(x)) return 300;
         // Gold the battle's own tricks need is not spent before the battle (Mendon: prefer having the Gold to win the fight over recruiting; the Dynasty phase comes after).
-        if (plan.Reserve > 0 && x.View.Phase == Phase.Action && action.Type is "equip" or "useAbility" or "playStrategy" && (action.Gold?.Cost ?? 0) is var cost and > 0 && Ready(x) - cost < plan.Reserve)
+        if (x.Memory.PlannerReserve && plan.Reserve > 0 && x.View.Phase == Phase.Action && action.Type is "equip" or "useAbility" or "playStrategy" && (action.Gold?.Cost ?? 0) is var cost and > 0 && Ready(x) - cost < plan.Reserve)
             return Math.Min(score, PassScore - 1);
-        if (action.Type == "discardProvince") return PlanDiscardScore(x, command);
+        if (action.Type == "discardProvince") return x.Memory.PlannerDiscard ? PlanDiscardScore(x, command) : score;
         if (action.Type != "purchase") return score;
         // Gold the opponent's likely attack will need for Battle tricks stays untapped through their turn (DefenseReserve).
-        if (plan.Reserve > 0 && PhaseGroup(x.View.Phase) == "dynasty" && Ready(x) - (action.Quote?.Cost ?? 0) < plan.Reserve) return -5;
+        if (x.Memory.PlannerReserve && plan.Reserve > 0 && PhaseGroup(x.View.Phase) == "dynasty" && Ready(x) - (action.Quote?.Cost ?? 0) < plan.Reserve) return -5;
         var rank = Array.IndexOf(plan.Slate, command.CardId);
         if (rank >= 0) return SlateBonus - rank * 5 + score * 0.001; // the card's own variants (Clan discount, allegiance) keep their relative order
-        return plan.Slate.Length > 0 || x.View.Phase == Phase.Dynasty ? Math.Min(score, OffPlanBuy) : score;
+        // Off-plan: capped, but the champion's own order among a card's variants (Proclaim, Clan discount, allegiance) must survive the cap, or ties break by name and Proclaims are lost.
+        return plan.Slate.Length > 0 || x.View.Phase == Phase.Dynasty ? Math.Min(score, OffPlanBuy) + Math.Clamp(score, -1000, 1000) * 0.0001 : score;
     }
 }

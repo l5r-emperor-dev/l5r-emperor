@@ -37,7 +37,10 @@ internal static class BotTournament
         ["arch-switch"] = () => new() { UseArchetypeSwitch = true }, // S4
         ["split-defense"] = () => new() { UseSplitDefense = true }, // hypothesis A
         ["military-trades"] = () => new() { UseMilitaryTrades = true }, // hypothesis B
-        ["planner"] = () => new() { UsePlanner = true }, // issue #1185: the turn-planning bot (docs/bots/experiments/2026-11-07-planner-slice1.md)
+        ["planner"] = () => new() { UsePlanner = true },
+        ["planner-no-reserve"] = () => new() { UsePlanner = true, PlannerReserve = false }, // ablation: no Gold held back for Battle tricks
+        ["planner-no-discard"] = () => new() { UsePlanner = true, PlannerDiscard = false }, // ablation: the champion's discard rule
+        ["planner-plain"] = () => new() { UsePlanner = true, PlannerReserve = false, PlannerDiscard = false }, // ablation: neither // issue #1185: the turn-planning bot (docs/bots/experiments/2026-11-07-planner-slice1.md)
         ["arch-all"] = () => new() { UseArchetypeAttack = true, UseArchetypeAbilities = true, UseArchetypeMilitary = true, UseArchetypeSwitch = true }
     };
 
