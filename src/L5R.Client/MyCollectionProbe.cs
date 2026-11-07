@@ -60,6 +60,24 @@ public partial class MyCollectionProbe : Node
             Check(!libraryTile.Editing && MyCollection.Store.Count(card.Id) == 6, "clicking elsewhere keeps the typed number");
             owned = await OpenOwned(); Type('0'); await Wait(.1); KeyPress(Key.Enter); await Wait(.2);
             Check(MyCollection.Store.Count(card.Id) == 0, "0 is a valid number");
+            // Tab accepts and moves to the next card's field (the first of the next row after the last in a row); Shift+Tab goes back the same way.
+            var order = library.Grid.Cards; var tileAt = (int i) => library.Grid.Tile(order[i].Id) ?? throw new Exception("tile " + i + " is not showing");
+            var editorOf = (CatalogueCardTile t) => t.GetChildren().OfType<Control>().SingleOrDefault(c => c.Name == "OwnedEditor")?.GetChildren().OfType<LineEdit>().Single();
+            MyCollection.Store.Set(order[0].Id, 0); MyCollection.Store.Set(order[1].Id, 0); await Wait(.1);
+            Click(tileAt(0).GetChildren().OfType<Button>().Single(b => b.Name == "OwnedNumeral")); await Wait(.2);
+            editorOf(tileAt(0))!.SelectAll(); Type('8'); KeyPress(Key.Tab); await Wait(.3);
+            Check(MyCollection.Store.Count(order[0].Id) == 8 && !tileAt(0).Editing && tileAt(1).Editing, "Tab accepts the number and opens the next card's field");
+            var next = editorOf(tileAt(1))!; Check(next.HasFocus() && next.HasSelection() && next.GetSelectionFromColumn() == 0 && next.GetSelectionToColumn() == next.Text.Length, "the next field opens with its value highlighted");
+            Type('5'); Input.ParseInputEvent(new InputEventKey { Keycode = Key.Tab, ShiftPressed = true, Pressed = true }); await Wait(.3);
+            Check(MyCollection.Store.Count(order[1].Id) == 5 && tileAt(0).Editing && !tileAt(1).Editing, "Shift+Tab accepts and opens the previous card's field");
+            KeyPress(Key.Escape); await Wait(.1);
+            var columns = Enumerable.Range(1, order.Length - 1).First(i => tileAt(i).Position.Y > tileAt(0).Position.Y);
+            Click(tileAt(columns - 1).GetChildren().OfType<Button>().Single(b => b.Name == "OwnedNumeral")); await Wait(.2); KeyPress(Key.Tab); await Wait(.3);
+            Check(tileAt(columns).Editing, "Tab from the last card in a row opens the first card of the next row");
+            Input.ParseInputEvent(new InputEventKey { Keycode = Key.Tab, ShiftPressed = true, Pressed = true }); await Wait(.3);
+            Check(tileAt(columns - 1).Editing, "Shift+Tab from the first card in a row opens the last card of the row above");
+            KeyPress(Key.Escape); await Wait(.1);
+            MyCollection.Store.Set(order[0].Id, 0); MyCollection.Store.Set(order[1].Id, 0);
             MyCollection.Store.Set(card.Id, 3); await Wait(.2);
             Click(library.Browser.EditCollectionButton); await Wait(.3);
             var editor = library.GetChildren().OfType<MyCollectionEditor>().Single();
