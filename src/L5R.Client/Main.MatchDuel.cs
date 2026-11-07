@@ -115,7 +115,7 @@ public partial class Main
     private void RestoreMatchTable()
     {
         foreach (var item in _matchDuelHidden.Where(IsInstanceValid)) item.Show(); _matchDuelHidden = [];
-        if (_root.GetParent() != this) _root.Reparent(this, false);
+        if (_root.GetParent() != (Node?)_rootCanvas && _rootCanvas is not null) _root.Reparent(_rootCanvas, false);
         if (_table.GetParent() != this) _table.Reparent(this, false);
         _tableSurface.PlanePitch = TableSurface.Pitch; _tableViewport.Position = _matchTablePosition;
         _tableSurface.Canvas.RenderTargetUpdateMode = SubViewport.UpdateMode.Always;

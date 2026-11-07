@@ -231,6 +231,11 @@ public partial class Main
                 GetViewport().PushInput(new InputEventMouseButton { Position = at, GlobalPosition = at, ButtonIndex = MouseButton.Left, Pressed = pressed, ButtonMask = pressed ? MouseButtonMask.Left : 0 }, true);
             await CoverageFrames(); await CoverageFrames();
         }
+        else if (verb == "duelcontinue") // the duel screen's own Continue, which hands back to the table
+        {
+            var button = _matchDuel?.FindChildren("*", "Button", true, false).OfType<Button>().FirstOrDefault(b => b.Text == "Continue" && b.IsVisibleInTree()) ?? throw new InvalidOperationException("the duel screen has no Continue to press");
+            button.EmitSignal(BaseButton.SignalName.Pressed);
+        }
         else if (verb == "wait") await ToSignal(GetTree().CreateTimer(double.Parse(arg)), SceneTreeTimer.SignalName.Timeout);
         else if (verb == "shot") GetViewport().GetTexture().GetImage().SavePng(ProjectSettings.GlobalizePath("res://../../artifacts/tutorial/" + arg + ".png"));
         else if (verb == "report") GD.Print($"TUTORIAL_UI report {arg}: cardShowOpen={CardShowOpen} hovered={CardTile.HoveredCard?.Definition?.Name} selected={_selected?.Definition?.Name} zoom={_cameraZoom:0.00} fitted={_cameraFitted} tooltip={IsInstanceValid(_tableTooltip)}");
