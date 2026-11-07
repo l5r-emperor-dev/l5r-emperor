@@ -11,6 +11,8 @@ public partial class Main : Node
     private readonly MatchSession _session = new();
     private readonly ConcurrentQueue<Action> _uiQueue = new();
     private Control _root = null!;
+    /// <summary>The layer the table's interface lives on: a match duel takes the interface away and puts it back here.</summary>
+    private CanvasLayer? _rootCanvas;
     private Control _board = null!, _hand = null!, _unitDetail = null!;
     private GoldPaymentMeter _goldMeter = null!;
     private VBoxContainer _inspector = null!, _phaseActions = null!, _decisionActions = null!;
@@ -440,7 +442,7 @@ public partial class Main : Node
 
     private void BuildShell()
     {
-        var canvas = new CanvasLayer(); AddChild(canvas);
+        var canvas = new CanvasLayer(); AddChild(canvas); _rootCanvas = canvas;
         _root = new Control { Theme = Palette.MakeTheme(), Size = DesignSize, MouseFilter = Control.MouseFilterEnum.Ignore };
         canvas.AddChild(_root);
         BuildTableViewport();
