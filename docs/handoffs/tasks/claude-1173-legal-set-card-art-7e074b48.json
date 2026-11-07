@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Card art: 21 playable faces now use the earliest legal-set, non-promo, non-Honor-and-Treachery printing (Emperor Edition preferred): 13 Promotional-Emperor to Second City/Seeds of Decay, 3 Honor and Treachery to War of Honor, 5 War of Honor to Emperor Edition. Oracle now redirects the old JPEG masters to different PNGs, so the current masters were downloaded, converted to JPEG and encoded to WebP 85 in a new art pack (catalogue-art-issue1173-20261107-r1, +21 images). Crushing Strength unchanged: Oracle has no legal-set printing other than Honor and Treachery, whose text names that set.",
+  "validation": "ensure_catalogue_art install + verify-only OK; test_catalogue_art and test_library_matches_published pass; tools/check.sh --skip-client passed; old/new faces compared side by side for all 21 (rules text matches; Deciding Moment and Know No Fear show a different illustration).",
+  "remaining": "Release catalogue-art-issue1173-20261107-r1 must be published before merge; no native Windows playtest of the new faces.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1173",
+  "branch": "claude/1173-legal-set-card-art",
+  "updated": "2026-11-07T09:58:34.256503+00:00"
+}
