@@ -21,6 +21,22 @@ public sealed class BotContext
     private int _favorTakenTurn = -1;
     private int _borderRefreshTurn = -1;
 
+    /// <summary>Issue #1185: the planning bot. True builds a turn plan (intent, Gold shape, purchase slate; TrainingOpponent.Planner.cs) and rebuilds it whenever the table changes. OFF by default: the champion plays as before.</summary>
+    public bool UsePlanner { get; init; } = false;
+
+    internal TurnPlan? Plan { get; private set; }
+    internal string? PlanKey { get; private set; }
+    internal string? PlanGroup { get; private set; }
+    /// <summary>Every plan made this match, in order (the trigger that made it is in each): a tournament report or a test can see when the bot re-thought.</summary>
+    internal List<TurnPlan> PlanHistory { get; } = [];
+    /// <summary>One line per plan made this match: the turn, what made the bot re-think, its intent, the Gold and its shape, and the purchase slate. For tests and tournament reports.</summary>
+    public List<string> PlanLog { get; } = [];
+    internal void NotePlan(TurnPlan plan, string key, string group)
+    {
+        Plan = plan; PlanKey = key; PlanGroup = group; PlanHistory.Add(plan);
+        PlanLog.Add($"T{plan.Turn} {plan.Trigger}: {plan.Intent}, Gold {plan.Gold} [{string.Join("+", plan.Sources)}], slate [{string.Join(",", plan.Slate)}] ({plan.Why})");
+    }
+
     /// <summary>Issue #788: false (the default while the arena results are inconclusive; see docs/parked) plays the bot as it was before the six battle changes (no pass-when-won, target priorities, send-home rule, reaction rule or Border Keep refresh). The arena uses it to measure the change.</summary>
     public bool UseBattlePolicy { get; init; } = false;
 

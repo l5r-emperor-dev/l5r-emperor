@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Planning bot slice 1 (#1185): BotContext.UsePlanner (default off) builds a TurnPlan (intent, Gold shape, purchase slate) in TrainingOpponent.Planner.cs, rebuilt on turn start, phase change and table change; only Dynasty purchases use it. Registered as tournament arm 'planner'. Champion unchanged.",
+  "validation": "AI test 'planner' passes (slate respects Gold shape; rebuild triggers); project builds with 0 warnings/errors. Smoke tournament (144 games) running; decisive dev run not yet started.",
+  "remaining": "Smoke result and the pre-registered decisive run (docs/bots/experiments/2026-11-07-planner-slice1.md) not done; Action-phase sequencing, contingency branches, threat triage, battle-win estimate with hand, Border Keep re-plan and post-battle re-plan are later slices; check.sh not run; local only, not pushed.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1185",
+  "branch": "claude/1185-planning-bot",
+  "updated": "2026-11-07T16:52:09.421589+00:00"
+}

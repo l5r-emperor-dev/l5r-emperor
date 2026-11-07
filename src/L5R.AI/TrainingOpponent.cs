@@ -26,6 +26,7 @@ public static partial class TrainingOpponent
         var self = view.Players.Single(p => p.Id == view.ViewerId);
         var opponent = view.Players.Single(p => p.Id != view.ViewerId);
         var x = new Ctx(view, self, opponent, BotProfile.Assess(self, memory.DeckAveragePersonalHonor), memory, AllCards(view)) { Actions = actions, Odds = BattlePolicy.Assess(view) };
+        if (memory.UsePlanner) x = x with { Plan = PlanFor(x) }; // issue #1185: the turn plan, rebuilt when the table changes
         var candidates = actions.Where(a => a.Enabled && a.Type is not ("concede" or "wait"))
             .Select(a => (Action: a, Command: Prepare(x, a)))
             .Where(p => p.Command is not null && !memory.IsRejected(view.Version, p.Command))
@@ -46,6 +47,8 @@ public static partial class TrainingOpponent
         public ActionOption[] Actions { get; init; } = [];
         /// <summary>The Force picture of the battle in progress, or null outside one.</summary>
         public BattlePolicy.Odds? Odds { get; init; }
+        /// <summary>Issue #1185: the turn plan, null unless <see cref="BotContext.UsePlanner"/>.</summary>
+        public TurnPlan? Plan { get; init; }
         public int MaxHand => Self.HandLimit?.Maximum ?? 8;
         public CardView? Card(string? id) => id is not null && Cards.TryGetValue(id, out var c) ? c : null;
     }
@@ -197,7 +200,7 @@ public static partial class TrainingOpponent
         return command;
     }
 
-    private static double Score(Ctx x, ActionOption action, GameCommand command) => Adjust(x, action, command, ScoreCore(x, action, command));
+    private static double Score(Ctx x, ActionOption action, GameCommand command) => PlanScore(x, action, command, Adjust(x, action, command, ScoreCore(x, action, command)));
 
     private static double ScoreCore(Ctx x, ActionOption action, GameCommand command)
     {
