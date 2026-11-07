@@ -34,8 +34,11 @@ internal static class PlannerTests
         var view = Table(Phase.AttackDeclaration, 5, 4);
         var mine = new CardView("unit", BattlePolicy_Person(own), 0, Zone.Home, true, false, null, null, own);
         var provinces = view.Players[1].Provinces.Select(p => p with { Strength = 6, Destroyed = false, Card = null }).ToArray();
-        return view with { Players = [view.Players[0] with { Home = view.Players[0].Home.Append(mine).ToArray(), Hand = hand, HandCount = hand.Length },
-            view.Players[1] with { Provinces = provinces, HandCount = enemyHand }] };
+        return view with
+        {
+            Players = [view.Players[0] with { Home = view.Players[0].Home.Append(mine).ToArray(), Hand = hand, HandCount = hand.Length },
+            view.Players[1] with { Provinces = provinces, HandCount = enemyHand }]
+        };
     }
     private static CardDefinition BattlePolicy_Person(int force) => BattlePolicyTests.Person(force);
 

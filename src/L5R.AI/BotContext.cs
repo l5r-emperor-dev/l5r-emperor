@@ -51,8 +51,12 @@ public sealed class BotContext
     /// </summary>
     public static BotContext Contender(bool attack = false, bool discard = false, bool reserve = false, bool wonCap = false) => new()
     {
-        UsePlanner = true, UsePlannerTriage = true,
-        PlannerAttack = attack, PlannerDiscard = discard, PlannerReserve = reserve, TriageWonCap = wonCap
+        UsePlanner = true,
+        UsePlannerTriage = true,
+        PlannerAttack = attack,
+        PlannerDiscard = discard,
+        PlannerReserve = reserve,
+        TriageWonCap = wonCap
     };
     /// <summary>PlannerAttack: the swing-based battle estimate decides whether and where to attack (slice 2); off leaves the champion's attack rules and only the purchase slate planned.</summary>
     public bool PlannerAttack { get; init; } = true;
