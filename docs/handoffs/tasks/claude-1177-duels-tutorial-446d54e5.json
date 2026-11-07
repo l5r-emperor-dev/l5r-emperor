@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Duels tutorial (special-duels): Crane against Scorpion. A refused Sanctioned Duel, Reckless Duel on the real duel screen (Focus, Strike, the Duelist's swap 11 to 12 becoming 14 to 12, The Courtesy of the Crane and The Loyalty of the Scorpion's delayed loss), then Makoto's Battle duel where Reserve Weapon ties 9 to 9 and the Duelist wins the tie. New runner helpers (FoeDuel, AutoSelectBattle), a second coach card over the duel screen, Back closing an open duel, and the lab's --tutorial-auto.",
+  "validation": "tutorial-duels 6/6 (every quoted number asserted against the engine); all tutorial suites pass; tools/check.sh --skip-client passed; client builds; native lab captures of the duel screen with the coach at focus, Duelist, reserve, tie and last steps, plus Back from inside a duel; dotnet format whitespace clean on touched files.",
+  "remaining": "No Windows playtest by a human yet. The duel screen logs a Godot signal-already-connected error during duels (also with the coach disabled). Focus Effects timing differs from the Comprehensive Rules (engine: value-changing effects before the totals, outcome-dependent ones after) and the lesson says so.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1177",
+  "branch": "claude/1177-duels-tutorial",
+  "updated": "2026-11-07T12:26:24.322416+00:00"
+}

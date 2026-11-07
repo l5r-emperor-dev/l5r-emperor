@@ -107,6 +107,15 @@ internal sealed class TutorialContext(TutorialRunner runner)
         var result = Engine.Execute(option.Command!);
         if (!result.Accepted) throw new InvalidOperationException($"The lesson's '{type}' was refused: {result.Error}");
     }
+    /// <summary>You choose the battle at the Province you attacked, the only one with anything to fight (the lesson narrates the choice rather than asking for it).</summary>
+    public void AutoSelectBattle()
+    {
+        var province = runner.AttackedProvince;
+        var option = Engine.QueryActions(TutorialRunner.Seat).FirstOrDefault(a => a.Enabled && a.Type == "selectBattle" && a.Command is not null && (province is null || a.Command.Province == province))
+            ?? throw new InvalidOperationException("The lesson expected a battle to choose.");
+        var result = Engine.Execute(option.Command!);
+        if (!result.Accepted) throw new InvalidOperationException("The lesson's battle choice was refused: " + result.Error);
+    }
     /// <summary>The opponent plays its script until <paramref name="stop"/> holds or a decision is yours.</summary>
     public void Foe(Func<MatchState, bool>? stop = null) => runner.PlayFoe(stop, scripted: true);
     /// <summary>The opponent takes one named move now (an Equip (Battle), an ability of a Spell or Stronghold), so a lesson can have it act between the player's moves in a battle. <paramref name="performer"/> is the
@@ -150,6 +159,17 @@ internal sealed class TutorialContext(TutorialRunner runner)
         var result = Engine.Execute(option.Command! with { PerformerId = performerId, TargetId = discardId });
         if (!result.Accepted) throw new InvalidOperationException("The opponent's Tactical Advantage was refused: " + result.Error);
     }
+    /// <summary>The opponent makes one move in a challenge or duel: the open option of this command <paramref name="type"/> (acceptDuel, declineDuel, focus, strike ...), for the card (by definition id) it focuses,
+    /// or with this <paramref name="choice"/> ("deck" focuses the top of its Fate deck). A refusal is a mistake in the lesson, so it throws.</summary>
+    public void FoeDuel(string type, string? card = null, string? choice = null)
+    {
+        var foe = 1 - TutorialRunner.Seat; var look = new TutorialLookup(Engine);
+        var options = Engine.QueryActions(foe).Where(a => a.Enabled && a.Command is { } c && c.Type == type).ToArray();
+        var option = options.FirstOrDefault(a => (card is null || look.Is(a.Command!.CardId, card)) && (choice is null ? a.Command!.Choice is null : a.Command!.Choice == choice))
+            ?? throw new InvalidOperationException($"The lesson expected the opponent to be able to '{type}' ({card ?? choice}): " + string.Join("; ", Engine.QueryActions(foe).Select(a => $"{(a.Enabled ? "" : "DISABLED ")}{a.Command?.Type}/{a.Command?.Choice}/{a.Label}")));
+        var result = Engine.Execute(option.Command!);
+        if (!result.Accepted) throw new InvalidOperationException($"The opponent's '{type}' was refused: {result.Error}");
+    }
     /// <summary><paramref name="noTarget"/>: the opponent chooses no target for an Attack, which needs none.</summary>
     public void FoeUse(string ability, string? performer = null, string? card = null, string? target = null, string? choice = null, string[]? pay = null, bool noTarget = false)
     {
@@ -191,6 +211,7 @@ public sealed class TutorialRunner
     private readonly TutorialContext _context;
     private readonly List<GameCommand?> _inputs = [];
     private int _index;
+    internal int? AttackedProvince => _attackedProvince;
     private int? _attackedProvince;
     private readonly HashSet<FoePurchase> _bought = [];
 
