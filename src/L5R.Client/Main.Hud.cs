@@ -6,24 +6,49 @@ namespace L5R.Client;
 public partial class Main
 {
     private readonly Dictionary<int, ClanPlaque> _clanPlaques = [];
+    private readonly Dictionary<int, string> _plaqueKeys = [];
+
+    /// <summary>What one player's plaque shows, plus a key of everything it is built from. A plaque is about 40 nodes, mostly text, and every command rebuilt both, so a plaque whose key has not changed is kept.</summary>
+    private (int Production, string Turn, string Action, bool Acting, bool TurnOwner, string Key) PlaqueFacts(PlayerView player)
+    {
+        var production = player.Home.Concat(player.Army).Append(player.Stronghold).Where(c => !c.Bowed).Sum(c => Production(c, player));
+        var own = player.Id == View.ViewerId;
+        var turn = View.WinnerId is int winner ? (winner == player.Id ? "VICTORY" : "MATCH ENDED") :
+            EventDecisionActive && View.PendingChoice!.PlayerId == player.Id ? (own ? "YOUR DECISION" : "OPPONENT DECIDING") :
+            (View.ActionPhaseTurnPlayerId ?? View.ActivePlayerId) == player.Id ? (own ? "YOUR TURN" : "OPPONENT'S TURN") : "";
+        var action = own ? player.Name : player.Name == player.Clan ? "Opponent" : player.Name;
+        var acting = View.WinnerId is null && View.PriorityPlayerId == player.Id;
+        var turnOwner = View.WinnerId is null && (View.ActionPhaseTurnPlayerId ?? View.ActivePlayerId) == player.Id;
+        var key = $"{player.Clan}|{player.Honor}|{production}|{View.FavorPlayerId == player.Id}|{action}|{turn}|{acting}|{turnOwner}|{ClanPlaque.DescribeHand(player.HandCount, player.HandLimit)}|{player.HandLimit?.Maximum}|{_reducedMotion}";
+        return (production, turn, action, acting, turnOwner, key);
+    }
 
     private void RenderClanHud()
     {
-        Palette.Clear(_clanHud); _clanPlaques.Clear();
+        var facts = View.Players.ToDictionary(p => p.Id, PlaqueFacts);
+        var kept = new HashSet<int>();
+        foreach (var child in _clanHud.GetChildren())
+        {
+            var owner = _clanPlaques.FirstOrDefault(pair => pair.Value == child);
+            if (child is ClanPlaque && IsInstanceValid(child) && owner.Value is not null && facts.TryGetValue(owner.Key, out var now) && _plaqueKeys.GetValueOrDefault(owner.Key) == now.Key) kept.Add(owner.Key);
+            else { _clanHud.RemoveChild(child); child.QueueFree(); }
+        }
+        var previous = new Dictionary<int, ClanPlaque>(_clanPlaques);
+        _clanPlaques.Clear(); _plaqueKeys.Clear();
         foreach (var player in View.Players)
         {
-            var production = player.Home.Concat(player.Army).Append(player.Stronghold).Where(c => !c.Bowed).Sum(c => Production(c, player));
+            var (production, turn, action, acting, turnOwner, key) = facts[player.Id];
             var own = player.Id == View.ViewerId;
-            var turn = View.WinnerId is int winner ? (winner == player.Id ? "VICTORY" : "MATCH ENDED") :
-                EventDecisionActive && View.PendingChoice!.PlayerId == player.Id ? (own ? "YOUR DECISION" : "OPPONENT DECIDING") :
-                (View.ActionPhaseTurnPlayerId ?? View.ActivePlayerId) == player.Id ? (own ? "YOUR TURN" : "OPPONENT'S TURN") : "";
-            var action = own ? player.Name : player.Name == player.Clan ? "Opponent" : player.Name;
             var plaqueY = own ? 950 - FallenCounter.DesignHeight - 4 : 14;
-            var plaque = new ClanPlaque(player.Clan, player.Honor, production, View.FavorPlayerId == player.Id, () => { if (!ChoosePlayerTarget(player.Id)) ShowFallenGallery(player.Id); }, // issue #960: choosing a player
-                action, turn, View.WinnerId is null && View.PriorityPlayerId == player.Id, View.WinnerId is null && (View.ActionPhaseTurnPlayerId ?? View.ActivePlayerId) == player.Id,
-                player.HandCount, player.HandLimit)
-            { ReducedMotion = _reducedMotion };
-            Place(_clanHud, plaque, 16, plaqueY, ClanPlaque.DesignWidth, ClanPlaque.DesignHeight); _clanPlaques[player.Id] = plaque;
+            if (kept.Contains(player.Id)) _clanPlaques[player.Id] = previous[player.Id];
+            else
+            {
+                var plaque = new ClanPlaque(player.Clan, player.Honor, production, View.FavorPlayerId == player.Id, () => { if (!ChoosePlayerTarget(player.Id)) ShowFallenGallery(player.Id); }, // issue #960: choosing a player
+                    action, turn, acting, turnOwner, player.HandCount, player.HandLimit)
+                { ReducedMotion = _reducedMotion };
+                Place(_clanHud, plaque, 16, plaqueY, ClanPlaque.DesignWidth, ClanPlaque.DesignHeight); _clanPlaques[player.Id] = plaque;
+            }
+            _plaqueKeys[player.Id] = key;
             var fallen = new FallenCounter { Player = player };
             fallen.Pressed += () => ShowFallenGallery(player.Id);
             Place(_clanHud, fallen, 16, plaqueY + ClanPlaque.DesignHeight + 4, ClanPlaque.DesignWidth, FallenCounter.DesignHeight);

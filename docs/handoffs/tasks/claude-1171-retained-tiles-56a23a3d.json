@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Board redraw keeps a clan plaque whose displayed facts are unchanged instead of rebuilding both after every command (about 4 ms of a 33 ms RenderBoard; 33.5 to 28.5 ms measured in a bot-played game). Retained card tiles were also tried (93% reuse) and gave no measurable gain, so they were dropped.",
+  "validation": "perf harness before/after; native checks check-clan-placard, check-player-clarity, check-fallen, check-interactions, check-tutorial pass; 8 board captures render without errors",
+  "remaining": "None for this change. Remaining redraw cost is spread over text-heavy HUD widgets and tree churn; see PR.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1171",
+  "branch": "claude/1171-retained-tiles",
+  "updated": "2026-11-07T00:08:33.209628+00:00"
+}
