@@ -34,6 +34,7 @@ public partial class Main
     private void TutorialBack()
     {
         if (_session.Tutorial is null || PresentationBusy || PlayShowcaseBusy) return;
+        if (MatchDuelOpen) { RestoreMatchTable(); DisposeMatchDuel(); } // the lesson goes back to a scene before this duel
         ResetTutorialTable();
         _session.TutorialBack();
     }
@@ -265,7 +266,7 @@ public partial class Main
         }
         else if (verb == "back") // the coach's Back button, then the step it should land on
         {
-            var button = _coachPanel?.FindChild("TutorialBack", true, false) as Button ?? throw new InvalidOperationException("no Back button on the coach");
+            var button = (_duelCoach is { } onDuel && IsInstanceValid(onDuel) ? onDuel : _coachPanel)?.FindChild("TutorialBack", true, false) as Button ?? throw new InvalidOperationException("no Back button on the coach");
             for (var wait = 0; wait < 80 && !button.IsVisibleInTree(); wait++) await ToSignal(GetTree().CreateTimer(.25), SceneTreeTimer.SignalName.Timeout);
             button.EmitSignal(BaseButton.SignalName.Pressed);
             for (var i = 0; i < 8; i++) await CoverageFrames();
@@ -280,7 +281,7 @@ public partial class Main
         }
         else if (verb == "mouse") // a real pointer click at the centre of the coach's button (mouse:next is the Next Tutorial beside it), through the GUI input path
         {
-            var button = _coachPanel?.FindChild(arg == "next" ? "TutorialNext" : "TutorialContinue", true, false) as Button ?? throw new InvalidOperationException("no coach button");
+            var button = (_duelCoach is { } onDuel && IsInstanceValid(onDuel) ? onDuel : _coachPanel)?.FindChild(arg == "next" ? "TutorialNext" : "TutorialContinue", true, false) as Button ?? throw new InvalidOperationException("no coach button");
             for (var wait = 0; wait < 80 && !button.IsVisibleInTree(); wait++) await ToSignal(GetTree().CreateTimer(.25), SceneTreeTimer.SignalName.Timeout); // the button waits out card and battle presentations
             var at = button.GetGlobalRect().GetCenter();
             GetViewport().PushInput(new InputEventMouseMotion { Position = at, GlobalPosition = at });
@@ -596,9 +597,21 @@ public partial class Main
         for (var guard = 0; guard < 400 && _session.Tutorial is { Finished: false } lesson; guard++)
         {
             if (lesson.Coach.StepId == stepId) return true;
+            // a duel's entrance, cards and verdict play out as a player would watch them, and a table move waits for the duel screen to hand back to the table
+            for (var wait = 0; wait < 120 && (_matchDuelPreparing || _matchDuelReturning || _matchDuel is { } open && (open.Screen.PresentationBusy || lesson.Coach.Button is null && open.Screen.CanContinue)); wait++) await ToSignal(GetTree().CreateTimer(.25), SceneTreeTimer.SignalName.Timeout);
             if (lesson.Coach.Button is not null) { _session.TutorialContinue(); await CoverageFrames(); continue; }
-            if (!TutorialUiScripts.TryGetValue(lesson.Coach.StepId, out var script)) return false;
             var before = lesson.Coach.StepId;
+            if (!TutorialUiScripts.TryGetValue(before, out var script))
+            {
+                // `--tutorial-auto`: a step with no clicks scripted (the Duels lesson's, which are made on the duel screen) takes the one move it offers, through the session as the screen would.
+                if (!OS.GetCmdlineUserArgs().Contains("--tutorial-auto")) return false;
+                await WaitTutorialRest();
+                var move = _session.Snapshot?.Actions.FirstOrDefault(a => a.Enabled && a.Command is { } c && c.Type != "concede" && !a.Label.StartsWith("Keep") && (before != "duelist" || c.TargetId is not null && a.Label.Contains("Stain")));
+                if (move?.Command is not { } command) return false;
+                await _session.Submit(command);
+                for (var wait = 0; wait < 60 && _session.Tutorial is { Finished: false } waiting && waiting.Coach.StepId == before; wait++) await ToSignal(GetTree().CreateTimer(.25), SceneTreeTimer.SignalName.Timeout);
+                continue;
+            }
             await WaitTutorialRest();
             foreach (var token in script.Split(';')) await RunTutorialUiToken(token);
             for (var wait = 0; wait < 60 && _session.Tutorial is { Finished: false } still && still.Coach.StepId == before; wait++) await ToSignal(GetTree().CreateTimer(.25), SceneTreeTimer.SignalName.Timeout);

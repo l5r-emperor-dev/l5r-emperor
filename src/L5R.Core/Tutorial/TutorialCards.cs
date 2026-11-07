@@ -64,6 +64,10 @@ internal static class TutorialCards
     public const string MirumotoMichi = "oracle-l5r-10054", UnparalleledSword = "oracle-l5r-10124", TogashiTorazu = "oracle-l5r-8590", StrongDefenses = "oracle-l5r-9931";
     public const string TsuruchiTomaru = "oracle-l5r-8893", YoritomoHaruhiko = "oracle-l5r-9556", WastelandScout = "oracle-l5r-9874";
 
+    // The Duels lesson: Crane (you, Shinden Asahina) against Scorpion (Law of Darkness Dojo).
+    public const string LawOfDarknessDojo = "oracle-l5r-4676", DaidojiMarketplace = "oracle-l5r-10214", ReserveWeapon = "oracle-l5r-6269", AshigaruRecruits = "oracle-l5r-618";
+    public const string SanctionedDuel = "oracle-l5r-6465", RecklessDuel = "oracle-l5r-6209", Retribution = "oracle-l5r-6290", CourtesyOfTheCrane = "oracle-l5r-7996", LoyaltyOfTheScorpion = "oracle-l5r-8207", CrushingStrength = "oracle-l5r-1589";
+
     /// <summary>A forty-card deck: the lesson's cards on top, then the rest of the side's deck in its own order. A card the deck does not hold displaces the last card.</summary>
     internal static string[] Deck(string[] top, TutorialSide side, bool dynasty)
     {
