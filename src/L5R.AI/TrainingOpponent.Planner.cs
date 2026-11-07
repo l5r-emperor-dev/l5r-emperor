@@ -11,10 +11,10 @@ namespace L5R.AI;
 public enum PlanIntent { Develop, Defend, Attack }
 
 /// <summary>What the bot means to do this turn, rebuilt when the picture changes. Slate: the province-row card ids it intends to buy, best first.</summary>
-internal sealed record TurnPlan(int Turn, string Trigger, PlanIntent Intent, int Gold, int[] Sources, string[] Slate, string Why, AttackChoice? Attack = null)
+internal sealed record TurnPlan(int Turn, string Trigger, PlanIntent Intent, int Gold, int[] Sources, string[] Slate, string Why, AttackChoice? Attack = null, int Hold = 0)
 {
-    /// <summary>The Gold to leave untapped for the battle's own tricks (slice 2), 0 without an attack.</summary>
-    public int Reserve => Attack?.Estimate.Reserve ?? 0;
+    /// <summary>The Gold to leave untapped for Battle tricks: this turn's attack (slice 2), or at the end of the turn what the opponent's attack on the bot is likely to need (Hold). 0 when none.</summary>
+    public int Reserve => Attack?.Estimate.Reserve ?? Hold;
 }
 
 public static partial class TrainingOpponent
@@ -34,8 +34,9 @@ public static partial class TrainingOpponent
         var attack = PhaseGroup(view.Phase) == "dynasty" ? null : ChooseAttack(x); // slice 2: the swing estimate decides whether, and where, to attack
         var (intent, why) = IntentFor(x, attack);
         var sources = Sources(x);
-        var slate = Slate(x, intent, sources);
-        var plan = new TurnPlan(view.TurnNumber, trigger, intent, sources.Sum(), sources, slate, why, attack);
+        var hold = DefenseReserve(x);
+        var slate = Slate(x, intent, ReserveSources(sources, hold));
+        var plan = new TurnPlan(view.TurnNumber, trigger, intent, sources.Sum(), sources, slate, why, attack, hold);
         memory.NotePlan(plan, key, PhaseGroup(view.Phase));
         return plan;
     }
@@ -121,6 +122,10 @@ public static partial class TrainingOpponent
     private static string[] Slate(Ctx x, PlanIntent intent, int[] sources)
     {
         if (sources.Length == 0) return [];
+        // Mendon: "I always prefer to recruit over discarding", and when the Gold can clear the whole row, the whole row is bought.
+        var whole = ProvinceCards(x);
+        if (whole.Length > 0 && Payable(whole.Select(c => EffectiveCost(x, c)).OrderByDescending(c => c).ToArray(), sources))
+            return whole.OrderByDescending(c => CardValue(x, c, intent)).ThenBy(c => c.Id, StringComparer.Ordinal).Select(c => c.Id).ToArray();
         var row = ProvinceCards(x).Select(c => (Card: c, Cost: EffectiveCost(x, c), Value: CardValue(x, c, intent))).Where(c => c.Value > 0 && c.Cost <= sources.Sum()).ToArray();
         if (row.Length == 0) return [];
         double bestValue = 0; string[] best = [];
@@ -132,6 +137,29 @@ public static partial class TrainingOpponent
             bestValue = value; best = chosen.OrderByDescending(c => c.Value).ThenBy(c => c.Card.Id, StringComparer.Ordinal).Select(c => c.Card.Id).ToArray();
         }
         return best;
+    }
+
+    /// <summary>At the end of the turn: the Gold to leave untapped for the Battle tricks in hand, when the opponent's attack looks likely (they own enough Force to take the bot's weakest Province, or to
+    /// outweigh its army). Mendon: hold Gold for equipping or Strategy costs "only if I think it is likely I'll need some or all of them". Untapped Holdings stay untapped through the opponent's turn.</summary>
+    private static int DefenseReserve(Ctx x)
+    {
+        if (PhaseGroup(x.View.Phase) != "dynasty") return 0;
+        var tricks = HandTricks(x);
+        if (tricks.Length == 0) return 0;
+        var theirs = TotalForce(x.Opponent);
+        var weakest = x.Self.Provinces.Where(p => !p.Destroyed).Select(p => p.Strength).DefaultIfEmpty(int.MaxValue).Min();
+        if (theirs <= 0 || !(theirs > weakest || theirs >= TotalForce(x.Self))) return 0;
+        var enemyUnits = x.Opponent.Home.Where(c => c.Definition?.Type == CardType.Personality).Select(d => ArmyForce(x.Opponent.Home.Where(h => h.Id == d.Id || h.AttachedTo == d.Id))).ToArray();
+        return Math.Min(ChooseTricks(tricks, Ready(x), enemyUnits).Costs.Sum(), Ready(x));
+    }
+
+    /// <summary>The sources left for buying once <paramref name="hold"/> Gold is kept back: the smallest sources go to the reserve first.</summary>
+    private static int[] ReserveSources(int[] sources, int hold)
+    {
+        if (hold <= 0) return sources;
+        var kept = new List<int>(sources.OrderByDescending(s => s)); var held = 0;
+        for (var i = kept.Count - 1; i >= 0 && held < hold; i--) { held += kept[i]; kept.RemoveAt(i); }
+        return kept.ToArray();
     }
 
     /// <summary>Whether every cost (largest first) can be paid from its own disjoint group of sources whose total reaches it.</summary>
@@ -158,6 +186,25 @@ public static partial class TrainingOpponent
 
     // ---- scoring ----------------------------------------------------------------------------------------------------------------------------------------------------
 
+    /// <summary>Discarding a province card at the end of the Dynasty phase (it comes after every purchase: recruiting is always preferred). Mendon (issue #1185 interview): the champion over-discards,
+    /// and a discard hides what is in the provinces, which plans the next turn. Discard only: (1) a card too dear to pay for with all the bot's production; (2) a Holding costing 4 or more that would
+    /// force it to forgo a Personality it can otherwise afford, early in the game, or later when it is digging (behind in Personalities); (3) a non-Personality when behind in Personalities and no
+    /// Personality on offer is affordable (it needs specific cards for a superior army and they are not there). Anything else stays: two affordable Personalities, a Personality and a Holding, and
+    /// Holdings besides when the bot is not behind. Face-down cards stay (unknown). Discarding scores above ending the phase (0); keeping scores below it.</summary>
+    private static double PlanDiscardScore(Ctx x, GameCommand command)
+    {
+        const double Discard = 20, Keep = -5;
+        var row = ProvinceCards(x);
+        if (row.FirstOrDefault(c => c.Id == command.CardId) is not { Definition: { } def } card) return Keep;
+        var capacity = Capacity(x); var cost = EffectiveCost(x, card);
+        if (cost > capacity) return Discard;
+        var affordable = row.Where(c => c.Definition!.Type == CardType.Personality && EffectiveCost(x, c) <= capacity).ToArray();
+        var digging = Personalities(x.Self) < Personalities(x.Opponent);
+        if (def.Type == CardType.Holding && cost >= 4 && affordable.Any(p => EffectiveCost(x, p) + cost > capacity) && (x.Self.TurnsTaken <= 3 || digging)) return Discard;
+        if (def.Type != CardType.Personality && digging && affordable.Length == 0) return Discard;
+        return Keep;
+    }
+
     /// <summary>The plan's say over the ordinary score. Slice one: the Dynasty phase's purchases follow the slate.</summary>
     private static double PlanScore(Ctx x, ActionOption action, GameCommand command, double score)
     {
@@ -168,7 +215,10 @@ public static partial class TrainingOpponent
         // Gold the battle's own tricks need is not spent before the battle (Mendon: prefer having the Gold to win the fight over recruiting; the Dynasty phase comes after).
         if (plan.Reserve > 0 && x.View.Phase == Phase.Action && action.Type is "equip" or "useAbility" or "playStrategy" && (action.Gold?.Cost ?? 0) is var cost and > 0 && Ready(x) - cost < plan.Reserve)
             return Math.Min(score, PassScore - 1);
+        if (action.Type == "discardProvince") return PlanDiscardScore(x, command);
         if (action.Type != "purchase") return score;
+        // Gold the opponent's likely attack will need for Battle tricks stays untapped through their turn (DefenseReserve).
+        if (plan.Reserve > 0 && PhaseGroup(x.View.Phase) == "dynasty" && Ready(x) - (action.Quote?.Cost ?? 0) < plan.Reserve) return -5;
         var rank = Array.IndexOf(plan.Slate, command.CardId);
         if (rank >= 0) return SlateBonus - rank * 5 + score * 0.001; // the card's own variants (Clan discount, allegiance) keep their relative order
         return plan.Slate.Length > 0 || x.View.Phase == Phase.Dynasty ? Math.Min(score, OffPlanBuy) : score;
