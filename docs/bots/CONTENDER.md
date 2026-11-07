@@ -3,6 +3,8 @@
 A planning bot, registered as the tournament arm `contender`, built from Mendon's scenario interviews. It lives next to the champion in `src/L5R.AI` behind `BotContext` flags (all **off by default**; the
 practice opponent and the champion on `main` are unchanged). It is measured the way every bot change is (`docs/bots/README.md`): bot against bot, seeded, never promoted without a pre-registered run.
 
+The scenario interview it was built from (Mendon's words verbatim, the questions asked, and where each rule went) is `docs/bots/interviews/2026-11-07-planner-interview.md`.
+
 ## What it is
 
 `BotContext.Contender()` turns on two things, both in `src/L5R.AI`:
