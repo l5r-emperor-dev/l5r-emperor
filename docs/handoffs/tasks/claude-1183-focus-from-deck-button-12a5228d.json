@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "The duel screen's own Fate deck pile sits at the left of the table, under the Duels tutorial's coach card at any window size. The Focusing stage now has a Focus from deck button above Strike that selects the deck, after which PLACE FOCUS appears as for a hand card; step 20 says to use it. It also helps any small window.",
+  "validation": "Native lab through real clicks at 1280x720 and 1920x1080: Focus from deck, then PLACE FOCUS moves the lesson to the strike note; tutorial-duels 6/6; duel-match variants normal, refusal and tie complete; dotnet format whitespace clean.",
+  "remaining": "None; ready for review.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1183",
+  "branch": "claude/1183-focus-from-deck-button",
+  "updated": "2026-11-07T14:59:14.675560+00:00"
+}

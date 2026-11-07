@@ -190,6 +190,8 @@ public partial class DuelScreen : Control
 
         if (stage == "Focusing")
         {
+            // The deck is also a pile on the table, which a panel at the left of the screen can cover (a lesson's coach card, a small window): selecting it by button works wherever it is drawn.
+            if (Legal.Any(a => a.Type == "focus" && a.Command!.Choice == "deck")) Button("Focus from deck", () => SelectPile(Snapshot!.View.ViewerId, Zone.FateDeck));
             SubmitButton("Strike", Legal.FirstOrDefault(a => a.Type == "strike")?.Command);
             var discard = Legal.Where(a => a.Command!.Choice == "discard").ToArray();
             if (discard.Length > 0)
