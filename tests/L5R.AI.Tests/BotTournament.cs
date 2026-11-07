@@ -42,6 +42,18 @@ internal static class BotTournament
         ["planner-no-discard"] = () => new() { UsePlanner = true, PlannerDiscard = false }, // ablation: the champion's discard rule
         ["triage"] = () => new() { UsePlannerTriage = true }, // issue #1185 slice 3 alone, on the champion
         ["planner-triage"] = () => new() { UsePlanner = true, UsePlannerTriage = true }, // the planner with triage
+        ["planner-purchase"] = () => new() { UsePlanner = true, PlannerAttack = false, PlannerReserve = false, PlannerDiscard = false }, // ablation: only the purchase slate
+        ["triage-targets"] = () => new() { UsePlannerTriage = true, TriagePrintedFirst = false, TriageWonCap = false }, // triage on the champion: only the target ranking
+        ["triage-printed"] = () => new() { UsePlannerTriage = true, TriageTargets = false, TriageWonCap = false }, // only printed abilities before hand cards
+        ["triage-cap"] = () => new() { UsePlannerTriage = true, TriageTargets = false, TriagePrintedFirst = false }, // only the no-spend-on-a-won-battle cap
+        ["triage-cap-bows"] = () => new() { UsePlannerTriage = true, TriageTargets = false, TriagePrintedFirst = false, TriageSpareKills = true }, // the cap, but destroys still allowed
+        ["triage-null"] = () => new() { UsePlannerTriage = true, TriageTargets = false, TriagePrintedFirst = false, TriageWonCap = false }, // calibration: the triage flag with every rule off must replay the champion game for game
+        ["contender"] = () => BotContext.Contender(), // issue #1185: the planning bot (docs/bots/CONTENDER.md); compare it with the champion's own baseline on the same games (tools/bots/compare_tournament.py)
+        ["contender+attack"] = () => BotContext.Contender(attack: true),
+        ["contender+discard"] = () => BotContext.Contender(discard: true),
+        ["contender+reserve"] = () => BotContext.Contender(reserve: true),
+        ["contender+woncap"] = () => BotContext.Contender(wonCap: true),
+        ["contender+all"] = () => BotContext.Contender(attack: true, discard: true, reserve: true, wonCap: true),
         ["planner-plain"] = () => new() { UsePlanner = true, PlannerReserve = false, PlannerDiscard = false }, // ablation: neither // issue #1185: the turn-planning bot (docs/bots/experiments/2026-11-07-planner-slice1.md)
         ["arch-all"] = () => new() { UseArchetypeAttack = true, UseArchetypeAbilities = true, UseArchetypeMilitary = true, UseArchetypeSwitch = true }
     };

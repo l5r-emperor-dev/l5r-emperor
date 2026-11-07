@@ -8,6 +8,7 @@ internal static class PlannerTests
         ("Planner (issue #1185): the purchase slate respects the shape of the Gold (a 5 and a 3 cannot pay for two 4-cost cards), and the plan is rebuilt at the start of a turn, when the phase moves on and when the table changes, but not when nothing did", SlateAndRebuilds),
         ("Planner (issue #1185, slice 2): the attack decision is a swing estimate (my Force plus what my hand adds, against theirs plus a guessed enemy hand), so the planner attacks a battle it expects to win that the champion's printed-Force rule passes on, holds when a full enemy hand makes it risky, and counts a +Force card in hand", SwingAttack),
         ("Planner (issue #1185): the end-of-Dynasty discard keeps what can be bought next turn (information plans the turn) and discards only a card too dear to pay for, or a non-Personality when behind in Personalities with none on offer", DiscardRule),
+        ("Contender (issue #1185): the named configuration keeps the harmless planner and triage parts on, leaves the parts that lost games off (each switchable), and behaves as the champion does on attacks until the estimate is switched on", ContenderConfiguration),
         ("Planner (issue #1185): when the Gold can pay for the whole province row the plan buys it all, and Gold a likely attack will need for Battle tricks is held back from the purchases", ClearTheRowAndReserve),
     ];
 
@@ -122,6 +123,20 @@ internal static class PlannerTests
         Check(SlateFor(DynastyRow(pair), new BotContext { UsePlanner = true }).Split(',').Length == 2, "with nothing to hold Gold for, both Personalities are bought");
         var held = SlateFor(DynastyRow(pair, trick), new BotContext { UsePlanner = true });
         Check(held.Split(',').Length == 1, "a likely attack and a trick in hand: Gold is held back, so only one Personality is planned: [" + held + "]");
+    }
+
+    private static void ContenderConfiguration()
+    {
+        var contender = BotContext.Contender();
+        Check(contender.UsePlanner && contender.UsePlannerTriage && !contender.PlannerAttack && !contender.PlannerDiscard && !contender.PlannerReserve && !contender.TriageWonCap, "the Contender keeps the harmless parts and leaves the parts that lost games off");
+        Check(BotContext.Contender(attack: true).PlannerAttack && BotContext.Contender(discard: true).PlannerDiscard && BotContext.Contender(reserve: true).PlannerReserve && BotContext.Contender(wonCap: true).TriageWonCap, "each experimental part switches on by itself");
+        // With the attack estimate off, the Contender attacks as the champion does (a battle it wins but cannot raze is passed on); with it on, it declares.
+        Check(Declare(AttackTable(5, 0), BotContext.Contender()) == "pass", "Contender: the champion's attack rule applies while the estimate is off");
+        Check(Declare(AttackTable(5, 0), BotContext.Contender(attack: true)) == "declareAttack", "Contender+attack: the swing estimate declares the battle it expects to win");
+        // The purchase slate is on: a plan is made at the Dynasty phase.
+        var memory = BotContext.Contender(); var dynasty = Table(Phase.Dynasty, 5, 0);
+        TrainingOpponent.Choose(dynasty, [Buy(dynasty, "A"), Buy(dynasty, "B"), BattlePolicyTests.Pass(dynasty)], memory);
+        Check(memory.PlanLog.Count == 1, "the Contender plans its purchases");
     }
 
     private static ActionOption Buy(MatchView v, string id) =>

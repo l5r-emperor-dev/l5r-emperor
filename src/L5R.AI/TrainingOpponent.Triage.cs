@@ -65,9 +65,9 @@ public static partial class TrainingOpponent
         var spends = (action.Gold?.Cost ?? 0) > 0 || !inPlay;
         // 3. A comfortably won battle against units with nothing left to spring: do not spend Gold or a card from hand on it. A free printed ability is still worth using.
         var changesForce = intent.Rank >= EffectRank.Penalize && intent.Side != TargetSide.Own || ForceBonusOf(x, command) > 0;
-        if (spends && changesForce && odds.Satisfied && odds.Margin >= ComfortableMargin && !EnemyCanStillSpring(x)) return Math.Min(score, BarredScore);
+        if (x.Memory.TriageWonCap && spends && changesForce && !(x.Memory.TriageSpareKills && intent.Rank == EffectRank.Destroy) && odds.Satisfied && odds.Margin >= ComfortableMargin && !EnemyCanStillSpring(x)) return Math.Min(score, BarredScore);
         // 1. Printed abilities in play go before hand cards.
-        if (inPlay && !intent.IsReaction && intent.Rank > EffectRank.Neutral && score > PassScore) score += 12;
+        if (x.Memory.TriagePrintedFirst && inPlay && !intent.IsReaction && intent.Rank > EffectRank.Neutral && score > PassScore) score += 12;
         return score;
     }
 

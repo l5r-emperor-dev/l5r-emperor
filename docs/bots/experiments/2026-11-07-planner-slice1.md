@@ -1,5 +1,8 @@
 # 2026-11-07 planner, slice 1 (pre-registration)
 
+**Superseded** by `2026-11-07-contender.md` before any decisive run (the plan below was never executed; slice 2 was built first and paired testing replaced the win-rate test).
+
+
 - Issue / branch / arm: #1185, `claude/1185-planning-bot`, arm `planner` (`BotContext.UsePlanner`, default off).
 - Champion: `main` (flag off), commit recorded below at run time.
 - **Hypothesis.** The champion scores each action alone: it has no notion of what the turn is for, so it buys by fixed per-type scores that ignore the SHAPE of its Gold (a 5 and a 3 cannot pay for two

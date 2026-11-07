@@ -31,7 +31,7 @@ public static partial class TrainingOpponent
             : memory.Plan.Turn != view.TurnNumber ? "turn start"
             : PhaseGroup(view.Phase) != memory.PlanGroup ? "phase " + PhaseGroup(view.Phase)
             : view.Phase == Phase.Dynasty ? "purchase" : "table changed";
-        var attack = PhaseGroup(view.Phase) == "dynasty" ? null : ChooseAttack(x); // slice 2: the swing estimate decides whether, and where, to attack
+        var attack = PhaseGroup(view.Phase) == "dynasty" || !memory.PlannerAttack ? null : ChooseAttack(x); // slice 2: the swing estimate decides whether, and where, to attack
         var (intent, why) = IntentFor(x, attack);
         var sources = Sources(x);
         var hold = DefenseReserve(x);
@@ -210,8 +210,8 @@ public static partial class TrainingOpponent
     {
         if (x.Plan is not { } plan) return score;
         // Slice 2: attack when the swing estimate says the battle is won, whatever the printed Force says; otherwise pass. An opponent about to win on Honor is the champion's own rule.
-        if (action.Type == "declareAttack" && !HonorRace(x)) return plan.Attack is null ? -50 : 150 + Math.Clamp(plan.Attack.Estimate.Net, 0, 50);
-        if (action.Type == "attack" && plan.Attack is not null && !HonorRace(x)) return 300;
+        if (x.Memory.PlannerAttack && action.Type == "declareAttack" && !HonorRace(x)) return plan.Attack is null ? -50 : 150 + Math.Clamp(plan.Attack.Estimate.Net, 0, 50);
+        if (x.Memory.PlannerAttack && action.Type == "attack" && plan.Attack is not null && !HonorRace(x)) return 300;
         // Gold the battle's own tricks need is not spent before the battle (Mendon: prefer having the Gold to win the fight over recruiting; the Dynasty phase comes after).
         if (x.Memory.PlannerReserve && plan.Reserve > 0 && x.View.Phase == Phase.Action && action.Type is "equip" or "useAbility" or "playStrategy" && (action.Gold?.Cost ?? 0) is var cost and > 0 && Ready(x) - cost < plan.Reserve)
             return Math.Min(score, PassScore - 1);
