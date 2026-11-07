@@ -40,6 +40,8 @@ internal static class BotTournament
         ["planner"] = () => new() { UsePlanner = true },
         ["planner-no-reserve"] = () => new() { UsePlanner = true, PlannerReserve = false }, // ablation: no Gold held back for Battle tricks
         ["planner-no-discard"] = () => new() { UsePlanner = true, PlannerDiscard = false }, // ablation: the champion's discard rule
+        ["triage"] = () => new() { UsePlannerTriage = true }, // issue #1185 slice 3 alone, on the champion
+        ["planner-triage"] = () => new() { UsePlanner = true, UsePlannerTriage = true }, // the planner with triage
         ["planner-plain"] = () => new() { UsePlanner = true, PlannerReserve = false, PlannerDiscard = false }, // ablation: neither // issue #1185: the turn-planning bot (docs/bots/experiments/2026-11-07-planner-slice1.md)
         ["arch-all"] = () => new() { UseArchetypeAttack = true, UseArchetypeAbilities = true, UseArchetypeMilitary = true, UseArchetypeSwitch = true }
     };

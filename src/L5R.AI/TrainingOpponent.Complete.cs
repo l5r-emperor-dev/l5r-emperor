@@ -98,6 +98,7 @@ public static partial class TrainingOpponent
         var straighten = label.Contains("straighten", StringComparison.OrdinalIgnoreCase);
         return preferred
             .OrderBy(c => wantEnemy ? c.Bowed : straighten ? !c.Bowed : c.Bowed)
+            .ThenByDescending(c => wantEnemy && x.Memory.UsePlannerTriage ? ThreatValue(x, c) : c.Definition?.Type == CardType.Personality ? 1 : 0) // issue #1185: what the card can still do, not just its type
             .ThenByDescending(c => c.Definition?.Type == CardType.Personality)
             .ThenByDescending(c => c.Force)
             .ThenBy(c => c.Id, StringComparer.Ordinal);

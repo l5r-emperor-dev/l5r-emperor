@@ -24,6 +24,21 @@ public sealed class BotContext
     /// <summary>Issue #1185: the planning bot. True builds a turn plan (intent, Gold shape, purchase slate; TrainingOpponent.Planner.cs) and rebuilds it whenever the table changes. OFF by default: the champion plays as before.</summary>
     public bool UsePlanner { get; init; } = false;
 
+    /// <summary>Issue #1185 (slice 3): ability triage. Targets are ranked by what they can still do (unspent printed abilities, unspent Tacticians, Force), printed abilities in play go before hand cards, and no Gold or card is spent on a battle already comfortably won. Works with or without <see cref="UsePlanner"/>. OFF by default.</summary>
+    public bool UsePlannerTriage { get; init; } = false;
+
+    // What each performer has used this turn, remembered from the battle's public action list (the view says nothing about a card's once-per-turn abilities). Keyed by performer NAME,
+    // as the list names them: two same-named cards are treated as one, the cautious reading.
+    private int _spentTurn = -1;
+    private readonly HashSet<string> _spent = new(StringComparer.Ordinal);
+    public void NoteBattleActions(MatchView view)
+    {
+        if (view.BattleActions is not { Length: > 0 } actions) return;
+        if (view.TurnNumber != _spentTurn) { _spent.Clear(); _spentTurn = view.TurnNumber; }
+        foreach (var a in actions) if (a.Performer is not null) _spent.Add(a.Performer + "|" + a.AbilityId);
+    }
+    public bool SpentThisTurn(int turn, string performerName, string abilityId) => turn == _spentTurn && _spent.Contains(performerName + "|" + abilityId);
+
     /// <summary>Issue #1185 ablation switches, meaningful only with <see cref="UsePlanner"/>. PlannerReserve: Gold is kept untapped for Battle tricks (before this turn's attack, and at the end of the turn when an attack on the bot is likely). PlannerDiscard: Mendon's discard rule instead of the champion's.</summary>
     public bool PlannerReserve { get; init; } = true;
     public bool PlannerDiscard { get; init; } = true;
