@@ -82,22 +82,39 @@ public static partial class TrainingOpponent
     private static double CardValue(Ctx x, CardView card, PlanIntent intent)
     {
         var def = card.Definition!; var cost = EffectiveCost(x, card);
-        var early = x.Self.TurnsTaken <= 2 ? 1.3 : 1.0;
+        var holdings = x.Self.Home.Count(c => c.Definition?.Type == CardType.Holding);
+        var bodies = Personalities(x.Self);
         switch (def.Type)
         {
             case CardType.Holding:
                 // Mendon: about one Gold more than it produces is a fair price; cost 2 producing 3 is always attractive and a 5-cost producing 3 is low priority.
-                var efficiency = Math.Clamp(40 + 25 * (def.GoldProduction + 1 - cost), 0, 120);
-                return efficiency * early * (intent switch { PlanIntent.Develop => 1.4, PlanIntent.Attack => 0.8, _ => 0.7 });
+                // The first smoke runs (docs/bots/experiments/2026-11-07-planner-slice1.md) showed 0.66 fewer Personalities in play than the champion, so Holdings are worth less than they were,
+                // and less again as their number grows (the champion stops at ten; economy past the sixth buys little).
+                var efficiency = Math.Clamp(40 + 25 * (def.GoldProduction + 1 - cost), 0, 100);
+                var crowd = holdings >= 10 ? 0 : holdings >= 6 ? .5 : 1.0;
+                var early = x.Self.TurnsTaken <= 2 ? 1.15 : 1.0;
+                return efficiency * early * crowd * (intent switch { PlanIntent.Develop => 1.2, PlanIntent.Attack => 0.7, _ => 0.6 });
             case CardType.Personality:
                 var threat = BattlePolicy.Printed(card).Any(p => BattlePolicy.IsThreatening(p.Id, p.Ability, p.Intent)) ? 20 : 0;
                 var usable = BattlePolicy.Printed(card).Any(p => p.Ability.Timing is "Battle" or "BattleOrOpen" or "Reaction") ? 8 : 0;
-                var behind = Personalities(x.Self) < Personalities(x.Opponent) ? 25 : 0;
-                return (30 + 14 * def.Force + 10 * def.PersonalHonor + threat + usable + behind) * (intent switch { PlanIntent.Defend => 1.5, PlanIntent.Attack => 1.2, _ => 0.8 });
+                // Behind the opponent in bodies (the champion's catch-up recruit rule), or short of an army at all, a Personality is worth much more.
+                var behind = bodies < Personalities(x.Opponent) ? 40 : 0;
+                var shortHanded = bodies < 3 ? 1.4 : 1.0;
+                return (60 + 16 * def.Force + 10 * def.PersonalHonor + threat + usable + behind) * shortHanded * (intent switch { PlanIntent.Defend => 1.5, PlanIntent.Attack => 1.2, _ => 1.0 }) + ProclaimValue(x, card, cost);
             case CardType.Follower or CardType.Item:
                 return x.Self.Home.Any(c => c.Definition?.Type == CardType.Personality) ? 10 * Math.Max(0, def.Force) : 0;
             default: return 0;
         }
+    }
+
+    /// <summary>What a Proclaim is worth on this Personality (Mendon: an Honor lead can keep the opponent from taking the Imperial Favor). The same weights as the champion's: by the deck's Honor stance,
+    /// the offered purchase quote saying whether the card is eligible; before the Dynasty phase there is no quote, so a Personality of the bot's own Clan is taken to be.</summary>
+    private static double ProclaimValue(Ctx x, CardView card, int cost)
+    {
+        var quoted = x.Actions.Where(a => a.Type == "purchase" && a.CardId == card.Id && a.Quote is not null).Select(a => a.Quote!).ToArray();
+        var eligible = quoted.Length > 0 ? quoted.Any(q => q.ProclaimEligible) : ClanAligned(card.Definition!, x.Self.Clan);
+        if (!eligible) return 0;
+        return x.Profile.StanceFor(x.Self.Honor, x.Opponent.Honor, Ready(x) - cost >= 2) switch { ProclaimStance.Prioritize => 40, ProclaimStance.Neutral => 20, _ => -10 };
     }
 
     /// <summary>The best set of row cards, by value, that the Gold sources can pay for with each card paid from its own group of sources.</summary>

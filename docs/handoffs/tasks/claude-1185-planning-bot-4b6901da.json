@@ -1,9 +1,9 @@
 {
   "lane": "shared",
-  "summary": "Planning bot slices 1-2 (#1185): BotContext.UsePlanner (default off). Slice 1: TurnPlan with a Gold-shape purchase slate. Slice 2: swing-based battle estimate (my Force + hand tricks within Gold vs their Force + guessed hand and threats) decides declareAttack, the target Province (value of the card inside) and the Gold reserved for battle tricks. Registered as tournament arm 'planner'; champion unchanged.",
-  "validation": "AI tests planner/SlateAndRebuilds and planner/SwingAttack pass; builds 0 warnings/errors. Smoke tournaments (364 games each, independent pairing, soundness only): slice 1 50.5% (184-180), slice 2 46.7% (170-194, p=0.23 two-sided); 0 stalls/illegal/exceptions both times. No decisive pre-registered run done.",
-  "remaining": "Not ready to merge: both smoke runs show about 0.66 fewer Personalities in play than the champion and heavy losses (mostly Military victory against it) with Lion Legacy, Phoenix Talons, Scottish Lion and Pinned Lion; purchase weights need work. Pre-registration for slices 1-2 combined not yet written; check.sh not run; local only.",
+  "summary": "Planning bot slices 1-2 plus purchase reweight and Proclaim value (#1185): BotContext.UsePlanner (default off). TurnPlan with Gold-shape purchase slate (bodies weighted up, Holdings capped by count, Proclaim value from the purchase quote); swing-based battle estimate decides declareAttack, target Province and the Gold reserved for battle tricks. Tournament arm 'planner'; champion unchanged.",
+  "validation": "AI tests planner/SlateAndRebuilds and planner/SwingAttack pass. Dev smoke tournaments, 364 games each on fresh seed blocks, soundness 0 stalls/illegal/exceptions every time: slice 1 50.5%; slices 1-2 46.7%; after reweight 42.6% (p=0.005 worse); after adding Proclaim value 48.4% (176-188, p=0.56), Personalities margin -0.17, provinces margin +0.03. Smoke runs are not promotion evidence; no pre-registered decisive run done.",
+  "remaining": "Not ready to merge: still no measurable gain over the champion. The planner makes ~12% fewer purchases (10.9 vs 12.4/game), proclaims ~23% less and discards ~60% more province cards; cause not found. Later slices (Action-phase sequencing, contingency branches, threat triage, post-battle replan) not built; combined pre-registration not written; check.sh not run; local only.",
   "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1185",
   "branch": "claude/1185-planning-bot",
-  "updated": "2026-11-07T20:16:35.169837+00:00"
+  "updated": "2026-11-07T20:43:34.879808+00:00"
 }
