@@ -6,6 +6,7 @@ internal static class PlannerTests
 {
     public static readonly (string Name, Action Test)[] Tests = [
         ("Planner (issue #1185): the purchase slate respects the shape of the Gold (a 5 and a 3 cannot pay for two 4-cost cards), and the plan is rebuilt at the start of a turn, when the phase moves on and when the table changes, but not when nothing did", SlateAndRebuilds),
+        ("Planner (issue #1185, slice 2): the attack decision is a swing estimate (my Force plus what my hand adds, against theirs plus a guessed enemy hand), so the planner attacks a battle it expects to win that the champion's printed-Force rule passes on, holds when a full enemy hand makes it risky, and counts a +Force card in hand", SwingAttack),
     ];
 
     private static void Check(bool ok, string message) { if (!ok) throw new Exception(message); }
@@ -22,6 +23,41 @@ internal static class PlannerTests
         var foes = enemyForce == 0 ? [] : new[] { new CardView("foe", BattlePolicyTests.Person(enemyForce), 1, Zone.Home, true, false, null, null, enemyForce) };
         var self = view.Players[0] with { Stronghold = stronghold, Provinces = provinces, Home = home, Army = [], Hand = [], HandCount = 0, TurnsTaken = 5 };
         return view with { Phase = phase, TurnNumber = turn, PendingChoice = null, ActivePlayerId = 0, PriorityPlayerId = 0, Players = [self, view.Players[1] with { Home = foes, Army = [] }] };
+    }
+
+    // Attack declaration: my Personality (Force `own`) against one enemy Personality (Force 4) and Provinces of Strength 6, an enemy hand of `enemyHand` cards, and `hand` in mine.
+    private static MatchView AttackTable(int own, int enemyHand, params CardView[] hand)
+    {
+        var view = Table(Phase.AttackDeclaration, 5, 4);
+        var mine = new CardView("unit", BattlePolicy_Person(own), 0, Zone.Home, true, false, null, null, own);
+        var provinces = view.Players[1].Provinces.Select(p => p with { Strength = 6, Destroyed = false, Card = null }).ToArray();
+        return view with { Players = [view.Players[0] with { Home = view.Players[0].Home.Append(mine).ToArray(), Hand = hand, HandCount = hand.Length },
+            view.Players[1] with { Provinces = provinces, HandCount = enemyHand }] };
+    }
+    private static CardDefinition BattlePolicy_Person(int force) => BattlePolicyTests.Person(force);
+
+    private static string Declare(MatchView v, BotContext memory)
+    {
+        var declare = new ActionOption("declareAttack", "Declare an attack", true, null);
+        return TrainingOpponent.Choose(v, [declare, BattlePolicyTests.Pass(v)], memory).Command?.Type ?? "none";
+    }
+
+    private static void SwingAttack()
+    {
+        var plan = () => new BotContext { UsePlanner = true };
+        // Force 5 against Force 4 and no enemy hand: the battle is won (net +1) though no Province falls (Strength 6). The champion needs to beat Strength AND defenders, so it passes.
+        Check(Declare(AttackTable(5, 0), new BotContext()) == "pass", "the champion does not attack a battle it cannot raze");
+        var calm = plan();
+        Check(Declare(AttackTable(5, 0), calm) == "declareAttack", "the planner attacks a battle it expects to win: " + string.Join(" | ", calm.PlanLog));
+        // The same board with five cards in the enemy hand: their guessed tricks swing it back (a hand that big is a risk), so the planner holds.
+        var risky = plan();
+        Check(Declare(AttackTable(5, 5), risky) == "pass", "a full enemy hand makes the same attack too risky: " + string.Join(" | ", risky.PlanLog));
+        // My own hand counts: Force 3 against 4 loses, but a +3 Force card in hand wins it.
+        var bonus = CardCatalog.Cards.Values.First(d => d.Effect == "force-three");
+        var card = new CardView("boost", bonus, 0, Zone.Hand, true, false, null, null, 0);
+        Check(Declare(AttackTable(3, 0), plan()) == "pass", "Force 3 against 4 with nothing in hand does not attack");
+        var boosted = plan();
+        Check(Declare(AttackTable(3, 0, card), boosted) == "declareAttack", "a +3 Force card in hand turns it into a win: " + string.Join(" | ", boosted.PlanLog));
     }
 
     private static ActionOption Buy(MatchView v, string id) =>

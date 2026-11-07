@@ -1,9 +1,9 @@
 {
   "lane": "shared",
-  "summary": "Planning bot slice 1 (#1185): BotContext.UsePlanner (default off) builds a TurnPlan (intent, Gold shape, purchase slate) in TrainingOpponent.Planner.cs, rebuilt on turn start, phase change and table change; only Dynasty purchases use it. Registered as tournament arm 'planner'. Champion unchanged.",
-  "validation": "AI test 'planner' passes (slate respects Gold shape; rebuild triggers); project builds with 0 warnings/errors. Smoke tournament (144 games) running; decisive dev run not yet started.",
-  "remaining": "Smoke result and the pre-registered decisive run (docs/bots/experiments/2026-11-07-planner-slice1.md) not done; Action-phase sequencing, contingency branches, threat triage, battle-win estimate with hand, Border Keep re-plan and post-battle re-plan are later slices; check.sh not run; local only, not pushed.",
+  "summary": "Planning bot slices 1-2 (#1185): BotContext.UsePlanner (default off). Slice 1: TurnPlan with a Gold-shape purchase slate. Slice 2: swing-based battle estimate (my Force + hand tricks within Gold vs their Force + guessed hand and threats) decides declareAttack, the target Province (value of the card inside) and the Gold reserved for battle tricks. Registered as tournament arm 'planner'; champion unchanged.",
+  "validation": "AI tests planner/SlateAndRebuilds and planner/SwingAttack pass; builds 0 warnings/errors. Smoke tournaments (364 games each, independent pairing, soundness only): slice 1 50.5% (184-180), slice 2 46.7% (170-194, p=0.23 two-sided); 0 stalls/illegal/exceptions both times. No decisive pre-registered run done.",
+  "remaining": "Not ready to merge: both smoke runs show about 0.66 fewer Personalities in play than the champion and heavy losses (mostly Military victory against it) with Lion Legacy, Phoenix Talons, Scottish Lion and Pinned Lion; purchase weights need work. Pre-registration for slices 1-2 combined not yet written; check.sh not run; local only.",
   "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1185",
   "branch": "claude/1185-planning-bot",
-  "updated": "2026-11-07T16:52:09.421589+00:00"
+  "updated": "2026-11-07T20:16:35.169837+00:00"
 }

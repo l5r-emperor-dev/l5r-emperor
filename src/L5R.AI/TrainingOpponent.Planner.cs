@@ -11,7 +11,11 @@ namespace L5R.AI;
 public enum PlanIntent { Develop, Defend, Attack }
 
 /// <summary>What the bot means to do this turn, rebuilt when the picture changes. Slate: the province-row card ids it intends to buy, best first.</summary>
-internal sealed record TurnPlan(int Turn, string Trigger, PlanIntent Intent, int Gold, int[] Sources, string[] Slate, string Why);
+internal sealed record TurnPlan(int Turn, string Trigger, PlanIntent Intent, int Gold, int[] Sources, string[] Slate, string Why, AttackChoice? Attack = null)
+{
+    /// <summary>The Gold to leave untapped for the battle's own tricks (slice 2), 0 without an attack.</summary>
+    public int Reserve => Attack?.Estimate.Reserve ?? 0;
+}
 
 public static partial class TrainingOpponent
 {
@@ -27,10 +31,11 @@ public static partial class TrainingOpponent
             : memory.Plan.Turn != view.TurnNumber ? "turn start"
             : PhaseGroup(view.Phase) != memory.PlanGroup ? "phase " + PhaseGroup(view.Phase)
             : view.Phase == Phase.Dynasty ? "purchase" : "table changed";
-        var (intent, why) = IntentFor(x);
+        var attack = PhaseGroup(view.Phase) == "dynasty" ? null : ChooseAttack(x); // slice 2: the swing estimate decides whether, and where, to attack
+        var (intent, why) = IntentFor(x, attack);
         var sources = Sources(x);
         var slate = Slate(x, intent, sources);
-        var plan = new TurnPlan(view.TurnNumber, trigger, intent, sources.Sum(), sources, slate, why);
+        var plan = new TurnPlan(view.TurnNumber, trigger, intent, sources.Sum(), sources, slate, why, attack);
         memory.NotePlan(plan, key, PhaseGroup(view.Phase));
         return plan;
     }
@@ -57,17 +62,12 @@ public static partial class TrainingOpponent
 
     // ---- intent ---------------------------------------------------------------------------------------------------------------------------------------------------
 
-    private static (PlanIntent, string) IntentFor(Ctx x)
+    private static (PlanIntent, string) IntentFor(Ctx x, AttackChoice? attack)
     {
         var self = x.Self; var opponent = x.Opponent;
         var mine = TotalForce(self); var theirs = TotalForce(opponent);
         var dynasty = PhaseGroup(x.View.Phase) == "dynasty";
-        if (!dynasty)
-        {
-            var units = self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed).ToArray();
-            var provinces = opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Index).ToArray();
-            if (units.Length > 0 && provinces.Length > 0 && PlanAttack(x, units, provinces) is not null) return (PlanIntent.Attack, $"an army can beat a Province (my Force {mine}, theirs {theirs})");
-        }
+        if (attack is not null) return (PlanIntent.Attack, attack.Why);
         // The Dynasty phase buys for NEXT turn: behind in material, buy bodies even if the race looks lost; far ahead, build the economy; otherwise buy toward the next attack.
         if (mine < theirs) return (PlanIntent.Defend, $"behind in Force ({mine} to {theirs}): bodies deter a counterattack");
         if (mine >= theirs + 6 && Personalities(self) >= Personalities(opponent)) return (PlanIntent.Develop, $"well ahead ({mine} to {theirs}): build the economy");
@@ -144,7 +144,14 @@ public static partial class TrainingOpponent
     /// <summary>The plan's say over the ordinary score. Slice one: the Dynasty phase's purchases follow the slate.</summary>
     private static double PlanScore(Ctx x, ActionOption action, GameCommand command, double score)
     {
-        if (x.Plan is not { } plan || action.Type != "purchase") return score;
+        if (x.Plan is not { } plan) return score;
+        // Slice 2: attack when the swing estimate says the battle is won, whatever the printed Force says; otherwise pass. An opponent about to win on Honor is the champion's own rule.
+        if (action.Type == "declareAttack" && !HonorRace(x)) return plan.Attack is null ? -50 : 150 + Math.Clamp(plan.Attack.Estimate.Net, 0, 50);
+        if (action.Type == "attack" && plan.Attack is not null && !HonorRace(x)) return 300;
+        // Gold the battle's own tricks need is not spent before the battle (Mendon: prefer having the Gold to win the fight over recruiting; the Dynasty phase comes after).
+        if (plan.Reserve > 0 && x.View.Phase == Phase.Action && action.Type is "equip" or "useAbility" or "playStrategy" && (action.Gold?.Cost ?? 0) is var cost and > 0 && Ready(x) - cost < plan.Reserve)
+            return Math.Min(score, PassScore - 1);
+        if (action.Type != "purchase") return score;
         var rank = Array.IndexOf(plan.Slate, command.CardId);
         if (rank >= 0) return SlateBonus - rank * 5 + score * 0.001; // the card's own variants (Clan discount, allegiance) keep their relative order
         return plan.Slate.Length > 0 || x.View.Phase == Phase.Dynasty ? Math.Min(score, OffPlanBuy) : score;

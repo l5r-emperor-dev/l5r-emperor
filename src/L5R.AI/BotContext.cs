@@ -34,7 +34,7 @@ public sealed class BotContext
     internal void NotePlan(TurnPlan plan, string key, string group)
     {
         Plan = plan; PlanKey = key; PlanGroup = group; PlanHistory.Add(plan);
-        PlanLog.Add($"T{plan.Turn} {plan.Trigger}: {plan.Intent}, Gold {plan.Gold} [{string.Join("+", plan.Sources)}], slate [{string.Join(",", plan.Slate)}] ({plan.Why})");
+        PlanLog.Add($"T{plan.Turn} {plan.Trigger}: {plan.Intent}, Gold {plan.Gold} [{string.Join("+", plan.Sources)}], slate [{string.Join(",", plan.Slate)}] ({plan.Why}){(plan.Attack is { } a ? $", attack Province {a.Province + 1} {(a.Raze ? "raze" : "win")} net {a.Estimate.Net} reserve {a.Estimate.Reserve}" : "")}");
     }
 
     /// <summary>Issue #788: false (the default while the arena results are inconclusive; see docs/parked) plays the bot as it was before the six battle changes (no pass-when-won, target priorities, send-home rule, reaction rule or Border Keep refresh). The arena uses it to measure the change.</summary>
