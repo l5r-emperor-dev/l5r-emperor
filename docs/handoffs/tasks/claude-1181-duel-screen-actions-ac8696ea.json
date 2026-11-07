@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "DuelScreen.Present ignored a snapshot with the same engine version, so a lesson that turns a duel's options on after a note (no engine change) left the screen with the notes' disabled actions: selecting The Courtesy of the Crane showed no PLACE FOCUS. A snapshot whose offered actions differ is now an update. PLACE FOCUS is not covered by the coach card at 1366x768, 1672x941 or 1920x1080.",
+  "validation": "Native lab through real clicks: Continue, select the card, PLACE FOCUS advances to the next note, and the deck-focus step offers Focus from deck; PLACE FOCUS clear of the coach at three sizes; tools duel-match variants normal, refusal, tie, reaction, open and aftermath complete; dotnet format whitespace clean.",
+  "remaining": "None; ready for review.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1181",
+  "branch": "claude/1181-duel-screen-actions",
+  "updated": "2026-11-07T14:14:30.496367+00:00"
+}
