@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Research arms (#1185): eight CCG-strategy changes from community strategy writing as switches on the Contender (BotContext.Contender(...), all off by default; champion unchanged): rec1 discard v2 (keep only what the Gold buys together), rec2a/2b the attack estimate split into add-only and veto-only, rec3 Honor-30 guard, rec4 presence denial, rec5 no spend on a lost fight, rec7 first-turn Holdings, rec8 Proclaim boost; rec6 not built (champion already does it). Pre-registered screening and final arena in docs/bots/experiments/2026-11-08-research-arms.md; research note in docs/bots/research/.",
+  "validation": "AI planner tests (12) pass including one per testable switch; repo format check passes; builds with 0 errors. Stage 1 screening (10 runs, seed block 3000) and the stage 2 final arena are running; no results yet.",
+  "remaining": "Stage 1 and 2 results not in; integrated arm contender2 not built; combined pre-registered result section empty; check.sh not run; local only until the runs finish.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1185",
+  "branch": "claude/1185-research-arms",
+  "updated": "2026-11-08T00:48:45.398553+00:00"
+}
