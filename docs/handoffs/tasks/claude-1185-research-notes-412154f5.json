@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Record the Contender research: CCG-strategy recommendations, the pre-registered eight-arm screen and final arena (negative: contender2 -64 games of 1,445, p=0.0004), and the CONTENDER.md correction. Docs only; the flag-off arms stay on branch claude/1185-research-arms (PR #1188, closed unmerged).",
+  "validation": "Docs only, no code change; the numbers come from the local tournament runs recorded in the experiment note.",
+  "remaining": "None. Bot work stopped as a dead end; the arms are preserved on the remote branch.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1185",
+  "branch": "claude/1185-research-notes",
+  "updated": "2026-11-08T11:52:29.685917+00:00"
+}
