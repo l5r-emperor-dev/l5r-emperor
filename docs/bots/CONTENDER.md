@@ -44,6 +44,11 @@ Results on block 1700 (`L5R_TOURN_SEED_START=1700 L5R_TOURN_SEEDS=1`, independen
 | triage: won-battle cap only | 4 | 7 | -3 | 0.55 |
 | `contender` (slate + triage targets + printed-first) | 37 | 41 | -4 | 0.73 |
 
+**Correction from a larger sample (2026-11-08).** The 364-game table above could not resolve small effects. On a fresh block of 1,456 games per arm (`docs/bots/experiments/2026-11-08-research-arms.md`), the Contender
+against the champion's baseline gained 122 and lost 180 (net **-58**, p = 0.001, 45.8% against 49.8%): about four points of win rate worse, not neutral. Adding the one research switch that screened positive
+(`contender2`, the veto-only attack estimate) was -64 (p = 0.0004), no different from the Contender (-6, p = 0.51). Read every "neutral" in the table above as "too small to see in 364 games"; use at least 1,456 games per
+arm (`L5R_TOURN_SEEDS=4`) before calling an arm harmless.
+
 The harmless parts are also nearly invisible: triage changes the outcome of only 7-11 games in 364. The purchase slate matters more but is a wash. **Nothing here beats the champion yet.** The first
 useful work is to find out why the attack estimate and the discard rule lose, then to build the parts that have not been tried: Action-phase sequencing and contingency branches, mitigation of the most
 dangerous unit first, and re-planning after a battle (see `docs/bots/experiments/2026-11-07-contender.md`).

@@ -1,9 +1,9 @@
 {
   "lane": "shared",
-  "summary": "Research arms (#1185): eight CCG-strategy changes from community strategy writing as switches on the Contender (BotContext.Contender(...), all off by default; champion unchanged): rec1 discard v2 (keep only what the Gold buys together), rec2a/2b the attack estimate split into add-only and veto-only, rec3 Honor-30 guard, rec4 presence denial, rec5 no spend on a lost fight, rec7 first-turn Holdings, rec8 Proclaim boost; rec6 not built (champion already does it). Pre-registered screening and final arena in docs/bots/experiments/2026-11-08-research-arms.md; research note in docs/bots/research/.",
-  "validation": "AI planner tests (12) pass including one per testable switch; repo format check passes; builds with 0 errors. Stage 1 screening (10 runs, seed block 3000) and the stage 2 final arena are running; no results yet.",
-  "remaining": "Stage 1 and 2 results not in; integrated arm contender2 not built; combined pre-registered result section empty; check.sh not run; local only until the runs finish.",
+  "summary": "Research arms (#1185): eight CCG-strategy changes as switches on the Contender (BotContext.Contender(...), all off by default; champion unchanged), with a pre-registered two-stage test. Stage 1 screening chose one switch (veto-only attack estimate, +5); the integrated arm contender2 is the Contender plus it. Arms rec1-discard2, rec2a/2b, rec3, rec4, rec5, rec7, rec8 and contender2 are in BotTournament; docs/bots/research/ holds the compiled CCG advice, docs/bots/experiments/2026-11-08-research-arms.md the plan and result.",
+  "validation": "AI planner tests (12) pass, one per testable switch; repo format check passes. Stage 1 (10 runs, 364 games each, block 3000): no soundness findings. Stage 2 final arena (1,456 games per arm, block 5000): contender2 against the champion gained 125, lost 189 (net -64, p=0.0004); the Contender -58 (p=0.001); contender2 vs Contender -6 (p=0.51); 0 stalls/illegal/exceptions; 6-7 games out of time per arm. Outcome negative per the pre-registered rule.",
+  "remaining": "NEGATIVE: no research switch beat the champion; the Contender itself loses about four points of win rate (the earlier neutral reading was underpowered). Flags stay off; nothing promoted. Next: find why the purchase slate and triage lose games; rec4 presence denial never triggers (untested); check.sh not run; the PR is open for review, not merged.",
   "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1185",
   "branch": "claude/1185-research-arms",
-  "updated": "2026-11-08T00:48:45.398553+00:00"
+  "updated": "2026-11-08T02:24:37.387471+00:00"
 }

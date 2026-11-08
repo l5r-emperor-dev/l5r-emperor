@@ -21,5 +21,36 @@
 
 ## Result (fill in after the runs; the plan above is not edited)
 
-- Stage 1 table (net against the Contender and the champion, per arm), the switches selected, stage 2 numbers, wall clock:
-- Outcome: promote-candidate | negative | inconclusive.
+- Commands: stage 1, ten runs of `L5R_TOURN_SEED_START=3000 L5R_TOURN_SEEDS=1` (champion, contender and the eight arms; four at a time on 16 cores, about 50 minutes). Stage 2, three runs of
+  `L5R_TOURN_SEED_START=5000 L5R_TOURN_SEEDS=4` (contender2, champion, contender; three at a time, about 45 minutes). Output files `artifacts/bots/scr-*` and `fin-*` (not committed).
+- **Stage 1** (364 games each; net = games gained minus lost on the common decided games; the champion A/A scored 48.8% on this block, and the Contender against the champion was +44/-41):
+
+| Arm | vs Contender (gained / lost, net, p two-sided) | vs champion (net, p) |
+| --- | --- | --- |
+| rec1-discard2 | 29 / 54, **-25**, 0.008 | -22, 0.033 |
+| rec2a-attack-add | 6 / 14, -8, 0.115 | -5, 0.67 |
+| rec2b-attack-veto | 11 / 6, **+5**, 0.33 | +8, 0.46 |
+| rec3-honor30 | 1 / 3, -2, 0.63 | +1, 1.0 |
+| rec4-presence | 0 / 0, 0 (changed no game: the trigger almost never occurs), 1.0 | +3, 0.83 |
+| rec5-nolost | 7 / 17, -10, 0.064 | -7, 0.53 |
+| rec7-open2 | 10 / 11, -1, 1.0 | +2, 0.91 |
+| rec8-proclaim | 0 / 2, -2, 0.50 | +1, 1.0 |
+
+  No soundness findings in any arm (0 stalls, illegal commands, exceptions, decision-cap or setup failures; 0 to 2 games out of time).
+- **Selection (the rule fixed above):** only `rec2b-attack-veto` (+5) reached +3, so `contender2` = the Contender plus the veto-only half of the attack estimate. The others were left out.
+- **Stage 2, the final arena** (1,456 games per arm, fresh block 5000, champion A/A 721-728 = 49.8%):
+
+| Comparison | Gained | Lost | Net | p (two-sided) |
+| --- | --- | --- | --- | --- |
+| contender2 against the champion (primary) | 125 | 189 | **-64** | **0.0004** |
+| contender against the champion | 122 | 180 | -58 | 0.0010 |
+| contender2 against the contender | 26 | 32 | -6 | 0.51 |
+
+  contender2 won 45.3% of decided games (656-794), the Contender 45.8% (663-787), the champion A/A 49.8%. Soundness: 0 stalls, illegal commands, exceptions, decision-cap or setup failures in all three;
+  6 to 7 games out of time per arm (three arms sharing the machine; the same in all). By deck, contender2 gained more than it lost against the champion with only Crab Control (+12/-9), Scottish Lion (+12/-8) and
+  Pinned Lion (+8/-8, even); the rest were net negative, the worst Spider Conquer (+8/-21), Lion preset (+5/-18) and Classic Lion (+5/-15).
+- **Outcome: negative.** The primary criterion fails in the wrong direction (p one-sided for the arm being better = 0.9999), so `contender2` is not a promotion candidate and the flags stay off.
+- **What the larger sample changed.** The earlier screens put the Contender at net -4 (block 1700) and -4 (block 3000) and called it neutral; at 1,456 games it is -58 (p = 0.001), about four points of win rate. The
+  small screens could not see it: the purchase slate, triage and the rest each lose a few games, and together they lose a clear number. The veto-only attack estimate added nothing measurable on top (-6, p = 0.51).
+  Four of eight research switches were harmless or inert, three lost games (discard v2 clearly), and the one that screened positive did not survive a fair sample. **Nothing proposed from the CCG strategy writing beat the
+  champion.**
