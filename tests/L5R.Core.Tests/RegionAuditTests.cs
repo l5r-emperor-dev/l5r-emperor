@@ -9,6 +9,7 @@ internal static class RegionAuditTests
         ("A Region revealed in a Province that already holds a Region is discarded and the Province refills", SecondRegionIsDiscarded),
         ("A Region already face up in a Province (refilled face up by Border Keep) attaches and refills at the next Events Phase, like an Event", FaceUpRegionAttaches),
         ("The Distant Reaches attaches in a Province, refills it, and can then bow attachments", DistantReachesEndToEnd),
+        ("The Distant Reaches' action, after it attached through the Events Phase: bows one or two attachments (own or enemy), not none or three, bows itself as the cost and is then not offered again", DistantReachesAction),
     ]);
 
     private const string DistantReaches = "oracle-l5r-8030";
@@ -113,5 +114,33 @@ internal static class RegionAuditTests
         var p = e.State.Players[0].Provinces[1];
         Batch336Support.Check(p.RegionId == region.Id, "The Distant Reaches attached: " + Describe(e, region, 1));
         Batch336Support.Check(p.CardId is not null && p.CardId != region.Id, "and the Province refilled: " + Describe(e, region, 1));
+    }
+
+    private static void DistantReachesAction()
+    {
+        var s = Batch336Support.Table(Phase.Straighten, 0);
+        foreach (var p in s.Players[0].Provinces) if (p.CardId is string c) s.Cards[c].FaceUp = false;
+        var region = Batch336Support.Add(s, DistantReaches, 0, Zone.Province, province: 1);
+        if (s.Players[0].Provinces[1].CardId is string old) { s.Cards[old].Zone = Zone.DynastyDeck; s.Cards[old].ProvinceIndex = null; s.Players[0].DynastyDeck.Insert(0, old); }
+        s.Players[0].Provinces[1].CardId = region.Id; region.FaceUp = false;
+        var mine = Batch336Support.Add(s, "training-water-shugenja", 0, Zone.Home);
+        var theirs = Batch336Support.Add(s, "training-lion-samurai", 1, Zone.Home);
+        var a1 = Batch336Support.Add(s, "oracle-l5r-8366", 0, Zone.Attached, parent: mine.Id);
+        var a2 = Batch336Support.Add(s, "oracle-l5r-8366", 1, Zone.Attached, parent: theirs.Id);
+        var a3 = Batch336Support.Add(s, "oracle-l5r-8366", 0, Zone.Attached, parent: mine.Id);
+        var e = MatchEngine.FromTestState(s);
+        e.EventsPhaseForTest(0);
+        Batch336Support.Check(e.State.Players[0].Provinces[1].RegionId == region.Id && e.State.Phase == Phase.Action, "attached and the Action phase began");
+        Batch336Support.Check(Batch336Support.CanUse(e, 0, "distant-reaches-bow", region.Id), "the action is offered once the Region attached");
+        Batch336Support.Check(!Batch336Support.CanUse(e, 1, "distant-reaches-bow", region.Id), "and not to the opponent");
+        // none and three attachments are refused; the state does not change
+        Batch336Support.Check(Batch336Support.Rejection(e, Batch336Support.Use(e, 0, "distant-reaches-bow", region.Id, selections: [Batch336Support.Pick("target", a1.Id, a2.Id, a3.Id)])).Length > 0, "three attachments are refused");
+        Batch336Support.Check(!e.State.Cards[region.Id].Bowed && !e.State.Cards[a1.Id].Bowed, "a refused use costs nothing");
+        // one own and one enemy attachment
+        { var r = e.Execute(Batch336Support.Use(e, 0, "distant-reaches-bow", region.Id, selections: [Batch336Support.Pick("target", a1.Id, a2.Id)])); Batch336Support.Check(r.Accepted, r.Error ?? "rejected"); }
+        Batch336Support.Check(e.State.Cards[region.Id].Bowed, "the Region bowed as the cost");
+        Batch336Support.Check(e.State.Cards[a1.Id].Bowed && e.State.Cards[a2.Id].Bowed, "both chosen attachments bowed");
+        Batch336Support.Check(!e.State.Cards[a3.Id].Bowed, "the third was not touched");
+        Batch336Support.Check(!Batch336Support.CanUse(e, 0, "distant-reaches-bow", region.Id), "the bowed Region offers nothing more");
     }
 }
