@@ -23,6 +23,8 @@ public static partial class TrainingOpponent
 
     private static bool FairHolding(CardDefinition def) => def.Type == CardType.Holding && def.GoldCost <= def.GoldProduction + 1;
 
+    private static bool FairHolding(Ctx x, CardDefinition def) => def.Type == CardType.Holding && def.GoldCost <= def.GoldProduction + Knob(x, "fair", 1);
+
     private static int Holdings(PlayerView p) => p.Home.Count(c => c.Definition?.Type == CardType.Holding);
 
     /// <summary>The Contender's further rules over an action's final score.</summary>
@@ -34,7 +36,7 @@ public static partial class TrainingOpponent
         if (Rule(x, "firstbody") && action.Type == "purchase" && x.Card(command.CardId)?.Definition is { Type: CardType.Personality } body && x.Self.TurnsTaken >= 2
             && Personalities(x.Self) < Math.Max(1, Personalities(x.Opponent)) && !x.Memory.RecruitedThisTurn(x.View.TurnNumber))
             return SlateBonus + 100 + body.Force * 3 + score * 0.0001;
-        if (Rule(x, "econ") && action.Type == "purchase" && x.Card(command.CardId)?.Definition is { } bought && FairHolding(bought) && (Holdings(x.Self) < 8 && x.Self.TurnsTaken <= Knob(x, "econT", Rule(x, "econT2") ? 2 : 4) || Rule(x, "econ2") && Holdings(x.Self) < 10)
+        if (Rule(x, "econ") && action.Type == "purchase" && x.Card(command.CardId)?.Definition is { } bought && FairHolding(x, bought) && (Holdings(x.Self) < Knob(x, "econN", 8) && x.Self.TurnsTaken <= Knob(x, "econT", Rule(x, "econT2") ? 2 : 4) || Rule(x, "econ2") && Holdings(x.Self) < 10)
             && !(Rule(x, "body1") && Personalities(x.Self) == 0 && x.Self.TurnsTaken >= 2 && ProvinceCards(x).Any(c => c.Definition!.Type == CardType.Personality && EffectiveCost(x, c) <= Ready(x))))
             return SlateBonus + 50 + 5 * (bought.GoldProduction - bought.GoldCost) + score * 0.0001;
         if (Rule(x, "econ") && action.Type == "discardProvince" && x.Card(command.CardId)?.Definition is { } kept)
