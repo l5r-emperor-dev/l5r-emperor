@@ -52,11 +52,14 @@ public sealed class BotContext
     public static BotContext Contender(bool attack = false, bool discard = false, bool reserve = false, bool wonCap = false, IEnumerable<string>? rules = null) => new()
     {
         Rules = new HashSet<string>(rules ?? [], StringComparer.Ordinal),
+        UseSureReactions = rules?.Contains("surereact") == true,
+        UseTradeAttacks = rules?.Contains("trades") == true,
+        UseBattlePolicy = rules?.Contains("battlepolicy") == true,
         UsePlanner = true,
         UsePlannerTriage = true,
         PlannerAttack = attack,
         PlannerDiscard = discard,
-        PlannerReserve = reserve,
+        PlannerReserve = reserve || rules?.Contains("reserve") == true,
         TriageWonCap = wonCap
     };
     /// <summary>Issue #1185 tuning: the Contender's further rules, each named and switched on separately (see TrainingOpponent.Contender2.cs). Empty: none.</summary>

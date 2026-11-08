@@ -110,11 +110,12 @@ public static partial class TrainingOpponent
                     }
                 return null;
             }
-            if (action.Type == "attack" && Rule(x, "lean") && !HonorRace(x))
+            if (action.Type == "attack" && (Rule(x, "lean") || Rule(x, "lean2") || Rule(x, "lean3")) && !HonorRace(x))
             {
                 // Issue #1185 tuning (lean): the smallest razing armies, everything else home. In the Cavalry segment, armies already razing get nobody more.
-                if (x.View.Phase == Phase.CavalryDeclaration && AlreadyAssigned(x).Length > 0) return null;
-                return LeanPlan(x, units, provinces) is { } lean ? command with { Assignments = lean } : null;
+                if (x.View.Phase == Phase.CavalryDeclaration && AlreadyAssigned(x).Length > 0) { if (Rule(x, "lean") || Rule(x, "lean3") && LeanArmiesRaze(x) || Rule(x, "lean2") && LeanArmiesSuffice(x)) return null; }
+                else if (LeanPlan(x, units, provinces) is { } lean) return command with { Assignments = lean };
+                else if (Rule(x, "lean")) return null; // lean2 falls back to the ordinary attack
             }
             if (action.Type == "attack")
             {
@@ -123,6 +124,9 @@ public static partial class TrainingOpponent
                 var plan = PlanAttack(x, units, provinces, assigned) is { } whole ? HoldCavalry(x, OfferedOnly(whole, units)) : null;
                 if (HonorAttackOf(x, units, provinces) is { } honorAttack) return command with { Assignments = HoldCavalry(x, honorAttack.Assignments) }; // issue #818 item 8
                 if (!HonorRace(x) && PlannerAssignment(x, units, provinces) is { } planned) return command with { Assignments = planned }; // issue #1185: the plan's own attack
+                if (Rule(x, "maxraze") && !HonorRace(x) && x.View.Phase == Phase.InfantryDeclaration && MaxRazePlan(x, units, provinces) is { } razing
+                    && razing.Values.Distinct().Count() > (plan?.Values.Distinct().Count() ?? 0)) return command with { Assignments = razing }; // issue #1185 tuning: more Provinces this turn
+                if (plan is not null && Rule(x, "favoraware") && !HonorRace(x) && FavorStopsAttack(x, plan)) return null; // issue #1185 tuning: the visible Favor sends the lone army's biggest unit home
                 if (plan is not null) return command with { Assignments = plan };
                 if (TradeFor(x, units) is { } trade)
                 {
@@ -160,6 +164,7 @@ public static partial class TrainingOpponent
                 var holdingCount = self.Home.Count(c => c.Definition?.Type == CardType.Holding);
                 var selected = self.Provinces.Where(p => p.Card?.Definition is not null && (action.TargetIds ?? []).Contains(p.Card.Id))
                     .Where(p => p.Card!.Definition!.GoldCost > ready || self.TurnsTaken <= 2 && holdingCount < 3 && p.Card.Definition.Type == CardType.Personality || holdingCount >= 7 && p.Card.Definition.Type == CardType.Holding)
+                    .Where(p => !(Rule(x, "keepbody") && p.Card!.Definition!.Type == CardType.Personality && EffectiveCost(x, p.Card) <= ready)) // issue #1185 tuning: an affordable body is never cycled away
                     .Select(p => p.Card!.Id).ToArray();
                 if (selected.Length == 0) return null;
                 return command with { CardIds = selected };
@@ -199,6 +204,13 @@ public static partial class TrainingOpponent
             // Issue #902: a Strategy that bows takes an unbowed target; with none, it is not played.
             if (x.Memory.UsePrudence && action.Type == "playStrategy" && StrategyIntent(x.Card(command.CardId)) is { Rank: EffectRank.Bow } bowing && bowing.Side != TargetSide.Own && targetCards.All(c => c.Bowed)) return null;
             var ordered = targetCards.OrderBy(c => c.Bowed).ThenByDescending(c => c.Force);
+            // Issue #1185 tuning (spread): a unit that already beats the strongest Province and every defender gains nothing more; the attachment goes to the next unit, so two armies can raze.
+            if (Rule(x, "spread") && action.Type == "equip" && targetCards.Length > 1 && targetCards.Where(c => c.OwnerId == self.Id).ToArray() is { Length: > 1 } mine)
+            {
+                var cap = opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Strength).DefaultIfEmpty(0).Max() + ArmyForce(opponent.Home) + 2;
+                var under = mine.Where(c => !c.Bowed && UnitForce(x, c) <= cap).OrderByDescending(c => UnitForce(x, c)).ToArray();
+                if (under.Length > 0 && mine.Any(c => UnitForce(x, c) > cap)) ordered = under.Concat(targetCards.Except(under)).OrderBy(c => under.Contains(c) ? 0 : 1);
+            }
             var bowStrategy = x.Memory.UseBattlePolicy && action.Type == "playStrategy" && x.Card(command.CardId)?.Definition?.Effect == "bow-small" ? PickBowTarget(x, targetCards.Select(c => c.Id).ToArray(), null) : null;
             var withTarget = WithTarget(command, action, bowStrategy?.Id ?? ordered.ThenBy(c => c.Id, StringComparer.Ordinal).First().Id);
             return withTarget is null ? null : Complete(x, action, withTarget);
