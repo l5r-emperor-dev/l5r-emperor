@@ -31,6 +31,9 @@ public static partial class TrainingOpponent
         if (Rule(x, "border") && action.Type == "useAbility" && command.AbilityId == "border-game"
             && ProvinceCards(x).Any(c => EffectiveCost(x, c) <= Ready(x) && (c.Definition!.Type == CardType.Personality || FairHolding(c.Definition))))
             return Math.Min(score, BarredScore);
+        // shinden: 1 Honor is cheap next to a bowed Personality (Mendon: the bot bowed its main unit and lost the next battle); only an opponent near an Honor victory changes that.
+        if (Rule(x, "shinden") && action.Type == "chooseShinden" && x.Opponent.Honor < 34) return command.Choice == "honor" ? 120 : 60;
+        if (action.Type is "useAbility" or "playStrategy" or "equip" && Contender2Bar(x, action, command)) return Math.Min(score, BarredScore);
         if (Rule(x, "presence") && action.Type == "assignDefense" && PresencePlan(x, action) is { } plan && SameAssignments(plan, command.Assignments)) return Math.Max(score, 130);
         return score;
     }
@@ -107,6 +110,77 @@ public static partial class TrainingOpponent
             }
             if (left > province.Strength + force) continue; // even with removals and everyone, it falls: the ordinary defense decides
             return sent.ToDictionary(u => u.Id, _ => province.Index, StringComparer.Ordinal);
+        }
+        return null;
+    }
+
+    // ---- waste ------------------------------------------------------------------------------------------------------------------------------------------------------
+
+    private static readonly System.Text.RegularExpressions.Regex StraightenText = new(@"\bstraighten\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    /// <summary>The waste rules: an action they rule out is scored below passing.</summary>
+    private static bool Contender2Bar(Ctx x, ActionOption action, GameCommand command)
+    {
+        var intent = action.Type == "useAbility" ? AbilityIntent.Of(command.AbilityId) : StrategyIntent(x.Card(command.CardId));
+        var target = x.Card(command.TargetId);
+        var ownTurn = x.View.ActivePlayerId == x.Self.Id;
+        var openPhase = x.View.Phase == Phase.Action && x.View.PendingChoice is null;
+        // selfharm: the bot's own unit is sent home or bowed only to save it from a battle it is losing.
+        if (Rule(x, "selfharm") && target is not null && target.OwnerId == x.Self.Id && target.Definition?.Type is CardType.Personality or CardType.Follower
+            && (BattlePolicy.SendsHome(command.AbilityId) || intent.Rank is EffectRank.Bow or EffectRank.Penalize && intent.Side != TargetSide.Own))
+            return !(x.Odds is { Winning: false } && target.ProvinceIndex is not null);
+        // slate: Gold spent in the Action phase is Gold the Dynasty phase that follows cannot spend on the plan's purchases.
+        if (Rule(x, "slate") && openPhase && ownTurn && (action.Gold?.Cost ?? 0) is var cost and > 0 && !intent.IsReaction && x.Plan is { Slate.Length: > 0 } plan)
+        {
+            var slateCost = plan.Slate.Select(id => x.Card(id)).OfType<CardView>().Sum(c => EffectiveCost(x, c));
+            if (Ready(x) - cost < slateCost) return true;
+        }
+        // purpose: on its own turn, a straighten or a bow is worth something only for an attack it will make.
+        if (Rule(x, "purpose") && openPhase && ownTurn && !intent.IsReaction && command.AbilityId is { } id && AbilityCatalog.All.TryGetValue(id, out var ability)
+            && (StraightenText.IsMatch(AbilityIntent.EffectText(ability.Label ?? "")) || intent.Rank == EffectRank.Bow && intent.Side != TargetSide.Own) && DeclareScore(x) <= PassScore)
+            return true;
+        // lobby: the Favor is not worth bowing one of the last two Personalities who could defend.
+        if (Rule(x, "lobby") && intent.TakesFavorBowing && x.Self.Home.Count(c => c.Definition?.Type == CardType.Personality && !c.Bowed) <= 2) return true;
+        // cycle: the Favor's discard-and-draw throws away a card the bot chose to keep.
+        if (Rule(x, "cycle") && command.AbilityId == "favor-cycle") return true;
+        return false;
+    }
+
+    // ---- lean attack ------------------------------------------------------------------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// lean: the champion defends only where it can win or save the Province, so an army with more Force than the Province's Strength plus every unbowed enemy defender razes it unopposed (and an
+    /// undefended battlefield gives the defender no presence for Battle actions). The bot sends the smallest such armies at as many Provinces as it can, and keeps every other unit home, where it is a
+    /// defender the opponent's next attack must beat. Null when no army can raze: the bot does not attack.
+    /// </summary>
+    private static Dictionary<string, int>? LeanPlan(Ctx x, CardView[] units, int[] provinces)
+    {
+        var defence = ArmyForce(x.Opponent.Home);
+        var pool = units.Select(u => (Unit: u, Force: UnitForce(x, u))).Where(u => u.Force > 0).OrderByDescending(u => u.Force).ThenBy(u => u.Unit.Id, StringComparer.Ordinal).Take(9).ToArray();
+        var targets = x.Opponent.Provinces.Where(p => !p.Destroyed && provinces.Contains(p.Index)).OrderBy(p => p.Strength).ThenBy(p => p.Index).ToArray();
+        for (var k = Math.Min(3, Math.Min(targets.Length, pool.Length)); k >= 1; k--)
+        {
+            var chosen = targets.Take(k).ToArray();
+            var need = chosen.Select(t => t.Strength + defence + 1).ToArray();
+            int[]? best = null; var bestUsed = int.MaxValue; var slot = new int[pool.Length];
+            void Search(int i, int[] force, int used)
+            {
+                if (used >= bestUsed) return;
+                if (i == pool.Length)
+                {
+                    for (var j = 0; j < k; j++) if (force[j] < need[j]) return;
+                    bestUsed = used; best = (int[])slot.Clone(); return;
+                }
+                for (var choice = 0; choice <= k; choice++) // k means home
+                {
+                    slot[i] = choice;
+                    if (choice < k) { force[choice] += pool[i].Force; Search(i + 1, force, used + pool[i].Force); force[choice] -= pool[i].Force; }
+                    else Search(i + 1, force, used);
+                }
+            }
+            Search(0, new int[k], 0);
+            if (best is not null)
+                return Enumerable.Range(0, pool.Length).Where(i => best[i] < k).ToDictionary(i => pool[i].Unit.Id, i => chosen[best[i]].Index, StringComparer.Ordinal);
         }
         return null;
     }

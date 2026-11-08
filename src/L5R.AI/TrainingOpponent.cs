@@ -110,6 +110,12 @@ public static partial class TrainingOpponent
                     }
                 return null;
             }
+            if (action.Type == "attack" && Rule(x, "lean") && !HonorRace(x))
+            {
+                // Issue #1185 tuning (lean): the smallest razing armies, everything else home. In the Cavalry segment, armies already razing get nobody more.
+                if (x.View.Phase == Phase.CavalryDeclaration && AlreadyAssigned(x).Length > 0) return null;
+                return LeanPlan(x, units, provinces) is { } lean ? command with { Assignments = lean } : null;
+            }
             if (action.Type == "attack")
             {
                 // Mendon's spec (issue #642): as many sub-armies as can each beat their province plus every unit that could defend it.
