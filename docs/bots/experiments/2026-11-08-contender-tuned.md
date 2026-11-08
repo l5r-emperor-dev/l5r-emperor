@@ -13,5 +13,8 @@
 
 ## Result (fill in after the single run; the plan above is not edited)
 
-- Command, output files, wall clock:
-- Outcome:
+- Command, output files, wall clock: the command above, `artifacts/bots/h9000-contender.{md,json,out}` (not committed), 3 min 0 s.
+- Outcome: **superior** (rule met). Contender 237, champion 123 of 360 = **65.8%** (95% Wilson CI 60.8-70.5%); exact sign test one-sided p < 0.0001. Paired by seed: won both 75, lost both
+  18, split 87 (McNemar p < 0.0001). Soundness: 0 bot stalls, 0 illegal, 0 exceptions, 0 decision cap, 0 setup failures (45 games had a refused-then-retried action, informational).
+  Held-out decks piloted: Allan Lion MCA 34/64 (53%), Mantis Manipulation 44/64 (69%), Pinned Crane 47/64 (73%). No deck has the 20+ games the collapse rule needs below 35%; the lowest
+  small samples are Crab Control 3/12 and Crane Dominance and Phoenix Talons 4/12 each.
