@@ -49,17 +49,21 @@ public sealed class BotContext
     /// <paramref name="discard"/> (the interview's discard rule; about -11), <paramref name="reserve"/> (Gold held for Battle tricks; no measurable effect) and <paramref name="wonCap"/> (no spending on a
     /// comfortably won battle; about -3, not significant). See docs/bots/CONTENDER.md for the evidence and how to run it. The champion on main is unchanged.
     /// </summary>
-    public static BotContext Contender(bool attack = false, bool discard = false, bool reserve = false, bool wonCap = false, IEnumerable<string>? rules = null) => new()
+    public static BotContext Contender(bool attack = false, bool discard = false, bool reserve = false, bool wonCap = false, IEnumerable<string>? rules = null) => Contender(attack, discard, reserve, wonCap, new HashSet<string>(rules ?? TunedRules, StringComparer.Ordinal));
+
+    private static BotContext Contender(bool attack, bool discard, bool reserve, bool wonCap, HashSet<string> rules) => new()
     {
-        Rules = new HashSet<string>(rules ?? TunedRules, StringComparer.Ordinal),
-        UseSureReactions = rules?.Contains("surereact") == true,
-        UseTradeAttacks = rules?.Contains("trades") == true,
-        UseBattlePolicy = rules?.Contains("battlepolicy") == true,
-        UsePlanner = true,
-        UsePlannerTriage = true,
-        PlannerAttack = attack || rules?.Contains("pattack") == true,
-        PlannerDiscard = discard || rules?.Contains("pdiscard") == true,
-        PlannerReserve = reserve || rules?.Contains("reserve") == true,
+        Rules = rules,
+        UseSureReactions = rules.Contains("surereact"),
+        UseTradeAttacks = rules.Contains("trades"),
+        UseBattlePolicy = rules.Contains("battlepolicy"),
+        UsePlanner = !rules.Contains("noplanner"),
+        UsePlannerTriage = !rules.Contains("notriage"),
+        TriageTargets = !rules.Contains("notargets"),
+        TriagePrintedFirst = !rules.Contains("noprinted"),
+        PlannerAttack = attack || rules.Contains("pattack"),
+        PlannerDiscard = discard || rules.Contains("pdiscard"),
+        PlannerReserve = reserve || rules.Contains("reserve"),
         TriageWonCap = wonCap
     };
     /// <summary>Issue #1185 tuning: the Contender's default rules (TrainingOpponent.Contender2.cs), the set that won the most on unseen games (blocks 5000-5001). Ablation there showed that

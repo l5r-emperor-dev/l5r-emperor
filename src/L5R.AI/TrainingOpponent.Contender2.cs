@@ -43,8 +43,10 @@ public static partial class TrainingOpponent
         {
             // discardbad: with six Holdings, one that costs two or more above its production only holds the slot a Personality could fill.
             if (Rule(x, "discardbad") && kept.Type == CardType.Holding && kept.GoldCost >= kept.GoldProduction + 2 && Holdings(x.Self) >= 6) return 20;
-            if (FairHolding(kept) && Holdings(x.Self) < 8) return -5;
-            if (kept.Type == CardType.Personality && EffectiveCost(x, x.Card(command.CardId)!) <= Capacity(x)) return -5;
+            // nokeepH / nokeepP / nokeep: the champion's discard decides for Holdings, Personalities or both (the protection keeps the row from cycling: the Contender discarded 0.5 cards a game, the champion 4).
+            // keepready: a Personality is kept only when this turn's unbowed Gold could buy it, not the whole capacity.
+            if (FairHolding(kept) && Holdings(x.Self) < 8 && !Rule(x, "nokeepH") && !Rule(x, "nokeep")) return -5;
+            if (kept.Type == CardType.Personality && EffectiveCost(x, x.Card(command.CardId)!) <= (Rule(x, "keepready") ? Ready(x) : Capacity(x)) && !Rule(x, "nokeepP") && !Rule(x, "nokeep")) return -5;
         }
         if (Rule(x, "border") && action.Type == "useAbility" && command.AbilityId == "border-game"
             && ProvinceCards(x).Any(c => EffectiveCost(x, c) <= Ready(x) && (c.Definition!.Type == CardType.Personality || FairHolding(c.Definition))))
@@ -277,7 +279,7 @@ public static partial class TrainingOpponent
             && (StraightenText.IsMatch(AbilityIntent.EffectText(ability.Label ?? "")) || intent.Rank == EffectRank.Bow && intent.Side != TargetSide.Own) && DeclareScore(x) <= PassScore)
             return true;
         // lobby: the Favor is not worth bowing one of the last two Personalities who could defend.
-        if (Rule(x, "lobby") && intent.TakesFavorBowing && x.Self.Home.Count(c => c.Definition?.Type == CardType.Personality && !c.Bowed) <= 2) return true;
+        if (Rule(x, "lobby") && intent.TakesFavorBowing && x.Self.Home.Count(c => c.Definition?.Type == CardType.Personality && !c.Bowed) <= Knob(x, "lobbyN", 2)) return true;
         // provaim: a cut to a Province's strength outside a battle (Shrine to Nimuro) is made only on a turn the bot attacks; Complete aims it at the opponent's weakest Province.
         if (Rule(x, "provaim") && action.Type == "useAbility" && x.View.Phase == Phase.Action && command.AbilityId is { } aimId && AbilityCatalog.All.TryGetValue(aimId, out var aim)
             && LowersStrength.IsMatch(AbilityIntent.EffectText(aim.Label ?? "")) && (!ownTurn || DeclareScore(x) <= PassScore && !ArmyRazesAfterCut(x)))
