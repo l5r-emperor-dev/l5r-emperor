@@ -49,8 +49,9 @@ public sealed class BotContext
     /// <paramref name="discard"/> (the interview's discard rule; about -11), <paramref name="reserve"/> (Gold held for Battle tricks; no measurable effect) and <paramref name="wonCap"/> (no spending on a
     /// comfortably won battle; about -3, not significant). See docs/bots/CONTENDER.md for the evidence and how to run it. The champion on main is unchanged.
     /// </summary>
-    public static BotContext Contender(bool attack = false, bool discard = false, bool reserve = false, bool wonCap = false) => new()
+    public static BotContext Contender(bool attack = false, bool discard = false, bool reserve = false, bool wonCap = false, IEnumerable<string>? rules = null) => new()
     {
+        Rules = new HashSet<string>(rules ?? [], StringComparer.Ordinal),
         UsePlanner = true,
         UsePlannerTriage = true,
         PlannerAttack = attack,
@@ -58,6 +59,9 @@ public sealed class BotContext
         PlannerReserve = reserve,
         TriageWonCap = wonCap
     };
+    /// <summary>Issue #1185 tuning: the Contender's further rules, each named and switched on separately (see TrainingOpponent.Contender2.cs). Empty: none.</summary>
+    public HashSet<string> Rules { get; init; } = new(StringComparer.Ordinal);
+    public bool Has(string rule) => Rules.Contains(rule);
     /// <summary>PlannerAttack: the swing-based battle estimate decides whether and where to attack (slice 2); off leaves the champion's attack rules and only the purchase slate planned.</summary>
     public bool PlannerAttack { get; init; } = true;
     /// <summary>The three triage rules, each separately switchable (all on by default with <see cref="UsePlannerTriage"/>): TriageTargets ranks enemy targets by what they can still do; TriagePrintedFirst

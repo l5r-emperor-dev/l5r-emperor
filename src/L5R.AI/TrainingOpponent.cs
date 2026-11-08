@@ -67,6 +67,15 @@ public static partial class TrainingOpponent
 
     private static GameCommand? Prepare(Ctx x, ActionOption action)
     {
+        var command = PrepareCore(x, action);
+        // Issue #1185 tuning (presence): a defense the ordinary rules would not make, when one unit's presence lets the bot's removals save the Province.
+        if (command is not null && action.Type == "assignDefense" && Rule(x, "presence") && PresencePlan(x, action) is { } presence && ScoreCore(x, action, command) < 95)
+            return command with { Assignments = presence };
+        return command;
+    }
+
+    private static GameCommand? PrepareCore(Ctx x, ActionOption action)
+    {
         var self = x.Self; var opponent = x.Opponent; var view = x.View;
         var command = action.Command;
         if (command is null)
@@ -202,7 +211,7 @@ public static partial class TrainingOpponent
         return command;
     }
 
-    private static double Score(Ctx x, ActionOption action, GameCommand command) => TriageScore(x, action, command, PlanScore(x, action, command, Adjust(x, action, command, ScoreCore(x, action, command))));
+    private static double Score(Ctx x, ActionOption action, GameCommand command) => Contender2Score(x, action, command, TriageScore(x, action, command, PlanScore(x, action, command, Adjust(x, action, command, ScoreCore(x, action, command)))));
 
     private static double ScoreCore(Ctx x, ActionOption action, GameCommand command)
     {
