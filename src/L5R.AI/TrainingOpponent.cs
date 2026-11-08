@@ -107,7 +107,7 @@ public static partial class TrainingOpponent
                 var assigned = AlreadyAssigned(x);
                 var plan = PlanAttack(x, units, provinces, assigned) is { } whole ? HoldCavalry(x, OfferedOnly(whole, units)) : null;
                 if (HonorAttackOf(x, units, provinces) is { } honorAttack) return command with { Assignments = HoldCavalry(x, honorAttack.Assignments) }; // issue #818 item 8
-                if (!HonorRace(x) && PlannerAssignment(x, units, provinces) is { } planned) return command with { Assignments = planned }; // issue #1185: the plan's own attack
+                if (!HonorRace(x) && x.Memory.PlannerAttack && !x.Memory.AttackVetoOnly && !(x.Memory.AttackAddOnly && plan is not null) && PlannerAssignment(x, units, provinces) is { } planned) return command with { Assignments = planned }; // issue #1185: the plan's own attack
                 if (plan is not null) return command with { Assignments = plan };
                 if (TradeFor(x, units) is { } trade)
                 {
@@ -202,7 +202,7 @@ public static partial class TrainingOpponent
         return command;
     }
 
-    private static double Score(Ctx x, ActionOption action, GameCommand command) => TriageScore(x, action, command, PlanScore(x, action, command, Adjust(x, action, command, ScoreCore(x, action, command))));
+    private static double Score(Ctx x, ActionOption action, GameCommand command) => HopelessScore(x, action, command, TriageScore(x, action, command, PlanScore(x, action, command, Adjust(x, action, command, ScoreCore(x, action, command)))));
 
     private static double ScoreCore(Ctx x, ActionOption action, GameCommand command)
     {

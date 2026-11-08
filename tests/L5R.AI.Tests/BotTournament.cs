@@ -54,6 +54,14 @@ internal static class BotTournament
         ["contender+reserve"] = () => BotContext.Contender(reserve: true),
         ["contender+woncap"] = () => BotContext.Contender(wonCap: true),
         ["contender+all"] = () => BotContext.Contender(attack: true, discard: true, reserve: true, wonCap: true),
+        ["rec1-discard2"] = () => BotContext.Contender(discard2: true), // research arms (docs/bots/experiments/2026-11-08-research-arms.md), each on top of the Contender
+        ["rec2a-attack-add"] = () => BotContext.Contender(addOnly: true),
+        ["rec2b-attack-veto"] = () => BotContext.Contender(vetoOnly: true),
+        ["rec3-honor30"] = () => BotContext.Contender(honorGuard: true),
+        ["rec4-presence"] = () => BotContext.Contender(presence: true),
+        ["rec5-nolost"] = () => BotContext.Contender(noSpendLost: true),
+        ["rec7-open2"] = () => BotContext.Contender(openHoldings: true),
+        ["rec8-proclaim"] = () => BotContext.Contender(proclaimBoost: true),
         ["planner-plain"] = () => new() { UsePlanner = true, PlannerReserve = false, PlannerDiscard = false }, // ablation: neither // issue #1185: the turn-planning bot (docs/bots/experiments/2026-11-07-planner-slice1.md)
         ["arch-all"] = () => new() { UseArchetypeAttack = true, UseArchetypeAbilities = true, UseArchetypeMilitary = true, UseArchetypeSwitch = true }
     };

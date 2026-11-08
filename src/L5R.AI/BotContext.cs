@@ -49,15 +49,37 @@ public sealed class BotContext
     /// <paramref name="discard"/> (the interview's discard rule; about -11), <paramref name="reserve"/> (Gold held for Battle tricks; no measurable effect) and <paramref name="wonCap"/> (no spending on a
     /// comfortably won battle; about -3, not significant). See docs/bots/CONTENDER.md for the evidence and how to run it. The champion on main is unchanged.
     /// </summary>
-    public static BotContext Contender(bool attack = false, bool discard = false, bool reserve = false, bool wonCap = false) => new()
-    {
-        UsePlanner = true,
-        UsePlannerTriage = true,
-        PlannerAttack = attack,
-        PlannerDiscard = discard,
-        PlannerReserve = reserve,
-        TriageWonCap = wonCap
-    };
+    public static BotContext Contender(bool attack = false, bool discard = false, bool reserve = false, bool wonCap = false,
+        bool discard2 = false, bool addOnly = false, bool vetoOnly = false, bool honorGuard = false, bool presence = false, bool noSpendLost = false, bool openHoldings = false, bool proclaimBoost = false) => new()
+        {
+            UsePlanner = true,
+            UsePlannerTriage = true,
+            PlannerAttack = attack || addOnly || vetoOnly,
+            PlannerDiscard = discard,
+            PlannerReserve = reserve,
+            TriageWonCap = wonCap,
+            PlannerDiscard2 = discard2,
+            AttackAddOnly = addOnly,
+            AttackVetoOnly = vetoOnly,
+            HonorGuard = honorGuard,
+            PresenceDenial = presence,
+            NoSpendLost = noSpendLost,
+            OpenHoldings = openHoldings,
+            ProclaimBoost = proclaimBoost
+        };
+
+    /// <summary>Research arms (issue #1185, docs/bots/experiments/2026-11-08-research-arms.md), all off by default and all needing <see cref="UsePlanner"/>. PlannerDiscard2: keep only the best set of cards the Gold can buy
+    /// TOGETHER next turn. AttackAddOnly / AttackVetoOnly (with <see cref="PlannerAttack"/>): the attack estimate may only add attacks, or only cancel them. HonorGuard: attack only with a margin once the opponent has 30+
+    /// Honor. PresenceDenial: bow the opponent's only possible defender in the Action phase when the attack then wins. NoSpendLost: spend no Gold or cards on a battle the whole hand cannot turn. OpenHoldings: the first
+    /// turn buys Holdings before a Personality the Stronghold's Gold alone cannot pay for. ProclaimBoost: double the Proclaim bonus for a High-Honor deck.</summary>
+    public bool PlannerDiscard2 { get; init; }
+    public bool AttackAddOnly { get; init; }
+    public bool AttackVetoOnly { get; init; }
+    public bool HonorGuard { get; init; }
+    public bool PresenceDenial { get; init; }
+    public bool NoSpendLost { get; init; }
+    public bool OpenHoldings { get; init; }
+    public bool ProclaimBoost { get; init; }
     /// <summary>PlannerAttack: the swing-based battle estimate decides whether and where to attack (slice 2); off leaves the champion's attack rules and only the purchase slate planned.</summary>
     public bool PlannerAttack { get; init; } = true;
     /// <summary>The three triage rules, each separately switchable (all on by default with <see cref="UsePlannerTriage"/>): TriageTargets ranks enemy targets by what they can still do; TriagePrintedFirst

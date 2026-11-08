@@ -8,6 +8,13 @@ internal static class PlannerTests
         ("Planner (issue #1185): the purchase slate respects the shape of the Gold (a 5 and a 3 cannot pay for two 4-cost cards), and the plan is rebuilt at the start of a turn, when the phase moves on and when the table changes, but not when nothing did", SlateAndRebuilds),
         ("Planner (issue #1185, slice 2): the attack decision is a swing estimate (my Force plus what my hand adds, against theirs plus a guessed enemy hand), so the planner attacks a battle it expects to win that the champion's printed-Force rule passes on, holds when a full enemy hand makes it risky, and counts a +Force card in hand", SwingAttack),
         ("Planner (issue #1185): the end-of-Dynasty discard keeps what can be bought next turn (information plans the turn) and discards only a card too dear to pay for, or a non-Personality when behind in Personalities with none on offer", DiscardRule),
+        ("Research arms (issue #1185): every switch reaches the context and the Contender has them all off", ResearchSwitches),
+        ("R1 (issue #1185): discard v2 keeps what the Gold can buy together next turn and flushes the rest, where the first rule kept every card affordable alone", Rec1DiscardTogether),
+        ("R2 (issue #1185): the attack estimate can be split into its halves: add-only never cancels the champion's attack, veto-only never adds one", Rec2AttackHalves),
+        ("R3 (issue #1185): once the opponent has 30 Honor an attack is made only when the estimate wins by a margin", Rec3HonorGuard),
+        ("R4 (issue #1185): the opponent's only possible defender is bowed in the Action phase when the attack then wins, and nothing changes with two defenders", Rec4PresenceDenial),
+        ("R5 (issue #1185): no Gold or card is spent on a battle the whole hand cannot turn, and the last Province is defended with everything", Rec5NoSpendLost),
+        ("R7 (issue #1185): on the first turn two Holdings are planned ahead of a Personality the Stronghold alone cannot pay for", Rec7OpenHoldings),
         ("Contender (issue #1185): the named configuration keeps the harmless planner and triage parts on, leaves the parts that lost games off (each switchable), and behaves as the champion does on attacks until the estimate is switched on", ContenderConfiguration),
         ("Planner (issue #1185): when the Gold can pay for the whole province row the plan buys it all, and Gold a likely attack will need for Battle tricks is held back from the purchases", ClearTheRowAndReserve),
     ];
@@ -140,6 +147,102 @@ internal static class PlannerTests
         var memory = BotContext.Contender(); var dynasty = Table(Phase.Dynasty, 5, 0);
         TrainingOpponent.Choose(dynasty, [Buy(dynasty, "A"), Buy(dynasty, "B"), BattlePolicyTests.Pass(dynasty)], memory);
         Check(memory.PlanLog.Count == 1, "the Contender plans its purchases");
+    }
+
+    // ---- research arms (docs/bots/experiments/2026-11-08-research-arms.md) ----
+
+    private static MatchView WithEnemyHonor(MatchView v, int honor) => v with { Players = [v.Players[0], v.Players[1] with { Honor = honor }] };
+
+    private static string DiscardWith(BotContext memory, CardView[] row)
+    {
+        var view = Table(Phase.DynastyDiscard, 5, 4);
+        var provinces = view.Players[0].Provinces.Select((p, i) => p with { Card = i < row.Length ? row[i] : null }).ToArray();
+        var v = view with { Players = [view.Players[0] with { Provinces = provinces }, view.Players[1]] };
+        var actions = row.Select(c => new ActionOption("discardProvince", "Discard " + c.Id, true, null, null, c.Id)).Append(new ActionOption("endDynasty", "End", true, null)).ToArray();
+        var command = TrainingOpponent.Choose(v, actions, memory).Command;
+        return command?.Type == "discardProvince" ? "discard " + command.CardId : command?.Type ?? "none";
+    }
+
+    private static void ResearchSwitches()
+    {
+        var c = BotContext.Contender(discard2: true, addOnly: true, honorGuard: true, presence: true, noSpendLost: true, openHoldings: true, proclaimBoost: true);
+        Check(c.PlannerDiscard2 && c.AttackAddOnly && c.PlannerAttack && c.HonorGuard && c.PresenceDenial && c.NoSpendLost && c.OpenHoldings && c.ProclaimBoost, "each research switch reaches the context (add-only implies the attack estimate)");
+        var plain = BotContext.Contender();
+        Check(!plain.PlannerDiscard2 && !plain.AttackAddOnly && !plain.AttackVetoOnly && !plain.HonorGuard && !plain.PresenceDenial && !plain.NoSpendLost && !plain.OpenHoldings && !plain.ProclaimBoost, "the Contender has every research switch off");
+    }
+
+    private static void Rec1DiscardTogether()
+    {
+        // Four 5-cost Personalities against Gold for one (a 5 and a 3): each is affordable alone, so the first rule keeps all four; the second keeps what can be bought together and flushes the rest.
+        CardView[] row = [Card("P1", CardType.Personality, 5), Card("P2", CardType.Personality, 5), Card("P3", CardType.Personality, 5), Card("P4", CardType.Personality, 5)];
+        Check(DiscardWith(BotContext.Contender(discard: true), row) == "endDynasty", "the first discard rule keeps four cards that cannot all be bought");
+        Check(DiscardWith(BotContext.Contender(discard2: true), row).StartsWith("discard"), "discard v2 flushes what the Gold cannot buy together");
+        Check(DiscardWith(BotContext.Contender(discard2: true), [Card("P1", CardType.Personality, 4), Card("H1", CardType.Holding, 3, 2)]) == "endDynasty", "what can be bought together is kept");
+    }
+
+    private static void Rec2AttackHalves()
+    {
+        // Force 7 against Force 4 and Strength 6 with a full enemy hand: the champion attacks (7 beats both), the estimate says the guessed tricks swing it back.
+        var risky = AttackTable(7, 5);
+        Check(Declare(risky, new BotContext()) == "declareAttack", "the champion attacks Force 7 into Strength 6 and Force 4");
+        Check(Declare(risky, BotContext.Contender(vetoOnly: true)) == "pass", "veto-only: the estimate cancels it");
+        Check(Declare(risky, BotContext.Contender(addOnly: true)) == "declareAttack", "add-only: the estimate never cancels the champion's attack");
+        // Force 5 against Force 4 with no enemy hand: the champion cannot raze, the estimate wins the battle.
+        var winnable = AttackTable(5, 0);
+        Check(Declare(winnable, BotContext.Contender(addOnly: true)) == "declareAttack", "add-only: the estimate adds an attack the champion would pass on");
+        Check(Declare(winnable, BotContext.Contender(vetoOnly: true)) == "pass", "veto-only: never adds one");
+    }
+
+    private static void Rec3HonorGuard()
+    {
+        var risky = AttackTable(7, 5);
+        Check(Declare(WithEnemyHonor(risky, 20), BotContext.Contender(honorGuard: true)) == "declareAttack", "the guard is off while the opponent is below 30 Honor");
+        Check(Declare(WithEnemyHonor(risky, 32), BotContext.Contender(honorGuard: true)) == "pass", "at 32 Honor an attack the estimate does not win is passed on");
+        Check(Declare(WithEnemyHonor(AttackTable(12, 0), 32), BotContext.Contender(honorGuard: true)) == "declareAttack", "at 32 Honor an attack the estimate wins by a margin still goes");
+    }
+
+    private static void Rec4PresenceDenial()
+    {
+        var v = AttackTable(8, 0) with { Phase = Phase.Action };
+        string Play(MatchView view, BotContext memory)
+        {
+            var bow = BattlePolicyTests.Use(view, "training-bow-at-battle", "unit", "foe", ["foe"]);
+            return TrainingOpponent.Choose(view, [BattlePolicyTests.Pass(view), bow], memory).Command?.Type ?? "none";
+        }
+        Check(Play(v, BotContext.Contender(presence: true)) == "useAbility", "the opponent's only defender is bowed in the Action phase when the attack then wins");
+        var two = v with { Players = [v.Players[0], v.Players[1] with { Home = v.Players[1].Home.Append(new CardView("foe2", BattlePolicyTests.Person(3), 1, Zone.Home, true, false, null, null, 3)).ToArray() }] };
+        Check(Play(two, BotContext.Contender(presence: true)) == Play(two, BotContext.Contender()), "with two possible defenders the switch changes nothing");
+    }
+
+    private static MatchView NoHand(MatchView v) => v with { Players = [v.Players[0] with { Hand = [], HandCount = 0 }, v.Players[1]] };
+
+    private static void Rec5NoSpendLost()
+    {
+        var costly = new GoldQuote(2, "Printed", "", null, []);
+        string Chose(MatchView v, BotContext memory)
+        {
+            var bow = BattlePolicyTests.Use(v, "training-bow-at-battle", "own-main", null, ["enemy-main"]) with { Gold = costly };
+            return TrainingOpponent.Choose(v, [BattlePolicyTests.Pass(v), bow], memory).Command?.Type ?? "none";
+        }
+        var lost = NoHand(BattlePolicyTests.Battle(3, 12, 5));
+        Check(Chose(lost, BotContext.Contender(noSpendLost: true)) == "pass", "a costly action the whole hand cannot turn into a win is not played");
+        // Defending the bot's last Province is always done with everything.
+        var last = NoHand(BattlePolicyTests.Battle(3, 12, 5, botAttacks: false));
+        last = last with { Players = [last.Players[0] with { Provinces = last.Players[0].Provinces.Select((p, i) => i == 0 ? p : p with { Destroyed = true }).ToArray() }, last.Players[1]] };
+        Check(Chose(last, BotContext.Contender(noSpendLost: true)) == "useAbility", "the last Province is defended with everything");
+    }
+
+    private static void Rec7OpenHoldings()
+    {
+        // First turn, Gold of 5 and two 3s, a row of an 8-cost Personality (more than the Stronghold alone makes, and it takes all the Gold) and two 4-cost Holdings producing 3.
+        var row = new[] { Card("P1", CardType.Personality, 8), Card("H1", CardType.Holding, 4, 3), Card("H2", CardType.Holding, 4, 3) };
+        var view = DynastyRow(row);
+        var second = new CardView("hold2", view.Players[0].Home[0].Definition, 0, Zone.Home, true, false, null, null, 0);
+        view = view with { Players = [view.Players[0] with { Home = view.Players[0].Home.Append(second).ToArray(), TurnsTaken = 1 }, view.Players[1]] };
+        var baseline = SlateFor(view, BotContext.Contender()).Split(',');
+        var open = SlateFor(view, BotContext.Contender(openHoldings: true)).Split(',');
+        Check(baseline.Contains("P1") && !baseline.Contains("H1"), "without the switch the planned buy is the Personality: " + string.Join(",", baseline));
+        Check(open.Contains("H1") && open.Contains("H2") && !open.Contains("P1"), "on the first turn the switch buys the two Holdings: " + string.Join(",", open));
     }
 
     private static ActionOption Buy(MatchView v, string id) =>

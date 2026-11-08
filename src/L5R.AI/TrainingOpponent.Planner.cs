@@ -31,7 +31,7 @@ public static partial class TrainingOpponent
             : memory.Plan.Turn != view.TurnNumber ? "turn start"
             : PhaseGroup(view.Phase) != memory.PlanGroup ? "phase " + PhaseGroup(view.Phase)
             : view.Phase == Phase.Dynasty ? "purchase" : "table changed";
-        var attack = PhaseGroup(view.Phase) == "dynasty" || !memory.PlannerAttack ? null : ChooseAttack(x); // slice 2: the swing estimate decides whether, and where, to attack
+        var attack = PhaseGroup(view.Phase) == "dynasty" || !(memory.PlannerAttack || memory.HonorGuard) ? null : ChooseAttack(x); // slice 2: the swing estimate decides whether, and where, to attack
         var (intent, why) = IntentFor(x, attack);
         var sources = Sources(x);
         var hold = DefenseReserve(x);
@@ -94,14 +94,15 @@ public static partial class TrainingOpponent
                 var efficiency = Math.Clamp(40 + 25 * (def.GoldProduction + 1 - cost), 0, 100);
                 var crowd = holdings >= 10 ? 0 : holdings >= 6 ? .5 : 1.0;
                 var early = x.Self.TurnsTaken <= 2 ? 1.15 : 1.0;
-                return efficiency * early * crowd * (intent switch { PlanIntent.Develop => 1.2, PlanIntent.Attack => 0.7, _ => 0.6 });
+                var openTwo = x.Memory.OpenHoldings && x.Self.TurnsTaken <= 1 ? 3.0 : 1.0; // R7: the first turn buys economy
+                return efficiency * early * crowd * openTwo * (intent switch { PlanIntent.Develop => 1.2, PlanIntent.Attack => 0.7, _ => 0.6 });
             case CardType.Personality:
                 var threat = BattlePolicy.Printed(card).Any(p => BattlePolicy.IsThreatening(p.Id, p.Ability, p.Intent)) ? 20 : 0;
                 var usable = BattlePolicy.Printed(card).Any(p => p.Ability.Timing is "Battle" or "BattleOrOpen" or "Reaction") ? 8 : 0;
                 // Behind the opponent in bodies (the champion's catch-up recruit rule), or short of an army at all, a Personality is worth much more.
                 var behind = bodies < Personalities(x.Opponent) ? 40 : 0;
                 var shortHanded = bodies < 3 ? 1.4 : 1.0;
-                return (60 + 16 * def.Force + 10 * def.PersonalHonor + threat + usable + behind) * shortHanded * (intent switch { PlanIntent.Defend => 1.5, PlanIntent.Attack => 1.2, _ => 1.0 }) + ProclaimValue(x, card, cost);
+                return (60 + 16 * def.Force + 10 * def.PersonalHonor + threat + usable + behind) * shortHanded * (intent switch { PlanIntent.Defend => 1.5, PlanIntent.Attack => 1.2, _ => 1.0 }) * (x.Memory.OpenHoldings && x.Self.TurnsTaken <= 1 && cost > Production(x.Self.Stronghold, x.Self.Clan) ? 0.4 : 1.0) + ProclaimValue(x, card, cost);
             case CardType.Follower or CardType.Item:
                 return x.Self.Home.Any(c => c.Definition?.Type == CardType.Personality) ? 10 * Math.Max(0, def.Force) : 0;
             default: return 0;
@@ -115,7 +116,7 @@ public static partial class TrainingOpponent
         var quoted = x.Actions.Where(a => a.Type == "purchase" && a.CardId == card.Id && a.Quote is not null).Select(a => a.Quote!).ToArray();
         var eligible = quoted.Length > 0 ? quoted.Any(q => q.ProclaimEligible) : ClanAligned(card.Definition!, x.Self.Clan);
         if (!eligible) return 0;
-        return x.Profile.StanceFor(x.Self.Honor, x.Opponent.Honor, Ready(x) - cost >= 2) switch { ProclaimStance.Prioritize => 40, ProclaimStance.Neutral => 20, _ => -10 };
+        return x.Profile.StanceFor(x.Self.Honor, x.Opponent.Honor, Ready(x) - cost >= 2) switch { ProclaimStance.Prioritize => x.Memory.ProclaimBoost ? 80 : 40, ProclaimStance.Neutral => 20, _ => -10 };
     }
 
     /// <summary>The best set of row cards, by value, that the Gold sources can pay for with each card paid from its own group of sources.</summary>
@@ -210,12 +211,13 @@ public static partial class TrainingOpponent
     {
         if (x.Plan is not { } plan) return score;
         // Slice 2: attack when the swing estimate says the battle is won, whatever the printed Force says; otherwise pass. An opponent about to win on Honor is the champion's own rule.
-        if (x.Memory.PlannerAttack && action.Type == "declareAttack" && !HonorRace(x)) return plan.Attack is null ? -50 : 150 + Math.Clamp(plan.Attack.Estimate.Net, 0, 50);
-        if (x.Memory.PlannerAttack && action.Type == "attack" && plan.Attack is not null && !HonorRace(x)) return 300;
+        if (action.Type == "declareAttack" && !HonorRace(x)) return DeclareScore(x, plan, score);
+        if (x.Memory.PlannerAttack && action.Type == "attack" && plan.Attack is not null && !HonorRace(x) && !x.Memory.AttackVetoOnly && (!x.Memory.AttackAddOnly || score <= PassScore)) return 300;
+        if (PresenceDenialScore(x, action, command, score) is { } denial) return denial;
         // Gold the battle's own tricks need is not spent before the battle (Mendon: prefer having the Gold to win the fight over recruiting; the Dynasty phase comes after).
         if (x.Memory.PlannerReserve && plan.Reserve > 0 && x.View.Phase == Phase.Action && action.Type is "equip" or "useAbility" or "playStrategy" && (action.Gold?.Cost ?? 0) is var cost and > 0 && Ready(x) - cost < plan.Reserve)
             return Math.Min(score, PassScore - 1);
-        if (action.Type == "discardProvince") return x.Memory.PlannerDiscard ? PlanDiscardScore(x, command) : score;
+        if (action.Type == "discardProvince") return x.Memory.PlannerDiscard2 ? PlanDiscardScore2(x, command) : x.Memory.PlannerDiscard ? PlanDiscardScore(x, command) : score;
         if (action.Type != "purchase") return score;
         // Gold the opponent's likely attack will need for Battle tricks stays untapped through their turn (DefenseReserve).
         if (x.Memory.PlannerReserve && plan.Reserve > 0 && PhaseGroup(x.View.Phase) == "dynasty" && Ready(x) - (action.Quote?.Cost ?? 0) < plan.Reserve) return -5;
