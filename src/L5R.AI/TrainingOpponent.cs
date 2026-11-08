@@ -71,6 +71,9 @@ public static partial class TrainingOpponent
         // Issue #1185 tuning (presence): a defense the ordinary rules would not make, when one unit's presence lets the bot's removals save the Province.
         if (command is not null && action.Type == "assignDefense" && Rule(x, "presence") && PresencePlan(x, action) is { } presence && ScoreCore(x, action, command) < 95)
             return command with { Assignments = presence };
+        // Issue #1185 tuning (deter): spare attackers stay home when they are enough to stop the opponent's whole army attacking next turn.
+        if (command is { Assignments.Count: > 0 } && action.Type == "attack" && x.View.Phase == Phase.InfantryDeclaration && Rule(x, "deter") && DeterPlan(x, command.Assignments) is { } deter)
+            return command with { Assignments = deter };
         return command;
     }
 
@@ -128,6 +131,7 @@ public static partial class TrainingOpponent
                     && razing.Values.Distinct().Count() > (plan?.Values.Distinct().Count() ?? 0)) return command with { Assignments = razing }; // issue #1185 tuning: more Provinces this turn
                 if (plan is not null && Rule(x, "favoraware") && !HonorRace(x) && FavorStopsAttack(x, plan)) return null; // issue #1185 tuning: the visible Favor sends the lone army's biggest unit home
                 if (plan is not null) return command with { Assignments = plan };
+                if ((Rule(x, "aggro") || Rule(x, "aggro2")) && AggroAttack(x, units, provinces) is { } aggro) return command with { Assignments = HoldCavalry(x, aggro) }; // issue #1185 tuning
                 if (TradeFor(x, units) is { } trade)
                 {
                     var weakest = opponent.Provinces.Where(p => provinces.Contains(p.Index)).OrderBy(p => p.Strength).ThenBy(p => p.Index).First().Index;

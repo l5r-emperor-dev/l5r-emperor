@@ -77,7 +77,8 @@ public static partial class TrainingOpponent
         var enemy = ArmyForce(x.Opponent.Home);
         var unitForces = defenders.Select(d => ArmyForce(x.Opponent.Home.Where(h => h.Id == d.Id || h.AttachedTo == d.Id))).ToArray();
         var threats = Math.Min(3, defenders.Count(BattlePolicy.IsThreat));
-        var enemySwing = (EnemyTricks(x) + threats) * TrickSwing;
+        var enemySwing = (int)Math.Round((EnemyTricks(x) + threats) * Knob(x, "swing", TrickSwing));
+        if (Rule(x, "nopresence") && defenders.Length == 0) enemySwing = 0; // issue #1185 tuning: with nobody to defend, the opponent has no presence at the battle and takes no Battle action there
         var (gains, costs) = ChooseTricks(HandTricks(x), Ready(x), unitForces);
         var swing = gains.Sum();
         // The Gold to keep for the fight: the smallest set of tricks that still wins when my tricks work four times in five and theirs all work.

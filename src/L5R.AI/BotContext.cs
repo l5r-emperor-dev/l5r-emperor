@@ -57,8 +57,8 @@ public sealed class BotContext
         UseBattlePolicy = rules?.Contains("battlepolicy") == true,
         UsePlanner = true,
         UsePlannerTriage = true,
-        PlannerAttack = attack,
-        PlannerDiscard = discard,
+        PlannerAttack = attack || rules?.Contains("pattack") == true,
+        PlannerDiscard = discard || rules?.Contains("pdiscard") == true,
         PlannerReserve = reserve || rules?.Contains("reserve") == true,
         TriageWonCap = wonCap
     };

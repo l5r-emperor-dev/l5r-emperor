@@ -13,6 +13,14 @@ public static partial class TrainingOpponent
 {
     private static bool Rule(Ctx x, string name) => x.Memory.Has(name);
 
+    /// <summary>A numeric knob given as a rule "name=value" (tuning sweeps); the default when absent.</summary>
+    private static double Knob(Ctx x, string name, double fallback)
+    {
+        foreach (var rule in x.Memory.Rules)
+            if (rule.Length > name.Length + 1 && rule.StartsWith(name, StringComparison.Ordinal) && rule[name.Length] == '=' && double.TryParse(rule[(name.Length + 1)..], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var v)) return v;
+        return fallback;
+    }
+
     private static bool FairHolding(CardDefinition def) => def.Type == CardType.Holding && def.GoldCost <= def.GoldProduction + 1;
 
     private static int Holdings(PlayerView p) => p.Home.Count(c => c.Definition?.Type == CardType.Holding);
@@ -26,11 +34,13 @@ public static partial class TrainingOpponent
         if (Rule(x, "firstbody") && action.Type == "purchase" && x.Card(command.CardId)?.Definition is { Type: CardType.Personality } body && x.Self.TurnsTaken >= 2
             && Personalities(x.Self) < Math.Max(1, Personalities(x.Opponent)) && !x.Memory.RecruitedThisTurn(x.View.TurnNumber))
             return SlateBonus + 100 + body.Force * 3 + score * 0.0001;
-        if (Rule(x, "econ") && action.Type == "purchase" && x.Card(command.CardId)?.Definition is { } bought && FairHolding(bought) && (Holdings(x.Self) < 8 && x.Self.TurnsTaken <= (Rule(x, "econT2") ? 2 : 4) || Rule(x, "econ2") && Holdings(x.Self) < 10)
+        if (Rule(x, "econ") && action.Type == "purchase" && x.Card(command.CardId)?.Definition is { } bought && FairHolding(bought) && (Holdings(x.Self) < 8 && x.Self.TurnsTaken <= Knob(x, "econT", Rule(x, "econT2") ? 2 : 4) || Rule(x, "econ2") && Holdings(x.Self) < 10)
             && !(Rule(x, "body1") && Personalities(x.Self) == 0 && x.Self.TurnsTaken >= 2 && ProvinceCards(x).Any(c => c.Definition!.Type == CardType.Personality && EffectiveCost(x, c) <= Ready(x))))
             return SlateBonus + 50 + 5 * (bought.GoldProduction - bought.GoldCost) + score * 0.0001;
         if (Rule(x, "econ") && action.Type == "discardProvince" && x.Card(command.CardId)?.Definition is { } kept)
         {
+            // discardbad: with six Holdings, one that costs two or more above its production only holds the slot a Personality could fill.
+            if (Rule(x, "discardbad") && kept.Type == CardType.Holding && kept.GoldCost >= kept.GoldProduction + 2 && Holdings(x.Self) >= 6) return 20;
             if (FairHolding(kept) && Holdings(x.Self) < 8) return -5;
             if (kept.Type == CardType.Personality && EffectiveCost(x, x.Card(command.CardId)!) <= Capacity(x)) return -5;
         }
@@ -61,7 +71,99 @@ public static partial class TrainingOpponent
             && given.GroupBy(p => p.Value).Any(g => DefendersForce(x, g.Select(p => p.Key)) <= AttackersAt(x, g.Key)))
             return Math.Min(score, BarredScore);
         if (Rule(x, "presence") && action.Type == "assignDefense" && PresencePlan(x, action) is { } plan && SameAssignments(plan, command.Assignments)) return Math.Max(score, 130);
+        // hostilehand: a defense is judged after the attacker's hand has removed the strongest defenders; one that then neither wins nor saves the Province only feeds it Personalities.
+        // aggro: an army that beats its Province's Strength and, on its own, every unbowed enemy defender is sent: the champion defends only where it wins, so it must commit or lose the Province.
+        // aggro2: beating the Strength alone is enough.
+        if ((Rule(x, "aggro") || Rule(x, "aggro2")) && action.Type == "attack" && command.Assignments is { Count: > 0 } && score < 85)
+        {
+            var defence = ArmyForce(x.Opponent.Home);
+            var armies = WholeAttack(x, action, command.Assignments).GroupBy(p => p.Value)
+                .Select(g => (Province: x.Opponent.Provinces.FirstOrDefault(p => p.Index == g.Key), Force: g.Sum(p => ArmyForce(x.Self.Home.Concat(x.Self.Army).Where(c => c.Id == p.Key || c.AttachedTo == p.Key))))).ToArray();
+            if (armies.All(a => a.Province is { Destroyed: false } && a.Force > a.Province.Strength && (Rule(x, "aggro2") || a.Force > defence))) return 85;
+        }
+        if ((Rule(x, "aggro") || Rule(x, "aggro2")) && action.Type == "declareAttack" && score < 85 && AggroAttack(x, x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed).ToArray(),
+                x.Opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Index).ToArray()) is not null) return 85;
+        // hostileatk: an army the opponent could defend against is judged after its hand has removed the strongest attackers; if it would then lose to the defenders, it is not sent.
+        if (Rule(x, "hostileatk") && action.Type == "attack" && command.Assignments is { Count: > 0 } && !HonorRace(x) && !HostileAttackHolds(x, WholeAttack(x, action, command.Assignments))) return Math.Min(score, BarredScore);
+        if (Rule(x, "hostilehand") && action.Type == "assignDefense" && command.Assignments is { Count: > 0 } defense && !HostileDefenseHolds(x, defense)) return Math.Min(score, BarredScore);
         return score;
+    }
+
+    /// <summary>How many of the bot's units the opponent's hand may remove at one battle: its hand sized by the share of Battle-timed Strategies among the Fate cards it has shown,
+    /// at most two per attacking Personality there (each removal needs a performer).</summary>
+    private static int HandRemovals(Ctx x, int performers)
+    {
+        var seen = x.Opponent.Discard.Concat(x.Opponent.RemovedFromGame).Where(c => c.Definition is { } d && d.Type is CardType.Strategy or CardType.Follower or CardType.Item or CardType.Spell or CardType.Ring).ToArray();
+        var share = seen.Length >= 3 ? seen.Count(c => c.Definition!.Type == CardType.Strategy && BattlePolicy.Printed(c).Any(p => p.Ability.Timing is "Battle" or "BattleOrOpen")) / (double)seen.Length : UnseenStrategyShare;
+        return (int)Math.Min((Rule(x, "hh1") ? 1 : 2) * performers, Math.Ceiling(x.Opponent.HandCount * share));
+    }
+
+    /// <summary>
+    /// deter: the champion attacks only with an army that beats the unbowed Force at the defender's home. When the attack has spare units, the weakest are kept home until that home Force
+    /// reaches the opponent's whole army (bowed or not: it straightens), provided every army still beats its Province's Strength plus every enemy defender by a margin. Null when that cannot be done.
+    /// </summary>
+    private static Dictionary<string, int>? DeterPlan(Ctx x, Dictionary<string, int> attack)
+    {
+        if (HonorRace(x)) return null;
+        var enemyArmy = x.Opponent.Home.Concat(x.Opponent.Army).Where(c => c.Definition?.Type is CardType.Personality or CardType.Follower or CardType.Item).Sum(c => Math.Max(0, c.Force)) + 2;
+        var defence = ArmyForce(x.Opponent.Home);
+        var unitForce = x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed).ToDictionary(c => c.Id, c => UnitForce(x, c), StringComparer.Ordinal);
+        var home = unitForce.Where(p => !attack.ContainsKey(p.Key)).Sum(p => p.Value);
+        if (home >= enemyArmy) return null; // already deterred
+        var plan = new Dictionary<string, int>(attack, StringComparer.Ordinal);
+        int ArmyAt(int province) => plan.Where(p => p.Value == province).Sum(p => unitForce.GetValueOrDefault(p.Key));
+        int Need(int province) => (x.Opponent.Provinces.FirstOrDefault(p => p.Index == province)?.Strength ?? 99) + defence + 3;
+        foreach (var unit in attack.Keys.OrderBy(id => unitForce.GetValueOrDefault(id)).ThenBy(id => id, StringComparer.Ordinal))
+        {
+            if (home >= enemyArmy) break;
+            var province = plan[unit];
+            if (ArmyAt(province) - unitForce.GetValueOrDefault(unit) < Need(province)) continue;
+            plan.Remove(unit); home += unitForce.GetValueOrDefault(unit);
+        }
+        return home >= enemyArmy && plan.Count > 0 ? plan : null;
+    }
+
+    /// <summary>aggro: every offered unit at the weakest Province, when that army beats its Strength (and, for aggro, every unbowed enemy defender); null otherwise.</summary>
+    private static Dictionary<string, int>? AggroAttack(Ctx x, CardView[] units, int[] provinces)
+    {
+        if (units.Length == 0 || HonorRace(x)) return null;
+        var weakest = x.Opponent.Provinces.Where(p => !p.Destroyed && provinces.Contains(p.Index)).OrderBy(p => p.Strength).ThenBy(p => p.Index).FirstOrDefault();
+        if (weakest is null) return null;
+        var force = units.Sum(u => UnitForce(x, u)) + AlreadyAssigned(x).Where(c => c.ProvinceIndex == weakest.Index).Sum(u => UnitForce(x, u));
+        if (force <= weakest.Strength || !Rule(x, "aggro2") && force <= ArmyForce(x.Opponent.Home)) return null;
+        return units.ToDictionary(u => u.Id, _ => weakest.Index, StringComparer.Ordinal);
+    }
+
+    /// <summary>Whether every army of an attack still beats every unbowed enemy defender once the opponent's hand has removed its strongest units. Undefended homes always hold.</summary>
+    private static bool HostileAttackHolds(Ctx x, Dictionary<string, int> attack)
+    {
+        var defence = ArmyForce(x.Opponent.Home);
+        var defenders = x.Opponent.Home.Count(c => c.Definition?.Type == CardType.Personality && !c.Bowed);
+        if (defence == 0 || defenders == 0) return true;
+        var removals = HandRemovals(x, defenders);
+        foreach (var army in attack.GroupBy(p => p.Value))
+        {
+            var forces = army.Select(p => ArmyForce(x.Self.Home.Concat(x.Self.Army).Where(c => c.Id == p.Key || c.AttachedTo == p.Key))).OrderByDescending(f => f).Skip(removals).Sum();
+            if (forces <= defence) return false;
+        }
+        return true;
+    }
+
+    /// <summary>Whether every group of a defense still wins its battle or saves its Province once the opponent's hand has removed its strongest units. A last stand always holds.</summary>
+    private static bool HostileDefenseHolds(Ctx x, Dictionary<string, int> defense)
+    {
+        if (x.Self.Provinces.Count(p => !p.Destroyed) <= 1 || LastStandProvince(x, x.Self.Provinces.Where(p => !p.Destroyed).Select(p => p.Index).ToArray()) is not null) return true;
+        foreach (var group in defense.GroupBy(p => p.Value))
+        {
+            var province = x.Self.Provinces.FirstOrDefault(p => p.Index == group.Key);
+            if (province is null) continue;
+            var attackers = AttackersAt(x, group.Key);
+            if (attackers == 0) continue;
+            var performers = x.Opponent.Army.Count(c => c.ProvinceIndex == group.Key && c.Definition?.Type == CardType.Personality);
+            var forces = group.Select(p => DefendersForce(x, [p.Key])).OrderByDescending(f => f).Skip(HandRemovals(x, performers)).Sum();
+            if (!(forces > attackers) && !(attackers > province.Strength && attackers <= province.Strength + forces)) return false;
+        }
+        return true;
     }
 
     private static bool SameAssignments(Dictionary<string, int> a, Dictionary<string, int>? b) => b is not null && a.Count == b.Count && a.All(p => b.TryGetValue(p.Key, out var v) && v == p.Value);
@@ -154,13 +256,16 @@ public static partial class TrainingOpponent
         var target = x.Card(command.TargetId);
         var ownTurn = x.View.ActivePlayerId == x.Self.Id;
         var openPhase = x.View.Phase == Phase.Action && x.View.PendingChoice is null;
+        // lobbyok: lobbying is not self-harm.
         // selfharm: the bot's own unit is sent home or bowed only to save it from a battle it is losing.
-        if (Rule(x, "selfharm") && target is not null && target.OwnerId == x.Self.Id && target.Definition?.Type is CardType.Personality or CardType.Follower
+        if (Rule(x, "selfharm") && target is not null && target.OwnerId == x.Self.Id && !(Rule(x, "lobbyok") && intent.TakesFavorBowing) && target.Definition?.Type is CardType.Personality or CardType.Follower
             && (BattlePolicy.SendsHome(command.AbilityId) || intent.Rank is EffectRank.Bow or EffectRank.Penalize && intent.Side != TargetSide.Own))
             return !(x.Odds is { Winning: false } && target.ProvinceIndex is not null
                 && !(Rule(x, "lastprov") && !x.Odds.IsAttacker && x.Self.Provinces.Count(p => !p.Destroyed) <= 1)); // lastprov: the last Province is never given up
         // slate: Gold spent in the Action phase is Gold the Dynasty phase that follows cannot spend on the plan's purchases.
-        if (Rule(x, "slate") && openPhase && ownTurn && (action.Gold?.Cost ?? 0) is var cost and > 0 && !intent.IsReaction && x.Plan is { Slate.Length: > 0 } plan)
+        // equipok: a Follower or Item that adds Force is part of the army the plan attacks with, not a drain on its purchases.
+        if (Rule(x, "slate") && openPhase && ownTurn && (action.Gold?.Cost ?? 0) is var cost and > 0 && !intent.IsReaction && x.Plan is { Slate.Length: > 0 } plan
+            && !(Rule(x, "equipok") && action.Type == "equip" && x.Card(command.CardId)?.Definition is { Type: CardType.Follower or CardType.Item, Force: > 0 }))
         {
             var slateCost = plan.Slate.Select(id => x.Card(id)).OfType<CardView>().Sum(c => EffectiveCost(x, c));
             if (Ready(x) - cost < slateCost) return true;

@@ -92,16 +92,16 @@ public static partial class TrainingOpponent
                 // The first smoke runs (docs/bots/experiments/2026-11-07-planner-slice1.md) showed 0.66 fewer Personalities in play than the champion, so Holdings are worth less than they were,
                 // and less again as their number grows (the champion stops at ten; economy past the sixth buys little).
                 var efficiency = Math.Clamp(40 + 25 * (def.GoldProduction + 1 - cost), 0, 100);
-                var crowd = holdings >= 10 ? 0 : holdings >= 6 ? .5 : 1.0;
+                var crowd = holdings >= 10 ? 0 : holdings >= Knob(x, "crowd", 6) ? .5 : 1.0;
                 var early = x.Self.TurnsTaken <= 2 ? 1.15 : 1.0;
-                return efficiency * early * crowd * (intent switch { PlanIntent.Develop => 1.2, PlanIntent.Attack => 0.7, _ => 0.6 });
+                return efficiency * early * crowd * (intent switch { PlanIntent.Develop => Knob(x, "hdev", 1.2), PlanIntent.Attack => Knob(x, "hatk", 0.7), _ => Knob(x, "hdef", 0.6) });
             case CardType.Personality:
                 var threat = BattlePolicy.Printed(card).Any(p => BattlePolicy.IsThreatening(p.Id, p.Ability, p.Intent)) ? 20 : 0;
                 var usable = BattlePolicy.Printed(card).Any(p => p.Ability.Timing is "Battle" or "BattleOrOpen" or "Reaction") ? 8 : 0;
                 // Behind the opponent in bodies (the champion's catch-up recruit rule), or short of an army at all, a Personality is worth much more.
                 var behind = bodies < Personalities(x.Opponent) ? 40 : 0;
                 var shortHanded = bodies < 3 ? 1.4 : 1.0;
-                return (60 + 16 * def.Force + 10 * def.PersonalHonor + threat + usable + behind) * shortHanded * (intent switch { PlanIntent.Defend => 1.5, PlanIntent.Attack => 1.2, _ => 1.0 }) + ProclaimValue(x, card, cost);
+                return (Knob(x, "pbase", 60) + Knob(x, "pf", 16) * def.Force + 10 * def.PersonalHonor + threat + usable + behind) * shortHanded * (intent switch { PlanIntent.Defend => 1.5, PlanIntent.Attack => 1.2, _ => 1.0 }) + ProclaimValue(x, card, cost);
             case CardType.Follower or CardType.Item:
                 return x.Self.Home.Any(c => c.Definition?.Type == CardType.Personality) ? 10 * Math.Max(0, def.Force) : 0;
             default: return 0;
