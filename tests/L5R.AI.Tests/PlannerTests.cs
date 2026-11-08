@@ -132,7 +132,7 @@ internal static class PlannerTests
     {
         var contender = BotContext.Contender();
         Check(contender.UsePlanner && contender.UsePlannerTriage && !contender.PlannerAttack && !contender.PlannerDiscard && !contender.PlannerReserve && !contender.TriageWonCap, "the Contender keeps the harmless parts and leaves the parts that lost games off");
-        Check(contender.Has("econ") && contender.Has("presence") && !contender.Has("slate") && !contender.Has("selfharm") && !contender.Has("econT2") && !contender.UseBattlePolicy && !contender.UseTradeAttacks,
+        Check(contender.Has("econ") && contender.Has("presence") && contender.UseSureReactions && !contender.Has("slate") && !contender.Has("selfharm") && !contender.Has("econT2") && !contender.UseBattlePolicy && !contender.UseTradeAttacks,
             "the Contender runs the tuned rules and leaves off the ones whose ablation lost games");
         Check(BotContext.Contender(rules: []).Rules.Count == 0, "an explicit rule list (the c2 arm) replaces the tuned set");
         Check(BotContext.Contender(attack: true).PlannerAttack && BotContext.Contender(discard: true).PlannerDiscard && BotContext.Contender(reserve: true).PlannerReserve && BotContext.Contender(wonCap: true).TriageWonCap, "each experimental part switches on by itself");
