@@ -50,7 +50,7 @@
   6 to 7 games out of time per arm (three arms sharing the machine; the same in all). By deck, contender2 gained more than it lost against the champion with only Crab Control (+12/-9), Scottish Lion (+12/-8) and
   Pinned Lion (+8/-8, even); the rest were net negative, the worst Spider Conquer (+8/-21), Lion preset (+5/-18) and Classic Lion (+5/-15).
 - **Outcome: negative.** The primary criterion fails in the wrong direction (p one-sided for the arm being better = 0.9999), so `contender2` is not a promotion candidate and the flags stay off.
-- **What the larger sample changed.** The earlier screens put the Contender at net -4 (block 1700) and -4 (block 3000) and called it neutral; at 1,456 games it is -58 (p = 0.001), about four points of win rate. The
+- **What the larger sample changed.** The earlier 364-game screens put the Contender at net -4 (block 1700) and +3 (block 3000) and read it as neutral; at 1,456 games it is -58 (p = 0.001), about four points of win rate. The
   small screens could not see it: the purchase slate, triage and the rest each lose a few games, and together they lose a clear number. The veto-only attack estimate added nothing measurable on top (-6, p = 0.51).
   Four of eight research switches were harmless or inert, three lost games (discard v2 clearly), and the one that screened positive did not survive a fair sample. **Nothing proposed from the CCG strategy writing beat the
   champion.**
