@@ -51,7 +51,7 @@ public sealed class BotContext
     /// </summary>
     public static BotContext Contender(bool attack = false, bool discard = false, bool reserve = false, bool wonCap = false, IEnumerable<string>? rules = null) => new()
     {
-        Rules = new HashSet<string>(rules ?? [], StringComparer.Ordinal),
+        Rules = new HashSet<string>(rules ?? TunedRules, StringComparer.Ordinal),
         UseSureReactions = rules?.Contains("surereact") == true,
         UseTradeAttacks = rules?.Contains("trades") == true,
         UseBattlePolicy = rules?.Contains("battlepolicy") == true,
@@ -62,6 +62,9 @@ public sealed class BotContext
         PlannerReserve = reserve || rules?.Contains("reserve") == true,
         TriageWonCap = wonCap
     };
+    /// <summary>Issue #1185 tuning: the Contender's default rules (TrainingOpponent.Contender2.cs), the set that won the most on unseen games (blocks 5000-5001). Ablation there showed that
+    /// slate, selfharm, econT2 and battlepolicy+trades each LOST games, so they stay off; lobby and openbow are kept (dropping both lost games). Passing <c>rules</c> replaces this set.</summary>
+    public static readonly string[] TunedRules = ["econ", "presence", "lobby", "shinden", "openbow", "ownprov", "selflock", "surereact", "selfboost", "nostraighten", "provaim"];
     /// <summary>Issue #1185 tuning: the Contender's further rules, each named and switched on separately (see TrainingOpponent.Contender2.cs). Empty: none.</summary>
     public HashSet<string> Rules { get; init; } = new(StringComparer.Ordinal);
     public bool Has(string rule) => Rules.Contains(rule);
