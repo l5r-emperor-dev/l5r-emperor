@@ -36,7 +36,12 @@ public static partial class TrainingOpponent
         if (Rule(x, "firstbody") && action.Type == "purchase" && x.Card(command.CardId)?.Definition is { Type: CardType.Personality } body && x.Self.TurnsTaken >= 2
             && Personalities(x.Self) < Math.Max(1, Personalities(x.Opponent)) && !x.Memory.RecruitedThisTurn(x.View.TurnNumber))
             return SlateBonus + 100 + body.Force * 3 + score * 0.0001;
-        if (Rule(x, "econ") && action.Type == "purchase" && x.Card(command.CardId)?.Definition is { } bought && FairHolding(x, bought) && (Holdings(x.Self) < Knob(x, "econN", 8) && x.Self.TurnsTaken <= Knob(x, "econT", Rule(x, "econT2") ? 2 : 4) || Rule(x, "econ2") && Holdings(x.Self) < 10)
+        // threatbody: against an opponent whose Personalities outnumber the bot's and whose army already beats everything the bot could defend with plus its weakest Province, a Personality is
+        // bought before any Holding (the early razes against fast decks came with the bot still buying its economy and nobody home).
+        if (Rule(x, "threatbody") && action.Type == "purchase" && x.Card(command.CardId)?.Definition is { Type: CardType.Personality } guard && Threatened(x)
+            && (Rule(x, "tb2") || !x.Memory.RecruitedThisTurn(x.View.TurnNumber)))
+            return SlateBonus + 100 + guard.Force * 3 + score * 0.0001;
+        if (Rule(x, "econ") && action.Type == "purchase" && x.Card(command.CardId)?.Definition is { } bought && FairHolding(x, bought) && !(Rule(x, "threatbody") && Threatened(x)) && (Holdings(x.Self) < Knob(x, "econN", 8) && x.Self.TurnsTaken <= Knob(x, "econT", Rule(x, "econT2") ? 2 : 4) || Rule(x, "econ2") && Holdings(x.Self) < 10)
             && !(Rule(x, "body1") && Personalities(x.Self) == 0 && x.Self.TurnsTaken >= 2 && ProvinceCards(x).Any(c => c.Definition!.Type == CardType.Personality && EffectiveCost(x, c) <= Ready(x))))
             return SlateBonus + 50 + 5 * (bought.GoldProduction - bought.GoldCost) + score * 0.0001;
         if (Rule(x, "econ") && action.Type == "discardProvince" && x.Card(command.CardId)?.Definition is { } kept)
@@ -69,8 +74,14 @@ public static partial class TrainingOpponent
             && (bowIntent.Rank == EffectRank.Bow && bowIntent.Side != TargetSide.Own || bowId == "shinden-choice") && x.Card(command.TargetId) is { Bowed: false, Definition.Type: CardType.Personality } bowed && bowed.OwnerId != x.Self.Id)
             return x.View.ActivePlayerId == x.Self.Id ? (DeclareScore(x) > PassScore ? score : Math.Min(score, BarredScore)) : Math.Max(score, 200 + UnitForceOf(x, bowed));
         if (action.Type is "useAbility" or "playStrategy" or "equip" && Contender2Bar(x, action, command)) return Math.Min(score, BarredScore);
+        // cutoff (Mendon, 2026-11-09): printed abilities in play go first, but when the opponent can cut off enough of the bot's removals that only one would remain for the unit that decides
+        // the battle, that unit is removed now, with whatever can do it.
+        if (Rule(x, "cutoff") && x.View.Phase == Phase.Battle && action.Type is "useAbility" or "playStrategy" && CutoffPriority(x, command) is { } urgent) return Math.Max(score, urgent);
+        // conf (Mendon, 2026-11-09): with low confidence, the hardest threat takes the biggest hit (destroy, then send home, then bow); with high confidence, the cheapest removal that does
+        // the job: a card from hand waits while a printed ability in play reaches the same unit, and a destroy waits while a bow does as much (no attachments to strip). Cards in hand are options.
+        if (Rule(x, "conf") && x.View.Phase == Phase.Battle && action.Type is "useAbility" or "playStrategy" && ConfidenceScore(x, action, command, score) is { } judged) return judged;
         // nogift: a defense that loses the battle hands an Honor deck Honor for every card destroyed; with Provinces to spare it is not made (a presence defense is judged by its own rule).
-        if (Rule(x, "nogift") && action.Type == "assignDefense" && command.Assignments is { Count: > 0 } given && x.Opponent.Honor >= 20 && x.Self.Provinces.Count(p => !p.Destroyed) > 2
+        if (Rule(x, "nogift") && action.Type == "assignDefense" && command.Assignments is { Count: > 0 } given && x.Opponent.Honor >= Knob(x, "nogiftH", 20) && x.Self.Provinces.Count(p => !p.Destroyed) > 2
             && !(Rule(x, "presence") && PresencePlan(x, action) is { } presenceKept && SameAssignments(presenceKept, given))
             && given.GroupBy(p => p.Value).Any(g => DefendersForce(x, g.Select(p => p.Key)) <= AttackersAt(x, g.Key)))
             return Math.Min(score, BarredScore);
@@ -179,6 +190,94 @@ public static partial class TrainingOpponent
 
     private static readonly HashSet<string> AttackerTargets = new(StringComparer.Ordinal) { "attacking", "enemy-attacking", "enemy-attacking-card", "enemy-personality", "enemy-unit", "enemy-force", "enemy-card" };
 
+    /// <summary>cutoff: the enemy unit whose removal turns the battle (defending: saves the Province; attacking: razes it or stops a loss), the largest first; null when none does.</summary>
+    private static CardView? DecisiveThreat(Ctx x, BattlePolicy.Odds odds)
+    {
+        var tier = odds.Tier();
+        if (odds.IsAttacker ? tier >= 3 : tier >= 1) return null;
+        return EnemyArmyAt(x).Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed).OrderByDescending(c => UnitForceOf(x, c)).ThenBy(c => c.Id, StringComparer.Ordinal)
+            .FirstOrDefault(c => (odds with { Enemy = odds.Enemy - UnitForceOf(x, c) }).Tier() > tier);
+    }
+
+    /// <summary>cutoff: whether an offered command bows, destroys, sends home or duels the given unit.</summary>
+    private static bool RemovesUnit(Ctx x, string type, GameCommand command, string unitId, string[]? legal)
+    {
+        var intent = type == "useAbility" ? AbilityIntent.Of(command.AbilityId) : StrategyIntent(x.Card(command.CardId));
+        if (intent.IsReaction || intent.Side == TargetSide.Own) return false;
+        var duel = command.AbilityId is { } id && AbilityCatalog.All.TryGetValue(id, out var ability) && ability.IssuesDuel;
+        if (!(intent.Rank is EffectRank.Destroy or EffectRank.Bow || BattlePolicy.SendsHome(command.AbilityId) || duel)) return false;
+        // A bow that is the ability's cost ("Bow Kouki · enemy −3 Force") is not what it does to the target.
+        if (command.AbilityId is { } costId && AbilityCatalog.All.TryGetValue(costId, out var costed) && (costed.Costs ?? []).Any(c => c.Verb == CostVerb.Bow) && costed.Label is { } label
+            && label.LastIndexOf('·') is var dot and >= 0 && !RemovalWords.IsMatch(label[(dot + 1)..])) return false;
+        return command.TargetId == unitId || legal?.Contains(unitId) == true;
+    }
+
+    /// <summary>cutoff: the score that puts this command first, or null. The bot's removals that can reach the deciding unit, less the cut-offs the opponent can make (its unbowed units at the battle
+    /// with an unused threatening ability, and a share of its hand's expected removals), leave one or none: then it is now.</summary>
+    private static double? CutoffPriority(Ctx x, GameCommand command)
+    {
+        if (x.Odds is not { } odds || DecisiveThreat(x, odds) is not { } threat || command.TargetId != threat.Id) return null;
+        var offered = x.Actions.Where(a => a.Enabled && a.Command is { } && a.Type is "useAbility" or "playStrategy").ToArray();
+        var mine = offered.FirstOrDefault(a => a.Command!.AbilityId == command.AbilityId && a.Command.CardId == command.CardId);
+        if (mine is null || !RemovesUnit(x, mine.Type, command, threat.Id, null)) return null;
+        var sources = offered.Where(a => RemovesUnit(x, a.Type, a.Command!, threat.Id, a.TargetIds)).Select(a => a.Command!.PerformerId ?? a.Command.CardId).Distinct().Count();
+        var turn = x.View.TurnNumber;
+        var enemy = EnemyArmyAt(x).Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed && !c.ActionLocked).ToArray();
+        var inPlay = enemy.Count(c => BattlePolicy.Printed(c).Any(p => TimedAbilities.Contains(p.Ability.Timing ?? "") && BattlePolicy.IsThreatening(p.Id, p.Ability, p.Intent) && !x.Memory.SpentThisTurn(turn, c.Definition!.Name, p.Id)));
+        var cuts = inPlay + Knob(x, "cuth", 50) / 100.0 * HandRemovals(x, enemy.Length);
+        return sources - cuts <= Knob(x, "cutk", 1) ? 160 : null;
+    }
+
+    /// <summary>conf: the bot's removals that reach the deciding unit, less the opponent's expected cut-offs (see <see cref="CutoffPriority"/>); null when no unit decides the battle.</summary>
+    private static double? Confidence(Ctx x, CardView threat)
+    {
+        var offered = x.Actions.Where(a => a.Enabled && a.Command is { } && a.Type is "useAbility" or "playStrategy").ToArray();
+        var sources = offered.Where(a => RemovesUnit(x, a.Type, a.Command!, threat.Id, a.TargetIds)).Select(a => a.Command!.PerformerId ?? a.Command.CardId).Distinct().Count();
+        var turn = x.View.TurnNumber;
+        var enemy = EnemyArmyAt(x).Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed && !c.ActionLocked).ToArray();
+        var inPlay = enemy.Count(c => BattlePolicy.Printed(c).Any(p => TimedAbilities.Contains(p.Ability.Timing ?? "") && BattlePolicy.IsThreatening(p.Id, p.Ability, p.Intent) && !x.Memory.SpentThisTurn(turn, c.Definition!.Name, p.Id)));
+        return sources - inPlay - Knob(x, "cuth", 50) / 100.0 * HandRemovals(x, enemy.Length);
+    }
+
+    private static bool FromHand(Ctx x, GameCommand command) => x.Card(command.CardId) is not { } source || source.OwnerId != x.Self.Id || source.Zone == Zone.Resolving || x.Self.Hand.Any(h => h.Id == source.Id);
+
+    /// <summary>conf: how hard a removal hits: destroy, send home, duel, bow.</summary>
+    private static int HitWeight(Ctx x, string type, GameCommand command)
+    {
+        var intent = type == "useAbility" ? AbilityIntent.Of(command.AbilityId) : StrategyIntent(x.Card(command.CardId));
+        return intent.Rank == EffectRank.Destroy ? 8 : BattlePolicy.SendsHome(command.AbilityId) ? 6 : command.AbilityId is { } id && AbilityCatalog.All.TryGetValue(id, out var a) && a.IssuesDuel ? 4 : 2;
+    }
+
+    private static double? ConfidenceScore(Ctx x, ActionOption action, GameCommand command, double score)
+    {
+        if (x.Odds is not { } odds || DecisiveThreat(x, odds) is not { } threat || x.Card(command.TargetId) is not { } target || target.OwnerId == x.Self.Id) return null;
+        if (!RemovesUnit(x, action.Type, command, target.Id, null)) return null;
+        var confidence = Confidence(x, threat) ?? 0;
+        if (confidence <= Knob(x, "cutk", 1)) return target.Id == threat.Id ? Math.Max(score, 160 + HitWeight(x, action.Type, command)) : null;
+        var reach = x.Actions.Where(a => a.Enabled && a.Command is { } c && a.Type is "useAbility" or "playStrategy" && (c.CardId != command.CardId || c.AbilityId != command.AbilityId) && RemovesUnit(x, a.Type, c, target.Id, a.TargetIds)).ToArray();
+        var cheaper = 0.0;
+        if (FromHand(x, command) && reach.Any(a => !FromHand(x, a.Command!))) cheaper += 20;
+        var noGear = !x.Cards.Values.Any(c => c.AttachedTo == target.Id);
+        if (noGear && HitWeight(x, action.Type, command) >= 6 && reach.Any(a => HitWeight(x, a.Type, a.Command!) == 2)) cheaper += 10;
+        return cheaper > 0 ? score - cheaper : null;
+    }
+
+    /// <summary>threatbody: the opponent has more Personalities and their whole unit Force beats the bot's plus its weakest Province's Strength.</summary>
+    private static bool Threatened(Ctx x)
+    {
+        if (Personalities(x.Self) >= Personalities(x.Opponent)) return false;
+        var theirs = UnitCards(x.Opponent).Sum(c => UnitForceOf(x, c));
+        var mine = UnitCards(x.Self).Sum(c => UnitForceOf(x, c));
+        var weakest = x.Self.Provinces.Where(p => !p.Destroyed).Select(p => p.Strength).DefaultIfEmpty(0).Min();
+        return theirs > mine + weakest;
+    }
+
+    /// <summary>presence2 (Mendon, grill 2026-11-09, Crane Dominance against Perfect Sacrifice): a bow, send-home or duel aimed at any enemy card or Personality counts, not only one whose target
+    /// names an attacker; the Political bow and the duel he would have used were invisible to presence.</summary>
+    private static bool WideAttackerTarget(AbilityDefinition ability, AbilityIntent intent) => intent.Side != TargetSide.Own
+        && (ability.Target is { } t && (t.StartsWith("enemy-", StringComparison.Ordinal) && t != "enemy-attachment" || t is "slots" or "personality" or "attacking-personality" or "any-unit-card" or "personality-at-any-location")
+            || ability.IssuesDuel);
+
     private static IEnumerable<Removal> DefenderRemovals(Ctx x)
     {
         var sources = x.Self.Hand.Select(c => (Card: c, FromHand: true))
@@ -188,9 +287,9 @@ public static partial class TrainingOpponent
             if (card.Definition is null || !fromHand && (card.Bowed || card.ActionLocked)) continue;
             foreach (var (id, ability, intent) in BattlePolicy.Printed(card))
             {
-                if (ability.Timing is not ("Battle" or "BattleOrOpen") || intent.IsReaction || !AttackerTargets.Contains(ability.Target ?? "")) continue;
+                if (ability.Timing is not ("Battle" or "BattleOrOpen") || intent.IsReaction || !(AttackerTargets.Contains(ability.Target ?? "") || Rule(x, "presence2") && WideAttackerTarget(ability, intent) && !(Rule(x, "p2noduel") && ability.IssuesDuel))) continue;
                 var minus = System.Text.RegularExpressions.Regex.Match(AbilityIntent.EffectText(ability.Label ?? ""), @"[-−]\s?(\d+)\s?F");
-                var full = BattlePolicy.SendsHome(id) || intent.Rank is EffectRank.Destroy or EffectRank.Bow && !minus.Success;
+                var full = BattlePolicy.SendsHome(id) || intent.Rank is EffectRank.Destroy or EffectRank.Bow && !minus.Success || Rule(x, "presence2") && !Rule(x, "p2noduel") && ability.IssuesDuel;
                 if (!full && !minus.Success) continue;
                 yield return new(full, minus.Success ? int.Parse(minus.Groups[1].Value) : 0, fromHand ? card.Definition.GoldCost : 0);
                 break; // one use per card
@@ -249,6 +348,7 @@ public static partial class TrainingOpponent
     // ---- waste ------------------------------------------------------------------------------------------------------------------------------------------------------
 
     private static readonly System.Text.RegularExpressions.Regex BattlefieldClause = new(@"\bbattlefield\b|\battacking\b|\bopposed\b|\bdefending\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+    private static readonly System.Text.RegularExpressions.Regex RemovalWords = new(@"\bbow|\bdestroy|\bhome\b|\bduel", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
     private static readonly System.Text.RegularExpressions.Regex MayNot = new(@"\bmay not\b|\bcannot\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
     private static readonly System.Text.RegularExpressions.Regex MinusForce = new(@"[-−]\s?\d+\s?F\b|\bForce\b[^.]*\b(penalty|to 0)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
     private static readonly System.Text.RegularExpressions.Regex StraightenText = new(@"\bstraighten\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
@@ -323,6 +423,17 @@ public static partial class TrainingOpponent
             var lostForce = lost.Sum(c => ArmyForce(x.Self.Army.Where(h => h.Id == c.Id || h.AttachedTo == c.Id)));
             if (lostForce > 0 && tieOdds.Own - lostForce <= tieOdds.Enemy && tieOdds.Own > tieOdds.Enemy) return true;
         }
+        // overkill (Mendon, grill 2026-11-09: "playing actions when it doesn't need to"): a Force bonus at a battle already decided keeps the card for one that is not. An attack that beats its
+        // Province by a wide margin needs no more; a defense whose Province falls even with the bonus loses the same cards either way.
+        if (Rule(x, "overkill") && x.View.Phase == Phase.Battle && x.Odds is { } killOdds && !intent.IsReaction && intent.Side != TargetSide.Enemy && command.AbilityId is { } killId
+            && AbilityCatalog.All.TryGetValue(killId, out var killAbility) && ForceBonus(killAbility) is > 0 and var killGain)
+        {
+            if (killOdds.IsAttacker && killOdds.Own - killOdds.Enemy > (killOdds.Strength ?? 0) + Knob(x, "okm", 6)) return true;
+            if (!killOdds.IsAttacker && killOdds.Strength is { } held && killOdds.Enemy - killOdds.Own - killGain >= held) return true;
+        }
+        // handkeep (Mendon, 2026-11-09: "cards generally = options"): behind on cards, a card from hand is not spent in the Action phase on anything short of a removal.
+        if (Rule(x, "handkeep") && openPhase && action.Type is "useAbility" or "playStrategy" && !intent.IsReaction && FromHand(x, command) && intent.Rank < EffectRank.Bow
+            && x.Self.Hand.Count() <= x.Opponent.HandCount - Knob(x, "hkN", 2)) return true;
         // cycle: the Favor's discard-and-draw throws away a card the bot chose to keep.
         if (Rule(x, "cycle") && command.AbilityId == "favor-cycle") return true;
         return false;
@@ -398,6 +509,14 @@ public static partial class TrainingOpponent
         foreach (var unit in units.Where(u => !plan.ContainsKey(u.Id)).OrderByDescending(u => UnitForce(x, u)))
             plan[unit.Id] = plan.Values.Distinct().OrderBy(Margin).ThenBy(p => p).First();
         return plan;
+    }
+
+    /// <summary>lethal (Mendon, grill 2026-11-09): with the opponent down to its last Provinces, an attack that razes every one of them is made with everyone; no defense is needed after it.</summary>
+    private static Dictionary<string, int>? LethalPlan(Ctx x, CardView[] units, int[] provinces)
+    {
+        var alive = x.Opponent.Provinces.Count(p => !p.Destroyed);
+        if (!Rule(x, "lethal") || alive > Knob(x, "lethalN", 2) || units.Length == 0 || MaxRazePlan(x, units, provinces) is not { } plan) return null;
+        return plan.Values.Distinct().Count() + AlreadyAssigned(x).Select(c => c.ProvinceIndex).Distinct().Count(i => i is not null && !plan.ContainsValue(i.Value)) >= alive ? plan : null;
     }
 
     /// <summary>lean3, Cavalry segment: every army already sent beats its Province's Strength plus every unbowed defender, so it razes whatever the defense does.</summary>

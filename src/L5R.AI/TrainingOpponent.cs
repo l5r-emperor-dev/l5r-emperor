@@ -125,6 +125,7 @@ public static partial class TrainingOpponent
                 // Mendon's spec (issue #642): as many sub-armies as can each beat their province plus every unit that could defend it.
                 var assigned = AlreadyAssigned(x);
                 var plan = PlanAttack(x, units, provinces, assigned) is { } whole ? HoldCavalry(x, OfferedOnly(whole, units)) : null;
+                if (LethalPlan(x, units, provinces) is { } lethal) return command with { Assignments = lethal }; // issue #1185 tuning (lethal)
                 if (HonorAttackOf(x, units, provinces) is { } honorAttack) return command with { Assignments = HoldCavalry(x, honorAttack.Assignments) }; // issue #818 item 8
                 if (!HonorRace(x) && PlannerAssignment(x, units, provinces) is { } planned) return command with { Assignments = planned }; // issue #1185: the plan's own attack
                 if (Rule(x, "maxraze") && !HonorRace(x) && x.View.Phase == Phase.InfantryDeclaration && MaxRazePlan(x, units, provinces) is { } razing
@@ -208,6 +209,27 @@ public static partial class TrainingOpponent
             // Issue #902: a Strategy that bows takes an unbowed target; with none, it is not played.
             if (x.Memory.UsePrudence && action.Type == "playStrategy" && StrategyIntent(x.Card(command.CardId)) is { Rank: EffectRank.Bow } bowing && bowing.Side != TargetSide.Own && targetCards.All(c => c.Bowed)) return null;
             var ordered = targetCards.OrderBy(c => c.Bowed).ThenByDescending(c => c.Force);
+            // spreadwide (Mendon, grill 2026-11-09: "spread those out so that you can be more versatile"): once one unit beats the strongest Province alone, further attachments go to the
+            // weakest unbowed Personality, so one bow or kill does not take the whole army.
+            if (Rule(x, "spreadwide") && action.Type == "equip" && targetCards.Where(c => c.OwnerId == self.Id && !c.Bowed && c.Definition?.Type == CardType.Personality).ToArray() is { Length: > 1 } wide
+                && wide.Max(c => UnitForce(x, c)) > opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Strength).DefaultIfEmpty(0).Max() + 2)
+                ordered = targetCards.OrderBy(c => wide.Contains(c) ? 0 : 1).ThenBy(c => wide.Contains(c) ? UnitForce(x, c) : 0).ThenByDescending(c => c.Force);
+            // spreadvwide (Mendon, 2026-11-09): a Personality with no attachment gets one before any Personality gets a second; a Kensai may carry two Weapons.
+            if (Rule(x, "spreadvwide") && action.Type == "equip" && x.Card(command.CardId)?.Definition is { } gear
+                && (!Rule(x, "svwgate") || self.Home.Concat(self.Army).Where(c => c.OwnerId == self.Id && c.Definition?.Type == CardType.Personality && !c.Bowed).Any(c => UnitForce(x, c) > opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Strength).DefaultIfEmpty(0).Max() + 2)))
+            {
+                var weapon = gear.Keywords?.Contains("Weapon", StringComparer.OrdinalIgnoreCase) == true;
+                var cards = self.Home.Concat(self.Army).ToArray();
+                int Load(CardView c)
+                {
+                    if (c.OwnerId != self.Id || c.Definition?.Type != CardType.Personality) return 99;
+                    var on = cards.Where(a => a.AttachedTo == c.Id).ToArray();
+                    var weapons = on.Count(a => a.Definition?.Keywords?.Contains("Weapon", StringComparer.OrdinalIgnoreCase) == true);
+                    var kensai = c.Definition.Keywords?.Contains("Kensai", StringComparer.OrdinalIgnoreCase) == true;
+                    return weapon && kensai && weapons < 2 && on.Length == weapons ? 0 : on.Length;
+                }
+                ordered = ordered.OrderBy(Load).ThenBy(c => c.Bowed).ThenByDescending(c => c.Force);
+            }
             // Issue #1185 tuning (spread): a unit that already beats the strongest Province and every defender gains nothing more; the attachment goes to the next unit, so two armies can raze.
             if (Rule(x, "spread") && action.Type == "equip" && targetCards.Length > 1 && targetCards.Where(c => c.OwnerId == self.Id).ToArray() is { Length: > 1 } mine)
             {

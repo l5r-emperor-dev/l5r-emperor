@@ -123,7 +123,8 @@ public static partial class TrainingOpponent
     }
 
     /// <summary>The opponent already holds the Honor it needs and will win it at the start of its next turn, so the bot cannot afford a cautious attack.</summary>
-    private static bool HonorRace(Ctx x) => x.Opponent.Honor >= 40;
+    // clock (issue #1185 tuning): race earlier, from clockH Honor, against an Honor deck that is near its win.
+    private static bool HonorRace(Ctx x) => x.Opponent.Honor >= (Rule(x, "clock") ? Knob(x, "clockH", 34) : 40);
 
     /// <summary>When the attackers can destroy EVERY Province the bot has left, the battlefield where its defense is likeliest to save one (the largest Strength plus its own Force over the attackers'); otherwise null.</summary>
     private static int? LastStandProvince(Ctx x, int[] offered)

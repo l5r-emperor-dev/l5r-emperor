@@ -183,6 +183,7 @@ public static partial class TrainingOpponent
         var units = x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed).ToArray();
         var provinces = x.Opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Index).ToArray();
         var plan = PlanAttack(x, units, provinces);
+        if (LethalPlan(x, units, provinces) is not null) return 200; // issue #1185 tuning (lethal)
         if (plan is null && HonorAttackOf(x, units, provinces) is not null) return 85; // issue #818 item 8: an attack made to gain Honor
         if (plan is null) return units.Length == 0 ? -100 : TradeFor(x, units) is { } trade ? TradeScore(trade) : 0;
         if (HonorRace(x)) return 200; // the opponent wins on Honor next turn: always attack
