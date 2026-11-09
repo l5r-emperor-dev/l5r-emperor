@@ -775,7 +775,7 @@ public static class AbilityCatalog
         // Chi) already exists too. DestroyUnits (already fully generic -- MarkDead, attachments,
         // Honor bonuses -- used identically whether the destroyed card is a battle-army member or
         // not) handles both the performer and the target; no new destroy primitive needed at all.
-        ["ring-of-fire-destroy"] = new("Battle", "Bow this card or discard it from your hand, destroy your performing Personality, and target an enemy Personality with equal or lower Chi: Destroy him", "enemy-personality-chi-lte-performer", Performer: "own-personality", Costs: [new(CostVerb.Bow, CostSubject.Source, UnlessInHand: true), new(CostVerbs.Sacrifice, CostSubject.Performer)]),
+        ["ring-of-fire-destroy"] = new("Battle", "Bow this card or discard it from your hand, destroy your performing Personality, and target an enemy Personality with equal or lower Chi: Destroy him", "enemy-personality-chi-lte-performer", Performer: "own-personality-at-battle", Costs: [new(CostVerb.Bow, CostSubject.Source, UnlessInHand: true), new(CostVerbs.Sacrifice, CostSubject.Performer)]),
         // Mirumoto Rokai / Tamori Tamoko (issue #207 follow-up): "before an action resolves, negate
         // one of its own named effects" -- destruction (Rokai) or movement/straightening (Tamoko).
         // Target "none" for both: the affected card is auto-determined from the deferred command
@@ -941,11 +941,11 @@ public static class AbilityCatalog
         // Training-only: a refusable challenge with no printed win/loss text of its own -- see
         // ApplyDuelOutcome's own generic -1F case, used only so a test can observe the loser(s)
         // without needing a real card's own outcome.
-        ["training-duel-force"] = new("Battle", "Training Force duel", "enemy-personality", Performer: "own-unbowed-personality", IssuesDuel: true, DuelStat: "Force"),
-        ["training-duel-honor"] = new("Battle", "Training Personal Honor duel", "enemy-personality", Performer: "own-unbowed-personality", IssuesDuel: true, DuelStat: "PersonalHonor"),
+        ["training-duel-force"] = new("Battle", "Training Force duel", "enemy-personality", Performer: "own-unbowed-personality-at-battle", IssuesDuel: true, DuelStat: "Force"),
+        ["training-duel-honor"] = new("Battle", "Training Personal Honor duel", "enemy-personality", Performer: "own-unbowed-personality-at-battle", IssuesDuel: true, DuelStat: "PersonalHonor"),
         ["training-duel-open"] = new("Open", "Training Open duel", "enemy-personality", Performer: "own-unbowed-personality", IssuesDuel: true),
         ["training-duel-reaction"] = new("Reaction", "Training: gain 1 Honor before the duel", "none", Trigger: "before-duel-begins"),
-        ["training-duel-challenge"] = new("Battle", "Training: choose your performing unbowed Personality and target an enemy Personality: duel (refusable)", "enemy-personality", Performer: "own-unbowed-personality", IssuesDuel: true, DuelRefusable: true),
+        ["training-duel-challenge"] = new("Battle", "Training: choose your performing unbowed Personality and target an enemy Personality: duel (refusable)", "enemy-personality", Performer: "own-unbowed-personality-at-battle", IssuesDuel: true, DuelRefusable: true),
         // Training-only: exercises the after-action-resolved Reaction window (ActionEffectTracking.cs, issue #437) directly, without a real
         // card's own extra Timing/keyword narrowing (see Measure of Devotion/Revenge for real consumers of the same underlying primitive).
         ["training-after-action-resolved-gain"] = new("Reaction", "Training: after the resolution of an action that destroyed one of your Personalities, gain 3 Honor", "none", Trigger: AfterActionReactionTriggers.AfterActionResolved),
@@ -2825,7 +2825,7 @@ public static class AbilityCatalog
         // exactly own-unbowed-personality-with-keyword-at-any-location, built for Fading Shadows/World Disappears since issue #337 -- stale, not still
         // true): "Battle/Open: Bow your performing Ninja Personality and target a Personality: Bow him."
         ["phantom-visage-bow"] = new("BattleOrOpen", "Bow your performing Ninja Personality and target a Personality: Bow him", "personality",
-            Performer: "own-unbowed-personality-with-keyword-at-any-location", RequiredKeywords: ["Ninja"], Costs: ActionCost.BowPerformer),
+            Performer: "own-unbowed-personality-at-battle-with-keyword", RequiredKeywords: ["Ninja"], Costs: ActionCost.BowPerformer),
         // Precision (oracle-l5r-6047): "Reaction: After a Melee or Ranged Attack is targeted: Give it +2 or -2 strength." -- Umiko's own toggle shape
         // (kaname/umiko-attack-boost/-reduce), minus the Ranged-only Require those carry (this card's own text names either kind, Strong
         // Defenses/Trusting Instinct's own unrestricted-kind shape).
@@ -2847,7 +2847,7 @@ public static class AbilityCatalog
         // AtBattle of its own -- Dueling's own Timing already gates the source), Doji Mitsuru's own "bow the loser" plus Daisuke's own "move him home"
         // outcome, combined (ApplyDuelOutcome, Dueling.cs).
         ["reckless-duel"] = new("Battle", "Choose your performing unbowed Personality and target an enemy Personality: Your Personality duels the target. Bow the duel's loser. Move him home",
-            "enemy-personality", Performer: "own-unbowed-personality", IssuesDuel: true),
+            "enemy-personality", Performer: "own-unbowed-personality-at-battle", IssuesDuel: true),
         // Forgotten Legacy pass (issue #467), batch 3 (helpers in ForgottenLegacyBatch3.cs).
         // A Game of Dice (oracle-l5r-25): the scan (Gold Cost 0) prints "Limited: Draw two additional cards during your next End Phase." (the catalogue's later "Limited, 3 Gold:
         // ... before your turn ends" is not this printing) -- Ingenuity's own ExtraEndPhaseDraws counter (SeedsOfDecayBatch2.cs), raised by two.
