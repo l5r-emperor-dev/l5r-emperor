@@ -61,6 +61,8 @@ public partial class MyCollectionEditor : Control
         var shade = new ColorRect { Color = new Color(0, 0, 0, .7f) }; AddChild(shade); shade.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         AddChild(_canvas); _store.Changed += StoreChanged; TreeExiting += () => _store.Changed -= StoreChanged;
         Resized += Fit; BuildEditor(); Fit();
+        _store.Names = MyCollection.Identities(_data); _store.WriteMirror(); // the readable CSV copy carries card names once the catalogue is known
+        _notice.Text = _store.LoadError.Length > 0 ? _store.LoadError : _store.Health(_store.Names);
     }
     private static void Put(Control parent, Control child, float x, float y, float w, float h)
     { parent.AddChild(child); child.Position = new Vector2(x, y); child.Size = new Vector2(w, h); }
@@ -158,7 +160,7 @@ public partial class MyCollectionEditor : Control
         if (_plan is not null) return;
         if (_undo is null) return;
         _undo.Disabled = !_store.CanUndo;
-        _notice.Text = _store.LoadError;
+        _notice.Text = _store.LoadError.Length > 0 ? _store.LoadError : _store.Health(_store.Names ?? MyCollection.Identities(_data));
         foreach (var entry in Walk(_panel).OfType<LineEdit>().Where(e => e.HasMeta("card_id")))
             if (!entry.HasFocus()) entry.Text = _store.Count(entry.GetMeta("card_id").AsString()).ToString();
         foreach (var label in Walk(_panel).OfType<Label>().Where(l => l.HasMeta("owned_label_id")))
