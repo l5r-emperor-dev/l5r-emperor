@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Multi-part actions ask one question at a time: Governor's Court (performer with nothing pre-selected, then how to pay, each way once) and Stolen Merchandise (Holding, then which ability). ActionOption.ChoiceLabel added.",
+  "validation": "check.sh --skip-client passed; choosing-flow Core suite; native check-variant-steps-ui.sh and check-decision-chooser.sh (fukui, kamina) pass. decision review-check fails on clean main on this Windows box too (pre-existing).",
+  "remaining": "None; ready for review. Human playtest of look and feel not done.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1202",
+  "branch": "claude/1202-multistep-choices",
+  "updated": "2026-11-09T20:45:59.680656+00:00"
+}

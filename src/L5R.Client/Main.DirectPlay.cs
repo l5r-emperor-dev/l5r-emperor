@@ -23,7 +23,7 @@ public partial class Main
     {
         var key = PlayBaseKey(option);
         if (option.Command is not { } command) return key;
-        if (command.Choice is { } choice) key += ":choice" + choice;
+        if (command.Choice is { } choice && option.ChoiceLabel is null) key += ":choice" + choice; // a choice made after the target (ChoiceLabel) is a step of one play, not another play
         if (command.CreatedCard is { } created) key += ":creates" + created;
         if (command.DeckPosition is { } position) key += ":deck" + position;
         if (command.CardIds is { Length: > 0 } shown && !(command.AbilityId is not null && AbilityCatalog.All.TryGetValue(command.AbilityId, out var ability) && ability.Target == "provinces")) key += ":shows" + string.Join("+", shown);

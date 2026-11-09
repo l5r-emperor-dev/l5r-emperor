@@ -15,7 +15,7 @@ public partial class Main
 
     private void RenderInspectorBody()
     {
-        if (_chosen is null) _performerPicked = false; // the choosing flow starts afresh with each drafted action
+        if (_chosen is null) { _performerPicked = false; _choicePicked = false; } // the choosing flow starts afresh with each drafted action
         BeginDiscardIfPending(); // issue #791: a required discard is announced and starts as a click-to-choose selection in the hand
         if (_candidateTray is not null) _candidateTray.Visible = false;
         var cardActionsRendered = false;
@@ -156,8 +156,7 @@ public partial class Main
         }
         if (_selected is { } supportCard && IsSupportCard(supportCard) && View.PendingChoice is null)
         { RenderSupportActions(supportCard); return; }
-        if (!cardActionsRendered)
-            foreach (var action in Actions.Where(a => a.CardId == _selected?.Id && a.CardId is not null && a.Type is not "proclaim" && Listable(a))) AddAction(_inspector, action);
+        if (!cardActionsRendered && _selected is { } listedCard) AddCardActions(_inspector, listedCard); // one entry per play; the performer, cost, player and target are asked in the draft (issue #1202)
         if (_selected is { ActionLocked: true, Definition: not null } inspected)
             _inspector.AddChild(SidebarSkin.Button("Inspect card", () => InspectLockedCard(inspected)));
         if (View.Phase is Phase.InfantryDeclaration or Phase.DefenseAssignment or Phase.CavalryDeclaration or Phase.CavalryDefense)
@@ -264,7 +263,8 @@ public partial class Main
         _alternativeCostConfirmed = false;
         if (_chosen?.Command is not { } command) return;
         var priced = _chosen.TargetGold?.ContainsKey(id) == true;
-        _chosen = _chosen with { Command = command with { TargetId = id } };
+        var retargeted = RetargetVariant(_chosen, id); // a target that belongs to another variant (another Holding) selects that variant
+        _chosen = retargeted with { Command = retargeted.Command! with { TargetId = id } };
         if (priced) ResuggestSources();
         if (MovementActive) RenderBoard();
         RenderInspector(); Highlight();
@@ -404,9 +404,10 @@ public partial class Main
         var targets = action.TargetIds ?? [];
         var target = command.TargetId; // issue #581: no default; Confirm waits for the player's pick when the action names legal targets
         var needsTarget = targets.Length > 0 && target is null;
+        var needsChoice = ChoiceStepActive; // issue #1202: which of the target's options (the ability a Holding copies), asked once the target is chosen
         var needsProvince = IsProvinceTarget(action) && command.Province is null; // the player picks the province
         if (PerformerStepActive) { RenderPerformerStep(); return; } // choosing flow (issue #1004): the performer is the first, explicit choice
-        _inspector.AddChild(Palette.Wrapped(Placard(action, IsProvinceTarget(action) ? WithoutProvinceOwner(action.Label) : null), 17, Palette.Gold));
+        _inspector.AddChild(Palette.Wrapped(Placard(action, IsProvinceTarget(action) ? WithoutProvinceOwner(action.Label) : action.ChoiceLabel is not null || VariantsOf(action).Length > 1 ? FlowLabel(action) : null), 17, Palette.Gold));
         if (needsTarget) _inspector.AddChild(Palette.Wrapped("Next: choose a target. Pick a highlighted card on the table or in your hand, or a row in the list below.", 17, Palette.Gold));
         else if (targets.Length > 0) _inspector.AddChild(Palette.Wrapped("Choose a highlighted card on the table or below. Review the arrow, then use the action button.", 13, Palette.PaperDim));
         if (command.PerformerId is string performer)
@@ -414,8 +415,8 @@ public partial class Main
         if (!ReactionFlowOwnsControls && PerformerClicks().Count > 0) _inspector.AddChild(Palette.Wrapped("Choose the performing Personality: click a highlighted Personality on the table.", 15, Palette.Gold)); // issue #793
         // Choosing flow (issue #1004): only the first unanswered question is asked; answered ones leave the sidebar and appear in the summary.
         var needsPlayer = PlayerTargetActive && !PlayerPicked; // issue #960: "choose a player" is the player's decision, never a default
-        var askProvince = needsProvince; var askPlayer = !askProvince && needsPlayer; var askTarget = !askProvince && !askPlayer && needsTarget;
-        var answeredAll = !needsProvince && !needsPlayer && !needsTarget;
+        var askProvince = needsProvince; var askPlayer = !askProvince && needsPlayer; var askTarget = !askProvince && !askPlayer && needsTarget; var askChoice = !askProvince && !askPlayer && !askTarget && needsChoice;
+        var answeredAll = !needsProvince && !needsPlayer && !needsTarget && !needsChoice;
         if (IsProvinceTarget(action) && (askProvince || answeredAll)) RenderProvincePicker(action);
         if (PlayerTargetActive && (askPlayer || answeredAll)) RenderPlayerPicker(action);
         if (targets.Length > 0 && (askTarget || answeredAll))
@@ -435,6 +436,7 @@ public partial class Main
             if (needsTarget) _inspector.AddChild(Palette.Wrapped("Choose a target to continue.", 13, Palette.Error));
             if (needsTarget) ScrollInspectorTo(picker); // the list can sit below a long card text; bring the choice into view
         }
+        if (askChoice) RenderChoicePicker(action);
         if (answeredAll) RenderFlowSummary(action);
         AddFlowBack(action);
         if (action.AlternativeCost is not null && !_alternativeCostConfirmed)
@@ -449,14 +451,14 @@ public partial class Main
             AddConfirm(CommitButtonLabel(action), 0, false, () => command, "Cancel action", false); return;
         }
         var (required, ready) = RenderGoldPanel(action);
-        AddConfirm(CommitButtonLabel(action), required, ready, () => command with { SourceIds = required > 0 ? _sources.ToArray() : [], TargetId = target }, "Cancel action", action.Enabled && !needsTarget && !needsProvince && !needsPlayer);
+        AddConfirm(CommitButtonLabel(action), required, ready, () => command with { SourceIds = required > 0 ? _sources.ToArray() : [], TargetId = target }, "Cancel action", action.Enabled && !needsTarget && !needsProvince && !needsPlayer && !needsChoice);
     }
 
     // Back to "Choose a target…": the action keeps its legal targets but none is selected.
     private void ClearTarget()
     {
         if (_chosen?.Command is not { } command) return;
-        _chosen = _chosen with { Command = command with { TargetId = null } };
+        _chosen = _chosen with { Command = command with { TargetId = null } }; _choicePicked = false;
         RenderInspector(); Highlight();
     }
 
@@ -489,11 +491,13 @@ public partial class Main
         if (IsProvinceTarget(option)) { AddProvinceTargetAction(container, option); return; }
         if (option.AlternativeCost is { } cost)
         {
-            var key = $"{option.CardId}/{cost.AbilityId}/{cost.PerformerId}";
+            // Issue #1202: one entry for the ability, whichever of the player's cards could perform it; the performer is the first question of the draft.
+            var key = $"{option.CardId}/{cost.AbilityId}";
             if (container.GetChildren().Any(c => c.HasMeta("alternative_cost_group") && c.GetMeta("alternative_cost_group").AsString() == key)) return;
-            var choices = AlternativeCosts(option);
+            var choices = Actions.Where(a => a.CardId == option.CardId && a.AlternativeCost?.AbilityId == cost.AbilityId).ToArray();
             var representative = choices.FirstOrDefault(a => a.Enabled) ?? option;
-            var grouped = SidebarSkin.Button(cost.ActionLabel + (cost.PerformerId is { } id && FindCard(id) is { } performer ? " · " + performer.Definition?.Name : ""), () =>
+            var performers = choices.Select(a => a.AlternativeCost!.PerformerId).Distinct().ToArray();
+            var grouped = SidebarSkin.Button(cost.ActionLabel + (performers.Length == 1 && cost.PerformerId is { } id && FindCard(id) is { } performer ? " · " + performer.Definition?.Name : ""), () =>
             {
                 SelectReactionSource(representative); Choose(representative);
             });

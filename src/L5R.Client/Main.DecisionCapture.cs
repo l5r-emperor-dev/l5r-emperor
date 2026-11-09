@@ -82,20 +82,20 @@ public partial class Main
                         DecisionRequire(_decisionReviewCase == demo, "Next demo opened the wrong case");
                         if (demo != "yumaru")
                         {
-                            ChooseTarget(Actions.First(a => a.Enabled && a.AlternativeCost is not null && a.TargetIds is { Length: > 0 }).TargetIds![0]); await EventFrames(5);
-                            await SupportClick(DecisionButton("Review cost choices")); await EventFrames(8);
+                            ChooseTarget(Actions.First(a => a.Enabled && a.AlternativeCost is not null && a.TargetIds is { Length: > 0 }).TargetIds![0]); await EventFrames(8); // the target answered, the cost is the next question (issue #1202)
                         }
                         var labels = demo == "yumaru" ? new[] { "Move Yumaru home", "Move the targeted Personality home", "Move both home" } : new[] { "Bow the Ancestor", "Destroy the Ancestor" };
                         var scroll = (ScrollContainer)_inspector.GetParent();
                         foreach (var label in labels)
-                            DecisionRequire(scroll.GetGlobalRect().Encloses(DecisionButton(label).GetGlobalRect()), "Review choice clipped: " + label);
+                            DecisionRequire(scroll.GetGlobalRect().Grow(1).Encloses(DecisionButton(label).GetGlobalRect()), $"Review choice clipped: {label} (scroll {scroll.GetGlobalRect()}, button {DecisionButton(label).GetGlobalRect()}, scrollV {scroll.ScrollVertical})");
                         DecisionRequire(DecisionButton("Confirm choice").Disabled, "Review demo selected an answer implicitly");
                         await SupportCapture("-" + demo);
                         if (demo == "fukui-bowed")
                         {
                             await SupportClick(DecisionButton("Destroy the Ancestor"));
                             await SupportClick(DecisionButton("Back to target")); await EventFrames(8);
-                            await SupportClick(DecisionButton("Review cost choices")); await EventFrames(8);
+                            DecisionRequire(StabilizationText(_inspector).Contains("Choose a target to continue"), "Back returns to the target question");
+                            ChooseTarget(Actions.First(a => a.Enabled && a.AlternativeCost is not null && a.TargetIds is { Length: > 0 }).TargetIds![0]); await EventFrames(8);
                             DecisionRequire(DecisionButton("Confirm choice").Disabled, "Back retained the draft answer");
                         }
                         await SupportClick(DecisionButton("Restart demo")); await EventFrames(30);
@@ -138,16 +138,15 @@ public partial class Main
                 var grouped = StabilizationButtons(_inspector).Where(b => b.HasMeta("alternative_cost_group")).ToArray();
                 DecisionRequire(grouped.Length == 1, "Kamina's ways to pay were not grouped");
                 await SupportClick(grouped[0]); await EventFrames(5);
-                DecisionRequire(DecisionButton("Review cost choices").Disabled, "Cost review opened before a target was chosen");
+                DecisionRequire(StabilizationText(_inspector).Contains("Choose a target to continue") && !StabilizationButtons(_inspector).Any(b => b.Text == "Bow Kamina"), "Cost review opened before a target was chosen");
                 var ally = Actions.First(a => a.Enabled && a.AlternativeCost is not null && a.TargetIds is { Length: > 0 }).TargetIds![0];
-                ChooseTarget(ally); await EventFrames(5);
+                ChooseTarget(ally); await EventFrames(8); // the target answered, the cost is the next question (issue #1202)
                 DecisionRequire(_chosen?.Command?.CardIds is null, "The target step defaulted to a discard");
-                await SupportClick(DecisionButton("Review cost choices")); await EventFrames(8);
                 var hand = Self.Hand.Select(c => c.Id).ToArray();
                 DecisionRequire(hand.Length == 2, "The fixture hand changed");
                 var labels = new[] { "Bow Kamina" }.Concat(hand.Select(id => "Discard a card: " + FindCard(id)!.Definition!.Name)).ToArray();
                 var scroll = (ScrollContainer)_inspector.GetParent();
-                foreach (var label in labels) { scroll.EnsureControlVisible(DecisionButton(label)); await EventFrames(3); DecisionRequire(scroll.GetGlobalRect().Encloses(DecisionButton(label).GetGlobalRect()), "Review choice unreachable: " + label); } // a long hand scrolls; every choice must be reachable
+                foreach (var label in labels) { scroll.EnsureControlVisible(DecisionButton(label)); await EventFrames(3); DecisionRequire(scroll.GetGlobalRect().Grow(1).Encloses(DecisionButton(label).GetGlobalRect()), $"Review choice unreachable: {label} (scroll {scroll.GetGlobalRect()}, button {DecisionButton(label).GetGlobalRect()}, scrollV {scroll.ScrollVertical})"); } // a long hand scrolls; every choice must be reachable
                 DecisionRequire(DecisionButton("Confirm choice").Disabled, "Alternative cost has implicit default");
                 DecisionRequire(hand.All(id => _tiles.First(t => t.Card.Id == id).LegalTarget), "Hand cards are not marked as discard choices");
                 await SupportCapture("");
@@ -166,9 +165,8 @@ public partial class Main
                 // Issue #954: clicking the Personality starts its one usable ability; the grouped sidebar button is only the way in when that click is ambiguous.
                 DecisionRequire(grouped.Length == 1 || _chosen is { AlternativeCost: not null }, "Cost variants were not grouped and the click did not start the action");
                 if (grouped.Length == 1) { await SupportClick(grouped[0]); await EventFrames(5); }
-                DecisionRequire(DecisionButton("Review cost choices").Disabled, "Cost review opened before a target was chosen");
-                ChooseTarget(Actions.First(a => a.Enabled && a.AlternativeCost is not null && a.TargetIds is { Length: > 0 }).TargetIds![0]); await EventFrames(5);
-                await SupportClick(DecisionButton("Review cost choices")); await EventFrames(5);
+                DecisionRequire(StabilizationText(_inspector).Contains("Choose a target to continue") && !StabilizationButtons(_inspector).Any(b => b.Text == "Destroy the Ancestor"), "Cost review opened before a target was chosen");
+                ChooseTarget(Actions.First(a => a.Enabled && a.AlternativeCost is not null && a.TargetIds is { Length: > 0 }).TargetIds![0]); await EventFrames(8); // the target answered, the cost is the next question (issue #1202)
                 DecisionRequire(DecisionButton("Confirm choice").Disabled, "Alternative cost has implicit default");
                 DecisionRequire(DecisionButton("Bow the Ancestor").Disabled == (kind == "fukui-bowed"), "Incorrect disabled bow option");
                 var payBow = _captureMode.Contains("pay-bow");

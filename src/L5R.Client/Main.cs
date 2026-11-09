@@ -211,6 +211,7 @@ public partial class Main : Node
         if (_capturePath is not null && _captureMode.StartsWith("published-shown", StringComparison.Ordinal)) { ProcessShownCapture(delta); return; }
         if (_capturePath is not null && _captureMode.StartsWith("published-action-lock", StringComparison.Ordinal)) { ProcessActionLockCapture(delta); return; }
         if (_capturePath is not null && _captureMode.StartsWith("published-direct-play", StringComparison.Ordinal)) { ProcessDirectPlayCapture(delta); return; }
+        if (_capturePath is not null && _captureMode.StartsWith("published-variant-steps", StringComparison.Ordinal)) { ProcessVariantStepsCapture(delta); return; } // issue #1202
         if (_capturePath is not null && _captureMode.StartsWith("published-table-click", StringComparison.Ordinal)) { ProcessTableClickCapture(delta); return; }
         if (_capturePath is not null && _captureMode.StartsWith("published-drag", StringComparison.Ordinal)) { ProcessDragCapture(delta); return; } // issue #993
         if (_capturePath is not null && _captureMode.StartsWith("published-paused-animation", StringComparison.Ordinal)) { ProcessPausedAnimationCapture(delta); return; }
@@ -784,7 +785,7 @@ public partial class Main : Node
         if (IsProvinceTarget(option) && option.Command is { } provinceCommand) option = option with { Command = provinceCommand with { Province = null } }; // the player picks the province, not Core's first legal one
         _attackChoice = AttackChoice.Unselected;
         if (HasAttackTargets(option)) option = option with { Command = option.Command! with { TargetId = null, Province = null } };
-        _chosen = option; _sources.Clear(); _assignments.Clear(); _assignmentUnit = null; _refreshSelected.Clear();
+        _chosen = WithFlowTargets(option); _sources.Clear(); _assignments.Clear(); _assignmentUnit = null; _refreshSelected.Clear();
         if (!PlayerPicksPayment(option)) foreach (var id in option.Command?.SourceIds ?? []) _sources.Add(id);
         SyncPaymentAmount();
         if (HasMultiTargets(option)) BeginMultiTargets(); else ClearMultiTargets();
