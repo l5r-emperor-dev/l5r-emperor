@@ -43,3 +43,24 @@ Mendon played three practice games against the Champion (Unicorn Maidens vs Lion
 | `selfplayer,presdepth,pdh=100,keepup,nofoeboost,raid` | | +13 (.065), 66.0% | | |
 
 At Mendon's direction (2026-11-09) the last set joined the defaults. Broken Alliance's move went three times to a performer whose movement was negated (Lion game, turn 7); those plays are counted as an engine/UI failure, not a decision.
+
+## Later practice games and the cross-game review (2026-11-09)
+
+Games 4–6: Phoenix Talons vs Crab Control (Military win, turn 11), Crab Control vs Lion Legacy (a deliberate Dishonor win, turn 29), Scottish Lion Deck vs Crane Dominance (Military win, turn 13; the Champion challenged Akodo Dairuko three times with weaker duelists). Net against the new defaults (`l-all2` 66.0% on 7000, `v7100-D` 64.0% on 7100, `ho-D` 67.1% holdout):
+
+| Rule | Pattern in Mendon's play | 7000 | 7100 | Holdout |
+|---|---|---|---|---|
+| `nobowgift`: let the opponent gain Honor rather than bow an own Personality while it is short of 34 | Governor's Court, 7 of 7 | +3 | | |
+| `favorshame`, `dhdrive`, both | Favor spent on Honor loss, not draws (Crab) | 0, −2, +1 | | |
+| `aggro2`, `raid` | turn-3 raze (Lion) | −9, 0 | | |
+| `duelodds`: challenge only a lower duel stat (a Duelist may challenge a tied non-Duelist) | Dairuko | −1 (1 game) | | |
+| `duelplay`: strike while ahead; v2 only when clearly ahead | struck at once when ahead | −19, +1 | −1 | |
+| `bodyfirst` at bfH 2/3/5: a Holding waits while a Personality is affordable | Personality where the bot bought a Holding, 21 times in 6 games | −41, −10, −8 | | |
+| `pressahead`, `hdev=0.7` | pressing a lead with bodies | 0, 0 (purchase scoring does not read the plan intent) | | |
+| `lobbyatk`: no lobbying with an attacker before attacking | lobbied after attacks | −4 | | |
+| `defwin`: a presence defense big enough to win before removals | defended with 3–9 units | +4 (dwM=2 +4) | +5 | −3 |
+| `pdstrong`: presence defenders strongest first | strongest defenders | +2 | | |
+| `pdstrong,defwin,nobowgift` | | +6 | +7 (.06) | +3 |
+| … `,favorhold` / `,favorshame` | held the Favor in won battles | +5 / +5 (`favorhold` alone changes 2 games) | | |
+
+The Personality-first purchases are Mendon's most consistent difference, but forcing them loses: the buying pays off through what he does with the bodies, which no purchase rule captures. In arena games duels are answered by TrainingOpponent's generic scoring, while the client's Champion uses DuelOpponent: the two bots duel differently in practice and in the arena.

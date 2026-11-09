@@ -46,6 +46,43 @@ public static partial class TrainingOpponent
         // nofoeboost (Mendon's Lion game, 2026-11-09): a helping ability any Personality may receive (Akodo Kamina's +4F) is never given to an opponent's card.
         if (Rule(x, "nofoeboost") && action.Type == "useAbility" && AbilityIntent.Of(command.AbilityId) is { Rank: EffectRank.Help, Side: not TargetSide.Enemy }
             && x.Card(command.TargetId) is { } helped && helped.OwnerId == x.Opponent.Id) return Math.Min(score, SelfHarmScore);
+        // nobowgift (Mendon's Phoenix game, 2026-11-09: seven times he let the opponent gain the Honor rather than bow one of his Personalities): a choice to bow one of the bot's own
+        // Personalities or let the opponent gain Honor gives the Honor while the opponent stays well short of an Honor victory.
+        if (Rule(x, "nobowgift") && action.Type == "chooseDecider" && x.View.PendingChoice is { Type: "deciderChoice", Prompt: { } asked } && GiftHonor.Match(asked) is { Success: true } gift
+            && x.Opponent.Honor + int.Parse(gift.Groups[1].Value) < Knob(x, "nbgH", 34))
+            return command.Choice == "done" ? Math.Max(score, 150) : x.Card(command.TargetId) is { OwnerId: var mine } && mine == x.Self.Id ? Math.Min(score, 40) : score;
+        // favorshame (Mendon's Crab game, 2026-11-09: eleven times he spent the Favor to cost the opponent Honor where the bot would have spent it to draw): of the bot's Favor-spending
+        // abilities, one that costs the opponent Honor goes before one that only draws, unless the bot is racing for its own Honor.
+        if (Rule(x, "favorshame") && action.Type == "useAbility" && AbilityIntent.Of(command.AbilityId) is { DiscardsFavor: true } spend && x.View.FavorPlayerId == x.Self.Id && !WantsOwnGain(x))
+            return spend.HonorLoss && !spend.SelfHonorLoss && (x.Card(command.TargetId) is not { } shamed || shamed.OwnerId == x.Opponent.Id) ? Math.Max(score, 145) : spend.Draws && !spend.HonorLoss ? Math.Min(score, 135) : score;
+        // dhdrive: once the opponent is down to dhH Honor, an ability that costs it Honor goes before drawing, the Favor and passing.
+        if (Rule(x, "dhdrive") && action.Type == "useAbility" && x.Opponent.Honor <= Knob(x, "dhH", 10) && AbilityIntent.Of(command.AbilityId) is { HonorLoss: true, SelfHonorLoss: false, TakesFavor: false }
+            && x.Card(command.TargetId) is { } pressed && pressed.OwnerId == x.Opponent.Id)
+            return Math.Max(score, 150);
+        // duelodds (Mendon's Scottish Lion game, 2026-11-09: the Champion challenged Akodo Dairuko three times with weaker duelists and lost every duel): a duel is only issued against a
+        // Personality whose duel stat is below the challenger's (by doM); a Duelist wins ties against a non-Duelist (Mendon), so a Duelist may also challenge a non-Duelist it ties.
+        if (Rule(x, "duelodds") && action.Type == "useAbility" && command.AbilityId is { } duelId && AbilityCatalog.All.TryGetValue(duelId, out var duelAbility) && duelAbility.IssuesDuel
+            && duelAbility.DuelStat is "Chi" or "Force" && x.Card(command.PerformerId ?? command.CardId) is { Definition.Type: CardType.Personality } challenger
+            && x.Card(command.TargetId) is { Definition.Type: CardType.Personality } challenged && challenged.OwnerId == x.Opponent.Id
+            && DuelStatOf(challenger, duelAbility.DuelStat) - DuelStatOf(challenged, duelAbility.DuelStat) < Knob(x, "doM", 1) - (IsDuelist(challenger) && !IsDuelist(challenged) ? 1 : 0))
+            return Math.Min(score, BarredScore);
+        // duelplay (Mendon's Scottish Lion game, 2026-11-09: ahead on the duel stat he struck at once and kept his cards): strike while the bot's total beats the opponent's (its unseen
+        // focused cards counted at dsE each), otherwise focus the highest Focus Value.
+        if (Rule(x, "duelplay") && action.Type is "focus" or "strike" && x.View.PendingDuel is { Stage: "Focusing" } duel)
+        {
+            var challenging = duel.ChallengerPlayerId == x.Self.Id;
+            if (x.Card(challenging ? duel.ChallengerId : duel.ChallengedId) is { } mineCard && x.Card(challenging ? duel.ChallengedId : duel.ChallengerId) is { } theirCard)
+            {
+                var mine = DuelStatOf(mineCard, duel.Stat) + (x.Self.Focused ?? []).Sum(c => c.Definition?.Focus ?? 0);
+                var theirs = DuelStatOf(theirCard, duel.Stat) + Knob(x, "dsE", 3) * x.Opponent.FocusCount + Knob(x, "dsM", 3);
+                var ahead = mine > theirs || mine == theirs && IsDuelist(mineCard) && !IsDuelist(theirCard);
+                if (action.Type == "strike" && ahead) return 300;
+            }
+        }
+        // favorhold (Mendon's games, 2026-11-09: in battles he was already winning he held the Favor where the bot spent it): the Favor's Battle action waits while the bot already meets
+        // its goal at this battle with fhM to spare.
+        if (Rule(x, "favorhold") && action.Type == "useAbility" && command.AbilityId == "favor-battle" && x.Odds is { Satisfied: true } held && held.Margin >= Knob(x, "fhM", 2))
+            return Math.Min(score, PassScore - 1);
         // selfplayer (Mendon's Unicorn game, 2026-11-09): an ability that names a player is offered once for each player; an Honor loss aimed at the bot, or a gain aimed at its opponent, only
         // helps the opponent (the self-harm test reads the target card, which these have none of).
         if (Rule(x, "selfplayer") && action.Type == "useAbility" && command.TargetPlayerId is int aimed && AbilityIntent.Of(command.AbilityId) is { } aimIntent && aimIntent.HonorGain != aimIntent.HonorLoss
@@ -65,6 +102,11 @@ public static partial class TrainingOpponent
         if (Rule(x, "threatbody") && action.Type == "purchase" && x.Card(command.CardId)?.Definition is { Type: CardType.Personality } guard && Threatened(x)
             && (Rule(x, "tb2") || !x.Memory.RecruitedThisTurn(x.View.TurnNumber)))
             return SlateBonus + 100 + guard.Force * 3 + score * 0.0001;
+        // bodyfirst (all six of Mendon's games, 2026-11-09: 21 times he bought a Personality where the bot bought a Holding): once the bot has bfH Holdings, a Holding waits while an
+        // affordable Personality is in its provinces.
+        if (Rule(x, "bodyfirst") && action.Type == "purchase" && x.Card(command.CardId)?.Definition is { Type: CardType.Holding } && Holdings(x.Self) >= Knob(x, "bfH", 3)
+            && ProvinceCards(x).Any(c => c.Definition!.Type == CardType.Personality && EffectiveCost(x, c) <= Ready(x)))
+            return Math.Min(score, 60);
         if (Rule(x, "econ") && action.Type == "purchase" && x.Card(command.CardId)?.Definition is { } bought && FairHolding(x, bought) && !(Rule(x, "threatbody") && Threatened(x)) && (Holdings(x.Self) < Knob(x, "econN", 8) && x.Self.TurnsTaken <= Knob(x, "econT", Rule(x, "econT2") ? 2 : 4) || Rule(x, "econ2") && Holdings(x.Self) < 10)
             && !(Rule(x, "body1") && Personalities(x.Self) == 0 && x.Self.TurnsTaken >= 2 && ProvinceCards(x).Any(c => c.Definition!.Type == CardType.Personality && EffectiveCost(x, c) <= Ready(x))))
             return SlateBonus + 50 + 5 * (bought.GoldProduction - bought.GoldCost) + score * 0.0001;
@@ -177,6 +219,13 @@ public static partial class TrainingOpponent
 
     /// <summary>raidboost (Mendon's Lion game, 2026-11-09: a lone Tactician razed an undefended Province on turn 3): the Force an unopposed attack can still add from the hand,
     /// one Tactical Advantage per unspent Tactician (the best Focus Value in hand, each card used once).</summary>
+    private static readonly System.Text.RegularExpressions.Regex GiftHonor = new(@"if you choose none, .* gains (\d+) Honor", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    private static bool IsDuelist(CardView card) => card.Definition?.Keywords?.Contains("Duelist", StringComparer.OrdinalIgnoreCase) == true
+        || card.GrantedKeywords?.Any(k => k.Keyword.Equals("Duelist", StringComparison.OrdinalIgnoreCase)) == true;
+
+    private static int DuelStatOf(CardView card, string stat) => stat == "Force" ? card.Force : card.Chi;
+
     private static bool Undefended(Ctx x) => !x.Opponent.Home.Any(c => c.Definition?.Type == CardType.Personality && !c.Bowed);
 
     private static int RaidBoost(Ctx x, CardView[] units)
@@ -377,6 +426,8 @@ public static partial class TrainingOpponent
         var legal = action.TargetIds?.ToHashSet(StringComparer.Ordinal);
         var offered = x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed && (legal is null || legal.Contains(c.Id)))
             .OrderBy(c => UnitValue(x.Self, c)).ThenBy(c => c.Id, StringComparer.Ordinal).ToArray();
+        // pdstrong (Mendon's games, 2026-11-09: his defenders were his strongest, the bot's its cheapest): a presence defense sends the strongest units first.
+        if (Rule(x, "pdstrong")) offered = offered.OrderByDescending(c => UnitForce(x, c)).ThenBy(c => c.Id, StringComparer.Ordinal).ToArray();
         if (offered.Length == 0) return null;
         var removals = DefenderRemovals(x).ToArray();
         if (removals.Length == 0) return null;
@@ -397,6 +448,13 @@ public static partial class TrainingOpponent
             if (left > province.Strength + force) continue; // even with removals and everyone, it falls: the ordinary defense decides
             // presdepth (Mendon, 2026-11-09: "two send home abilities, so you'll need a minimum of 3 personalities to keep someone throughout the entire battle"): one defender more than the
             // attackers' unused printed removals there and a share of the opponent's hand could take away, so presence, and the removals that need it, survive.
+            // defwin (Mendon's games, 2026-11-09: he defended with three to nine units where the bot sent one): a defense that can win is sent big enough to win before any removal.
+            if (Rule(x, "defwin"))
+                foreach (var unit in offered.Where(u => !sent.Contains(u)))
+                {
+                    if (province.Strength + force > attackers.Sum() + Knob(x, "dwM", 0)) break;
+                    sent.Add(unit); force += UnitForce(x, unit);
+                }
             if (Rule(x, "presdepth"))
             {
                 var there = x.Opponent.Army.Where(c => c.ProvinceIndex == province.Index && c.Definition?.Type == CardType.Personality && !c.Bowed && !c.ActionLocked).ToArray();
@@ -445,6 +503,9 @@ public static partial class TrainingOpponent
         if (Rule(x, "purpose") && openPhase && ownTurn && !intent.IsReaction && command.AbilityId is { } id && AbilityCatalog.All.TryGetValue(id, out var ability)
             && (StraightenText.IsMatch(AbilityIntent.EffectText(ability.Label ?? "")) || intent.Rank == EffectRank.Bow && intent.Side != TargetSide.Own) && DeclareScore(x) <= PassScore)
             return true;
+        // lobbyatk (Mendon's games, 2026-11-09: he lobbied after his attack or not at all, the bot before it): on its own turn before an attack it will make, the Favor is not taken by
+        // bowing a Personality with Force who would attack.
+        if (Rule(x, "lobbyatk") && intent.TakesFavorBowing && openPhase && ownTurn && x.Card(command.TargetId) is { Bowed: false } lobbied && UnitForce(x, lobbied) > 0 && DeclareScore(x) > PassScore) return true;
         // lobby: the Favor is not worth bowing one of the last two Personalities who could defend.
         if (Rule(x, "lobby") && intent.TakesFavorBowing && x.Self.Home.Count(c => c.Definition?.Type == CardType.Personality && !c.Bowed) <= Knob(x, "lobbyN", 2)) return true;
         // provaim: a cut to a Province's strength outside a battle (Shrine to Nimuro) is made only on a turn the bot attacks; Complete aims it at the opponent's weakest Province.

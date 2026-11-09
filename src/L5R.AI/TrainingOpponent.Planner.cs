@@ -71,7 +71,8 @@ public static partial class TrainingOpponent
         if (attack is not null) return (PlanIntent.Attack, attack.Why);
         // The Dynasty phase buys for NEXT turn: behind in material, buy bodies even if the race looks lost; far ahead, build the economy; otherwise buy toward the next attack.
         if (mine < theirs) return (PlanIntent.Defend, $"behind in Force ({mine} to {theirs}): bodies deter a counterattack");
-        if (mine >= theirs + 6 && Personalities(self) >= Personalities(opponent)) return (PlanIntent.Develop, $"well ahead ({mine} to {theirs}): build the economy");
+        // pressahead (Mendon's games, 2026-11-09: well ahead, he kept buying Personalities and attacked with them): a lead is pressed with bodies, not banked in Holdings.
+        if (mine >= theirs + 6 && Personalities(self) >= Personalities(opponent)) return x.Memory.Has("pressahead") ? (PlanIntent.Attack, $"well ahead ({mine} to {theirs}): press with bodies") : (PlanIntent.Develop, $"well ahead ({mine} to {theirs}): build the economy");
         return (dynasty ? PlanIntent.Attack : PlanIntent.Develop, $"no attack this turn (my Force {mine}, theirs {theirs})");
     }
 
