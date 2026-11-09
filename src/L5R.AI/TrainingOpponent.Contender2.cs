@@ -31,6 +31,27 @@ public static partial class TrainingOpponent
     private static double Contender2Score(Ctx x, ActionOption action, GameCommand command, double score)
     {
         if (x.Memory.Rules.Count == 0) return score;
+        var scored = Contender2Rules(x, action, command, score);
+        // keepup (Mendon's Crane game, 2026-11-09): an ability that bows its performer is performed by a unit that cannot straighten others while one that can is offered too; the
+        // straightener stays up to straighten the performer and use the ability again (Nanae straightening Yasutora for Shinden Asahina). It only orders the performers.
+        if (Rule(x, "keepup") && action.Type == "useAbility" && command.PerformerId is { } performerId && command.AbilityId is { } bowingId && AbilityCatalog.All.TryGetValue(bowingId, out var bowing)
+            && (bowing.Costs ?? []).Any(c => c.Verb == CostVerb.Bow) && Straightener(x, performerId)
+            && x.Actions.Any(a => a.Enabled && a.Command is { PerformerId: { } other } c && other != performerId && c.AbilityId == bowingId && c.CardId == command.CardId && !Straightener(x, other)))
+            return scored - 5;
+        return scored;
+    }
+
+    private static double Contender2Rules(Ctx x, ActionOption action, GameCommand command, double score)
+    {
+        // selfplayer (Mendon's Unicorn game, 2026-11-09): an ability that names a player is offered once for each player; an Honor loss aimed at the bot, or a gain aimed at its opponent, only
+        // helps the opponent (the self-harm test reads the target card, which these have none of).
+        if (Rule(x, "selfplayer") && action.Type == "useAbility" && command.TargetPlayerId is int aimed && AbilityIntent.Of(command.AbilityId) is { } aimIntent && aimIntent.HonorGain != aimIntent.HonorLoss
+            && aimed == (aimIntent.HonorLoss ? x.Self.Id : x.Opponent.Id)) return Math.Min(score, SelfHarmScore);
+        // selfplayer: of a card's gain-for-the-bot and loss-for-the-opponent, the one the Honor race wants (an Honor deck near 40 gains) is taken while the other is offered too.
+        if (Rule(x, "selfplayer") && action.Type == "useAbility" && command.TargetPlayerId is int toward && AbilityIntent.Of(command.AbilityId) is { } modeIntent && modeIntent.HonorGain != modeIntent.HonorLoss
+            && modeIntent.HonorGain != WantsOwnGain(x) && x.Actions.Any(a => a.Enabled && a.Command is { TargetPlayerId: int other } c && c.CardId == command.CardId && c.AbilityId != command.AbilityId
+                && AbilityIntent.Of(c.AbilityId) is { } alt && alt.HonorGain == WantsOwnGain(x) && alt.HonorGain != alt.HonorLoss && other == (alt.HonorGain ? x.Self.Id : x.Opponent.Id)))
+            return Math.Min(score, BarredScore);
         // firstbody: short of bodies (none, or fewer than the opponent) from its second turn on, the best affordable Personality is bought before any Holding: provinces with nobody to
         // defend them are what the opponent's first attack takes.
         if (Rule(x, "firstbody") && action.Type == "purchase" && x.Card(command.CardId)?.Definition is { Type: CardType.Personality } body && x.Self.TurnsTaken >= 2
@@ -228,6 +249,17 @@ public static partial class TrainingOpponent
         return sources - cuts <= Knob(x, "cutk", 1) ? 160 : null;
     }
 
+    /// <summary>keepup: the bot's unit has a printed ability, not yet used this turn, that straightens a unit other than itself.</summary>
+    private static bool Straightener(Ctx x, string cardId) => x.Card(cardId) is { Definition: not null } card && card.OwnerId == x.Self.Id
+        && BattlePolicy.Printed(card).Any(p => StraightenText.IsMatch(AbilityIntent.EffectText(p.Ability.Label ?? "")) && p.Intent.Side != TargetSide.Enemy && !x.Memory.SpentThisTurn(x.View.TurnNumber, card.Definition!.Name, p.Id));
+
+    /// <summary>The enemy units with an unused printed Battle ability that threatens the bot's units (bow, send home, destroy, duel).</summary>
+    private static int EnemyRemovalSources(Ctx x, IEnumerable<CardView> enemy)
+    {
+        var turn = x.View.TurnNumber;
+        return enemy.Count(c => BattlePolicy.Printed(c).Any(p => TimedAbilities.Contains(p.Ability.Timing ?? "") && BattlePolicy.IsThreatening(p.Id, p.Ability, p.Intent) && !x.Memory.SpentThisTurn(turn, c.Definition!.Name, p.Id)));
+    }
+
     /// <summary>conf: the bot's removals that reach the deciding unit, less the opponent's expected cut-offs (see <see cref="CutoffPriority"/>); null when no unit decides the battle.</summary>
     private static double? Confidence(Ctx x, CardView threat)
     {
@@ -260,6 +292,14 @@ public static partial class TrainingOpponent
         var noGear = !x.Cards.Values.Any(c => c.AttachedTo == target.Id);
         if (noGear && HitWeight(x, action.Type, command) >= 6 && reach.Any(a => HitWeight(x, a.Type, a.Command!) == 2)) cheaper += 10;
         return cheaper > 0 ? score - cheaper : null;
+    }
+
+    /// <summary>ownprov2 (Mendon, 2026-11-09: "I wouldn't risk it if the game was close unless I was confident I could hold at least one province regardless"): after giving one up, three Provinces
+    /// remain, or two and the bot's Personalities outmatch the opponent's whole army.</summary>
+    private static bool HoldsAProvince(Ctx x)
+    {
+        var left = x.Self.Provinces.Count(p => !p.Destroyed) - 1;
+        return left >= 3 || left >= 2 && UnitCards(x.Self).Sum(c => UnitForceOf(x, c)) >= UnitCards(x.Opponent).Sum(c => UnitForceOf(x, c));
     }
 
     /// <summary>threatbody: the opponent has more Personalities and their whole unit Force beats the bot's plus its weakest Province's Strength.</summary>
@@ -340,6 +380,18 @@ public static partial class TrainingOpponent
                 sent.Add(unit); force += UnitForce(x, unit);
             }
             if (left > province.Strength + force) continue; // even with removals and everyone, it falls: the ordinary defense decides
+            // presdepth (Mendon, 2026-11-09: "two send home abilities, so you'll need a minimum of 3 personalities to keep someone throughout the entire battle"): one defender more than the
+            // attackers' unused printed removals there and a share of the opponent's hand could take away, so presence, and the removals that need it, survive.
+            if (Rule(x, "presdepth"))
+            {
+                var there = x.Opponent.Army.Where(c => c.ProvinceIndex == province.Index && c.Definition?.Type == CardType.Personality && !c.Bowed && !c.ActionLocked).ToArray();
+                var need = 1 + EnemyRemovalSources(x, there) + (int)Math.Round(Knob(x, "pdh", 50) / 100.0 * HandRemovals(x, there.Length));
+                foreach (var unit in offered.Where(u => !sent.Contains(u)))
+                {
+                    if (sent.Count >= need) break;
+                    sent.Add(unit);
+                }
+            }
             return sent.ToDictionary(u => u.Id, _ => province.Index, StringComparer.Ordinal);
         }
         return null;
@@ -391,7 +443,8 @@ public static partial class TrainingOpponent
             return true;
         // ownprov: a Province is a quarter of the game; giving one away for Honor is only right when that Honor wins it.
         if (Rule(x, "ownprov") && command.AbilityId is { } costId && AbilityCatalog.All.TryGetValue(costId, out var costly)
-            && (costly.Costs ?? []).Any(c => c.Verb is CostVerbs.DestroyLeftmostProvince or CostVerbs.DestroyRightmostProvince) && x.Self.Honor < 36)
+            && (costly.Costs ?? []).Any(c => c.Verb is CostVerbs.DestroyLeftmostProvince or CostVerbs.DestroyRightmostProvince)
+            && (Rule(x, "ownprov2") ? x.Self.Honor < Knob(x, "ownprovH", 36) || !HoldsAProvince(x) : x.Self.Honor < 36))
             return true;
         if (command.AbilityId is { } wasteId && AbilityCatalog.All.TryGetValue(wasteId, out var waste))
         {

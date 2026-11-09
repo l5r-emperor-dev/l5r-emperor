@@ -108,6 +108,9 @@ internal static class HumanReplayCompare
                     if (answer is null) botNone++;
                     if (differs) { diffs++; counts[2]++; types[1]++; }
                     botLine = $"    >> {botArm}: {(answer is null ? "(no command)" : Format(answer))}{(differs ? "   [DIFF]" : "")}\n";
+                    // L5R_HUMAN_DUMP=<substring>: list every offered option at the decisions whose logged line contains it (debugging a rule against a real position).
+                    if (Environment.GetEnvironmentVariable("L5R_HUMAN_DUMP") is { Length: > 0 } dump && Format(command).Contains(dump, StringComparison.Ordinal))
+                        botLine += string.Concat(offered.Select(a => $"       offered {a.Type}{(a.Command is { } c ? ": " + Format(c) : "")}{(a.TargetIds is { Length: > 0 } t ? " targets=" + t.Length : "")}\n"));
                 }
             }
             else if (checkChampion)
