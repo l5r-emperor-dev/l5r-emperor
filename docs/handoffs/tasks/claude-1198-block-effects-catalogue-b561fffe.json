@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Adds tools/audit-block-effects.py and the generated docs/rules/BLOCK_EFFECTS_CATALOGUE.md: every catalogue card whose text blocks something (cannot move, straighten, act, be targeted, contribute, bow/be destroyed, enter play, ...), with duration read per the CR (ongoing effects last until end of turn by default), the engine state that holds each kind and what CardView exposes today (only StraightenBlocked and ActionLocked).",
+  "validation": "Docs and a generator script only; script runs clean and regenerates the file. No engine or client change.",
+  "remaining": "None for this issue. Follow-ups for the UI lead: a block overlay on cards, and a used-action indicator.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1198",
+  "branch": "claude/1198-block-effects-catalogue",
+  "updated": "2026-11-09T18:22:39.471015+00:00"
+}
