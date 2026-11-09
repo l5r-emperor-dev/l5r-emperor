@@ -131,7 +131,7 @@ public sealed partial class MatchEngine
                 string? error = null;
                 error = TryValidateAbility(command);
                 var what = choice == "gold" ? "its Gold-producing trait" : AbilityCatalog.All[choice].Label;
-                yield return new("useAbility", $"{ability.Label} · {Definition(holding).Name}: {what}", error is null, error, error is null ? command : null, source?.Id, [holding.Id]);
+                yield return new("useAbility", $"{ability.Label} · {Definition(holding).Name}: {what}", error is null, error, error is null ? command : null, source?.Id, [holding.Id], ChoiceLabel: what);
             }
         }
     }

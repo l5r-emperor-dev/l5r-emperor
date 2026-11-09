@@ -1427,7 +1427,10 @@ public sealed record ActionOption(string Type, string Label, bool Enabled, strin
     // Engine-selected preview cards for a complete pending answer; private candidates are only offered to the decider.
     string[]? DecisionCandidateIds = null, string? DecisionLabel = null,
     // The destination rule of an ability that moves cards (MoveSpec.Home / CurrentBattlefield, or a rule that needs a chosen battlefield); null for every other action. Lets a client offer a drag without reading card text.
-    string? MoveTo = null)
+    string? MoveTo = null,
+    // Issue #1202: set when Command.Choice is a decision the player makes AFTER the target ("which ability of this Holding to copy"): its player-facing text. A client lists the options that share a target
+    // as one question, asked once the target is chosen, instead of one list entry per Holding and per thing to copy.
+    string? ChoiceLabel = null)
 {
     /// <summary>
     /// Issue #1028: true when this option's own fields say the player must supply more than a confirm (a target, a province choice list, a slot, a movement or attack choice, an
