@@ -1,6 +1,6 @@
 # Contender rules from Mendon's battle grill (issue #1185), 2026-11-09
 
-Round 1 of the screenshot grill (five real Contender-vs-Champion positions) and Mendon's follow-up notes produced these card-general rules. Every rule is opt-in by name in the c2 rule list; the default `BotContext.TunedRules` is unchanged.
+Round 1 of the screenshot grill (five real Contender-vs-Champion positions) and Mendon's follow-up notes produced these card-general rules. Every rule is opt-in by name in the c2 rule list. At Mendon's direction (2026-11-09) `spreadwide` and `conf` joined the default `BotContext.TunedRules`; the rest stay opt-in.
 
 Dev arena: block 7000 (2 seeds, 727 decided games), paired against `v7000-T` (the tuned set, 60.9%). Confirmation: block 7100 against `v7100-T` (59.1%). Holdout: seeds 9100–9103, 720 games, every game includes a held-out deck. "Net" is games gained minus lost on the same seeds; p is the one-sided exact sign test.
 
