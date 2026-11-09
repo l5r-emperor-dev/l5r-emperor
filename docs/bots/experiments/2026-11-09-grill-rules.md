@@ -25,3 +25,21 @@ Findings:
 - Refusing outmatched defenses loses games: a defender present unlocks the hand's battle actions (Positions 1–3 of round 2 show three such defenses that won).
 - The gains hold on two dev seed blocks but not on the holdout decks, where the rules change few games (≈20 flips in 720). The tuned rules may be fitted to the dev deck pool's attachment and removal density.
 - `conf` first counted "Bow Kouki · enemy −3 Force" as a removal (the bow is the cost); fixed by reading the effect after "·" when the ability's cost bows.
+
+## Rules from Mendon's practice games (2026-11-09)
+
+Mendon played three practice games against the Champion (Unicorn Maidens vs Lion preset, Classic Crane vs Spider Conquer, Allan Lion MCA vs Spider Conquer) and the human-compare tool (`tests/L5R.AI.Tests/HumanReplayCompare.cs`) set his choices beside the Contender's. Rules drawn from the differences, net against the default with `spreadwide,conf` (`l-swc` 64.2% on 7000, `v7100-S` 61.5% on 7100, `ho-S2` 63.9% holdout):
+
+| Rule | Source | 7000 net | 7100 net | Holdout net (p) |
+|---|---|---|---|---|
+| `selfplayer`: an Honor ability offered per player is never aimed the wrong way; of gain-self and lose-opponent, the one the Honor race wants | Armor of the Heavens, Unicorn game | +2 | | |
+| `ownprov2`: the own-province refusal also lifts when no province would remain safe | Ebisu's Honesty, Unicorn game | +1 | | |
+| `presdepth,pdh=100`: a presence defense sends one more unit than the attackers' printed removals plus the hand's expected removals | "two Yumarus need three Personalities", Crane game | +10 (.09) | +2 | +18 (.0015) |
+| `keepup`: a bowing ability is performed by a unit that cannot straighten itself when another can | Shinden + Nanae loop, Crane game | 0 | | |
+| `nofoeboost`: a helping ability is never given to an opponent's card | Kamina +4F on Ishibashi, Lion game | +1 | | |
+| `aggro2`, `aggro2,raidboost` | turn-3 raze, Lion game | −9, −9 | | |
+| `raid`: attack an undefended home's weakest province when Force plus Tactical Advantage from the hand beats it | turn-3 raze, Lion game | 0 (2 games changed) | | |
+| `selfplayer,presdepth,pdh=100,keepup` | | +9 | +13 (.06) | +15 (.014) |
+| `selfplayer,presdepth,pdh=100,keepup,nofoeboost,raid` | | +13 (.065), 66.0% | | |
+
+At Mendon's direction (2026-11-09) the last set joined the defaults. Broken Alliance's move went three times to a performer whose movement was negated (Lion game, turn 7); those plays are counted as an engine/UI failure, not a decision.

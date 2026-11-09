@@ -43,6 +43,9 @@ public static partial class TrainingOpponent
 
     private static double Contender2Rules(Ctx x, ActionOption action, GameCommand command, double score)
     {
+        // nofoeboost (Mendon's Lion game, 2026-11-09): a helping ability any Personality may receive (Akodo Kamina's +4F) is never given to an opponent's card.
+        if (Rule(x, "nofoeboost") && action.Type == "useAbility" && AbilityIntent.Of(command.AbilityId) is { Rank: EffectRank.Help, Side: not TargetSide.Enemy }
+            && x.Card(command.TargetId) is { } helped && helped.OwnerId == x.Opponent.Id) return Math.Min(score, SelfHarmScore);
         // selfplayer (Mendon's Unicorn game, 2026-11-09): an ability that names a player is offered once for each player; an Honor loss aimed at the bot, or a gain aimed at its opponent, only
         // helps the opponent (the self-harm test reads the target card, which these have none of).
         if (Rule(x, "selfplayer") && action.Type == "useAbility" && command.TargetPlayerId is int aimed && AbilityIntent.Of(command.AbilityId) is { } aimIntent && aimIntent.HonorGain != aimIntent.HonorLoss
@@ -110,14 +113,15 @@ public static partial class TrainingOpponent
         // hostilehand: a defense is judged after the attacker's hand has removed the strongest defenders; one that then neither wins nor saves the Province only feeds it Personalities.
         // aggro: an army that beats its Province's Strength and, on its own, every unbowed enemy defender is sent: the champion defends only where it wins, so it must commit or lose the Province.
         // aggro2: beating the Strength alone is enough.
-        if ((Rule(x, "aggro") || Rule(x, "aggro2")) && action.Type == "attack" && command.Assignments is { Count: > 0 } && score < 85)
+        if ((Rule(x, "aggro") || Rule(x, "aggro2") || Rule(x, "raid") && Undefended(x)) && action.Type == "attack" && command.Assignments is { Count: > 0 } && score < 85)
         {
             var defence = ArmyForce(x.Opponent.Home);
             var armies = WholeAttack(x, action, command.Assignments).GroupBy(p => p.Value)
                 .Select(g => (Province: x.Opponent.Provinces.FirstOrDefault(p => p.Index == g.Key), Force: g.Sum(p => ArmyForce(x.Self.Home.Concat(x.Self.Army).Where(c => c.Id == p.Key || c.AttachedTo == p.Key))))).ToArray();
-            if (armies.All(a => a.Province is { Destroyed: false } && a.Force > a.Province.Strength && (Rule(x, "aggro2") || a.Force > defence))) return 85;
+            var boost = (Rule(x, "raidboost") || Rule(x, "raid")) && Undefended(x) ? RaidBoost(x, command.Assignments.Keys.Select(x.Card).OfType<CardView>().ToArray()) : 0;
+            if (armies.All(a => a.Province is { Destroyed: false } && a.Force + boost > a.Province.Strength && (Rule(x, "aggro2") || Rule(x, "raid") || a.Force > defence))) return 85;
         }
-        if ((Rule(x, "aggro") || Rule(x, "aggro2")) && action.Type == "declareAttack" && score < 85 && AggroAttack(x, x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed).ToArray(),
+        if ((Rule(x, "aggro") || Rule(x, "aggro2") || Rule(x, "raid") && Undefended(x)) && action.Type == "declareAttack" && score < 85 && AggroAttack(x, x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed).ToArray(),
                 x.Opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Index).ToArray()) is not null) return 85;
         // hostileatk: an army the opponent could defend against is judged after its hand has removed the strongest attackers; if it would then lose to the defenders, it is not sent.
         if (Rule(x, "hostileatk") && action.Type == "attack" && command.Assignments is { Count: > 0 } && !HonorRace(x) && !HostileAttackHolds(x, WholeAttack(x, action, command.Assignments))) return Math.Min(score, BarredScore);
@@ -165,9 +169,20 @@ public static partial class TrainingOpponent
         if (units.Length == 0 || HonorRace(x)) return null;
         var weakest = x.Opponent.Provinces.Where(p => !p.Destroyed && provinces.Contains(p.Index)).OrderBy(p => p.Strength).ThenBy(p => p.Index).FirstOrDefault();
         if (weakest is null) return null;
-        var force = units.Sum(u => UnitForce(x, u)) + AlreadyAssigned(x).Where(c => c.ProvinceIndex == weakest.Index).Sum(u => UnitForce(x, u));
-        if (force <= weakest.Strength || !Rule(x, "aggro2") && force <= ArmyForce(x.Opponent.Home)) return null;
+        var force = units.Sum(u => UnitForce(x, u)) + AlreadyAssigned(x).Where(c => c.ProvinceIndex == weakest.Index).Sum(u => UnitForce(x, u))
+            + ((Rule(x, "raidboost") || Rule(x, "raid")) && Undefended(x) ? RaidBoost(x, units) : 0);
+        if (force <= weakest.Strength || !Rule(x, "aggro2") && !Rule(x, "raid") && force <= ArmyForce(x.Opponent.Home)) return null;
         return units.ToDictionary(u => u.Id, _ => weakest.Index, StringComparer.Ordinal);
+    }
+
+    /// <summary>raidboost (Mendon's Lion game, 2026-11-09: a lone Tactician razed an undefended Province on turn 3): the Force an unopposed attack can still add from the hand,
+    /// one Tactical Advantage per unspent Tactician (the best Focus Value in hand, each card used once).</summary>
+    private static bool Undefended(Ctx x) => !x.Opponent.Home.Any(c => c.Definition?.Type == CardType.Personality && !c.Bowed);
+
+    private static int RaidBoost(Ctx x, CardView[] units)
+    {
+        var tacticians = units.Count(u => u.Definition?.Keywords?.Contains("Tactician", StringComparer.OrdinalIgnoreCase) == true && !x.Memory.SpentThisTurn(x.View.TurnNumber, u.Definition!.Name, "tactical-advantage"));
+        return x.Self.Hand.Select(c => c.Definition?.Focus ?? 0).OrderByDescending(f => f).Take(tacticians).Sum();
     }
 
     /// <summary>Whether every army of an attack still beats every unbowed enemy defender once the opponent's hand has removed its strongest units. Undefended homes always hold.</summary>
