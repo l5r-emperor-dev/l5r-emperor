@@ -142,6 +142,10 @@ When switched on:
 ### Trade attacks (PARKED, off by default, `UseTradeAttacks`)
 When it cannot raze a province, it still attacks if it would beat every possible defender (destroying the whole defending army at no cost) or tie favourably on Gold. A unit's worth is its Gold plus attachments, +2 for a Personality. The arena found this lost slightly more than it won.
 
+### Challenges (ACTIVE, `ChallengeGuard`, issue #1203, Mendon's instruction)
+- The bot never issues a challenge (an ability that starts a duel) when the challenged Personality's duel stat is **higher** than the challenger's. A **tie** is still allowed. The stat is the one the ability prints (Chi, Force or Personal Honor), read as the current value on the table (a dishonorable Personality counts as 0 Personal Honor). Other duel modifiers (Items, "until the duel ends" bonuses) are not counted, so the rule is a floor, not a guarantee of winning.
+- Not measured against the previous champion yet; `ChallengeGuard = false` restores the old behaviour for a comparison.
+
 ### Order Seppuku (ACTIVE, `UseSeppukuPolicy`, issue #963 round 1, Mendon's spec)
 - Before 2026-10-15 the bot had no rule for it and ordered it whenever it was offered (a "no rule" action scores just above a pass): 2,290 orders in 1,728 games, throwing its own Personalities away.
 - Now: only for a **Dishonored** Personality, only when family Honor is **-5 or lower**, only when its dishonorable death would leave Honor at **-12 or lower** (within reach of the -20 loss), and **not** when it is part of the attack the bot plans this turn (winning a battle rehonors every Dishonorable Personality in the winning army). Then weighed: `10 + 8 x Personal Honor + 3 x (-12 - Honor after its death) - 6 x Force` must beat a pass. Seppuku only saves the Personal Honor lost when a Dishonored Personality dies, and costs the Personality.

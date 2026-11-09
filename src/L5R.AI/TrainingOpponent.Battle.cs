@@ -12,6 +12,7 @@ public static partial class TrainingOpponent
     /// <summary>The battle rules applied on top of an action's ordinary score. Only the actions a player takes in a battle (an ability, a Strategy, an attachment) are affected.</summary>
     private static double Adjust(Ctx x, ActionOption action, GameCommand command, double score)
     {
+        if (LosingChallenge(x, action, command)) return BarredScore; // a challenge to a Personality with a higher duel stat is not issued (a tie still is)
         score = HonorAwareScore(x, action, command, score); // issue #870 (TrainingOpponent.Honor.cs): the Honor an ability costs or gains, and an Attack that cannot destroy its target
         score = PrudenceScore(x, action, command, score); // issue #902 (TrainingOpponent.Prudence.cs): mutual effects, early economy, the first-action claim
         if (action.Type is "useAbility" or "playStrategy" && PhaseUseAdjust(x, action, command, action.Type == "useAbility" ? AbilityIntent.Of(command.AbilityId) : StrategyIntent(x.Card(command.CardId)), score) is { } phase) return phase; // issue #998
