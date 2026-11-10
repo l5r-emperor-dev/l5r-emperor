@@ -11,7 +11,9 @@ public static partial class TrainingOpponent
     {
         var intent = AbilityIntent.Of(command.AbilityId);
         // Multi-target actions: one selection per up-front slot.
-        if (a.Slots is { Length: > 0 } slots && command.Selections is null) command = command with { Selections = BuildSelections(x, slots, intent) };
+        // Issue #1185 tuning (provaim): a strength cut outside a battle names the opponent's Province.
+        var cutsStrength = Rule(x, "provaim") && command.AbilityId is not null && AbilityCatalog.All.TryGetValue(command.AbilityId, out var cutAbility) && LowersStrength.IsMatch(AbilityIntent.EffectText(cutAbility.Label ?? ""));
+        if (a.Slots is { Length: > 0 } slots && command.Selections is null) command = command with { Selections = BuildSelections(x, slots, cutsStrength ? intent with { Rank = EffectRank.Penalize, Side = TargetSide.Enemy } : intent, cutsStrength) };
         // "Choose a player": a gain goes to the bot, a loss to its opponent, either way by its Honor profile.
         if (command.TargetPlayerId is null && command.AbilityId is not null && AbilityCatalog.All.TryGetValue(command.AbilityId, out var ability) && ability.Target == "player")
             command = command with { TargetPlayerId = ChoosePlayer(x, intent) };
@@ -29,6 +31,10 @@ public static partial class TrainingOpponent
         if (a.Type == "useAbility" && a.Provinces is { Length: > 0 } provinces && command.Province is null)
             // Issue #788: units are only moved into a battlefield the enemy holds (the weakest opposition first); any other destination is a last resort.
             command = command with { Province = a.Movement is null || !x.Memory.UseBattlePolicy ? provinces[0] : provinces.OrderBy(p => EnemyForceAt(x, p) == 0).ThenBy(p => EnemyForceAt(x, p)).ThenBy(p => p).First() };
+        // Issue #1185 tuning (provaim): outside a battle, a cut to a Province's strength goes to the opponent's weakest Province, the one the attack will then take.
+        if (Rule(x, "provaim") && x.Odds is null && a.Type == "useAbility" && command.AbilityId is not null && AbilityCatalog.All.TryGetValue(command.AbilityId, out var cut)
+            && LowersStrength.IsMatch(AbilityIntent.EffectText(cut.Label ?? "")) && x.Opponent.Provinces.Where(p => !p.Destroyed).OrderBy(p => p.Strength).ThenBy(p => p.Index).FirstOrDefault() is { } weakest)
+            command = command with { Province = weakest.Index, TargetPlayerId = x.Opponent.Id };
         // Issue #1003: a cut to a Province's strength goes to the Province under attack, whoever's it would otherwise be offered first.
         if (x.Odds is { IsAttacker: true } && AttackedProvince(x) is int attacked && LowersAttackedProvince(x, a, command)) command = command with { Province = attacked, TargetPlayerId = x.Opponent.Id };
         return command;
@@ -53,7 +59,7 @@ public static partial class TrainingOpponent
         return x.Self.Id;
     }
 
-    private static SlotSelection[] BuildSelections(Ctx x, TargetSlotOption[] slots, AbilityIntent intent)
+    private static SlotSelection[] BuildSelections(Ctx x, TargetSlotOption[] slots, AbilityIntent intent, bool weakestEnemyProvince = false)
     {
         var chosen = new List<SlotSelection>();
         foreach (var slot in slots.Where(s => s.Timing == TargetSlotTimings.UpFront && s.Kind != TargetSlotKinds.FollowUp))
@@ -69,7 +75,8 @@ public static partial class TrainingOpponent
             {
                 var wantEnemy = intent.Rank >= EffectRank.Penalize && !slot.Label.Contains("+", StringComparison.Ordinal) || intent.Side == TargetSide.Enemy;
                 var owner = wantEnemy ? x.Opponent.Id : x.Self.Id;
-                var choice = slot.ProvinceChoices?.FirstOrDefault(p => p.Owner == owner) ?? slot.ProvinceChoices?.FirstOrDefault();
+                var choice = (weakestEnemyProvince ? slot.ProvinceChoices?.Where(p => p.Owner == owner).OrderBy(p => x.Opponent.Provinces.FirstOrDefault(q => q.Index == p.Index)?.Strength ?? 99).FirstOrDefault() : null)
+                    ?? slot.ProvinceChoices?.FirstOrDefault(p => p.Owner == owner) ?? slot.ProvinceChoices?.FirstOrDefault();
                 if (choice is not null) chosen.Add(new(slot.Slot, ProvinceOwner: choice.Owner, Province: choice.Index));
                 continue;
             }
@@ -116,7 +123,8 @@ public static partial class TrainingOpponent
     }
 
     /// <summary>The opponent already holds the Honor it needs and will win it at the start of its next turn, so the bot cannot afford a cautious attack.</summary>
-    private static bool HonorRace(Ctx x) => x.Opponent.Honor >= 40;
+    // clock (issue #1185 tuning): race earlier, from clockH Honor, against an Honor deck that is near its win.
+    private static bool HonorRace(Ctx x) => x.Opponent.Honor >= (Rule(x, "clock") ? Knob(x, "clockH", 34) : 40);
 
     /// <summary>When the attackers can destroy EVERY Province the bot has left, the battlefield where its defense is likeliest to save one (the largest Strength plus its own Force over the attackers'); otherwise null.</summary>
     private static int? LastStandProvince(Ctx x, int[] offered)

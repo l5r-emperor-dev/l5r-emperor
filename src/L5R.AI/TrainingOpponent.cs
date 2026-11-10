@@ -36,6 +36,7 @@ public static partial class TrainingOpponent
             .ThenBy(p => p.Command.CardId, StringComparer.Ordinal).ThenBy(p => p.Command.AbilityId, StringComparer.Ordinal).ToArray();
         if (candidates.Length == 0) return new(null, "No complete legal action was supplied for this decision.");
         var chosen = candidates[0];
+        if (LookAhead(x, candidates) is { } looked) chosen = (looked.Action, looked.Command, chosen.Score);
         Remember(x, chosen.Command);
         if (chosen.Command.Type is "useAbility" or "playStrategy" or "equip") memory.NoteUse(view.TurnNumber, chosen.Command.AbilityId, chosen.Command.CardId);
         return new(chosen.Command, Explain(chosen.Action.Type));
@@ -66,6 +67,18 @@ public static partial class TrainingOpponent
     }
 
     private static GameCommand? Prepare(Ctx x, ActionOption action)
+    {
+        var command = PrepareCore(x, action);
+        // Issue #1185 tuning (presence): a defense the ordinary rules would not make, when one unit's presence lets the bot's removals save the Province.
+        if (command is not null && action.Type == "assignDefense" && Rule(x, "presence") && PresencePlan(x, action) is { } presence && ScoreCore(x, action, command) < 95)
+            return command with { Assignments = presence };
+        // Issue #1185 tuning (deter): spare attackers stay home when they are enough to stop the opponent's whole army attacking next turn.
+        if (command is { Assignments.Count: > 0 } && action.Type == "attack" && x.View.Phase == Phase.InfantryDeclaration && Rule(x, "deter") && DeterPlan(x, command.Assignments) is { } deter)
+            return command with { Assignments = deter };
+        return command;
+    }
+
+    private static GameCommand? PrepareCore(Ctx x, ActionOption action)
     {
         var self = x.Self; var opponent = x.Opponent; var view = x.View;
         var command = action.Command;
@@ -101,14 +114,26 @@ public static partial class TrainingOpponent
                     }
                 return null;
             }
+            if (action.Type == "attack" && (Rule(x, "lean") || Rule(x, "lean2") || Rule(x, "lean3")) && !HonorRace(x))
+            {
+                // Issue #1185 tuning (lean): the smallest razing armies, everything else home. In the Cavalry segment, armies already razing get nobody more.
+                if (x.View.Phase == Phase.CavalryDeclaration && AlreadyAssigned(x).Length > 0) { if (Rule(x, "lean") || Rule(x, "lean3") && LeanArmiesRaze(x) || Rule(x, "lean2") && LeanArmiesSuffice(x)) return null; }
+                else if (LeanPlan(x, units, provinces) is { } lean) return command with { Assignments = lean };
+                else if (Rule(x, "lean")) return null; // lean2 falls back to the ordinary attack
+            }
             if (action.Type == "attack")
             {
                 // Mendon's spec (issue #642): as many sub-armies as can each beat their province plus every unit that could defend it.
                 var assigned = AlreadyAssigned(x);
                 var plan = PlanAttack(x, units, provinces, assigned) is { } whole ? HoldCavalry(x, OfferedOnly(whole, units)) : null;
+                if (LethalPlan(x, units, provinces) is { } lethal) return command with { Assignments = lethal }; // issue #1185 tuning (lethal)
                 if (HonorAttackOf(x, units, provinces) is { } honorAttack) return command with { Assignments = HoldCavalry(x, honorAttack.Assignments) }; // issue #818 item 8
                 if (!HonorRace(x) && PlannerAssignment(x, units, provinces) is { } planned) return command with { Assignments = planned }; // issue #1185: the plan's own attack
+                if (Rule(x, "maxraze") && !HonorRace(x) && x.View.Phase == Phase.InfantryDeclaration && MaxRazePlan(x, units, provinces) is { } razing
+                    && razing.Values.Distinct().Count() > (plan?.Values.Distinct().Count() ?? 0)) return command with { Assignments = razing }; // issue #1185 tuning: more Provinces this turn
+                if (plan is not null && Rule(x, "favoraware") && !HonorRace(x) && FavorStopsAttack(x, plan)) return null; // issue #1185 tuning: the visible Favor sends the lone army's biggest unit home
                 if (plan is not null) return command with { Assignments = plan };
+                if ((Rule(x, "aggro") || Rule(x, "aggro2")) && AggroAttack(x, units, provinces) is { } aggro) return command with { Assignments = HoldCavalry(x, aggro) }; // issue #1185 tuning
                 if (TradeFor(x, units) is { } trade)
                 {
                     var weakest = opponent.Provinces.Where(p => provinces.Contains(p.Index)).OrderBy(p => p.Strength).ThenBy(p => p.Index).First().Index;
@@ -145,6 +170,7 @@ public static partial class TrainingOpponent
                 var holdingCount = self.Home.Count(c => c.Definition?.Type == CardType.Holding);
                 var selected = self.Provinces.Where(p => p.Card?.Definition is not null && (action.TargetIds ?? []).Contains(p.Card.Id))
                     .Where(p => p.Card!.Definition!.GoldCost > ready || self.TurnsTaken <= 2 && holdingCount < 3 && p.Card.Definition.Type == CardType.Personality || holdingCount >= 7 && p.Card.Definition.Type == CardType.Holding)
+                    .Where(p => !(Rule(x, "keepbody") && p.Card!.Definition!.Type == CardType.Personality && EffectiveCost(x, p.Card) <= ready)) // issue #1185 tuning: an affordable body is never cycled away
                     .Select(p => p.Card!.Id).ToArray();
                 if (selected.Length == 0) return null;
                 return command with { CardIds = selected };
@@ -184,6 +210,34 @@ public static partial class TrainingOpponent
             // Issue #902: a Strategy that bows takes an unbowed target; with none, it is not played.
             if (x.Memory.UsePrudence && action.Type == "playStrategy" && StrategyIntent(x.Card(command.CardId)) is { Rank: EffectRank.Bow } bowing && bowing.Side != TargetSide.Own && targetCards.All(c => c.Bowed)) return null;
             var ordered = targetCards.OrderBy(c => c.Bowed).ThenByDescending(c => c.Force);
+            // spreadwide (Mendon, grill 2026-11-09: "spread those out so that you can be more versatile"): once one unit beats the strongest Province alone, further attachments go to the
+            // weakest unbowed Personality, so one bow or kill does not take the whole army.
+            if (Rule(x, "spreadwide") && action.Type == "equip" && targetCards.Where(c => c.OwnerId == self.Id && !c.Bowed && c.Definition?.Type == CardType.Personality).ToArray() is { Length: > 1 } wide
+                && wide.Max(c => UnitForce(x, c)) > opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Strength).DefaultIfEmpty(0).Max() + 2)
+                ordered = targetCards.OrderBy(c => wide.Contains(c) ? 0 : 1).ThenBy(c => wide.Contains(c) ? UnitForce(x, c) : 0).ThenByDescending(c => c.Force);
+            // spreadvwide (Mendon, 2026-11-09): a Personality with no attachment gets one before any Personality gets a second; a Kensai may carry two Weapons.
+            if (Rule(x, "spreadvwide") && action.Type == "equip" && x.Card(command.CardId)?.Definition is { } gear
+                && (!Rule(x, "svwgate") || self.Home.Concat(self.Army).Where(c => c.OwnerId == self.Id && c.Definition?.Type == CardType.Personality && !c.Bowed).Any(c => UnitForce(x, c) > opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Strength).DefaultIfEmpty(0).Max() + 2)))
+            {
+                var weapon = gear.Keywords?.Contains("Weapon", StringComparer.OrdinalIgnoreCase) == true;
+                var cards = self.Home.Concat(self.Army).ToArray();
+                int Load(CardView c)
+                {
+                    if (c.OwnerId != self.Id || c.Definition?.Type != CardType.Personality) return 99;
+                    var on = cards.Where(a => a.AttachedTo == c.Id).ToArray();
+                    var weapons = on.Count(a => a.Definition?.Keywords?.Contains("Weapon", StringComparer.OrdinalIgnoreCase) == true);
+                    var kensai = c.Definition.Keywords?.Contains("Kensai", StringComparer.OrdinalIgnoreCase) == true;
+                    return weapon && kensai && weapons < 2 && on.Length == weapons ? 0 : on.Length;
+                }
+                ordered = ordered.OrderBy(Load).ThenBy(c => c.Bowed).ThenByDescending(c => c.Force);
+            }
+            // Issue #1185 tuning (spread): a unit that already beats the strongest Province and every defender gains nothing more; the attachment goes to the next unit, so two armies can raze.
+            if (Rule(x, "spread") && action.Type == "equip" && targetCards.Length > 1 && targetCards.Where(c => c.OwnerId == self.Id).ToArray() is { Length: > 1 } mine)
+            {
+                var cap = opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Strength).DefaultIfEmpty(0).Max() + ArmyForce(opponent.Home) + 2;
+                var under = mine.Where(c => !c.Bowed && UnitForce(x, c) <= cap).OrderByDescending(c => UnitForce(x, c)).ToArray();
+                if (under.Length > 0 && mine.Any(c => UnitForce(x, c) > cap)) ordered = under.Concat(targetCards.Except(under)).OrderBy(c => under.Contains(c) ? 0 : 1);
+            }
             var bowStrategy = x.Memory.UseBattlePolicy && action.Type == "playStrategy" && x.Card(command.CardId)?.Definition?.Effect == "bow-small" ? PickBowTarget(x, targetCards.Select(c => c.Id).ToArray(), null) : null;
             var withTarget = WithTarget(command, action, bowStrategy?.Id ?? ordered.ThenBy(c => c.Id, StringComparer.Ordinal).First().Id);
             return withTarget is null ? null : Complete(x, action, withTarget);
@@ -202,7 +256,7 @@ public static partial class TrainingOpponent
         return command;
     }
 
-    private static double Score(Ctx x, ActionOption action, GameCommand command) => TriageScore(x, action, command, PlanScore(x, action, command, Adjust(x, action, command, ScoreCore(x, action, command))));
+    private static double Score(Ctx x, ActionOption action, GameCommand command) => Contender2Score(x, action, command, TriageScore(x, action, command, PlanScore(x, action, command, Adjust(x, action, command, ScoreCore(x, action, command)))));
 
     private static double ScoreCore(Ctx x, ActionOption action, GameCommand command)
     {

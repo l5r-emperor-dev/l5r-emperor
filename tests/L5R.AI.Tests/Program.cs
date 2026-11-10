@@ -291,6 +291,7 @@ runner.Run("michi-stall", MichiStallReplayTests.Tests); // issue #967
 runner.Run("prudence", PrudenceTests.Tests); // issue #902: Mendon's bot notes
 runner.Run("cavalry-defense", CavalryDefenseTests.Tests); // issue #946: defending against the attacker's possible Cavalry
 runner.Run("bot-profile", BatchProfile.Tests); // issue #888: opt-in timing of seeded bot-vs-bot matches
+runner.Run("human-compare", HumanReplayCompare.Tests); // issue #1185: opt-in, a human practice replay beside the bot's choices
 return runner.Finish();
 
 void Run(string name, Action run) => tests.Add((name, run));

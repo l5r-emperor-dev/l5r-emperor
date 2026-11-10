@@ -49,6 +49,8 @@ internal static class BotTournament
         ["triage-cap-bows"] = () => new() { UsePlannerTriage = true, TriageTargets = false, TriagePrintedFirst = false, TriageSpareKills = true }, // the cap, but destroys still allowed
         ["triage-null"] = () => new() { UsePlannerTriage = true, TriageTargets = false, TriagePrintedFirst = false, TriageWonCap = false }, // calibration: the triage flag with every rule off must replay the champion game for game
         ["contender"] = () => BotContext.Contender(), // issue #1185: the planning bot (docs/bots/CONTENDER.md); compare it with the champion's own baseline on the same games (tools/bots/compare_tournament.py)
+        ["c2"] = () => BotContext.Contender(rules: (Environment.GetEnvironmentVariable("L5R_C2") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)), // issue #1185 tuning: the Contender plus the rules named in L5R_C2
+        ["conan"] = () => BotContext.Conan(rules: (Environment.GetEnvironmentVariable("L5R_C2") is { Length: > 0 } c ? c.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) : null)), // issue #1206: the Contender with battle lookahead (rules from L5R_C2 when set)
         ["contender+attack"] = () => BotContext.Contender(attack: true),
         ["contender+discard"] = () => BotContext.Contender(discard: true),
         ["contender+reserve"] = () => BotContext.Contender(reserve: true),
@@ -80,15 +82,39 @@ internal static class BotTournament
         }
         try { game = MatchEngine.CreateCustomMatch(seed, deck0, deck1); }
         catch (Exception e) { return End(null, "setup", 0, e.Message.Split('\n')[0]); }
-        var memory = new[] { makers[0](), makers[1]() }; memory[0].Archetype = DeckArchetypeTests.Of(deck0); memory[1].Archetype = DeckArchetypeTests.Of(deck1); var refusedAt = new HashSet<(long, int)>(); var sameAnswer = 0; string? lastRefusal = null;
+        var memory = new[] { makers[0](), makers[1]() }; for (var seat = 0; seat < 2; seat++) { var own = seat; if (memory[seat].Has("look")) memory[seat].Sampler = sample => game!.Sample(own, sample); } memory[0].Archetype = DeckArchetypeTests.Of(deck0); memory[1].Archetype = DeckArchetypeTests.Of(deck1); var refusedAt = new HashSet<(long, int)>(); var sameAnswer = 0; string? lastRefusal = null;
+        // L5R_TOURN_LOG=<dir>: one plain-text log per game (every accepted decision, by whom, and the engine's event messages), for reviewing why a game was won or lost.
+        var logDir = Environment.GetEnvironmentVariable("L5R_TOURN_LOG"); var log = logDir is { Length: > 0 } ? new StringBuilder() : null; long lastEvent = -1; var lastTurn = -1;
+        string Name(string? id) => id is not null && game.State.Cards.TryGetValue(id, out var ci) && CardCatalog.Cards.TryGetValue(ci.DefinitionId, out var cd) ? cd.Name : id ?? "";
+        GameRecord Logged(GameRecord r)
+        {
+            if (log is null) return r;
+            Directory.CreateDirectory(logDir!);
+            var who = r.Winner is null ? "none" : r.Winner == challengerSeat ? "CHAL" : "CHAMP";
+            File.WriteAllText(Path.Combine(logDir!, $"{who}-{name0}-vs-{name1}-{seed}-c{challengerSeat}.log".Replace(' ', '_').Replace('/', '_')),
+                $"# {name0} (seat 0, {(challengerSeat == 0 ? "challenger" : "champion")}) vs {name1} (seat 1, {(challengerSeat == 1 ? "challenger" : "champion")}); seed {seed}; winner {r.Winner} ({who}) by {r.Reason} on turn {r.Turn}; Honor {string.Join("/", r.Honor)} provinces {string.Join("/", r.ProvincesLeft)} personalities {string.Join("/", r.Personalities)}\n" + log + "\n## challenger plans\n" + string.Join("\n", memory[challengerSeat].PlanLog) + (memory[challengerSeat].LookLog is { Count: > 0 } looks ? "\n## challenger lookahead\n" + string.Join("\n", looks) : ""));
+            return r;
+        }
         for (var n = 0; n < 6000; n++)
         {
             try
             {
                 var v0 = game.GetView(0);
-                if (v0.WinnerId is not null || v0.Phase == Phase.Finished) return End(v0.WinnerId, v0.VictoryReason ?? "finished", v0.TurnNumber);
-                if (v0.TurnNumber > BotSoak.TurnLimit) return End(null, "turn limit", v0.TurnNumber);
+                if (v0.WinnerId is not null || v0.Phase == Phase.Finished) return Logged(End(v0.WinnerId, v0.VictoryReason ?? "finished", v0.TurnNumber));
+                if (v0.TurnNumber > BotSoak.TurnLimit) return Logged(End(null, "turn limit", v0.TurnNumber));
                 if (clock.Elapsed > budget) return End(null, "out of time", v0.TurnNumber, "wall budget");
+                if (log is not null && v0.TurnNumber != lastTurn)
+                {
+                    lastTurn = v0.TurnNumber;
+                    log.Append($"===== TURN {v0.TurnNumber} active s{v0.ActivePlayerId}{(v0.ActivePlayerId == challengerSeat ? "C" : "c")} =====\n");
+                    foreach (var p in v0.Players)
+                    {
+                        var hand = game.GetView(p.Id).Players[p.Id].Hand;
+                        var cap = (p.Stronghold.Definition?.GoldProduction ?? 0) + p.Home.Where(h => h.Definition?.Type == CardType.Holding).Sum(h => h.Definition!.GoldProduction); var hold = p.Home.Count(h => h.Definition?.Type == CardType.Holding); var pers = p.Home.Concat(p.Army).Count(h => h.Definition?.Type == CardType.Personality); var tf = p.Home.Concat(p.Army).Where(h => h.Definition?.Type is CardType.Personality or CardType.Follower).Sum(h => Math.Max(0, h.Force));
+                        log.Append($"  s{p.Id}{(p.Id == challengerSeat ? "C" : "c")} Honor {p.Honor} provinces {p.Provinces.Count(q => !q.Destroyed)} hand {p.HandCount} gold {cap} holdings {hold} pers {pers} force {tf} | home: {string.Join(", ", p.Home.Select(h => (h.Definition?.Name ?? "?") + (h.Definition?.Type is CardType.Personality or CardType.Follower ? $"({h.Force}F)" : "") + (h.Bowed ? "*" : "")))}\n");
+                        log.Append($"     hand: {string.Join(", ", hand.Select(h => h.Definition?.Name ?? "?"))} | row: {string.Join(", ", p.Provinces.Where(q => !q.Destroyed).Select(q => $"{q.Strength}:" + (q.Card?.Definition?.Name ?? "down")))}\n");
+                    }
+                }
                 var seat = v0.PendingChoice?.PlayerId ?? v0.PriorityPlayerId;
                 var actions = Clone(game.QueryActions(seat));
                 if (!actions.Any(x => x.Enabled && x.Type != "concede"))
@@ -108,6 +134,12 @@ internal static class BotTournament
                 var outcome = game.Execute(decision.Command);
                 if (outcome.Accepted)
                 {
+                    if (log is not null)
+                    {
+                        var c = decision.Command;
+                        log.Append($"T{v0.TurnNumber} {v0.Phase} s{seat}{(seat == challengerSeat ? "C" : "c")} {c.Type}{(c.AbilityId is null ? "" : "/" + c.AbilityId)}{(c.CardId is null ? "" : " card=" + Name(c.CardId))}{(c.TargetId is null ? "" : " target=" + Name(c.TargetId))}{(c.PerformerId is null ? "" : " by=" + Name(c.PerformerId))}{(c.Choice is null ? "" : " choice=" + c.Choice)}{(c.Province is null ? "" : " prov=" + c.Province)}{(c.CardIds is { Length: > 0 } ids ? " cards=" + string.Join(",", ids.Select(Name)) : "")}{(c.Assignments is { Count: > 0 } asg ? " assign=" + string.Join(",", asg.Select(a => Name(a.Key) + ">" + a.Value)) : "")}\n");
+                        foreach (var e in game.State.Events.Where(e => e.Sequence > lastEvent)) { log.Append("    · ").Append(e.Message).Append('\n'); lastEvent = e.Sequence; }
+                    }
                     if (Environment.GetEnvironmentVariable("L5R_TOURN_TRACE") == "1" && v0.TurnNumber >= 10) Console.WriteLine($"T{v0.TurnNumber} {v0.Phase} seat {seat} {decision.Command.Type}/{decision.Command.AbilityId} card={decision.Command.CardId} target={decision.Command.TargetId} | {string.Join(" || ", game.State.Events.TakeLast(2).Select(e => e.Message))}");
                     sameAnswer = 0; lastRefusal = null;
                     var key = decision.Command.Type == "useAbility" ? "ability" : decision.Command.Type; counts[seat][key] = counts[seat].GetValueOrDefault(key) + 1;
@@ -155,6 +187,24 @@ internal static class BotTournament
             try { var d = DeckFormat.Parse(e["text"]); if (CustomPractice.Review(d).Ready) pool.Add((e["name"], d)); else unplayable.Add(e["name"]); }
             catch (Exception ex) { unplayable.Add($"{e["name"]}: {ex.Message}"); }
         }
+        if (Environment.GetEnvironmentVariable("L5R_TOURN_CARDS") is { Length: > 0 } cardsOut) // a card table for every deck in the pool, for reviewing games
+        {
+            var t = new StringBuilder();
+            foreach (var (name, deck) in pool)
+            {
+                t.AppendLine($"## {name}");
+                foreach (var e in deck.Entries)
+                {
+                    var d = CardCatalog.Cards.Values.Where(c => c.Name == e.Name).OrderBy(c => c.ScenarioOnly).FirstOrDefault();
+                    if (d is null) { t.AppendLine($"- {e.Count}x {e.Name} (unknown)"); continue; }
+                    var abilities = string.Join(" | ", (d.Abilities ?? []).Select(a => AbilityCatalog.All.TryGetValue(a, out var ab) ? $"{ab.Timing}: {ab.Label}" : a));
+                    t.AppendLine($"- {e.Count}x {d.Name} [{d.Type}{(d.Clan is "Unaligned" ? "" : ", " + d.Clan)}] cost {d.GoldCost}{(d.GoldProduction > 0 ? $" prod {d.GoldProduction}" : "")}{(d.Type is CardType.Personality or CardType.Follower or CardType.Item ? $" {d.Force}F/{d.Chi}C" : "")}{(d.Type == CardType.Personality ? $" PH {d.PersonalHonor} HR {d.HonorRequirement}" : "")}{(d.Focus > 0 ? $" FV {d.Focus}" : "")}{(d.Keywords is { Length: > 0 } k ? " {" + string.Join(", ", k) + "}" : "")}{(d.Type == CardType.Stronghold ? $" PS {d.ProvinceStrength} SH {d.StartingHonor}" : "")}{(abilities.Length > 0 ? " — " + abilities : "")}");
+                }
+                t.AppendLine();
+            }
+            File.WriteAllText(cardsOut, t.ToString());
+            return;
+        }
         var holdout = HoldoutNames(pool.Select(p => p.Name)).ToHashSet();
         var holdMode = mode == "holdout"; var seedBase = holdMode ? HoldoutSeedBase : DevSeedBase;
         var pairs = pool.SelectMany(a => pool.Where(b => b.Name != a.Name).Select(b => (A: a, B: b)))
@@ -177,7 +227,7 @@ internal static class BotTournament
         Parallel.For(0, jobs.Count, new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount - 1) }, i =>
         {
             var j = jobs[i]; var p = pairs[j.Pair];
-            results[i] = Play(p.A.Name, p.A.Deck, p.B.Name, p.B.Deck, seatMakers[j.ChalSeat], j.ChalSeat, j.Seed, TimeSpan.FromMinutes(5));
+            results[i] = Play(p.A.Name, p.A.Deck, p.B.Name, p.B.Deck, seatMakers[j.ChalSeat], j.ChalSeat, j.Seed, TimeSpan.FromMinutes(double.TryParse(Environment.GetEnvironmentVariable("L5R_TOURN_BUDGET"), out var minutes) ? minutes : 5)); // L5R_TOURN_BUDGET=<minutes>: a slower bot (lookahead, issue #1206) needs a longer wall budget
         });
         wall.Stop();
         var report = Summarise(results, jobs.Select(j => j.Pair).ToArray(), challenger, pairing, mode, seeds, pairs.Length, holdout, unplayable, wall.Elapsed, seedStart);
