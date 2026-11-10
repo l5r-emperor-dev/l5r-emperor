@@ -82,7 +82,7 @@ internal static class BotTournament
         }
         try { game = MatchEngine.CreateCustomMatch(seed, deck0, deck1); }
         catch (Exception e) { return End(null, "setup", 0, e.Message.Split('\n')[0]); }
-        memory = [makers[0](), makers[1]()]; for (var seat = 0; seat < 2; seat++) { var own = seat; if (memory[seat].Has("look")) memory[seat].Sampler = sample => game!.Sample(own, sample); } memory[0].Archetype = DeckArchetypeTests.Of(deck0); memory[1].Archetype = DeckArchetypeTests.Of(deck1); var refusedAt = new HashSet<(long, int)>(); var sameAnswer = 0; string? lastRefusal = null;
+        memory = [makers[0](), makers[1]()]; for (var seat = 0; seat < 2; seat++) { var own = seat; if (memory[seat].Has("look")) memory[seat].Sampler = sample => game!.Sample(own, sample); memory[seat].Deadline = DateTime.UtcNow + budget; } memory[0].Archetype = DeckArchetypeTests.Of(deck0); memory[1].Archetype = DeckArchetypeTests.Of(deck1); var refusedAt = new HashSet<(long, int)>(); var sameAnswer = 0; string? lastRefusal = null;
         // L5R_TOURN_LOG=<dir>: one plain-text log per game (every accepted decision, by whom, and the engine's event messages), for reviewing why a game was won or lost.
         var logDir = Environment.GetEnvironmentVariable("L5R_TOURN_LOG"); var log = logDir is { Length: > 0 } ? new StringBuilder() : null; long lastEvent = -1; var lastTurn = -1;
         string Name(string? id) => id is not null && game.State.Cards.TryGetValue(id, out var ci) && CardCatalog.Cards.TryGetValue(ci.DefinitionId, out var cd) ? cd.Name : id ?? "";
@@ -102,7 +102,7 @@ internal static class BotTournament
                 var v0 = game.GetView(0);
                 if (v0.WinnerId is not null || v0.Phase == Phase.Finished) return Logged(End(v0.WinnerId, v0.VictoryReason ?? "finished", v0.TurnNumber));
                 if (v0.TurnNumber > BotSoak.TurnLimit) return Logged(End(null, "turn limit", v0.TurnNumber));
-                if (clock.Elapsed > budget) return End(null, "out of time", v0.TurnNumber, "wall budget");
+                if (clock.Elapsed > budget) return Logged(End(null, "out of time", v0.TurnNumber, "wall budget"));
                 if (log is not null && v0.TurnNumber != lastTurn)
                 {
                     lastTurn = v0.TurnNumber;
@@ -151,6 +151,12 @@ internal static class BotTournament
                 sameAnswer = signature == lastRefusal ? sameAnswer + 1 : 0; lastRefusal = signature;
                 if (sameAnswer >= 24 || refused > 400) return End(null, "illegal", v0.TurnNumber, $"refused repeatedly: {outcome.Error}");
                 n--;
+            }
+            // Issue #1206: the per-game cutoff stops a bot inside a decision that runs away (BotContext.Deadline); the log keeps where it was, for diagnosing the hang.
+            catch (BotDeadlineException e)
+            {
+                log?.Append($"\n## killed at the {budget.TotalMinutes:0} minute cutoff: turn {game.TurnNumber} {game.Phase}\n{e.StackTrace}\n");
+                return Logged(End(null, "killed", game.TurnNumber, $"cutoff: turn {game.TurnNumber} {game.Phase} at {e.StackTrace?.Split('\n').FirstOrDefault(l => l.Contains("L5R.AI.TrainingOpponent") && !l.Contains("Deadline"))?.Trim()}"));
             }
             catch (Exception e) { return End(null, "exception", 0, $"{e.GetType().Name}: {e.Message}"); }
         }
@@ -224,10 +230,21 @@ internal static class BotTournament
             var f = only.Split('|'); jobs = [(Array.FindIndex(pairs, p => p.A.Name == f[0] && p.B.Name == f[1]), ulong.Parse(f[2]), int.Parse(f[3]))];
         }
         var wall = Stopwatch.StartNew(); var results = new GameRecord[jobs.Count];
-        Parallel.For(0, jobs.Count, new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount - 1) }, i =>
+        var budget = TimeSpan.FromMinutes(double.TryParse(Environment.GetEnvironmentVariable("L5R_TOURN_BUDGET"), out var minutes) ? minutes : 5); // L5R_TOURN_BUDGET=<minutes>: the per-game cutoff; a slower bot (lookahead, issue #1206) needs more
+        // Issue #1206: a game that ignores the cutoff (a loop that never checks BotContext.Deadline) is named on stderr every minute, so a hang is found rather than waited out.
+        var running = new System.Collections.Concurrent.ConcurrentDictionary<int, Stopwatch>();
+        using var watchdog = new Timer(_ =>
+        {
+            foreach (var (i, clock) in running) if (clock.Elapsed > budget + TimeSpan.FromMinutes(2)) Console.Error.WriteLine($"STUCK {pairs[jobs[i].Pair].A.Name}|{pairs[jobs[i].Pair].B.Name}|{jobs[i].Seed}|{jobs[i].ChalSeat} for {clock.Elapsed.TotalMinutes:0} min");
+        }, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+        // One game at a time per worker (no buffered ranges): a slow game no longer holds back the games queued behind it on the same worker.
+        Parallel.ForEach(System.Collections.Concurrent.Partitioner.Create(Enumerable.Range(0, jobs.Count), System.Collections.Concurrent.EnumerablePartitionerOptions.NoBuffering),
+            new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount - 1) }, i =>
         {
             var j = jobs[i]; var p = pairs[j.Pair];
-            results[i] = Play(p.A.Name, p.A.Deck, p.B.Name, p.B.Deck, seatMakers[j.ChalSeat], j.ChalSeat, j.Seed, TimeSpan.FromMinutes(double.TryParse(Environment.GetEnvironmentVariable("L5R_TOURN_BUDGET"), out var minutes) ? minutes : 5)); // L5R_TOURN_BUDGET=<minutes>: a slower bot (lookahead, issue #1206) needs a longer wall budget
+            running[i] = Stopwatch.StartNew();
+            results[i] = Play(p.A.Name, p.A.Deck, p.B.Name, p.B.Deck, seatMakers[j.ChalSeat], j.ChalSeat, j.Seed, budget);
+            running.TryRemove(i, out _);
         });
         wall.Stop();
         var report = Summarise(results, jobs.Select(j => j.Pair).ToArray(), challenger, pairing, mode, seeds, pairs.Length, holdout, unplayable, wall.Elapsed, seedStart);

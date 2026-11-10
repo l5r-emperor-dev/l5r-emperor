@@ -9,6 +9,7 @@ internal static class PlannerTests
         ("Planner (issue #1185, slice 2): the attack decision is a swing estimate (my Force plus what my hand adds, against theirs plus a guessed enemy hand), so the planner attacks a battle it expects to win that the champion's printed-Force rule passes on, holds when a full enemy hand makes it risky, and counts a +Force card in hand", SwingAttack),
         ("Planner (issue #1185): the end-of-Dynasty discard keeps what can be bought next turn (information plans the turn) and discards only a card too dear to pay for, or a non-Personality when behind in Personalities with none on offer", DiscardRule),
         ("Contender (issue #1185): the named configuration keeps the harmless planner and triage parts on, leaves the parts that lost games off (each switchable), and behaves as the champion does on attacks until the estimate is switched on", ContenderConfiguration),
+        ("Planner (issue #1211): with twenty 1-Gold Holdings and a row it cannot clear, the slate is still worked out in moments (sources of equal value are interchangeable)", ManySources),
         ("Planner (issue #1185): when the Gold can pay for the whole province row the plan buys it all, and Gold a likely attack will need for Battle tricks is held back from the purchases", ClearTheRowAndReserve),
     ];
 
@@ -110,6 +111,19 @@ internal static class PlannerTests
         Check(AtDiscard(blocking, 3, turnsTaken: 2) == "discard H4", "early in the game the Holding that blocks a Personality is discarded, though the bot is not behind");
         Check(AtDiscard(blocking, 0, turnsTaken: 6) == "discard H4", "mid game and digging for Personalities, the blocking Holding is discarded");
         Check(AtDiscard(blocking, 3, turnsTaken: 6) == "endDynasty", "mid game and not behind, the same Holding is kept");
+    }
+
+    private static void ManySources()
+    {
+        // Gold of 5 and twenty 1s against four 9-cost Personalities: 5+1+1+1+1 and nine 1s pay for two; the third would need nine more 1s and only seven are left. The subset search tried every
+        // group of the 21 sources at every card and ran for minutes.
+        var view = DynastyRow([Card("P1", CardType.Personality, 9), Card("P2", CardType.Personality, 9), Card("P3", CardType.Personality, 9), Card("P4", CardType.Personality, 9)]);
+        var holding = view.Players[0].Home[0].Definition! with { GoldProduction = 1 };
+        view = view with { Players = [view.Players[0] with { Home = Enumerable.Range(0, 20).Select(i => new CardView("h" + i, holding, 0, Zone.Home, true, false, null, null, 0)).ToArray() }, view.Players[1]] };
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        var slate = SlateFor(view, new BotContext { UsePlanner = true });
+        Check(clock.Elapsed < TimeSpan.FromSeconds(2), $"the slate took {clock.Elapsed.TotalSeconds:0.0} s");
+        Check(slate.Split(',').Length == 2, "two of the four fit the Gold's shape: [" + slate + "]");
     }
 
     private static void ClearTheRowAndReserve()

@@ -75,3 +75,62 @@ All three role rules feed the planner's Personality valuation (`RoleValue` in `T
 | all three | 0 | 12 |
 
 Even at three times the weight, these rules change fewer than 2% of games, and none changes the result. They stay opt-in. In this arena, the Contender's purchases are decided by Gold shape and its existing push for bodies. A choice between two affordable Personalities that differ in role or keyword is rare.
+
+## Round 4: defence shapes and the plan-driven settings
+
+### `lkVar` (defence shapes) on top of `lkDef`, against `lkDef` alone
+
+| Block | Win rate | Net |
+| --- | --- | --- |
+| 7000 ×1 | 79.7% | +4 (9–5) |
+| 7100 ×1 | 79.1% | +3 (12–9) |
+
+`CV` below is the Contender defaults plus `look,lkDef,lkVar`.
+
+### Plan-driven settings (Mendon, 2026-11-10), block 7000 ×1, against `CV` (`x-var`, 79.7%)
+
+| Arm | Setting | Win rate | Net |
+| --- | --- | --- | --- |
+| `p-plan` | `lkPlan`: the attack chosen by search and then followed | 80.4% | +3 (23–20) |
+| `p-intent` | `lkIntent`: playouts scored for the plan's intent | 78.8% | −3 (1–4) |
+| `p-buy` | `lkBuy`: purchases played out through the next attack | 77.4% | −10 (21–31) |
+| `p-all` | all three (355 of 363 games; stopped, see below) | 80.8% | +4 (30–26) |
+
+None of these is significant. The attack plan holds its own but does not yet beat the Contender's attack rules plus battle search. Intent weighting changes almost nothing. Purchase search loses games: a one-turn playout scored with the material weights pushes it towards bad purchases.
+
+The four arms ran at once, so the per-search times measured in this batch (median about 3 s) mostly measure load. Single games on a quiet machine are in the next section.
+
+## Hangs: diagnosis and fixes
+
+The `p-all` batch stopped finishing games at 15:08. A CPU trace of the stuck process, and of three replays of other long games, showed the same place: `MaxProvincesCavalryDestroys`, under the Contender's cavalry last stand (`CavalryLastStandPlan`).
+
+- That search tried every subset of the attacker's Cavalry at every Province, with no memory. The last stand calls it once for each assignment of defenders (up to 4^8).
+- With many Cavalry, one decision ran for hours. The Contender uses the same code without lookahead, so a practice game against a Cavalry-heavy deck could stall too.
+- `Parallel.For` gave each worker a block of games in advance, so the one stuck game also held back the 7 games queued behind it.
+
+A trace of a whole long game (Crane Dominance vs Crab Control, turn 22) showed a second cost: the purchase planner's `Payable` took about 90% of the game. It tried every group of Gold sources, which is exponential in the number of Holdings.
+
+Fixes:
+
+- **Cavalry reach.** The search tries only the minimal Cavalry groups for each Province, and remembers its results by (Province, Cavalry used) and by Province needs. It has a fixed step limit; past it, the last stand keeps the best defence found so far.
+  - It matched the old search on 3,000 random boards.
+  - `cavalry-defense/LastStandIsBounded` (12 Cavalry against 8 defenders) runs in 0.4 s. The old code had not finished it after 5 minutes.
+- **Payable.** Sources of equal value are interchangeable, so the search runs over how many of each value are left.
+  - It matched the old search on 4,000 random cases.
+  - `planner/ManySources` (20 Holdings) runs in under 0.1 s. The old code had not finished it after 120 s.
+- **Search time limit, `lkT` (10 s).** A search past its limit is abandoned, and the Contender's own choice stands. A player never waits longer than that on one decision.
+- **Arena cutoff.** `L5R_TOURN_BUDGET` now also sets `BotContext.Deadline`, which the bot checks inside its decisions. A runaway game is stopped mid-decision, recorded as `killed` and logged with its stack. A game that ignores the cutoff is named on stderr every minute. Workers take one game at a time.
+
+Replays of the five longest games, each alone:
+
+| Game | Setting | Before | After |
+| --- | --- | --- | --- |
+| Crane Dominance vs Crab Control 71500041 | `CV` | 560 s | 34 s |
+| Crab Control vs Unicorn Maidens 71000034 | `lkBuy` | over 25 min, unfinished | 253 s |
+| Lion Legacy vs Unicorn Maidens 71000139 | `lkBuy` | over 25 min, unfinished | 61 s |
+| Classic Lion vs Crane Dominance 71000159 | `lkPlan` | 257 s | 142 s |
+| Unicorn Maidens vs Crab Control 71500119 | all three | over 25 min, unfinished | 302 s |
+
+Only the `lkBuy` games still reach the 10 s search limit (8 and 11 times). Their playouts run through the whole next turn, and the time goes to the engine building legal actions, not to a bot loop.
+
+**Cutoff for tuning runs:** 20 minutes per game. That is above every Conan game in these batches that was not stuck (the longest was 965 s with four arms running at once), and the search limit now bounds the rest.

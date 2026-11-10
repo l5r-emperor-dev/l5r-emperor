@@ -41,26 +41,70 @@ public static partial class TrainingOpponent
         return DefensePlanner.Plan(units, provinces, threat, x.Self.HandCount);
     }
 
-    /// <summary>The most Provinces the attacker's unbowed Cavalry (alone or joining armies already assigned) can destroy, given each Province's Strength plus the Force defending it and the Force already attacking it.</summary>
-    private static int MaxProvincesCavalryDestroys(int[] cavalry, int[] need)
+    /// <summary>
+    /// The most Provinces the attacker's unbowed Cavalry (alone or joining armies already assigned) can destroy, given each Province's Strength plus the Force defending it and the Force already
+    /// attacking it. Issue #1211: the plain search tried every Cavalry subset at every Province with no memory, and the last stand asks it once per defence assignment, so one decision could run
+    /// for hours (a Unicorn or Crab board with many Cavalry). Now each Province tries only its minimal Cavalry groups (a larger group only wastes Cavalry), results are remembered per
+    /// (Province, Cavalry used) and per Province needs, and the work is capped: past <see cref="StepBudget"/> the answer assumes the worst, that the Cavalry takes the rest.
+    /// </summary>
+    private sealed class CavalryReach
     {
-        // need[p]: Force still missing at Province p beyond what is already attacking it (above 0 means Cavalry must supply more than that). Each Cavalry unit joins at most one Province.
-        var best = 0;
-        void Search(int province, int used, int destroyed)
+        internal const int StepBudget = 2_000_000;
+        private readonly int _units;
+        private readonly int[] _sum;
+        private readonly Dictionary<int, int[]> _groups = [];
+        private readonly Dictionary<string, int> _known = new(StringComparer.Ordinal);
+        private int _steps;
+
+        public CavalryReach(int[] cavalry)
         {
-            if (province == need.Length) { best = Math.Max(best, destroyed); return; }
-            if (destroyed + (need.Length - province) <= best) return;
-            if (need[province] < 0) { Search(province + 1, used, destroyed + 1); return; } // already falls without any Cavalry
-            for (var subset = 0; subset < 1 << cavalry.Length; subset++)
-            {
-                if ((subset & used) != 0) continue;
-                var force = 0; for (var i = 0; i < cavalry.Length; i++) if ((subset >> i & 1) != 0) force += cavalry[i];
-                if (force > need[province]) Search(province + 1, used | subset, destroyed + 1);
-            }
-            Search(province + 1, used, destroyed);
+            _units = cavalry.Length; _sum = new int[1 << _units];
+            for (var m = 1; m < _sum.Length; m++) { var low = m & -m; _sum[m] = _sum[m ^ low] + cavalry[System.Numerics.BitOperations.TrailingZeroCount(low)]; }
         }
-        Search(0, 0, 0);
-        return best;
+
+        public bool OverBudget => _steps > StepBudget;
+
+        /// <summary>need[p]: Force still missing at Province p beyond what is already attacking it (below 0: it falls without any Cavalry). Each Cavalry unit joins at most one Province.</summary>
+        public int MaxDestroyed(int[] need)
+        {
+            _steps += need.Length;
+            var key = string.Join(",", need);
+            if (_known.TryGetValue(key, out var known)) return known;
+            var memo = new Dictionary<int, int>();
+            int Best(int province, int used)
+            {
+                if (province == need.Length) return 0;
+                if (++_steps > StepBudget) return need.Length - province;
+                var k = province << _units | used;
+                if (memo.TryGetValue(k, out var value)) return value;
+                if (need[province] < 0) value = 1 + Best(province + 1, used);
+                else
+                {
+                    value = Best(province + 1, used);
+                    foreach (var group in Groups(need[province]))
+                    {
+                        if ((group & used) != 0) continue;
+                        value = Math.Max(value, 1 + Best(province + 1, used | group));
+                        if (value == need.Length - province) break;
+                    }
+                }
+                return memo[k] = value;
+            }
+            return _known[key] = Best(0, 0);
+        }
+
+        private int[] Groups(int need)
+        {
+            if (_groups.TryGetValue(need, out var groups)) return groups;
+            _steps += _sum.Length;
+            return _groups[need] = Enumerable.Range(1, _sum.Length - 1).Where(m => _sum[m] > need && Minimal(m, need)).ToArray();
+        }
+
+        private bool Minimal(int group, int need)
+        {
+            for (var rest = group; rest != 0; rest &= rest - 1) if (_sum[group ^ (rest & -rest)] > need) return false;
+            return true;
+        }
     }
 
     /// <summary>
@@ -77,7 +121,8 @@ public static partial class TrainingOpponent
             .Select(c => ArmyForce(x.Opponent.Home.Where(h => h.Id == c.Id || h.AttachedTo == c.Id))).Where(f => f > 0).ToArray();
         if (cavalry.Length == 0 || cavalry.Length > 12) return null;
         int Need(ProvinceView p, int defenders) => p.Strength + defenders - AttackersAt(x, p.Index);
-        if (MaxProvincesCavalryDestroys(cavalry, remaining.Select(p => Need(p, 0)).ToArray()) < remaining.Length) return null; // the Cavalry cannot take every Province: nothing to be done here
+        var reach = new CavalryReach(cavalry);
+        if (reach.MaxDestroyed(remaining.Select(p => Need(p, 0)).ToArray()) < remaining.Length) return null; // the Cavalry cannot take every Province: nothing to be done here
         var legal = action.TargetIds?.ToHashSet(StringComparer.Ordinal);
         var units = offeredUnits ?? x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed && (legal is null || legal.Contains(c.Id))).ToArray();
         var offered = remaining.Where(p => action.Provinces is null || action.Provinces.Contains(p.Index)).ToArray();
@@ -90,7 +135,9 @@ public static partial class TrainingOpponent
             {
                 var c = total; var defenders = new int[remaining.Length];
                 for (var i = 0; i < units.Length; i++) { choice[i] = c % offered.Length; c /= offered.Length; defenders[Array.FindIndex(remaining, p => p.Index == offered[choice[i]].Index)] += forces[i]; }
-                var destroyed = MaxProvincesCavalryDestroys(cavalry, remaining.Select((p, k) => Need(p, defenders[k])).ToArray());
+                if (reach.OverBudget) break; // issue #1211: keep the best assignment found so far rather than stall the decision
+                if ((total & 1023) == 0) CheckDeadline(x.Memory);
+                var destroyed = reach.MaxDestroyed(remaining.Select((p, k) => Need(p, defenders[k])).ToArray());
                 if (destroyed >= remaining.Length) continue;
                 var slack = remaining.Select((p, k) => p.Strength + defenders[k]).Sum();
                 if (destroyed < bestDestroyed || destroyed == bestDestroyed && slack > bestSlack) { best = (int[])choice.Clone(); bestDestroyed = destroyed; bestSlack = slack; }

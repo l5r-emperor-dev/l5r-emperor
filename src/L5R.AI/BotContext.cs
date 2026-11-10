@@ -81,6 +81,9 @@ public sealed class BotContext
     public List<string> LookLog { get; } = [];
     /// <summary>Issue #1206 (lkPlan): the attack the search chose at this turn's attack declaration (the infantry assignment and its shape's name); the infantry declaration carries it out.</summary>
     internal (int Turn, Dictionary<string, int> Assignment, string Label)? PlannedAttack { get; set; }
+    /// <summary>Issue #1206: past this moment the bot abandons the decision it is making and throws <see cref="BotDeadlineException"/> (the arena's per-game cutoff, and a search's own time limit
+    /// inside its playouts). Null: no limit.</summary>
+    public DateTime? Deadline { get; set; }
     /// <summary>Issue #1206: the wall time, in milliseconds, of each lookahead search this seat made: the thinking a player waits for.</summary>
     public List<double> ThinkMs { get; } = [];
     /// <summary>Issue #1185 tuning: the Contender's further rules, each named and switched on separately (see TrainingOpponent.Contender2.cs). Empty: none.</summary>
@@ -282,3 +285,6 @@ public sealed class BotContext
         }
     }
 }
+
+/// <summary>Issue #1206: thrown when a bot runs past <see cref="BotContext.Deadline"/>.</summary>
+public sealed class BotDeadlineException(string message) : Exception(message);

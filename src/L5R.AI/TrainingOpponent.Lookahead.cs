@@ -10,6 +10,7 @@ namespace L5R.AI;
 //   lkAtk, lkDef   also search whether to attack, and the defenders' assignment; lkVar: with lkDef, also compare the defence shapes of DefenceShapes;
 //   lkDrop         after half the samples, stop playing out a candidate trailing the best by more than this (0, off);
 //   lkOpp          the other seat is played by the Champion in playouts (an opponent model);
+//   lkT            a search's time limit in seconds (10): past it the search is abandoned and the Contender's own choice stands, so a player is never kept waiting;
 //   lkP, lkU, lkH, lkC  the score's weights for a Province (12), a unit's Gold Cost plus Force (1), Honor (1.5) and a card in hand (1.5).
 // The plan-driven parts (Mendon, 2026-11-10: "start with the plan and then make updated decisions based on new information"):
 //   lkPlan    the attack is chosen by search: at the attack declaration, not attacking and each of AttackShapes are played out to the end of the attack; the best
@@ -41,29 +42,46 @@ public static partial class TrainingOpponent
             searched.AddRange(DefenceShapes(x, defend.Action).Where(a => !searched.Any(o => SameAssignment(o.Command.Assignments, a)))
                 .Select(a => new Option(defend.Action, defend.Command with { Assignments = a }, "defend " + a.Count)));
         if (searched.Count < 2 || candidates[0].Command != searched[0].Command) return null;
-        var values = Search(x, sampler, searched, (int)Knob(x, dynasty ? "lkBN" : "lkN", dynasty ? 3 : 4), dynasty);
+        if (Search(x, sampler, searched, (int)Knob(x, dynasty ? "lkBN" : "lkN", dynasty ? 3 : 4), dynasty) is not { } values) return null;
         var best = Enumerable.Range(0, searched.Count).MaxBy(i => values[i]);
         return best > 0 && values[best] > values[0] + Knob(x, "lkM", 0) ? (searched[best].Command, searched[best].Action) : null;
     }
 
-    /// <summary>The mean value of each option over the same redealt samples (a paired comparison), logged with the time it took.</summary>
-    private static double[] Search(Ctx x, Func<ulong, MatchEngine> sampler, IReadOnlyList<Option> options, int samples, bool throughNextAttack = false)
+    /// <summary>The mean value of each option over the same redealt samples (a paired comparison), logged with the time it took; null when it ran past its time limit (lkT).</summary>
+    private static double[]? Search(Ctx x, Func<ulong, MatchEngine> sampler, IReadOnlyList<Option> options, int samples, bool throughNextAttack = false)
     {
         var clock = System.Diagnostics.Stopwatch.StartNew();
         var sums = new double[options.Count]; var counts = new int[options.Count];
         var live = Enumerable.Range(0, options.Count).ToList();
         var drop = Knob(x, "lkDrop", 0);
-        for (var s = 0; s < samples; s++)
+        var limit = DateTime.UtcNow.AddSeconds(Knob(x, "lkT", 10));
+        var deadline = x.Memory.Deadline is { } cutoff && cutoff < limit ? cutoff : limit;
+        try
         {
-            // lkDrop: after half the samples, a candidate trailing the best by more than this is not played out further (successive halving).
-            if (drop > 0 && s == samples / 2 && live.Count > 1) { var lead = live.Max(i => sums[i] / counts[i]); live.RemoveAll(i => sums[i] / counts[i] < lead - drop); }
-            var seed = (ulong)x.View.Version * 1_000_003UL + (ulong)s * 7919UL + (ulong)x.View.ViewerId;
-            foreach (var i in live) { sums[i] += SafePlayout(x, sampler, seed, options[i], throughNextAttack); counts[i]++; }
+            for (var s = 0; s < samples; s++)
+            {
+                // lkDrop: after half the samples, a candidate trailing the best by more than this is not played out further (successive halving).
+                if (drop > 0 && s == samples / 2 && live.Count > 1) { var lead = live.Max(i => sums[i] / counts[i]); live.RemoveAll(i => sums[i] / counts[i] < lead - drop); }
+                var seed = (ulong)x.View.Version * 1_000_003UL + (ulong)s * 7919UL + (ulong)x.View.ViewerId;
+                foreach (var i in live) { sums[i] += SafePlayout(x, sampler, seed, options[i], throughNextAttack, deadline); counts[i]++; }
+            }
+        }
+        catch (BotDeadlineException) when (x.Memory.Deadline is not { } game || DateTime.UtcNow < game)
+        {
+            x.Memory.ThinkMs.Add(clock.Elapsed.TotalMilliseconds);
+            x.Memory.LookLog.Add($"T{x.View.TurnNumber} {x.View.Phase} v{x.View.Version} {clock.Elapsed.TotalMilliseconds:0}ms: over the time limit, the Contender's choice stands");
+            return null;
         }
         var values = Enumerable.Range(0, options.Count).Select(i => live.Contains(i) ? sums[i] / counts[i] : double.MinValue / 8).ToArray();
         x.Memory.ThinkMs.Add(clock.Elapsed.TotalMilliseconds);
         x.Memory.LookLog.Add($"T{x.View.TurnNumber} {x.View.Phase} v{x.View.Version} {clock.Elapsed.TotalMilliseconds:0}ms: {string.Join(" | ", options.Select((o, i) => $"{o.Label} {values[i]:0.0}"))} -> {Array.IndexOf(values, values.Max())}");
         return values;
+    }
+
+    /// <summary>Issue #1206: stops a decision that has run past the seat's deadline (BotContext.Deadline).</summary>
+    internal static void CheckDeadline(BotContext memory)
+    {
+        if (memory.Deadline is { } deadline && DateTime.UtcNow > deadline) throw new BotDeadlineException("a decision ran past the bot's deadline");
     }
 
     private static string Label(GameCommand command) => command.Type + (command.AbilityId ?? command.CardId) switch { null => "", var id => "/" + id };
@@ -93,7 +111,7 @@ public static partial class TrainingOpponent
         if (pass.Action is not null) options.Add(new(pass.Action, pass.Command, "no attack"));
         options.AddRange(AttackShapes(x).Select(s => new Option(declare.Action, declare.Command, s.Label, s.Assignment)));
         if (options.Count < 2) return null;
-        var values = Search(x, sampler, options, (int)Knob(x, "lkN", 4));
+        if (Search(x, sampler, options, (int)Knob(x, "lkN", 4)) is not { } values) { x.Memory.PlannedAttack = null; return null; }
         var best = options[Enumerable.Range(0, options.Count).MaxBy(i => values[i])];
         x.Memory.PlannedAttack = best.Infantry is null ? null : (x.View.TurnNumber, best.Infantry, best.Label);
         x.Memory.PlanLog.Add($"T{x.View.TurnNumber} attack plan by search: {best.Label} ({string.Join(", ", options.Select((o, i) => $"{o.Label} {values[i]:0.0}"))})");
@@ -115,7 +133,7 @@ public static partial class TrainingOpponent
         options.AddRange(AttackShapes(x).Select(s => Legal(attack.Action, s.Assignment)).Where(a => a.Count > 0 && !options.Any(o => SameAssignment(o.Command.Assignments, a)))
             .Select(a => new Option(attack.Action, attack.Command with { Assignments = a }, "shape " + a.Count)));
         if (options.Count < 2) return null;
-        var values = Search(x, sampler, options, (int)Knob(x, "lkN", 4));
+        if (Search(x, sampler, options, (int)Knob(x, "lkN", 4)) is not { } values) return null;
         var best = options[Enumerable.Range(0, options.Count).MaxBy(i => values[i])];
         x.Memory.PlanLog.Add($"T{x.View.TurnNumber} infantry re-planned by search: {best.Label}");
         return (best.Command, best.Action);
@@ -179,15 +197,15 @@ public static partial class TrainingOpponent
     // ---- playouts -----------------------------------------------------------------------------------------------------------------------------------------------------
 
     // A redealt copy can hold a combination the real match never reaches (a card where its owner's deck could not have put it); a playout the engine cannot finish is no evidence either way.
-    private static double SafePlayout(Ctx x, Func<ulong, MatchEngine> sampler, ulong seed, Option option, bool throughNextAttack)
+    private static double SafePlayout(Ctx x, Func<ulong, MatchEngine> sampler, ulong seed, Option option, bool throughNextAttack, DateTime deadline)
     {
-        try { return Playout(x, sampler(seed), option, throughNextAttack); }
-        catch (Exception e) { x.Memory.LookLog.Add($"playout failed: {e.GetType().Name}: {e.Message} {e.StackTrace?.Split('\n').FirstOrDefault(l => l.Contains("L5R."))?.Trim()}"); return 0; }
+        try { return Playout(x, sampler(seed), option, throughNextAttack, deadline); }
+        catch (Exception e) when (e is not BotDeadlineException) { x.Memory.LookLog.Add($"playout failed: {e.GetType().Name}: {e.Message} {e.StackTrace?.Split('\n').FirstOrDefault(l => l.Contains("L5R."))?.Trim()}"); return 0; }
     }
 
     /// <summary>The value, to the deciding seat, of playing the option on one redealt copy and letting the Contender play both seats until the attack is over
     /// (or, for a purchase, until the bot's own next attack is over). An attack plan's infantry assignment is made as planned.</summary>
-    private static double Playout(Ctx x, MatchEngine game, Option option, bool throughNextAttack)
+    private static double Playout(Ctx x, MatchEngine game, Option option, bool throughNextAttack, DateTime deadline)
     {
         var me = x.View.ViewerId;
         var before = Material(x, x.View); // a sample shows its viewer exactly this view (HiddenSampleTests)
@@ -195,10 +213,12 @@ public static partial class TrainingOpponent
         var bots = new BotContext[2];
         for (var seat = 0; seat < 2; seat++) bots[seat] = seat != me && Rule(x, "lkOpp") ? new BotContext() : BotContext.Contender(rules: x.Memory.Rules.Where(r => r != "look"));
         bots[me].Archetype = x.Memory.Archetype;
+        bots[0].Deadline = bots[1].Deadline = deadline; // a playout bot stuck in one decision is stopped too
         var turn = x.View.TurnNumber; var infantry = option.Infantry;
         for (var n = 0; n < (throughNextAttack ? LongRolloutDecisions : RolloutDecisions); n++)
         {
             if (game.WinnerId is not null) break;
+            if (DateTime.UtcNow > deadline) throw new BotDeadlineException("a lookahead playout ran past its deadline");
             if (throughNextAttack ? game.TurnNumber > turn + 2 || game.TurnNumber == turn + 2 && game.Phase >= Phase.Dynasty : game.TurnNumber != turn || !InAttack(game.Phase)) break;
             var seat = game.PendingChoicePlayerId ?? game.PriorityPlayerId;
             var actions = game.QueryActions(seat);
