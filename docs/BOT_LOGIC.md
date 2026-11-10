@@ -142,9 +142,10 @@ When switched on:
 ### Trade attacks (PARKED, off by default, `UseTradeAttacks`)
 When it cannot raze a province, it still attacks if it would beat every possible defender (destroying the whole defending army at no cost) or tie favourably on Gold. A unit's worth is its Gold plus attachments, +2 for a Personality. The arena found this lost slightly more than it won.
 
-### Challenges (ACTIVE, `ChallengeGuard`, issue #1203, Mendon's instruction)
-- The bot never issues a challenge (an ability that starts a duel) when the challenged Personality's duel stat is **higher** than the challenger's. A **tie** is still allowed. The stat is the one the ability prints (Chi, Force or Personal Honor), read as the current value on the table (a dishonorable Personality counts as 0 Personal Honor). Other duel modifiers (Items, "until the duel ends" bonuses) are not counted, so the rule is a floor, not a guarantee of winning.
-- Not measured against the previous champion yet; `ChallengeGuard = false` restores the old behaviour for a comparison.
+### Challenges and duel replies (ACTIVE, `ChallengeGuard`, issues #1203 and #1209, Mendon's instructions)
+- The bot issues a challenge (an ability that starts a duel) only when the challenged Personality's duel stat is **lower** than the challenger's. On a **tie** it challenges only when the challenger is a **Duelist** and the target is not (a Duelist wins ties against a non-Duelist); any other tie, and any higher stat, is passed on. The stat is the one the ability prints (Chi, Force or Personal Honor), read as the current value on the table (a dishonorable Personality counts as 0 Personal Honor). Other duel modifiers (Items, "until the duel ends" bonuses) are not counted, so the rule is a floor, not a guarantee of winning. Before #1209 a tie was challenged by anyone.
+- When **challenged by a Personality with a lower duel stat**, the bot always accepts (never refuses or bows to refuse) and **Strikes at its first opportunity, before it focuses**: the Strike ends focusing for both sides, so the challenger gets no focus cards to close the gap. This holds in the game's duel screen (`DuelOpponent`) and in tournament play (`TrainingOpponent` scoring). If the duel's rules offer no Strike yet, or the stat is equal or higher, play is as before.
+- Not measured against the previous champion; `ChallengeGuard = false` restores the old challenge behaviour for a comparison (the accept-and-strike reply has no switch).
 
 ### Order Seppuku (ACTIVE, `UseSeppukuPolicy`, issue #963 round 1, Mendon's spec)
 - Before 2026-10-15 the bot had no rule for it and ordered it whenever it was offered (a "no rule" action scores just above a pass): 2,290 orders in 1,728 games, throwing its own Personalities away.
