@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Battle actions with a performing Personality now need that performer at the current battlefield: Ring of Fire, Reckless Duel, Awed Witness, A Warrior's Wisdom, Phantom Visage, Striking Through the Void and the training duel fixtures used a performer category with no location check (Rule of Location, CR). Adds battle-location-audit: Kouki/Halls of Memory, Ring of Fire, and sweeps of every catalogue Battle ability (printed on a card and with a performer).",
+  "validation": "Full runner 4680/4680 cases passed locally; battle-location-audit 5/5.",
+  "remaining": "None; ready for review. Attachments choosing a performer and Reaction/Open timing not swept.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1196",
+  "branch": "claude/1196-performer-location",
+  "updated": "2026-11-09T14:07:30.346152+00:00"
+}

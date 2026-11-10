@@ -10,7 +10,7 @@ internal static class ActionOptionInputTests
     private static readonly string[] DoesNotImplyInput = [
         "Type", "Label", "Enabled", "Reason", "Command", "CardId", "Quote", // identity, display, the command itself, and the purchase quote (purchases have their own panel)
         "Provinces", "NoTarget", // a province or attack-target pick depends on the action's shape; the client reads those shapes (IsProvinceTarget, HasAttackTargets)
-        "DecisionCandidateIds", "DecisionLabel", "MoveTo"]; // presentation of a complete pending answer; where a move goes
+        "DecisionCandidateIds", "DecisionLabel", "MoveTo", "ChoiceLabel"]; // presentation of a complete pending answer; where a move goes; the text of a choice made after the target
 
     public static void Run(TestRunner runner) => runner.Run("action-option-input", [
         ("Every ActionOption field is classified as implying player input or not, so a new field cannot be silently ignored by a client", EveryFieldIsClassified),

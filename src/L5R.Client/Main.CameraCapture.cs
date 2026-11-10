@@ -24,6 +24,7 @@ public partial class Main
          _captureMode.StartsWith("published-shown", StringComparison.Ordinal) && !_captureMode.Contains("review", StringComparison.Ordinal) ||
          _captureMode.StartsWith("published-action-lock", StringComparison.Ordinal) && !_captureMode.Contains("review", StringComparison.Ordinal) ||
          _captureMode.StartsWith("published-direct-play", StringComparison.Ordinal) ||
+         _captureMode.StartsWith("published-variant-steps", StringComparison.Ordinal) ||
          _captureMode.StartsWith("published-table-click", StringComparison.Ordinal) ||
          _captureMode.StartsWith("published-drag", StringComparison.Ordinal) ||
          _captureMode.StartsWith("published-paused-animation", StringComparison.Ordinal) ||

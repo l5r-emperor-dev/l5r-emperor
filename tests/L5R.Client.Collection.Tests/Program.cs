@@ -142,6 +142,29 @@ try
     Check(BattleActionText.WithoutIds("Bow Hida Kisada (card-0123): bow him (created-0004)") == "Bow Hida Kisada: bow him", "card and created-card ids never show");
     Check(BattleActionText.TitleFirst("Reaction: Redirect · Akodo Toturi (card-0123)", ["Akodo Toturi"]) == "Akodo Toturi · Reaction: Redirect", "the card concerned leads the placard, without its id");
     Check(BattleActionText.TitleFirst("Open: Bow · Not A Card", ["Akodo Toturi"]) == "Open: Bow · Not A Card", "a trailing name that is not one of the option's cards is left alone");
+    // ---- safeguards (issue #1194): nothing the file says is changed, mergedFile or hidden without a trace ----
+    var safe = Path.Combine(dir, "safe", "my-collection.json");
+    var keep = new MyCollectionStore(safe); keep.Names = cards; keep.Set("a", 3); keep.Set("b", 2);
+    Check(File.Exists(keep.CsvMirrorPath) && File.ReadAllText(keep.CsvMirrorPath).Contains("\"a\",\"Twin\",\"3\""), "every save writes a readable CSV copy with card names");
+    var mirror = keep.Preview(File.ReadAllText(keep.CsvMirrorPath), cards); Check(mirror.CanApply && mirror.Rows.Any(r => r.Id == "a" && r.Count == 3), "the CSV copy imports back unchanged");
+    for (var i = 0; i < MyCollectionStore.SnapshotsKept + 5; i++) { keep.Set("a", 10 + i); Thread.Sleep(3); }
+    var shots = Directory.GetFiles(keep.SnapshotDirectory, "my-collection-*.json");
+    Check(shots.Length == MyCollectionStore.SnapshotsKept, "only the newest " + MyCollectionStore.SnapshotsKept + " snapshots are kept: " + shots.Length);
+    Check(shots.Any(f => File.ReadAllText(f).Contains("\"a\":" + (10 + MyCollectionStore.SnapshotsKept + 3))), "a snapshot holds the file as it was before the latest change");
+    Check(File.ReadAllText(safe).Contains("WrittenBy"), "the file records the build that wrote it");
+    // Two spellings of one printing are added together on load: that is reported, kept in a snapshot, and the file on disk is not rewritten by reading.
+    var mergedFile = Path.Combine(dir, "merge", "my-collection.json"); Directory.CreateDirectory(Path.GetDirectoryName(mergedFile)!);
+    var raw = "{\"SchemaVersion\":2,\"Counts\":{\"a@EE\":4,\"a@Emperor Edition\":6,\"gone-card\":3}}"; File.WriteAllText(mergedFile, raw);
+    var loaded = new MyCollectionStore(mergedFile); Check(loaded.Count("a") == 10 && loaded.LoadNotes.Length == 1 && loaded.LoadNotes[0].Contains("a@EE x4") && loaded.LoadNotes[0].Contains("x10"), "entries added together on load are named in LoadNotes: " + string.Join("|", loaded.LoadNotes));
+    Check(File.ReadAllText(mergedFile) == raw, "reading never rewrites the file");
+    Check(Directory.GetFiles(loaded.SnapshotDirectory).Length == 1 && File.ReadAllText(Directory.GetFiles(loaded.SnapshotDirectory)[0]) == raw, "a load that changed something keeps the original file");
+    Check(loaded.Unmatched(cards).Single() == ("gone-card", 3) && loaded.Health(cards).Contains("3 owned copies") && loaded.Health(cards).Contains("a@EE x4"), "copies matching no catalogue card are reported, not just hidden");
+    Check(new MyCollectionStore(safe).LoadNotes.Length == 0 && new MyCollectionStore(safe).Health(cards).Length == 0, "a clean file reports nothing");
+    var capped = Path.Combine(dir, "cap", "my-collection.json"); Directory.CreateDirectory(Path.GetDirectoryName(capped)!);
+    File.WriteAllText(capped, "{\"SchemaVersion\":2,\"Counts\":{\"a@EE\":60000,\"a@Emperor Edition\":60000}}");
+    Check(new MyCollectionStore(capped).LoadNotes.Any(n => n.Contains("capped at 99999")), "a count capped on load is reported");
+    var oldFile = Path.Combine(dir, "v1", "my-collection.json"); Directory.CreateDirectory(Path.GetDirectoryName(oldFile)!);
+    File.WriteAllText(oldFile, "{\"SchemaVersion\":1,\"Counts\":{\"a\":2}}"); Check(new MyCollectionStore(oldFile).Count("a") == 2, "a file with no WrittenBy still loads");
     Console.WriteLine($"COLLECTION DATA PASS: {checks} assertions");
 }
 finally { Directory.Delete(dir, true); }

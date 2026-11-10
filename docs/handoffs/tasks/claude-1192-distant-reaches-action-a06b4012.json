@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Test: The Distant Reaches' bow action after attaching through the Events Phase (one or two attachments, own and enemy, three refused, bows itself, owner only).",
+  "validation": "region-audit 5/5",
+  "remaining": "None; ready for review.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1192",
+  "branch": "claude/1192-distant-reaches-action",
+  "updated": "2026-11-08T23:08:04.974841+00:00"
+}

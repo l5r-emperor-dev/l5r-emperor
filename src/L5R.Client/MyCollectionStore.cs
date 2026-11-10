@@ -46,7 +46,11 @@ public sealed class CollectionImportPlan
 public sealed class MyCollectionStore
 {
     public const int MaximumCount = 99999;
-    private sealed record FileData(int SchemaVersion, Dictionary<string, int> Counts);
+    private sealed record FileData(int SchemaVersion, Dictionary<string, int> Counts, string? WrittenBy = null);
+    /// <summary>Kept next to the collection: this many dated copies of the file as it was before a change.</summary>
+    public const int SnapshotsKept = 10;
+    /// <summary>Recorded in the file as the build that last wrote it (the client assembly version).</summary>
+    public static string WriterVersion = typeof(MyCollectionStore).Assembly.GetName().Version?.ToString() ?? "";
     private readonly string _path, _undoPath;
     // Ownership buckets (issue #807): a card's ID alone is copies of no recorded printing; "ID@EDITION" or "ID@EDITION@Rarity" are copies of that printing. The card's total is the sum.
     private Dictionary<string, int> _counts = [];
@@ -56,12 +60,25 @@ public sealed class MyCollectionStore
     public IReadOnlyDictionary<string, int> Buckets => _counts.AsReadOnly();
     public long Revision { get; private set; }
     public string LoadError { get; private set; } = "";
+    /// <summary>What reading the file changed without being asked: printing names rewritten and entries added together, counts capped. The file on disk is untouched by a read, and a snapshot of it is kept when this is not empty.</summary>
+    public string[] LoadNotes { get; private set; } = [];
+    /// <summary>Card names for the readable CSV copy; without them the copy lists IDs only.</summary>
+    public CollectionIdentity[]? Names { get; set; }
+    public string CsvMirrorPath => Path.ChangeExtension(_path, ".csv");
+    public string SnapshotDirectory => Path.Combine(Path.GetDirectoryName(Path.GetFullPath(_path))!, "collection-backups");
     public bool CanUndo => LoadError.Length == 0 && File.Exists(_undoPath);
     public event Action? Changed;
     public MyCollectionStore(string path)
     {
         _path = path; _undoPath = path + ".previous";
-        try { if (File.Exists(path)) { _counts = Read(path); _totals = Totals(_counts); } }
+        try
+        {
+            if (File.Exists(path))
+            {
+                var read = Read(path); _counts = read.Counts; _totals = Totals(_counts); LoadNotes = read.Notes;
+                if (LoadNotes.Length > 0) Snapshot(); // the file as it was before any later save replaces it
+            }
+        }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException or FormatException)
         { LoadError = "Collection could not be loaded. The original file is preserved: " + e.Message; }
     }
@@ -101,7 +118,7 @@ public sealed class MyCollectionStore
     {
         EnsureWritable();
         if (!CanUndo) return;
-        var previous = Read(_undoPath); Write(_path, previous); _counts = previous; _totals = Totals(previous);
+        var previous = Read(_undoPath).Counts; Write(_path, previous); _counts = previous; _totals = Totals(previous);
         File.Delete(_undoPath); Revision++; Changed?.Invoke();
     }
     public void Apply(CollectionImportPlan plan, CollectionImportMode mode)
@@ -132,15 +149,62 @@ public sealed class MyCollectionStore
     {
         EnsureWritable();
         if (_counts.Count == next.Count && _counts.All(kv => next.GetValueOrDefault(kv.Key) == kv.Value)) return;
-        Write(_undoPath, _counts); Write(_path, next); _counts = next; _totals = Totals(next); Revision++; Changed?.Invoke();
+        Snapshot(); Write(_undoPath, _counts); Write(_path, next); _counts = next; _totals = Totals(next); LoadNotes = []; Revision++; WriteMirror(); Changed?.Invoke();
     }
-    private static Dictionary<string, int> Read(string path)
+    /// <summary>Copies the file on disk into the backups folder (the newest <see cref="SnapshotsKept"/> stay) before it is replaced. A failure here never blocks a save.</summary>
+    private void Snapshot()
+    {
+        try
+        {
+            if (!File.Exists(_path)) return;
+            Directory.CreateDirectory(SnapshotDirectory);
+            var stamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff", CultureInfo.InvariantCulture);
+            File.Copy(_path, Path.Combine(SnapshotDirectory, Path.GetFileNameWithoutExtension(_path) + "-" + stamp + ".json"), false);
+            var old = new DirectoryInfo(SnapshotDirectory).GetFiles(Path.GetFileNameWithoutExtension(_path) + "-*.json").OrderByDescending(f => f.Name, StringComparer.Ordinal).Skip(SnapshotsKept);
+            foreach (var file in old) file.Delete();
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+    }
+    /// <summary>Rewrites the readable CSV copy (same columns as Export, so it imports back). Written whole to a temp file and swapped in; failure never blocks a save.</summary>
+    public void WriteMirror()
+    {
+        try
+        {
+            var temp = CsvMirrorPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            try { File.WriteAllText(temp, Export(Names ?? []), new UTF8Encoding(true)); File.Move(temp, CsvMirrorPath, true); }
+            finally { if (File.Exists(temp)) File.Delete(temp); }
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+    }
+    /// <summary>Entries recorded against a card ID the catalogue does not have: kept in the file, but not counted anywhere.</summary>
+    public (string Bucket, int Count)[] Unmatched(CollectionIdentity[] cards)
+    {
+        var known = cards.Select(c => c.Id).ToHashSet(StringComparer.Ordinal);
+        return _counts.Where(kv => !known.Contains(CardOf(kv.Key))).OrderBy(kv => kv.Key, StringComparer.Ordinal).Select(kv => (kv.Key, kv.Value)).ToArray();
+    }
+    /// <summary>One line for the editor: what loading changed and how many copies sit outside the catalogue; empty when there is nothing to say.</summary>
+    public string Health(CollectionIdentity[] cards)
+    {
+        var lost = Unmatched(cards); var parts = new List<string>();
+        if (LoadNotes.Length > 0) parts.Add(LoadNotes.Length + " change(s) made when the file was read (" + LoadNotes[0] + ")");
+        if (lost.Length > 0) parts.Add(lost.Sum(l => l.Count) + " owned cop" + (lost.Sum(l => l.Count) == 1 ? "y" : "ies") + " in " + lost.Length + " entr" + (lost.Length == 1 ? "y" : "ies") + " match no card in this version and are not counted");
+        return string.Join(". ", parts);
+    }
+    private static (Dictionary<string, int> Counts, string[] Notes) Read(string path)
     {
         if (new FileInfo(path).Length > 4_000_000) throw new FormatException("Collection file exceeds 4 MB.");
         var data = JsonSerializer.Deserialize<FileData>(File.ReadAllText(path)) ?? throw new FormatException("Empty collection file.");
         if (data.SchemaVersion is not (1 or 2) || data.Counts is null || data.Counts.Any(p => string.IsNullOrWhiteSpace(p.Key) || p.Value is < 0 or > MaximumCount))
             throw new FormatException("Invalid collection schema or quantities.");
-        return data.Counts.Where(kv => kv.Value > 0).GroupBy(kv => CollectionPrintings.Migrate(kv.Key)).ToDictionary(g => g.Key, g => Math.Min(MaximumCount, g.Sum(kv => kv.Value)));
+        var notes = new List<string>();
+        var counts = data.Counts.Where(kv => kv.Value > 0).GroupBy(kv => CollectionPrintings.Migrate(kv.Key)).ToDictionary(g => g.Key, g =>
+        {
+            var sum = g.Sum(kv => kv.Value);
+            if (g.Count() > 1) notes.Add($"{string.Join(" + ", g.Select(kv => $"{kv.Key} x{kv.Value}"))} became {g.Key} x{Math.Min(MaximumCount, sum)}");
+            if (sum > MaximumCount) notes.Add($"{g.Key} capped at {MaximumCount}");
+            return Math.Min(MaximumCount, sum);
+        });
+        return (counts, notes.ToArray());
     }
     private static void Write(string path, Dictionary<string, int> counts)
     {
@@ -149,7 +213,7 @@ public sealed class MyCollectionStore
         try
         {
             using (var file = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-            { JsonSerializer.Serialize(file, new FileData(2, counts)); file.Flush(true); }
+            { JsonSerializer.Serialize(file, new FileData(2, counts, WriterVersion.Length == 0 ? null : WriterVersion)); file.Flush(true); }
             File.Move(temp, path, true);
         }
         finally { if (File.Exists(temp)) File.Delete(temp); }

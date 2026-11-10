@@ -3101,8 +3101,10 @@ public sealed partial class MatchEngine
             }
             // An Event already face up (refilled face up by Border Keep's cycle or the Kharmic replacement) was never
             // revealed here, but Events resolve only in the Events Phase: it resolves now instead of staying stuck
-            // (rules lead ruling, docs/decisions/2026-09-22-suspicions-owner-events-phase.md).
+            // (rules lead ruling, docs/decisions/2026-09-22-suspicions-owner-events-phase.md). A Region refilled face up is the same: it attaches now and the Province refills, instead of sitting
+            // in the Province as an ordinary face-up card that never attaches.
             else if (Definition(card).Type == CardType.Event && ResolveEvent(player, province, card)) return;
+            else if (Definition(card).Type == CardType.Region && ResolveRegion(player, province, card)) return;
         }
         if (RunAfterProvincesRevealed(player)) return; // P5 (ProvinceRevealEvents.cs): Events that stay face up in their province fire now; a decision pauses the phase
         AdvanceStraightenHolds(StraightenPoint.EventsRevealEnds);

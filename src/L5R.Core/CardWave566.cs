@@ -40,7 +40,7 @@ public static class CardWave566Abilities
         // A Warrior's Wisdom (oracle-l5r-98): "Battle: Give your target performing Monk a Force bonus equal to his Chi (until the turn ends). You may take an additional
         // Battle action." -- the target doubles as the performer (Bayushi Suwabe's own shape), so Target is "none".
         all["warriors-wisdom-boost"] = new("Battle", "Target your performing Monk: Give him a Force bonus equal to his Chi (until the turn ends). You may take an additional Battle action",
-            "none", Performer: "own-personality-with-keyword", RequiredKeywords: ["Monk"]);
+            "none", Performer: "own-personality-with-keyword-at-battle", RequiredKeywords: ["Monk"]);
 
         // Desperate Mediation (oracle-l5r-1974, Political): "Battle: In turn order, starting with you, each player targets and moves home one of his Personalities at
         // the current battlefield. Then, gain Honor equal to the number of Personalities this moved."
@@ -82,7 +82,7 @@ public static class CardWave566Abilities
         // other players: Give one of them -1F (until the turn ends). Give a second different Personality you targeted -2F (until the turn ends). Give a third different
         // Personality you targeted -3F (until the turn ends)." The escalating penalty follows the order the targets were picked in (RunCardWave566).
         all["striking-void-reduce"] = new("BattleOrOpen", "Choose your performing unbowed Monk and target one to three Personalities controlled by other players: Give one of them -1F (until the turn ends). Give a second different Personality you targeted -2F (until the turn ends). Give a third different Personality you targeted -3F (until the turn ends)",
-            "slots", Performer: "own-unbowed-personality-with-keyword-at-any-location", RequiredKeywords: ["Monk"],
+            "slots", Performer: "own-unbowed-personality-at-battle-with-keyword", RequiredKeywords: ["Monk"],
             Slots: [new("targets", "enemy-personality", "One to three Personalities controlled by other players", 1, 3)]);
 
         // The Lion's Charge (oracle-l5r-8200): "Battle: Bow your performing Personality or Follower: Ranged 2 Attack, with +2 strength if your Personality or your
