@@ -102,12 +102,48 @@ public static partial class TrainingOpponent
                 // Behind the opponent in bodies (the champion's catch-up recruit rule), or short of an army at all, a Personality is worth much more.
                 var behind = bodies < Personalities(x.Opponent) ? 40 : 0;
                 var shortHanded = bodies < 3 ? 1.4 : 1.0;
-                return (Knob(x, "pbase", 60) + Knob(x, "pf", 16) * def.Force + 10 * def.PersonalHonor + threat + usable + behind) * shortHanded * (intent switch { PlanIntent.Defend => 1.5, PlanIntent.Attack => 1.2, _ => 1.0 }) + ProclaimValue(x, card, cost);
+                return (Knob(x, "pbase", 60) + Knob(x, "pf", 16) * def.Force + 10 * def.PersonalHonor + threat + usable + behind) * shortHanded * (intent switch { PlanIntent.Defend => 1.5, PlanIntent.Attack => 1.2, _ => 1.0 }) + ProclaimValue(x, card, cost)
+                    + RoleValue(x, card);
             case CardType.Follower or CardType.Item:
                 return x.Self.Home.Any(c => c.Definition?.Type == CardType.Personality) ? 10 * Math.Max(0, def.Force) : 0;
             default: return 0;
         }
     }
+
+    // Issue #1206 (Mendon, 2026-11-10: "I buy personalities offensively when I think I can use them to attack and tease a province, defensively when my opponent is making early
+    // game moves and I need to hold them off while I build my engine ... their keywords matter, so making sure I have a Samurai if I have several actions in my hand that are Samurai
+    // keyword dependent"). Each role is its own opt-in rule, read from the table and the hand only, never from a card's name:
+    //   rkw   a keyword that actions in the hand need from their performer, which no Personality in play has, is worth rkw (25) per such action, up to two;
+    //   roff  when the army is short of taking the opponent's weakest Province, the Personality's Force towards closing that gap is worth roff (6) a point;
+    //   rdef  when the opponent's army outweighs the bot's own and its weakest Province, the Personality's Force towards closing that gap is worth rdef (6) a point.
+    private static double RoleValue(Ctx x, CardView card)
+    {
+        var def = card.Definition!; double value = 0;
+        if (Rule(x, "rkw"))
+        {
+            var mine = x.Self.Home.Concat(x.Self.Army).Where(c => c.Definition?.Type == CardType.Personality).ToArray();
+            var needs = x.Self.Hand.SelectMany(h => BattlePolicy.Printed(h).Where(p => p.Ability.Performer is not null).SelectMany(p => p.Ability.RequiredKeywords ?? []).Distinct(StringComparer.Ordinal)).ToArray();
+            foreach (var keyword in needs.Distinct(StringComparer.Ordinal))
+                if (HasKeyword(card, keyword) && !mine.Any(c => HasKeyword(c, keyword))) value += Knob(x, "rkw", 25) * Math.Min(2, needs.Count(k => k == keyword));
+        }
+        var force = Math.Max(0, def.Force);
+        var weakest = x.Opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Strength).DefaultIfEmpty(0).Min();
+        if (Rule(x, "roff"))
+        {
+            var gap = weakest + ArmyForce(x.Opponent.Home) / 2 - TotalForce(x.Self);
+            if (gap > 0) value += Knob(x, "roff", 6) * Math.Min(force, gap);
+        }
+        if (Rule(x, "rdef"))
+        {
+            var mineWeakest = x.Self.Provinces.Where(p => !p.Destroyed).Select(p => p.Strength).DefaultIfEmpty(0).Min();
+            var gap = TotalForce(x.Opponent) - TotalForce(x.Self) - mineWeakest;
+            if (gap > 0) value += Knob(x, "rdef", 6) * Math.Min(force, gap);
+        }
+        return value;
+    }
+
+    private static bool HasKeyword(CardView card, string keyword) =>
+        (card.Definition?.Keywords ?? []).Contains(keyword, StringComparer.OrdinalIgnoreCase) || (card.GrantedKeywords ?? []).Any(g => string.Equals(g.Keyword, keyword, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>What a Proclaim is worth on this Personality (Mendon: an Honor lead can keep the opponent from taking the Imperial Favor). The same weights as the champion's: by the deck's Honor stance,
     /// the offered purchase quote saying whether the card is eligible; before the Dynasty phase there is no quote, so a Personality of the bot's own Clan is taken to be.</summary>

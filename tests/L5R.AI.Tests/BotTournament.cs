@@ -63,7 +63,7 @@ internal static class BotTournament
     public const ulong DevSeedBase = 1_000_000UL, HoldoutSeedBase = 9_000_000UL, IndependentOffset = 500_000UL;
 
     public sealed record GameRecord(string Deck0, string Deck1, ulong Seed, int ChallengerSeat, int? Winner, string Reason, int Turn, double Seconds, int Refused, string? Error,
-        int[] Honor, int[] ProvincesLeft, int[] Personalities, Dictionary<string, int>[] Actions);
+        int[] Honor, int[] ProvincesLeft, int[] Personalities, Dictionary<string, int>[] Actions, double[]? ThinkMs = null);
 
     /// <summary>The held-out decks are fixed by a hash of the name, not chosen by hand: the three lowest SHA-256 values of the 12 pool names.</summary>
     public static string[] HoldoutNames(IEnumerable<string> names) => names.OrderBy(n => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("l5r-bot-holdout:" + n)))).Take(3).ToArray();
@@ -73,16 +73,16 @@ internal static class BotTournament
     public static GameRecord Play(string name0, Deck deck0, string name1, Deck deck1, Func<BotContext>[] makers, int challengerSeat, ulong seed, TimeSpan budget)
     {
         var clock = Stopwatch.StartNew(); var refused = 0; var counts = new[] { new Dictionary<string, int>(), new Dictionary<string, int>() };
-        MatchEngine? game = null;
+        MatchEngine? game = null; BotContext[]? memory = null;
         GameRecord End(int? winner, string reason, int turn, string? error = null)
         {
             int[] honor = [0, 0], provinces = [0, 0], people = [0, 0];
             if (game is not null) { var v = game.GetView(0); for (var i = 0; i < 2; i++) { var p = v.Players[i]; honor[i] = p.Honor; provinces[i] = p.Provinces.Count(x => !x.Destroyed); people[i] = p.Home.Concat(p.Army).Count(c => c.Definition?.Type == CardType.Personality); } }
-            return new(name0, name1, seed, challengerSeat, winner, reason, turn, clock.Elapsed.TotalSeconds, refused, error, honor, provinces, people, counts);
+            return new(name0, name1, seed, challengerSeat, winner, reason, turn, clock.Elapsed.TotalSeconds, refused, error, honor, provinces, people, counts, memory?[challengerSeat].ThinkMs is { Count: > 0 } think ? [.. think] : null);
         }
         try { game = MatchEngine.CreateCustomMatch(seed, deck0, deck1); }
         catch (Exception e) { return End(null, "setup", 0, e.Message.Split('\n')[0]); }
-        var memory = new[] { makers[0](), makers[1]() }; for (var seat = 0; seat < 2; seat++) { var own = seat; if (memory[seat].Has("look")) memory[seat].Sampler = sample => game!.Sample(own, sample); } memory[0].Archetype = DeckArchetypeTests.Of(deck0); memory[1].Archetype = DeckArchetypeTests.Of(deck1); var refusedAt = new HashSet<(long, int)>(); var sameAnswer = 0; string? lastRefusal = null;
+        memory = [makers[0](), makers[1]()]; for (var seat = 0; seat < 2; seat++) { var own = seat; if (memory[seat].Has("look")) memory[seat].Sampler = sample => game!.Sample(own, sample); } memory[0].Archetype = DeckArchetypeTests.Of(deck0); memory[1].Archetype = DeckArchetypeTests.Of(deck1); var refusedAt = new HashSet<(long, int)>(); var sameAnswer = 0; string? lastRefusal = null;
         // L5R_TOURN_LOG=<dir>: one plain-text log per game (every accepted decision, by whom, and the engine's event messages), for reviewing why a game was won or lost.
         var logDir = Environment.GetEnvironmentVariable("L5R_TOURN_LOG"); var log = logDir is { Length: > 0 } ? new StringBuilder() : null; long lastEvent = -1; var lastTurn = -1;
         string Name(string? id) => id is not null && game.State.Cards.TryGetValue(id, out var ci) && CardCatalog.Cards.TryGetValue(ci.DefinitionId, out var cd) ? cd.Name : id ?? "";
