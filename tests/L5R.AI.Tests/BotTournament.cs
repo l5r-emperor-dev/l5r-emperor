@@ -18,6 +18,7 @@ using L5R.Core;
 //   L5R_TOURN_PILOT=<a;b;c>         only games in which the challenger pilots one of these decks (for a hypothesis about specific decks; pre-register the list, and report the full pool too).
 //   L5R_TOURN_ONLY=<deckA|deckB|seed|challengerSeat> replays one game; L5R_TOURN_TRACE=1 prints what a seat was offered when the bot stalls.
 //   L5R_TOURN_DECKS=<preloaded-decks.json> (default src/L5R.Client/Content/preloaded-decks.json).
+//   L5R_TOURN_OPP=<arm>             the opponent seat (default champion); L5R_TOURN_BUDGET=<minutes> the per-game cutoff (default 5).
 internal static class BotTournament
 {
     /// <summary>The bot arms. "champion" is the bot on main. A candidate branch registers its challenger here, with the BotContext flag that turns its change on.</summary>
@@ -215,7 +216,9 @@ internal static class BotTournament
         var holdMode = mode == "holdout"; var seedBase = holdMode ? HoldoutSeedBase : DevSeedBase;
         var pairs = pool.SelectMany(a => pool.Where(b => b.Name != a.Name).Select(b => (A: a, B: b)))
             .Where(p => holdMode ? holdout.Contains(p.A.Name) || holdout.Contains(p.B.Name) : !holdout.Contains(p.A.Name) && !holdout.Contains(p.B.Name)).ToArray();
-        Func<BotContext>[][] seatMakers = [[challengerMaker, Arms["champion"]], [Arms["champion"], challengerMaker]]; // index = the challenger's seat
+        // L5R_TOURN_OPP=<arm>: the opponent seat (default the champion); issue #1206 measures Conan against the Contender.
+        var opponent = Arms[Environment.GetEnvironmentVariable("L5R_TOURN_OPP") is { Length: > 0 } opp ? opp : "champion"];
+        Func<BotContext>[][] seatMakers = [[challengerMaker, opponent], [opponent, challengerMaker]]; // index = the challenger's seat
         var jobs = new List<(int Pair, ulong Seed, int ChalSeat)>();
         var pilots = Environment.GetEnvironmentVariable("L5R_TOURN_PILOT")?.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToHashSet();
         for (var s = seedStart; s < seedStart + seeds; s++)
