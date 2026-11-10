@@ -71,6 +71,14 @@ public sealed class BotContext
     /// gained 24 and 19 games on dev blocks 7000 and 7100 and were neutral on the holdout decks; selfplayer, presdepth (pdh=100), keepup, nofoeboost and raid, from Mendon's practice games,
     /// gained 13 games on each dev block and 15 on the holdout decks (docs/bots/experiments/2026-11-09-grill-rules.md). Passing <c>rules</c> replaces this set.</summary>
     public static readonly string[] TunedRules = ["econ", "presence", "lobby", "shinden", "openbow", "ownprov", "selflock", "surereact", "selfboost", "nostraighten", "provaim", "spreadwide", "conf", "selfplayer", "presdepth", "pdh=100", "keepup", "nofoeboost", "raid", "pdstrong", "defwin", "nobowgift"];
+    /// <summary>Conan (issue #1206): the Contender with battle lookahead (TrainingOpponent.Lookahead.cs). It searches only when the caller also supplies <see cref="Sampler"/>.</summary>
+    public static BotContext Conan(IEnumerable<string>? rules = null) => Contender(rules: [.. rules ?? TunedRules, .. ConanRules]);
+    public static readonly string[] ConanRules = ["look"];
+    /// <summary>Issue #1206: a copy of the match with every card hidden from this seat redealt (MatchEngine.Sample), for a given seed; null: no lookahead. The caller supplies it, so the bot
+    /// still never reads the real match: what it plays forward is a world consistent with its own view.</summary>
+    public Func<ulong, MatchEngine>? Sampler { get; set; }
+    /// <summary>Issue #1206: one line per lookahead decision (the candidates' values and the choice), for reviewing games.</summary>
+    public List<string> LookLog { get; } = [];
     /// <summary>Issue #1185 tuning: the Contender's further rules, each named and switched on separately (see TrainingOpponent.Contender2.cs). Empty: none.</summary>
     public HashSet<string> Rules { get; init; } = new(StringComparer.Ordinal);
     public bool Has(string rule) => Rules.Contains(rule);

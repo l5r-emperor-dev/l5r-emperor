@@ -50,6 +50,7 @@ internal static class BotTournament
         ["triage-null"] = () => new() { UsePlannerTriage = true, TriageTargets = false, TriagePrintedFirst = false, TriageWonCap = false }, // calibration: the triage flag with every rule off must replay the champion game for game
         ["contender"] = () => BotContext.Contender(), // issue #1185: the planning bot (docs/bots/CONTENDER.md); compare it with the champion's own baseline on the same games (tools/bots/compare_tournament.py)
         ["c2"] = () => BotContext.Contender(rules: (Environment.GetEnvironmentVariable("L5R_C2") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)), // issue #1185 tuning: the Contender plus the rules named in L5R_C2
+        ["conan"] = () => BotContext.Conan(rules: (Environment.GetEnvironmentVariable("L5R_C2") is { Length: > 0 } c ? c.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) : null)), // issue #1206: the Contender with battle lookahead (rules from L5R_C2 when set)
         ["contender+attack"] = () => BotContext.Contender(attack: true),
         ["contender+discard"] = () => BotContext.Contender(discard: true),
         ["contender+reserve"] = () => BotContext.Contender(reserve: true),
@@ -81,7 +82,7 @@ internal static class BotTournament
         }
         try { game = MatchEngine.CreateCustomMatch(seed, deck0, deck1); }
         catch (Exception e) { return End(null, "setup", 0, e.Message.Split('\n')[0]); }
-        var memory = new[] { makers[0](), makers[1]() }; memory[0].Archetype = DeckArchetypeTests.Of(deck0); memory[1].Archetype = DeckArchetypeTests.Of(deck1); var refusedAt = new HashSet<(long, int)>(); var sameAnswer = 0; string? lastRefusal = null;
+        var memory = new[] { makers[0](), makers[1]() }; for (var seat = 0; seat < 2; seat++) { var own = seat; if (memory[seat].Has("look")) memory[seat].Sampler = sample => game!.Sample(own, sample); } memory[0].Archetype = DeckArchetypeTests.Of(deck0); memory[1].Archetype = DeckArchetypeTests.Of(deck1); var refusedAt = new HashSet<(long, int)>(); var sameAnswer = 0; string? lastRefusal = null;
         // L5R_TOURN_LOG=<dir>: one plain-text log per game (every accepted decision, by whom, and the engine's event messages), for reviewing why a game was won or lost.
         var logDir = Environment.GetEnvironmentVariable("L5R_TOURN_LOG"); var log = logDir is { Length: > 0 } ? new StringBuilder() : null; long lastEvent = -1; var lastTurn = -1;
         string Name(string? id) => id is not null && game.State.Cards.TryGetValue(id, out var ci) && CardCatalog.Cards.TryGetValue(ci.DefinitionId, out var cd) ? cd.Name : id ?? "";
@@ -91,7 +92,7 @@ internal static class BotTournament
             Directory.CreateDirectory(logDir!);
             var who = r.Winner is null ? "none" : r.Winner == challengerSeat ? "CHAL" : "CHAMP";
             File.WriteAllText(Path.Combine(logDir!, $"{who}-{name0}-vs-{name1}-{seed}-c{challengerSeat}.log".Replace(' ', '_').Replace('/', '_')),
-                $"# {name0} (seat 0, {(challengerSeat == 0 ? "challenger" : "champion")}) vs {name1} (seat 1, {(challengerSeat == 1 ? "challenger" : "champion")}); seed {seed}; winner {r.Winner} ({who}) by {r.Reason} on turn {r.Turn}; Honor {string.Join("/", r.Honor)} provinces {string.Join("/", r.ProvincesLeft)} personalities {string.Join("/", r.Personalities)}\n" + log + "\n## challenger plans\n" + string.Join("\n", memory[challengerSeat].PlanLog));
+                $"# {name0} (seat 0, {(challengerSeat == 0 ? "challenger" : "champion")}) vs {name1} (seat 1, {(challengerSeat == 1 ? "challenger" : "champion")}); seed {seed}; winner {r.Winner} ({who}) by {r.Reason} on turn {r.Turn}; Honor {string.Join("/", r.Honor)} provinces {string.Join("/", r.ProvincesLeft)} personalities {string.Join("/", r.Personalities)}\n" + log + "\n## challenger plans\n" + string.Join("\n", memory[challengerSeat].PlanLog) + (memory[challengerSeat].LookLog is { Count: > 0 } looks ? "\n## challenger lookahead\n" + string.Join("\n", looks) : ""));
             return r;
         }
         for (var n = 0; n < 6000; n++)

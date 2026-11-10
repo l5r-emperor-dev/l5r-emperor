@@ -36,6 +36,7 @@ public static partial class TrainingOpponent
             .ThenBy(p => p.Command.CardId, StringComparer.Ordinal).ThenBy(p => p.Command.AbilityId, StringComparer.Ordinal).ToArray();
         if (candidates.Length == 0) return new(null, "No complete legal action was supplied for this decision.");
         var chosen = candidates[0];
+        if (LookAhead(x, candidates) is { } looked) chosen = (looked.Action, looked.Command, chosen.Score);
         Remember(x, chosen.Command);
         if (chosen.Command.Type is "useAbility" or "playStrategy" or "equip") memory.NoteUse(view.TurnNumber, chosen.Command.AbilityId, chosen.Command.CardId);
         return new(chosen.Command, Explain(chosen.Action.Type));

@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Conan (#1206): MatchEngine.Sample redeals cards hidden from a viewer; opt-in 'look' rule plays the Contender's top battle actions out on samples; arena harness supplies the sampler.",
+  "validation": "hidden-sample Core test passes (and fails when the sampler leaks the viewer's hand); arena batch on block 7000 in progress.",
+  "remaining": "Arena results, iteration on lookahead scope/eval, docs, PR and merge.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
+  "branch": "claude/1206-battle-lookahead",
+  "updated": "2026-11-10T00:58:36.620750+00:00"
+}
