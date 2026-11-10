@@ -25,6 +25,7 @@ public static partial class TrainingOpponent
         var turn = x.View.TurnNumber;
         if (def.Type != CardType.Personality) return def.Type == CardType.Follower ? force * 0.6 + AbilityWeight(x, card, turn) * 0.5 : AbilityWeight(x, card, turn) * 0.5;
         var value = force + AbilityWeight(x, card, turn);
+        if (Rule(x, "killthreat") && card.OwnerId == x.Opponent.Id && Killer(card)) value += Knob(x, "ktW", 10); // a unit that destroys is the first target
         var owner = x.View.Players.FirstOrDefault(p => p.Id == card.OwnerId);
         if (def.Keywords?.Contains("Tactician", StringComparer.OrdinalIgnoreCase) == true && owner is { HandCount: > 0 } && !x.Memory.SpentThisTurn(turn, def.Name, "tactical-advantage")) value += TacticianPotential;
         if (def.Keywords?.Any(BattleKeywords.Contains) == true) value += 1;

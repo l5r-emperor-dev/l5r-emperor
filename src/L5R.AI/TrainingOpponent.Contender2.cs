@@ -25,6 +25,13 @@ public static partial class TrainingOpponent
 
     private static bool FairHolding(Ctx x, CardDefinition def) => def.Type == CardType.Holding && def.GoldCost <= def.GoldProduction + Knob(x, "fair", 1);
 
+    /// <summary>pressbody: the attack is paying off: the opponent has fewer Provinces left, and the bot has more Force and at least as many Personalities.</summary>
+    private static bool Pressing(Ctx x) =>
+        x.Opponent.Provinces.Count(p => !p.Destroyed) < x.Self.Provinces.Count(p => !p.Destroyed) && TotalForce(x.Self) > TotalForce(x.Opponent) && Personalities(x.Self) >= Personalities(x.Opponent);
+
+    /// <summary>killthreat: a Personality with a printed ability that destroys a card.</summary>
+    private static bool Killer(CardView card) => card.Definition?.Type == CardType.Personality && BattlePolicy.Printed(card).Any(p => p.Intent.Rank == EffectRank.Destroy);
+
     private static int Holdings(PlayerView p) => p.Home.Count(c => c.Definition?.Type == CardType.Holding);
 
     /// <summary>The Contender's further rules over an action's final score.</summary>
@@ -51,6 +58,17 @@ public static partial class TrainingOpponent
         if (Rule(x, "equipfirst") && action.Type == "equip" && x.View.Phase == Phase.Action && x.View.PendingChoice is null && x.View.ActivePlayerId == x.Self.Id
             && x.Card(command.CardId)?.Definition is { Type: CardType.Follower or CardType.Item, Force: > 0 })
             return Math.Max(score, Knob(x, "eqS", 90));
+        // pressbody (Mendon on the same game: "as long as I was able to press the attack and kept coming home with an advantage in personalities and force ... I was happy for a weak
+        // economy ... if I hadn't had the early attack advantage, I'd have dug for holdings"): while the bot is ahead on Provinces, Force and Personalities, a Holding beyond mbH waits while
+        // an affordable Personality is on offer; when it is not ahead, the economy rules decide as before.
+        if (Rule(x, "pressbody") && action.Type == "purchase" && x.Card(command.CardId)?.Definition is { Type: CardType.Holding } && Holdings(x.Self) >= Knob(x, "mbH", 2) && Pressing(x)
+            && ProvinceCards(x).Any(c => c.Definition!.Type == CardType.Personality && EffectiveCost(x, c) <= Ready(x)))
+            return Math.Min(score, 60);
+        // killthreat (Yozo, the same game: "keen to get the kill on him even if it meant the province didn't get destroyed"): in a battle, an effect that destroys an enemy Personality
+        // whose own printed ability destroys outranks the actions that only add Force for the Province.
+        if (Rule(x, "killthreat") && action.Type is "useAbility" or "playStrategy" && x.View.Phase == Phase.Battle && AbilityIntent.Of(command.AbilityId) is { Rank: EffectRank.Destroy }
+            && x.Card(command.TargetId) is { } prey && prey.OwnerId == x.Opponent.Id && Killer(prey))
+            return Math.Max(score, Knob(x, "ktS", 95));
         // milbody: a deck whose first route is Military buys bodies: once it has mbH Holdings, a Holding waits while an affordable Personality is on offer (he stayed on two Holdings
         // and bought a Personality every turn).
         if (Rule(x, "milbody") && x.Memory.Archetype?.Primary == WinRoute.Military && action.Type == "purchase" && x.Card(command.CardId)?.Definition is { Type: CardType.Holding }

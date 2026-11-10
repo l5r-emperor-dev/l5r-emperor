@@ -1,9 +1,9 @@
 {
   "lane": "rules",
-  "summary": "Opt-in Contender rules from Mendon's Lion vs Dragon practice game (2026-11-10): ringkeep (a Ring in hand is not discarded for a draw-only ability), equipfirst (equip Followers/Items in its own Action phase before draws, Lobbying or the Favor), milbody (a Military-route deck stops buying Holdings at mbH=2 while an affordable Personality is on offer). Card-agnostic; none is default.",
-  "validation": "Build passes. Agreement with Mendon's moves over his 5 replays (human-compare, lower is closer): defaults 258, +ringkeep 250, +equipfirst 256, +milbody 260, all three 250. Arena block 7000 x2 against the Champion is running.",
-  "remaining": "Arena results; any default change needs Mendon's approval. Next practice match preselected: Spider Conquer vs Unicorn Maidens.",
+  "summary": "Opt-in Contender rules from Mendon's Lion vs Dragon game and his notes on it (2026-11-10): ringkeep (keep a Ring in hand rather than discard it for a draw-only ability); equipfirst (equip Followers/Items in its own Action phase before draws, Lobbying or the Favor); pressbody (while ahead on Provinces, Force and Personalities, a Holding beyond mbH=2 waits for an affordable Personality; otherwise the economy rules decide); killthreat (an enemy Personality with a printed destroy ability is the first target, and a destroying battle effect on it outranks Force-only actions); milbody (superseded by pressbody, kept for comparison). Card-agnostic; none is default.",
+  "validation": "Build passes. Agreement with Mendon's moves over his 5 replays (all decision types, lower is closer): defaults 316, +pressbody 315, +killthreat 314, all four 303. Arena block 7000 x2 against the Champion is running.",
+  "remaining": "Arena results; any default change needs Mendon's approval.",
   "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1185",
   "branch": "claude/1185-practice-rules",
-  "updated": "2026-11-10T17:46:44.823019+00:00"
+  "updated": "2026-11-10T17:54:27.568850+00:00"
 }
