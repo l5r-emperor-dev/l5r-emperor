@@ -227,7 +227,7 @@ internal static class BotTournament
         Parallel.For(0, jobs.Count, new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount - 1) }, i =>
         {
             var j = jobs[i]; var p = pairs[j.Pair];
-            results[i] = Play(p.A.Name, p.A.Deck, p.B.Name, p.B.Deck, seatMakers[j.ChalSeat], j.ChalSeat, j.Seed, TimeSpan.FromMinutes(5));
+            results[i] = Play(p.A.Name, p.A.Deck, p.B.Name, p.B.Deck, seatMakers[j.ChalSeat], j.ChalSeat, j.Seed, TimeSpan.FromMinutes(double.TryParse(Environment.GetEnvironmentVariable("L5R_TOURN_BUDGET"), out var minutes) ? minutes : 5)); // L5R_TOURN_BUDGET=<minutes>: a slower bot (lookahead, issue #1206) needs a longer wall budget
         });
         wall.Stop();
         var report = Summarise(results, jobs.Select(j => j.Pair).ToArray(), challenger, pairing, mode, seeds, pairs.Length, holdout, unplayable, wall.Elapsed, seedStart);
