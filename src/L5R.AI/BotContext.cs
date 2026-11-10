@@ -70,7 +70,7 @@ public sealed class BotContext
     /// slate, selfharm, econT2 and battlepolicy+trades each LOST games, so they stay off; lobby and openbow are kept (dropping both lost games). spreadwide and conf, from Mendon's battle grill,
     /// gained 24 and 19 games on dev blocks 7000 and 7100 and were neutral on the holdout decks; selfplayer, presdepth (pdh=100), keepup, nofoeboost and raid, from Mendon's practice games,
     /// gained 13 games on each dev block and 15 on the holdout decks (docs/bots/experiments/2026-11-09-grill-rules.md). Passing <c>rules</c> replaces this set.</summary>
-    public static readonly string[] TunedRules = ["econ", "presence", "lobby", "shinden", "openbow", "ownprov", "selflock", "surereact", "selfboost", "nostraighten", "provaim", "spreadwide", "conf", "selfplayer", "presdepth", "pdh=100", "keepup", "nofoeboost", "raid"];
+    public static readonly string[] TunedRules = ["econ", "presence", "lobby", "shinden", "openbow", "ownprov", "selflock", "surereact", "selfboost", "nostraighten", "provaim", "spreadwide", "conf", "selfplayer", "presdepth", "pdh=100", "keepup", "nofoeboost", "raid", "pdstrong", "defwin", "nobowgift"];
     /// <summary>Issue #1185 tuning: the Contender's further rules, each named and switched on separately (see TrainingOpponent.Contender2.cs). Empty: none.</summary>
     public HashSet<string> Rules { get; init; } = new(StringComparer.Ordinal);
     public bool Has(string rule) => Rules.Contains(rule);
