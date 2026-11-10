@@ -43,6 +43,19 @@ public static partial class TrainingOpponent
 
     private static double Contender2Rules(Ctx x, ActionOption action, GameCommand command, double score)
     {
+        // Mendon's Lion vs Dragon game (2026-11-10). ringkeep: a Ring in hand is not thrown away for an ability that only draws a card (a card for a card, and a discard when the hand
+        // is the largest); it is kept to be played.
+        if (Rule(x, "ringkeep") && action.Type == "useAbility" && x.Card(command.CardId) is { Zone: Zone.Hand, Definition.Type: CardType.Ring } && AbilityIntent.Of(command.AbilityId) is { Draws: true })
+            return Math.Min(score, -5);
+        // equipfirst: in its own Action phase the bot equips its Followers and Items (Force for this turn's attack) before drawing, Lobbying or using the Favor.
+        if (Rule(x, "equipfirst") && action.Type == "equip" && x.View.Phase == Phase.Action && x.View.PendingChoice is null && x.View.ActivePlayerId == x.Self.Id
+            && x.Card(command.CardId)?.Definition is { Type: CardType.Follower or CardType.Item, Force: > 0 })
+            return Math.Max(score, Knob(x, "eqS", 90));
+        // milbody: a deck whose first route is Military buys bodies: once it has mbH Holdings, a Holding waits while an affordable Personality is on offer (he stayed on two Holdings
+        // and bought a Personality every turn).
+        if (Rule(x, "milbody") && x.Memory.Archetype?.Primary == WinRoute.Military && action.Type == "purchase" && x.Card(command.CardId)?.Definition is { Type: CardType.Holding }
+            && Holdings(x.Self) >= Knob(x, "mbH", 2) && ProvinceCards(x).Any(c => c.Definition!.Type == CardType.Personality && EffectiveCost(x, c) <= Ready(x)))
+            return Math.Min(score, 60);
         // nofoeboost (Mendon's Lion game, 2026-11-09): a helping ability any Personality may receive (Akodo Kamina's +4F) is never given to an opponent's card.
         if (Rule(x, "nofoeboost") && action.Type == "useAbility" && AbilityIntent.Of(command.AbilityId) is { Rank: EffectRank.Help, Side: not TargetSide.Enemy }
             && x.Card(command.TargetId) is { } helped && helped.OwnerId == x.Opponent.Id) return Math.Min(score, SelfHarmScore);

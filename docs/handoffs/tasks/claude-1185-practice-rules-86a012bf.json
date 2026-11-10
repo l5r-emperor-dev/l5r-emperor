@@ -1,0 +1,9 @@
+{
+  "lane": "rules",
+  "summary": "Opt-in Contender rules from Mendon's Lion vs Dragon practice game (2026-11-10): ringkeep (a Ring in hand is not discarded for a draw-only ability), equipfirst (equip Followers/Items in its own Action phase before draws, Lobbying or the Favor), milbody (a Military-route deck stops buying Holdings at mbH=2 while an affordable Personality is on offer). Card-agnostic; none is default.",
+  "validation": "Build passes. Agreement with Mendon's moves over his 5 replays (human-compare, lower is closer): defaults 258, +ringkeep 250, +equipfirst 256, +milbody 260, all three 250. Arena block 7000 x2 against the Champion is running.",
+  "remaining": "Arena results; any default change needs Mendon's approval. Next practice match preselected: Spider Conquer vs Unicorn Maidens.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1185",
+  "branch": "claude/1185-practice-rules",
+  "updated": "2026-11-10T17:46:44.823019+00:00"
+}
