@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Conan tuning round (#1206): lkDef (+6 net on two blocks), lkOpp (+1), lkAtk (-2) measured against Conan; results doc only, no default change.",
+  "validation": "Arena vs the Champion, 364-game blocks 7000 and 7100, L5R_TOURN_BUDGET=20; docs-only change.",
+  "remaining": "Decide whether lkDef joins Conan's defaults (holdout check first); playout speed; richer defence candidates; purchase roles.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
+  "branch": "claude/1206-conan-tuning",
+  "updated": "2026-11-10T08:46:20.872707+00:00"
+}
