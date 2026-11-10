@@ -19,6 +19,8 @@ using L5R.Core;
 //   L5R_TOURN_ONLY=<deckA|deckB|seed|challengerSeat> replays one game; L5R_TOURN_TRACE=1 prints what a seat was offered when the bot stalls.
 //   L5R_TOURN_DECKS=<preloaded-decks.json> (default src/L5R.Client/Content/preloaded-decks.json).
 //   L5R_TOURN_OPP=<arm>             the opponent seat (default champion); L5R_TOURN_BUDGET=<minutes> the per-game cutoff (default 5).
+//   L5R_TOURN_SNAP=<dir>            each seat's ValueModel features at every new turn and phase, with whether it won (tools/bots/fit_value.py fits the value model from them).
+//   L5R_TOURN_ORACLE=1              a diagnostic: the challenger's search plays out the real match (hidden cards included); never a player, it bounds what better sampling could gain.
 internal static class BotTournament
 {
     /// <summary>The bot arms. "champion" is the bot on main. A candidate branch registers its challenger here, with the BotContext flag that turns its change on.</summary>
@@ -83,12 +85,22 @@ internal static class BotTournament
         }
         try { game = MatchEngine.CreateCustomMatch(seed, deck0, deck1); }
         catch (Exception e) { return End(null, "setup", 0, e.Message.Split('\n')[0]); }
-        memory = [makers[0](), makers[1]()]; for (var seat = 0; seat < 2; seat++) { var own = seat; if (memory[seat].Has("look")) memory[seat].Sampler = sample => game!.Sample(own, sample); memory[seat].Deadline = DateTime.UtcNow + budget; } memory[0].Archetype = DeckArchetypeTests.Of(deck0); memory[1].Archetype = DeckArchetypeTests.Of(deck1); var refusedAt = new HashSet<(long, int)>(); var sameAnswer = 0; string? lastRefusal = null;
+        // L5R_TOURN_ORACLE=1 (issue #1206, a diagnostic, never a player): the challenger's search plays out the real match, hidden cards and deck order included,
+        // so its win rate bounds what better sampling could gain and its choices grade the real bot's.
+        var oracle = Environment.GetEnvironmentVariable("L5R_TOURN_ORACLE") == "1";
+        memory = [makers[0](), makers[1]()]; for (var seat = 0; seat < 2; seat++) { var own = seat; if (memory[seat].Has("look")) memory[seat].Sampler = oracle && seat == challengerSeat ? _ => game!.Clone() : sample => game!.Sample(own, sample); memory[seat].Deadline = DateTime.UtcNow + budget; } memory[0].Archetype = DeckArchetypeTests.Of(deck0); memory[1].Archetype = DeckArchetypeTests.Of(deck1); var refusedAt = new HashSet<(long, int)>(); var sameAnswer = 0; string? lastRefusal = null;
         // L5R_TOURN_LOG=<dir>: one plain-text log per game (every accepted decision, by whom, and the engine's event messages), for reviewing why a game was won or lost.
         var logDir = Environment.GetEnvironmentVariable("L5R_TOURN_LOG"); var log = logDir is { Length: > 0 } ? new StringBuilder() : null; long lastEvent = -1; var lastTurn = -1;
         string Name(string? id) => id is not null && game.State.Cards.TryGetValue(id, out var ci) && CardCatalog.Cards.TryGetValue(ci.DefinitionId, out var cd) ? cd.Name : id ?? "";
+        // L5R_TOURN_SNAP=<dir> (issue #1206, lkVal): at every new turn and phase, each seat's value features (ValueModel), written with whether that seat won, for fitting the value model.
+        var snapDir = Environment.GetEnvironmentVariable("L5R_TOURN_SNAP"); var snaps = new List<(int Seat, int Turn, Phase Phase, double[] Features)>(); var lastSnap = (-1, Phase.Finished);
         GameRecord Logged(GameRecord r)
         {
+            if (snapDir is { Length: > 0 } && r.Winner is { } winner)
+            {
+                Directory.CreateDirectory(snapDir);
+                File.WriteAllLines(Path.Combine(snapDir, $"{seed}-c{challengerSeat}.csv"), snaps.Select(s => $"{(s.Seat == winner ? 1 : 0)},{s.Seat},{s.Turn},{s.Phase},{string.Join(",", s.Features.Select(v => v.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)))}"));
+            }
             if (log is null) return r;
             Directory.CreateDirectory(logDir!);
             var who = r.Winner is null ? "none" : r.Winner == challengerSeat ? "CHAL" : "CHAMP";
@@ -104,6 +116,7 @@ internal static class BotTournament
                 if (v0.WinnerId is not null || v0.Phase == Phase.Finished) return Logged(End(v0.WinnerId, v0.VictoryReason ?? "finished", v0.TurnNumber));
                 if (v0.TurnNumber > BotSoak.TurnLimit) return Logged(End(null, "turn limit", v0.TurnNumber));
                 if (clock.Elapsed > budget) return Logged(End(null, "out of time", v0.TurnNumber, "wall budget"));
+                if (snapDir is { Length: > 0 } && (v0.TurnNumber, v0.Phase) != lastSnap) { lastSnap = (v0.TurnNumber, v0.Phase); for (var s = 0; s < 2; s++) snaps.Add((s, v0.TurnNumber, v0.Phase, ValueModel.Features(game.GetView(s)))); }
                 if (log is not null && v0.TurnNumber != lastTurn)
                 {
                     lastTurn = v0.TurnNumber;

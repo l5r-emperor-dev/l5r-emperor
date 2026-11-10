@@ -11,10 +11,14 @@ namespace L5R.AI;
 //   lkDrop         after half the samples, stop playing out a candidate trailing the best by more than this (0, off);
 //   lkOpp          the other seat is played by the Champion in playouts (an opponent model);
 //   lkT            a search's time limit in seconds (10): past it the search is abandoned and the Contender's own choice stands, so a player is never kept waiting;
+//   lkAny          anytime search: at the time limit, decide on the samples every candidate has completed instead of abandoning the search (none completed: as lkT);
 //   lkP, lkU, lkH, lkC  the score's weights for a Province (12), a unit's Gold Cost plus Force (1), Honor (1.5) and a card in hand (1.5).
+//   lkVal          the end state is scored by the learned win chance of ValueModel (in percent) instead of the material score;
+//   lkPS, lkHS     Provinces worth more as fewer remain; Honor past lkHT (30) worth lkHx (3) times more. lkDedup: a move offered twice is searched once.
 // The plan-driven parts (Mendon, 2026-11-10: "start with the plan and then make updated decisions based on new information"):
 //   lkPlan    the attack is chosen by search: at the attack declaration, not attacking and each of AttackShapes are played out to the end of the attack; the best
 //             becomes the turn plan's attack (BotContext.PlannedAttack), the infantry declaration carries it out, and searches it again if the table has changed;
+//   lkFar     with lkPlan, the attack's options are played out through the opponent's next attack, so units lost, Honor given away and the counter-attack count;
 //   lkIntent  playouts are scored for the plan's intent: under Develop the bot's own units count lkIw (1.5) times, under Attack the opponent's Provinces, under Defend its own;
 //   lkBuy     a Dynasty purchase is chosen by playing the best lkBK (3) purchases (or none) out on lkBN (3) samples through the bot's next attack; the score then also
 //             counts each Holding's Gold production lkG (3) times.
@@ -33,6 +37,8 @@ public static partial class TrainingOpponent
         var dynasty = x.View.Phase == Phase.Dynasty;
         var pool = dynasty ? candidates.Where(c => c.Command.Type is "purchase" or "endDynasty").ToArray() : candidates;
         // Passing and passing every remaining battle are the same move in this battle; searching both spends the budget on a tie.
+        // lkDedup: the same move offered twice (differing only in how it is paid for) is searched once, so the budget goes to a different move.
+        if (Rule(x, "lkDedup")) pool = pool.DistinctBy(c => System.Text.Json.JsonSerializer.Serialize(c.Command with { SourceIds = null })).ToArray();
         var searched = pool.Where((c, i) => !IsPass(c.Command) || !pool.Take(i).Any(o => IsPass(o.Command))).Take((int)Knob(x, dynasty ? "lkBK" : "lkK", 3))
             .Select(c => new Option(c.Action, c.Command, Label(c.Command))).ToList();
         if (dynasty && pool.FirstOrDefault(c => c.Command.Type == "endDynasty") is { Action: not null } end && !searched.Any(o => o.Command.Type == "endDynasty"))
@@ -56,6 +62,7 @@ public static partial class TrainingOpponent
         var drop = Knob(x, "lkDrop", 0);
         var limit = DateTime.UtcNow.AddSeconds(Knob(x, "lkT", 10));
         var deadline = x.Memory.Deadline is { } cutoff && cutoff < limit ? cutoff : limit;
+        var rounds = 0;
         try
         {
             for (var s = 0; s < samples; s++)
@@ -63,8 +70,15 @@ public static partial class TrainingOpponent
                 // lkDrop: after half the samples, a candidate trailing the best by more than this is not played out further (successive halving).
                 if (drop > 0 && s == samples / 2 && live.Count > 1) { var lead = live.Max(i => sums[i] / counts[i]); live.RemoveAll(i => sums[i] / counts[i] < lead - drop); }
                 var seed = (ulong)x.View.Version * 1_000_003UL + (ulong)s * 7919UL + (ulong)x.View.ViewerId;
-                foreach (var i in live) { sums[i] += SafePlayout(x, sampler, seed, options[i], throughNextAttack, deadline); counts[i]++; }
+                // A round is added only once every live candidate has played this sample, so a search cut short (lkAny) still compares like with like.
+                var round = live.ToDictionary(i => i, i => SafePlayout(x, sampler, seed, options[i], throughNextAttack, deadline));
+                foreach (var (i, value) in round) { sums[i] += value; counts[i]++; }
+                rounds++;
             }
+        }
+        catch (BotDeadlineException) when ((x.Memory.Deadline is not { } game || DateTime.UtcNow < game) && Rule(x, "lkAny") && rounds > 0)
+        {
+            x.Memory.LookLog.Add($"T{x.View.TurnNumber} {x.View.Phase} v{x.View.Version}: time limit after {rounds} of {samples} samples, deciding on those");
         }
         catch (BotDeadlineException) when (x.Memory.Deadline is not { } game || DateTime.UtcNow < game)
         {
@@ -111,7 +125,7 @@ public static partial class TrainingOpponent
         if (pass.Action is not null) options.Add(new(pass.Action, pass.Command, "no attack"));
         options.AddRange(AttackShapes(x).Select(s => new Option(declare.Action, declare.Command, s.Label, s.Assignment)));
         if (options.Count < 2) return null;
-        if (Search(x, sampler, options, (int)Knob(x, "lkN", 4)) is not { } values) { x.Memory.PlannedAttack = null; return null; }
+        if (Search(x, sampler, options, (int)Knob(x, "lkN", 4), Rule(x, "lkFar")) is not { } values) { x.Memory.PlannedAttack = null; return null; }
         var best = options[Enumerable.Range(0, options.Count).MaxBy(i => values[i])];
         x.Memory.PlannedAttack = best.Infantry is null ? null : (x.View.TurnNumber, best.Infantry, best.Label);
         x.Memory.PlanLog.Add($"T{x.View.TurnNumber} attack plan by search: {best.Label} ({string.Join(", ", options.Select((o, i) => $"{o.Label} {values[i]:0.0}"))})");
@@ -133,7 +147,7 @@ public static partial class TrainingOpponent
         options.AddRange(AttackShapes(x).Select(s => Legal(attack.Action, s.Assignment)).Where(a => a.Count > 0 && !options.Any(o => SameAssignment(o.Command.Assignments, a)))
             .Select(a => new Option(attack.Action, attack.Command with { Assignments = a }, "shape " + a.Count)));
         if (options.Count < 2) return null;
-        if (Search(x, sampler, options, (int)Knob(x, "lkN", 4)) is not { } values) return null;
+        if (Search(x, sampler, options, (int)Knob(x, "lkN", 4), Rule(x, "lkFar")) is not { } values) return null;
         var best = options[Enumerable.Range(0, options.Count).MaxBy(i => values[i])];
         x.Memory.PlanLog.Add($"T{x.View.TurnNumber} infantry re-planned by search: {best.Label}");
         return (best.Command, best.Action);
@@ -233,6 +247,8 @@ public static partial class TrainingOpponent
             if (!game.Execute(decision.Command).Accepted) bots[seat].NoteRejection(game.Version, decision.Command, null);
         }
         var after = game.GetView(me);
+        // lkVal: the end state is scored as the learned chance of winning, in percent (ValueModel); a decided game is 100 or 0.
+        if (Rule(x, "lkVal")) return after.WinnerId is { } decided ? decided == me ? 100 : 0 : 100 / (1 + Math.Exp(-ValueModel.Logit(after)));
         if (after.WinnerId is { } winner) return winner == me ? 1000 : -1000;
         return Material(x, after) - before;
     }
@@ -244,8 +260,12 @@ public static partial class TrainingOpponent
         double province = Knob(x, "lkP", 12), unit = Knob(x, "lkU", 1), honor = Knob(x, "lkH", 1.5), card = Knob(x, "lkC", 1.5);
         var intent = Rule(x, "lkIntent") ? x.Plan?.Intent : null; var lean = Knob(x, "lkIw", 1.5);
         var gold = Knob(x, "lkG", Rule(x, "lkBuy") ? 3 : 0); // a purchase's worth includes the economy it buys; a battle rarely changes Holdings
+        // lkPS: a Province is worth more the fewer remain (losing the last of four costs four times the first); lkHS: each point of Honor past lkHT (30) counts lkHx (3) more, as the Honor win nears.
+        var scarce = Rule(x, "lkPS"); var steep = Rule(x, "lkHS"); double threshold = Knob(x, "lkHT", 30), extra = Knob(x, "lkHx", 3);
+        double Provinces(int n) => scarce ? Enumerable.Range(1, n).Sum(k => 4.0 / k) : n;
         double Side(PlayerView p, bool mine) =>
-            province * (mine && intent == PlanIntent.Defend || !mine && intent == PlanIntent.Attack ? lean : 1) * p.Provinces.Count(q => !q.Destroyed)
+            province * (mine && intent == PlanIntent.Defend || !mine && intent == PlanIntent.Attack ? lean : 1) * Provinces(p.Provinces.Count(q => !q.Destroyed))
+            + (steep ? honor * extra * Math.Max(0, p.Honor - threshold) : 0)
             + unit * (mine && intent == PlanIntent.Develop ? lean : 1) * p.Home.Concat(p.Army).Where(c => c.Definition?.Type is CardType.Personality or CardType.Follower or CardType.Item).Sum(c => c.Definition!.GoldCost + Math.Max(0, c.Definition.Force))
             + honor * p.Honor + card * p.HandCount
             + gold * p.Home.Where(c => c.Definition?.Type == CardType.Holding).Sum(c => c.Definition!.GoldProduction);

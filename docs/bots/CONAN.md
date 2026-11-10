@@ -31,6 +31,11 @@ A single "confidence" number cannot capture those decisions. Conan does not try.
   - `lkP`, `lkU`, `lkH`, `lkC`: the score's weights.
   - `lkT`: a search's time limit in seconds (10). Past it, the search is abandoned and the Contender's own choice stands, so a player never waits longer than that on one decision.
   - `lkVar`: with `lkDef`, also compare a few defence shapes.
+  - `lkAny`: anytime search. At the time limit, decide on the samples every candidate has completed instead of abandoning the search.
+  - `lkVal`: score the end of a playout by the learned win chance of `ValueModel` (fitted by `tools/bots/fit_value.py` from `L5R_TOURN_SNAP` exports) instead of the material score.
+  - `lkFar`: with `lkPlan`, play the attack's options through the opponent's next attack.
+  - `lkPS`, `lkHS`: Provinces worth more as fewer remain; Honor worth more near the win.
+  - `lkDedup`: a move offered twice is searched once.
   - `lkPlan`, `lkIntent`, `lkBuy`: plan-driven search (attack chosen by search and then followed; intent-weighted scoring; purchases played out through the next attack). See `docs/bots/experiments/2026-11-10-conan-tuning.md`.
 
 ## Results against the Champion
