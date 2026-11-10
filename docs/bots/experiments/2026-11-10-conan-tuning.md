@@ -25,9 +25,13 @@ The arms ran three at a time on 10 cores, which took about two hours. Lookahead 
 
 `lkDef` gained 6 net games on both blocks, 24–12 in total (two-sided p about .07). That makes it the best candidate to join Conan's defaults. Adding `lkOpp` contributed +1 and was not kept.
 
+## Holdout check: 9100 ×1 (180 games), against Conan (`h-conan`)
+
+`lkDef` scored 80.0% against the Champion on held-out decks: 3–2 against Conan, net +1. It did not lose anything there, but the gain is not confirmed either. Over all three blocks the total is 27–14, net +13.
+
 ## Next
 
-- **Make `lkDef` default (proposed, not applied).** Confirm it on the holdout decks first.
+- **Make `lkDef` default (proposed, not applied).** It shows small, consistent gains and no losses. A larger holdout run would settle it.
 - **Make lookahead faster.** About 60% of a playout is the engine building legal action lists. Cheaper playouts would allow more samples and more tuning per hour.
 - **Score defence options beyond assign-or-pass.** For example: the Contender's assignment, everything on the threatened Province, or the cheapest blocker.
 - **Add purchase planning with Personality roles** (attack, defend, keep pace, keyword optionality). This is the second part of the plan in #1206.
