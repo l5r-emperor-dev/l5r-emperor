@@ -163,26 +163,47 @@ public static partial class TrainingOpponent
         return kept.ToArray();
     }
 
-    /// <summary>Whether every cost (largest first) can be paid from its own disjoint group of sources whose total reaches it.</summary>
+    /// <summary>Whether every cost (largest first) can be paid from its own disjoint group of sources whose total reaches it. Issue #1211: sources of equal value are interchangeable, so the
+    /// search runs over how many of each value are left rather than which sources; the subset search it replaces was exponential in Holdings and took most of a late game's time.</summary>
     private static bool Payable(int[] costs, int[] sources)
     {
-        var seen = new HashSet<(int, int)>();
-        bool Fit(int card, int used)
+        // As before #1211: a card costing nothing has no minimal group of sources, so it never counts as payable (left as it was; a behaviour change needs its own arena test).
+        if (costs.Any(c => c <= 0)) return false;
+        var values = sources.Distinct().OrderByDescending(v => v).ToArray();
+        var left = values.Select(v => sources.Count(s => s == v)).ToArray();
+        var failed = new HashSet<string>(StringComparer.Ordinal);
+        bool Fit(int card)
         {
             if (card == costs.Length) return true;
-            if (!seen.Add((card, used))) return false;
-            for (var group = 1; group < 1 << sources.Length; group++)
+            var key = card + ":" + string.Join(",", left);
+            if (failed.Contains(key)) return false;
+            var take = new int[values.Length];
+            bool Take(int value, int total)
             {
-                if ((group & used) != 0) continue;
-                var total = 0; for (var i = 0; i < sources.Length; i++) if ((group & 1 << i) != 0) total += sources[i];
-                if (total < costs[card]) continue;
-                // minimal groups only: dropping any one source must break the payment, otherwise a smaller group serves and leaves more for the rest
-                var minimal = true; for (var i = 0; i < sources.Length && minimal; i++) if ((group & 1 << i) != 0 && total - sources[i] >= costs[card]) minimal = false;
-                if (minimal && Fit(card + 1, used | group)) return true;
+                if (value == values.Length)
+                {
+                    if (total < costs[card]) return false;
+                    // minimal groups only: dropping any one source must break the payment, otherwise a smaller group serves and leaves more for the rest
+                    for (var i = 0; i < values.Length; i++) if (take[i] > 0 && total - values[i] >= costs[card]) return false;
+                    for (var i = 0; i < values.Length; i++) left[i] -= take[i];
+                    var fits = Fit(card + 1);
+                    for (var i = 0; i < values.Length; i++) left[i] += take[i];
+                    return fits;
+                }
+                for (var n = 0; n <= left[value]; n++)
+                {
+                    if (n > 0 && total + (n - 1) * values[value] >= costs[card]) break;
+                    take[value] = n;
+                    if (Take(value + 1, total + n * values[value])) return true;
+                }
+                take[value] = 0;
+                return false;
             }
+            if (Take(0, 0)) return true;
+            failed.Add(key);
             return false;
         }
-        return Fit(0, 0);
+        return Fit(0);
     }
 
     // ---- scoring ----------------------------------------------------------------------------------------------------------------------------------------------------
