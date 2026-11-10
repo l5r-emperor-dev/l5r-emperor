@@ -84,7 +84,7 @@ internal static class BatchProfile
 
     public static readonly (string, Action)[] Tests =
     [
-        ("query scope (issue #888): over seeded bot matches the Gold payment tokens QueryActions remembers always equal a fresh computation", () =>
+        ("query scope (issues #888, #1206): over seeded bot matches the Gold payment tokens, payment options and sources QueryActions remembers always equal a fresh computation", () =>
         {
             MatchEngine.VerifyQueryScopeForTests = true;
             try

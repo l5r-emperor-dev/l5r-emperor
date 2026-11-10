@@ -482,8 +482,9 @@ public sealed partial class MatchEngine
         var error = cost.Error ?? (cost.NeedsTarget ? cost.Basis : null);
         if (cost.Rule.Basis != GoldCostBasis.Variable)
             return new(cost.Amount, cost.Rule.Kind, cost.Basis, error,
-                error is not null ? [] : cost.LeadAmount > 0 ? SplitPaymentOptions(playerId, cost.LeadAmount, cost.Amount - cost.LeadAmount, paying) : PaymentOptionsExcluding(playerId, cost.Amount, exclude, paying),
-                Sources: PaymentSourcesFor(playerId, paying, exclude)); // issue #501
+                error is not null ? [] : QueryMemo(("options", playerId, cost.Amount, cost.LeadAmount, ExcludeKey(exclude), paying),
+                    () => cost.LeadAmount > 0 ? SplitPaymentOptions(playerId, cost.LeadAmount, cost.Amount - cost.LeadAmount, paying) : PaymentOptionsExcluding(playerId, cost.Amount, exclude, paying)),
+                Sources: QueryMemo(("sources", playerId, ExcludeKey(exclude), paying), () => PaymentSourcesFor(playerId, paying, exclude))); // issue #501
         return VariableGoldQuote(playerId, cost.Min ?? 0, cost.Max, cost.Amount, cost.Basis, error, paying);
     }
 
