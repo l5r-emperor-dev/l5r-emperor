@@ -203,6 +203,8 @@ public static partial class TrainingOpponent
     /// search runs over how many of each value are left rather than which sources; the subset search it replaces was exponential in Holdings and took most of a late game's time.</summary>
     private static bool Payable(int[] costs, int[] sources)
     {
+        // As before #1211: a card costing nothing has no minimal group of sources, so it never counts as payable (left as it was; a behaviour change needs its own arena test).
+        if (costs.Any(c => c <= 0)) return false;
         var values = sources.Distinct().OrderByDescending(v => v).ToArray();
         var left = values.Select(v => sources.Count(s => s == v)).ToArray();
         var failed = new HashSet<string>(StringComparer.Ordinal);
