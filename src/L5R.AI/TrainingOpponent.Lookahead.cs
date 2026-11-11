@@ -11,6 +11,8 @@ namespace L5R.AI;
 //   lkDrop         after half the samples, stop playing out a candidate trailing the best by more than this (0, off);
 //   lkOpp          the other seat is played by the Champion in playouts (an opponent model);
 //   lkT            a search's time limit in seconds (10): past it the search is abandoned and the Contender's own choice stands, so a player is never kept waiting;
+//   lkB            a search's work budget in playout decisions (0, none): past it the search ends as at lkT. Unlike the time limit it does not depend on the machine
+//                  or its load, so arena arms run side by side compare fairly (block 7400 found the time limit cut arms run three at a time 5-8 times as often);
 //   lkAny          anytime search: at the time limit, decide on the samples every candidate has completed instead of abandoning the search (none completed: as lkT);
 //   lkP, lkU, lkH, lkC  the score's weights for a Province (12), a unit's Gold Cost plus Force (1), Honor (1.5) and a card in hand (1.5).
 //   lkVal          the end state is scored by the learned win chance of ValueModel (in percent) instead of the material score;
@@ -63,7 +65,7 @@ public static partial class TrainingOpponent
         var drop = Knob(x, "lkDrop", 0);
         var limit = DateTime.UtcNow.AddSeconds(Knob(x, "lkT", 10));
         var deadline = x.Memory.Deadline is { } cutoff && cutoff < limit ? cutoff : limit;
-        var rounds = 0;
+        var rounds = 0; x.Memory.LookWork = 0;
         try
         {
             for (var s = 0; s < samples; s++)
@@ -79,17 +81,17 @@ public static partial class TrainingOpponent
         }
         catch (BotDeadlineException) when ((x.Memory.Deadline is not { } game || DateTime.UtcNow < game) && Rule(x, "lkAny") && rounds > 0)
         {
-            x.Memory.LookLog.Add($"T{x.View.TurnNumber} {x.View.Phase} v{x.View.Version}: time limit after {rounds} of {samples} samples, deciding on those");
+            x.Memory.LookLog.Add($"T{x.View.TurnNumber} {x.View.Phase} v{x.View.Version}: limit after {rounds} of {samples} samples ({x.Memory.LookWork} decisions), deciding on those");
         }
         catch (BotDeadlineException) when (x.Memory.Deadline is not { } game || DateTime.UtcNow < game)
         {
             x.Memory.ThinkMs.Add(clock.Elapsed.TotalMilliseconds);
-            x.Memory.LookLog.Add($"T{x.View.TurnNumber} {x.View.Phase} v{x.View.Version} {clock.Elapsed.TotalMilliseconds:0}ms: over the time limit, the Contender's choice stands");
+            x.Memory.LookLog.Add($"T{x.View.TurnNumber} {x.View.Phase} v{x.View.Version} {clock.Elapsed.TotalMilliseconds:0}ms {x.Memory.LookWork}w: over the limit, the Contender's choice stands");
             return null;
         }
         var values = Enumerable.Range(0, options.Count).Select(i => live.Contains(i) ? sums[i] / counts[i] : double.MinValue / 8).ToArray();
         x.Memory.ThinkMs.Add(clock.Elapsed.TotalMilliseconds);
-        x.Memory.LookLog.Add($"T{x.View.TurnNumber} {x.View.Phase} v{x.View.Version} {clock.Elapsed.TotalMilliseconds:0}ms: {string.Join(" | ", options.Select((o, i) => $"{o.Label} {values[i]:0.0}"))} -> {Array.IndexOf(values, values.Max())}");
+        x.Memory.LookLog.Add($"T{x.View.TurnNumber} {x.View.Phase} v{x.View.Version} {clock.Elapsed.TotalMilliseconds:0}ms {x.Memory.LookWork}w: {string.Join(" | ", options.Select((o, i) => $"{o.Label} {values[i]:0.0}"))} -> {Array.IndexOf(values, values.Max())}");
         return values;
     }
 
@@ -237,11 +239,12 @@ public static partial class TrainingOpponent
         for (var seat = 0; seat < 2; seat++) bots[seat] = seat != me && Rule(x, "lkOpp") ? new BotContext() : BotContext.Contender(rules: x.Memory.Rules.Where(r => r != "look"));
         bots[me].Archetype = x.Memory.Archetype;
         bots[0].Deadline = bots[1].Deadline = deadline; // a playout bot stuck in one decision is stopped too
-        var turn = x.View.TurnNumber; var infantry = option.Infantry;
+        var turn = x.View.TurnNumber; var infantry = option.Infantry; var budget = (int)Knob(x, "lkB", 0);
         for (var n = 0; n < (throughNextAttack ? LongRolloutDecisions : RolloutDecisions); n++)
         {
             if (game.WinnerId is not null) break;
             if (DateTime.UtcNow > deadline) throw new BotDeadlineException("a lookahead playout ran past its deadline");
+            if (++x.Memory.LookWork > budget && budget > 0) throw new BotDeadlineException("a lookahead search used up its work budget");
             if (throughNextAttack ? game.TurnNumber > turn + 2 || game.TurnNumber == turn + 2 && game.Phase >= Phase.Dynasty : game.TurnNumber != turn || !InAttack(game.Phase)) break;
             var seat = game.PendingChoicePlayerId ?? game.PriorityPlayerId;
             var actions = game.QueryActions(seat);

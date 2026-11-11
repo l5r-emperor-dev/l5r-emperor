@@ -113,3 +113,29 @@ From Mendon's Lion vs Dragon games: split attacks, where each unit goes alone to
 - `k74`: + `lkK=5` alone, to separate the two
 
 An arm goes forward at net +8 or better.
+
+### Block 7400 results (2026-11-11), and a flaw in the screens since block 7200
+
+`p74` won 70.1% against the Contender.
+
+| Arm | Win rate | Net vs `p74` | p | Search median / p90 | Searches over the time limit |
+| --- | --- | --- | --- | --- | --- |
+| `p74` | 70.1% | — | — | 1.4 / 4.6 s | 219 |
+| `sh74` (+ `lkShapes`) | 66.8% | −12 | .03 | 3.0 / 10.0 s | 1,193 |
+| `sh74-k5` (+ `lkShapes,lkK=5`) | 67.0% | −11 | .14 | 3.9 / 10.0 s | — |
+| `k74` (+ `lkK=5`) | 68.4% | −6 | .46 | 3.9 / 10.0 s | 1,723 |
+
+**These numbers are not a fair test.** `par.sh` runs the reference first, alone, then the arms three at a time. Each arm uses 9 of the 10 cores, so with three arms each search had about a third of the CPU. The 10 s limit is wall-clock time, so the arms' searches hit it 5–8 times as often as the reference's, and each such search fell back to the Contender's choice. The arm searches' doubled median time in 7300 and 7400 comes from this contention, not from the settings.
+
+The same bias applies to every arm compared with `p72`, `p73` and `p74`, so those negative results are not evidence against the settings. Block 7000 ran two arms at a time against the CV reference, so it is affected too, less. `vc-plan` won by +30 despite this. The nets among arms that ran together (for example `s72-n8` against `s72-n4`) are fair.
+
+Fix: `lkB`, a search budget counted in playout decisions instead of seconds. It does not depend on the machine or its load. From now on, arms and their reference run with the same `lkB` and a generous wall-clock limit (`lkT=60`) as a safety net only. `cal90` (block 9000, run alone) calibrates `lkB` to the work an uncontended search does in 10 s.
+
+## Block 7500 ×1: the 7300/7400 ideas again, on a work budget. Pre-registered
+
+Calibration (`cal90`, block 9000, alone: 73.4%): a search makes a median of 156 playout decisions, 334 at p90 and 503 at p98, at about 91 decisions a second. The new reference `r75` is `vc-plan` + `lkB=600,lkT=60`. Arms:
+- `sh75`: + `lkShapes`
+- `v75`: + `lkVal`
+- `n75`: + `lkN=8,lkB=1200` (twice the worlds and twice the budget)
+
+An arm goes forward at net +8 or better.
