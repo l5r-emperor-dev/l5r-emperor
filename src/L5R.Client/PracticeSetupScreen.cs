@@ -1,4 +1,5 @@
 using Godot;
+using L5R.AI;
 using L5R.Core;
 namespace L5R.Client;
 
@@ -11,6 +12,8 @@ public partial class PracticeSetupScreen : Control
     public string? StorageDirectory;
     /// <summary>The player profile the remembered deck choices belong to (captures use a throwaway one).</summary>
     public string Profile = "default";
+    /// <summary>Issue #1214: how hard the practice opponent plays; remembered with the deck choices.</summary>
+    public BotLevel Difficulty { get; private set; } = BotLevel.Easy;
     public string Page { get; private set; } = "setup";
     public int ActiveSlot { get; private set; }
     public PracticeChoice[] Choices { get; private set; } = [];
@@ -87,12 +90,14 @@ public partial class PracticeSetupScreen : Control
     {
         var config = new ConfigFile();
         for (var i = 0; i < Choices.Length; i++) config.SetValue("practice", "slot" + i, Remembered(Choices[i]));
+        config.SetValue("practice", "difficulty", Difficulty.ToString());
         config.Save(SelectionFile);
     }
     private void RestoreSelection()
     {
         var config = new ConfigFile();
         if (config.Load(SelectionFile) != Error.Ok) return;
+        Difficulty = BotLevels.Parse(config.GetValue("practice", "difficulty", "").AsString());
         for (var i = 0; i < Choices.Length; i++)
         {
             var value = config.GetValue("practice", "slot" + i, "").AsString();
@@ -100,6 +105,7 @@ public partial class PracticeSetupScreen : Control
             else if (value.StartsWith("path:", StringComparison.Ordinal) && System.IO.File.Exists(value[5..]) && Read(value[5..]) is { Deck: not null } restored) Choices[i] = restored;
         }
     }
+    public void SetDifficulty(BotLevel level) { Difficulty = level; SaveSelection(); if (Page == "browser") BuildBrowser(); else ShowSetup(); }
     public void Select(PracticeChoice choice) { Choices[ActiveSlot] = choice; SaveSelection(); _notice = ""; if (Page == "browser") BuildBrowser(); else ShowSetup(); }
     public void ShowSetup()
     {
@@ -107,7 +113,12 @@ public partial class PracticeSetupScreen : Control
         Text("Choose your deck and your practice opponent.", 350, 68, 980, 38, 25, align: HorizontalAlignment.Center);
         for (var i = 0; i < 2; i++) BuildDeckPanel(i, i == 0 ? 155 : 842);
         Button("Open deck builder", () => { ActiveSlot = 0; Edit(null); }, 40, 835, 300, 55).Bare = true;
-        Text("Opponent: Practice AI", 645, 843, 420, 40, 26, align: HorizontalAlignment.Center);
+        Text("Difficulty", 372, 826, 140, 52, 26, align: HorizontalAlignment.Right);
+        foreach (var (level, i) in Enum.GetValues<BotLevel>().Select((l, i) => (l, i)))
+        {
+            var button = Button(level.Label(), () => SetDifficulty(level), 530 + i * 195, 826, 180, 52); button.Selected = Difficulty == level; button.AccessibilityName = "Difficulty " + level.Label();
+        }
+        Text(Difficulty.Describe(), 372, 880, 860, 32, 20, color: Palette.PaperDim, align: HorizontalAlignment.Center);
         StartButton = Button("START PRACTICE", Start, 1250, 822, 385, 72, true); StartButton.Disabled = Choices.Any(c => !c.Review.Ready); StartButton.QueueRedraw();
         if (_notice.Length > 0) Text(_notice, 360, 897, 1240, 32, 18, color: PracticeArt.Amber);
         Text("Saved decks · Local Practice", 1150, 902, 480, 25, 15, color: Palette.PaperDim, align: HorizontalAlignment.Right);

@@ -54,6 +54,7 @@ internal static class BotTournament
         ["contender"] = () => BotContext.Contender(), // issue #1185: the planning bot (docs/bots/CONTENDER.md); compare it with the champion's own baseline on the same games (tools/bots/compare_tournament.py)
         ["c2"] = () => BotContext.Contender(rules: (Environment.GetEnvironmentVariable("L5R_C2") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)), // issue #1185 tuning: the Contender plus the rules named in L5R_C2
         ["conan"] = () => BotContext.Conan(rules: (Environment.GetEnvironmentVariable("L5R_C2") is { Length: > 0 } c ? c.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) : null)), // issue #1206: the Contender with battle lookahead (rules from L5R_C2 when set)
+        ["hard"] = () => BotContext.Hard(), // issue #1214: Conan exactly as the practice Hard level plays it (the Contender's tuned rules, look, lkDef, lkVar, lkPlan)
         ["contender+attack"] = () => BotContext.Contender(attack: true),
         ["contender+discard"] = () => BotContext.Contender(discard: true),
         ["contender+reserve"] = () => BotContext.Contender(reserve: true),

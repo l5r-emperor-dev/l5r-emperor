@@ -1,4 +1,5 @@
 using Godot;
+using L5R.AI;
 using L5R.Core;
 namespace L5R.Client;
 
@@ -38,7 +39,12 @@ public partial class PracticeSetupProbe : Node
             GetWindow().Size = new Vector2I(1672, 941); await Wait(.4);
             // A selected file can be removed or changed outside the application.
             File.Delete(_screen.Choices[0].Path!); Click(_screen.StartButton); await Wait(.3); Check(!_started && _screen.StartButton.Disabled, "deleted selected file is revalidated before launch"); await Capture("C-missing-file");
-            _screen.Browse(0); _screen.Select(PracticeSetupScreen.Preset("Crane")); _screen.ShowSetup(); await Wait(.3); Click(_screen.StartButton); await Wait(.3);
+            _screen.Browse(0); _screen.Select(PracticeSetupScreen.Preset("Crane")); _screen.ShowSetup(); await Wait(.3);
+            // Issue #1214: the opponent's difficulty starts Easy (the Champion, as before), is chosen on the setup page with three buttons, and says what each level is.
+            Check(_screen.Difficulty == BotLevel.Easy && new[] { "Easy", "Moderate", "Hard" }.All(t => Walk(_screen).OfType<Button>().Any(b => b.Text == t)), "setup offers Easy, Moderate and Hard, Easy first");
+            Click(Button("Moderate")); await Wait(.2); Check(_screen.Difficulty == BotLevel.Moderate, "Moderate chosen"); Click(Button("Hard")); await Wait(.2); Check(_screen.Difficulty == BotLevel.Hard, "Hard chosen");
+            Check(Walk(_screen).OfType<Label>().Any(l => l.Text == BotLevel.Hard.Describe()), "the chosen level is described"); await Capture("A-hard");
+            Click(_screen.StartButton); await Wait(.3);
             Check(_started && session.Snapshot?.View.Scenario == CustomPractice.Scenario, "native Start creates selected custom match"); Check(session.Snapshot!.View.ViewerId == 0 && session.Snapshot.View.Players[0].Name == "Practice reviewer", "player seat and name preserved");
             // The last choices are remembered from session to session: a preset for one side, a saved deck for the other; a deck that has since gone falls back to the default.
             _screen.Browse(0); _screen.Select(PracticeSetupScreen.Preset("Lion"));
@@ -46,6 +52,7 @@ public partial class PracticeSetupProbe : Node
             _screen.QueueFree(); await Wait(.2);
             _screen = new PracticeSetupScreen { StorageDirectory = storage }; AddChild(_screen); _screen.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect); await Wait(.5);
             Check(_screen.Choices[0].Name.StartsWith("Lion") && _screen.Choices[1].Path == path, "the last deck choices come back in a new session");
+            Check(_screen.Difficulty == BotLevel.Hard, "the chosen difficulty comes back in a new session");
             _screen.QueueFree(); await Wait(.2); File.Delete(path);
             _screen = new PracticeSetupScreen { StorageDirectory = storage }; AddChild(_screen); _screen.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect); await Wait(.5);
             Check(_screen.Choices[0].Name.StartsWith("Lion") && _screen.Choices[1].Name.StartsWith("Lion") && _screen.Choices[1].Path is null, "a remembered deck that no longer exists falls back to that side's default");

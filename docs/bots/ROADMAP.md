@@ -6,9 +6,9 @@ This is the long-running plan for the practice bots. It is the place to return t
 
 | Bot | What it is | Goal | Status |
 | --- | --- | --- | --- |
-| Champion | The practice bot on `main` (`new BotContext()`) | The baseline every bot is measured from | Shipped |
-| Contender | Champion + turn planner, triage, tuned rules (`docs/bots/CONTENDER.md`) | About 67% against the Champion | Done. Tuning paused (Mendon, 2026-11-10) |
-| Conan | Contender + lookahead search over sampled worlds (`docs/bots/CONAN.md`) | **80% against the Contender** | In progress, see below |
+| Champion | The Easy practice level (`new BotContext()`) | The baseline every bot is measured from | Shipped |
+| Contender | Champion + turn planner, triage, tuned rules (`docs/bots/CONTENDER.md`) | About 67% against the Champion | Done. The Moderate practice level since 2026-11-11. Tuning paused (Mendon, 2026-11-10) |
+| Conan | Contender + lookahead search over sampled worlds (`docs/bots/CONAN.md`) | **80% against the Contender** | In progress, see below. The Hard practice level since 2026-11-11 (`BotContext.HardRules`) |
 | Toth-Amon | The next bot, built on Conan | **80% against Conan** | Not started. Begins when Conan reaches 80% |
 
 Rules for every rung (Mendon, 2026-11-10):
@@ -70,8 +70,8 @@ A slider is worth building only if win rate rises monotonically with a usable sp
 
 ## Still open
 
-- **Conan is not in the game yet.** It is not wired into practice or rooms: the client supplies no sampler. Shipping it needs a server-side sampler for the bot's seat and a decision on its thinking time.
-- **The sampler knows the opponent's decklist composition** (brief item 15). This is fine for bot-vs-bot measurement. Before Conan plays humans, measure a blind sampler (`lkBlind`).
+- **Conan is in local Practice only.** It is the Hard level (`docs/decisions/2026-11-11-practice-difficulty.md`): the client samples a private copy of the match and decides off the UI thread. Rooms do not supply a sampler. When a better Conan is measured, update `BotContext.HardRules`.
+- **The sampler knows the opponent's decklist composition** (brief item 15). This was fine for bot-vs-bot measurement. Hard now plays people with it, by Mendon's decision of 2026-11-11, so a person's opponent knows which cards are in their decks (not where they are). `lkBlind` was never built or measured.
 - **The zero-cost `Payable` bug** (#1211): a card costing nothing counts as unpayable. The fix changed 41 of 728 games, net −1. Awaiting Mendon's call.
 - **The Broken Alliance issue** draft is unfiled.
 

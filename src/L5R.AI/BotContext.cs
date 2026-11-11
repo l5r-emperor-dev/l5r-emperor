@@ -74,6 +74,10 @@ public sealed class BotContext
     /// <summary>Conan (issue #1206): the Contender with battle lookahead (TrainingOpponent.Lookahead.cs). It searches only when the caller also supplies <see cref="Sampler"/>.</summary>
     public static BotContext Conan(IEnumerable<string>? rules = null) => Contender(rules: [.. rules ?? TunedRules, .. ConanRules]);
     public static readonly string[] ConanRules = ["look"];
+    /// <summary>Issue #1214: what Conan plays with for a person: the Contender's tuned rules plus <c>look</c> and the searches of the defence, its shapes and the planned attack (lkDef, lkVar, lkPlan), the best-measured
+    /// state (71-73% against the Contender on blocks 7000, 7200 and 7300; docs/bots/experiments/2026-11-10-conan-vs-contender.md). Experimental rules stay off. The caller must still supply <see cref="Sampler"/>.</summary>
+    public static readonly string[] HardRules = ["lkDef", "lkVar", "lkPlan"];
+    public static BotContext Hard() => Conan(rules: [.. TunedRules, .. HardRules]);
     /// <summary>Issue #1206: a copy of the match with every card hidden from this seat redealt (MatchEngine.Sample), for a given seed; null: no lookahead. The caller supplies it, so the bot
     /// still never reads the real match: what it plays forward is a world consistent with its own view.</summary>
     public Func<ulong, MatchEngine>? Sampler { get; set; }
