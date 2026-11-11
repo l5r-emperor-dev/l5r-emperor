@@ -177,11 +177,11 @@ An arm goes forward at net +8 or better.
 
 All three pass the +8 screen. `act76` had one game stopped at the 40-minute per-game cutoff.
 
-`buy76`'s larger budget also applies to its battle searches. In 7500, 8 worlds with a larger budget gained nothing, though, so the budget alone is unlikely to explain +16. `wide76` (more candidates) is the cleanest result.
+**Correction:** a knob takes the first `name=value` rule it finds, and the reference settings already include `lkB=600`. So the `lkB=2000` and `lkB=1500` added to `buy76` and `wide76` had no effect: every arm here ran on the same 600-decision budget, and the gains come from the extra decisions searched, not from more budget. (`n75`'s `lkB=1200` did apply, because its settings were built without `lkB=600`.)
 
 ## Block 7700 ×1: the combinations. Pre-registered
 
-Reference `r77` = `r75`'s settings. Arms (each + `lkB=2000,lkAny`):
+Reference `r77` = `r75`'s settings. Arms (each + `lkAny`; the `lkB=2000` also passed has no effect, as above, so the budget stays 600):
 - `all77`: + `lkAct,lkBuy,lkK=5`
 - `ab77`: + `lkAct,lkBuy`
 - `kb77`: + `lkBuy,lkK=5`
