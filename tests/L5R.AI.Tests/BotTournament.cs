@@ -89,7 +89,8 @@ internal static class BotTournament
         // L5R_TOURN_ORACLE=1 (issue #1206, a diagnostic, never a player): the challenger's search plays out the real match, hidden cards and deck order included,
         // so its win rate bounds what better sampling could gain and its choices grade the real bot's.
         var oracle = Environment.GetEnvironmentVariable("L5R_TOURN_ORACLE") == "1";
-        memory = [makers[0](), makers[1]()]; for (var seat = 0; seat < 2; seat++) { var own = seat; if (memory[seat].Has("look")) memory[seat].Sampler = oracle && seat == challengerSeat ? _ => game!.Clone() : sample => game!.Sample(own, sample); memory[seat].Deadline = DateTime.UtcNow + budget; } memory[0].Archetype = DeckArchetypeTests.Of(deck0); memory[1].Archetype = DeckArchetypeTests.Of(deck1); var refusedAt = new HashSet<(long, int)>(); var sameAnswer = 0; string? lastRefusal = null;
+        memory = [makers[0](), makers[1]()]; for (var seat = 0; seat < 2; seat++) { var own = seat; if (memory[seat].Has("look")) memory[seat].Sampler = oracle && seat == challengerSeat ? _ => game!.Clone() : sample => game!.Sample(own, sample); memory[seat].Deadline = DateTime.UtcNow + budget; }
+        memory[0].Archetype = DeckArchetypeTests.Of(deck0); memory[1].Archetype = DeckArchetypeTests.Of(deck1); var refusedAt = new HashSet<(long, int)>(); var sameAnswer = 0; string? lastRefusal = null;
         // L5R_TOURN_LOG=<dir>: one plain-text log per game (every accepted decision, by whom, and the engine's event messages), for reviewing why a game was won or lost.
         var logDir = Environment.GetEnvironmentVariable("L5R_TOURN_LOG"); var log = logDir is { Length: > 0 } ? new StringBuilder() : null; long lastEvent = -1; var lastTurn = -1;
         string Name(string? id) => id is not null && game.State.Cards.TryGetValue(id, out var ci) && CardCatalog.Cards.TryGetValue(ci.DefinitionId, out var cd) ? cd.Name : id ?? "";
