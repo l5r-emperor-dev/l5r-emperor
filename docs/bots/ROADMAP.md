@@ -2,6 +2,15 @@
 
 This is the long-running plan for the practice bots. It is the place to return to after a break: what each bot is for, where it stands, and what comes next. Experiment details live in `docs/bots/experiments/`; the method for the Conan campaign lives in `docs/bots/CONAN_CAMPAIGN_BRIEF.md`.
 
+## Improving the Contender too (Mendon, 2026-11-11)
+
+"It's okay to improve the contender and lose ground to it as Conan because the contender isn't particularly difficult to beat for a human at the moment." Contender gains are welcome even if they cost Conan its margin. They also make Conan stronger, because Conan's playouts are played by the Contender.
+
+How this is measured:
+- Contender changes are screened Contender against Contender, from an A/A baseline.
+- Conan's 80% goal is measured against a frozen snapshot of the Contender's rules (`T2`, the tuned set as of 2026-11-10), so the figure stays comparable while the live Contender improves.
+- An improved Contender becomes Moderate in practice only with Mendon's approval.
+
 ## The ladder
 
 | Bot | What it is | Goal | Status |
