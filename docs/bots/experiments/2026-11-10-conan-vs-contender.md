@@ -17,13 +17,16 @@ The reference for the first two rows is the Contender A/A (Contender against Con
 | `vc-plan` | CV + `lkPlan` | **71.2%** | **+30 vs CV** | .0003 | 1.8 s / 5.7 s | 70 s |
 | `vp-clock` | plan + `clock` | 70.9% | −1 vs plan | 1.0 | 2.0 s / 6.1 s | 75 s |
 | `vp-far` | plan + `lkFar` | 69.2% | −7 vs plan | .44 | 2.8 s / 10 s | 127 s |
-| `vp-hs` | plan + `lkHS` | 70.1% | −4 vs plan | .29 | | |
+| `vp-hs` | plan + `lkHS` | 70.1% | −4 vs plan | .29 | 2.1 s / 6.3 s | 79 s |
+| `vp-ps` | plan + `lkPS` | 70.6% | −2 vs plan | .80 | 2.1 s / 6.4 s | 79 s |
+| `vp-m3` | plan + `lkM=3,lkDedup` | 69.8% | −5 vs plan | .54 | 1.7 s / 5.7 s | 65 s |
 
 Two arms ran at a time, so their thinking times run somewhat high. No game was killed.
 
 Notes:
 - `vp-far` searched its attack plan through the opponent's next turn. At p90 its searches hit the 10 s limit, so many of them were abandoned and the Contender's own choice was played. This result does not fairly test the longer horizon.
-- `clock` and `lkHS` changed very few games (5 and 8).
+- `clock`, `lkHS` and `lkPS` changed very few games (5, 8 and 16). None of the scoring tweaks helps. The hand-set material score seems to be the limit, which is the case for the learned value (`lkVal`).
+- `vp-m3`, requiring a margin of 3 points before overriding the Contender, lost 5 net. The thin-margin overrides were helping on balance.
 
 ### Why Conan lost (`vc-cv`, 135 losses; a review of the game logs)
 
