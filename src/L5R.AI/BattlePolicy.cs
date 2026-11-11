@@ -133,11 +133,10 @@ public static class BattlePolicy
         (card.Definition?.GoldCost ?? 0) + all.Where(c => c.AttachedTo == card.Id).Sum(c => c.Definition?.GoldCost ?? 0);
 
     /// <summary>
-    /// Printed Battle actions the card could still use: its Battle (or Battle or Open) abilities, none when it is bowed or may not act. The view does not say which of an opponent's once-per-turn
-    /// abilities were already spent this turn, so every printed one counts.
+    /// Printed Battle actions the card could still use: its Battle (or Battle or Open) abilities that have not used up their uses this turn (the view's SpentAbilityIds), none when it is bowed or may not act.
     /// </summary>
     public static int UnusedBattleActions(CardView card) =>
-        card.Bowed || card.ActionLocked ? 0 : Printed(card).Count(p => p.Ability.Timing is "Battle" or "BattleOrOpen");
+        card.Bowed || card.ActionLocked ? 0 : Printed(card).Count(p => p.Ability.Timing is "Battle" or "BattleOrOpen" && card.SpentAbilityIds?.Contains(p.Id) != true);
 
     /// <summary>
     /// Issue #788, rule 2, as Mendon changed it on 2026-11-11: the Attack target ranking. The largest Force the Attack can destroy (Force at most <paramref name="strength"/>, which the caller raises
