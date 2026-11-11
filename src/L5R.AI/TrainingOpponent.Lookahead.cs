@@ -23,6 +23,7 @@ namespace L5R.AI;
 //   lkShapes  with lkPlan, two more attack shapes: each unit alone at a Province it beats on its own Force, and the strongest pair at the weakest Province;
 //   lkFar     with lkPlan, the attack's options are played out through the opponent's next attack, so units lost, Honor given away and the counter-attack count;
 //   lkIntent  playouts are scored for the plan's intent: under Develop the bot's own units count lkIw (1.5) times, under Attack the opponent's Provinces, under Defend its own;
+//   lkAct     an Action-phase move (outside battle: equipping, Holdings, other actions, passing) is searched too, played out through the end of this turn's attack;
 //   lkBuy     a Dynasty purchase is chosen by playing the best lkBK (3) purchases (or none) out on lkBN (3) samples through the bot's next attack; the score then also
 //             counts each Holding's Gold production lkG (3) times.
 public static partial class TrainingOpponent
@@ -103,7 +104,7 @@ public static partial class TrainingOpponent
 
     private static string Label(GameCommand command) => command.Type + (command.AbilityId ?? command.CardId) switch { null => "", var id => "/" + id };
 
-    // Battle actions always; with lkAtk or lkPlan the attack, with lkDef the choice of defenders, with lkBuy the Dynasty purchases.
+    // Battle actions always; with lkAtk or lkPlan the attack, with lkDef the choice of defenders, with lkBuy the Dynasty purchases, with lkAct Action-phase moves.
     private static bool Searched(Ctx x) => x.View.Phase switch
     {
         Phase.Battle => true,
@@ -111,6 +112,7 @@ public static partial class TrainingOpponent
         Phase.InfantryDeclaration => Rule(x, "lkPlan"),
         Phase.DefenseAssignment or Phase.CavalryDefense => Rule(x, "lkDef"),
         Phase.Dynasty => Rule(x, "lkBuy"),
+        Phase.Action => Rule(x, "lkAct"),
         _ => false
     };
 
@@ -239,13 +241,14 @@ public static partial class TrainingOpponent
         for (var seat = 0; seat < 2; seat++) bots[seat] = seat != me && Rule(x, "lkOpp") ? new BotContext() : BotContext.Contender(rules: x.Memory.Rules.Where(r => r != "look"));
         bots[me].Archetype = x.Memory.Archetype;
         bots[0].Deadline = bots[1].Deadline = deadline; // a playout bot stuck in one decision is stopped too
+        var fromAction = x.View.Phase == Phase.Action; // lkAct: an Action-phase move is played out through the end of this turn's attack
         var turn = x.View.TurnNumber; var infantry = option.Infantry; var budget = (int)Knob(x, "lkB", 0);
         for (var n = 0; n < (throughNextAttack ? LongRolloutDecisions : RolloutDecisions); n++)
         {
             if (game.WinnerId is not null) break;
             if (DateTime.UtcNow > deadline) throw new BotDeadlineException("a lookahead playout ran past its deadline");
             if (++x.Memory.LookWork > budget && budget > 0) throw new BotDeadlineException("a lookahead search used up its work budget");
-            if (throughNextAttack ? game.TurnNumber > turn + 2 || game.TurnNumber == turn + 2 && game.Phase >= Phase.Dynasty : game.TurnNumber != turn || !InAttack(game.Phase)) break;
+            if (throughNextAttack ? game.TurnNumber > turn + 2 || game.TurnNumber == turn + 2 && game.Phase >= Phase.Dynasty : game.TurnNumber != turn || !InAttack(game.Phase) && !(fromAction && game.Phase == Phase.Action)) break;
             var seat = game.PendingChoicePlayerId ?? game.PriorityPlayerId;
             var actions = game.QueryActions(seat);
             if (!actions.Any(a => a.Enabled && a.Type is not ("concede" or "wait"))) { seat = 1 - seat; actions = game.QueryActions(seat); }

@@ -139,3 +139,27 @@ Calibration (`cal90`, block 9000, alone: 73.4%): a search makes a median of 156 
 - `n75`: + `lkN=8,lkB=1200` (twice the worlds and twice the budget)
 
 An arm goes forward at net +8 or better.
+
+### Block 7500 results (2026-11-11): fair now, and still nothing
+
+`r75` won 75.0% against the Contender. Searches that hit a limit: `r75` 96, the arms 136–198, out of about 10,000 each, so the budget evens the field.
+
+| Arm | Win rate | Net vs `r75` | p | Search median / p90 | Thinking per game (mean) |
+| --- | --- | --- | --- | --- | --- |
+| `r75` | 75.0% | — | — | 1.3 / 3.8 s | 52 s |
+| `sh75` (+ `lkShapes`) | 75.3% | +1 (5–4) | 1.0 | 2.7 / 8.2 s | 112 s |
+| `v75` (+ `lkVal`) | 70.1% | **−18** | .02 | 2.7 / 9.0 s | 122 s |
+| `n75` (8 worlds, `lkB=1200`) | 74.2% | −3 | .73 | 3.8 / 13.1 s | 166 s |
+
+Reading: on equal terms, `lkShapes` changes almost nothing (9 games), `lkVal` is really worse, and more worlds with more budget do not help. Searching the attack, defence and battle decisions harder has stopped paying. The losses come from decisions the search does not make: development and the Action phase.
+
+Also #1216 (Mendon's Lion vs Mantis game against Hard): Tomaru moving home instead of staying for a ranged kill was correct, since Lion held Tactical Assault. See the issue.
+
+## Block 7600 ×1: searching other decisions. Pre-registered
+
+Reference `r76` = `r75`'s settings. Arms:
+- `act76`: + `lkAct` (Action-phase moves searched, played out through the end of this turn's attack)
+- `buy76`: + `lkBuy,lkB=2000,lkAny` (purchases searched through the next attack, with the budget that horizon needs)
+- `wide76`: + `lkK=5,lkB=1500` (more candidates in each searched decision, with the budget for them)
+
+An arm goes forward at net +8 or better.
