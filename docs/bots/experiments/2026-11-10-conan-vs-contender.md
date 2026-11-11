@@ -163,3 +163,27 @@ Reference `r76` = `r75`'s settings. Arms:
 - `wide76`: + `lkK=5,lkB=1500` (more candidates in each searched decision, with the budget for them)
 
 An arm goes forward at net +8 or better.
+
+### Block 7600 results (2026-11-11): searching more decisions pays
+
+`r76` won 70.6% against the Contender.
+
+| Arm | Win rate | Net vs `r76` | p (two-sided) | Search median / p90 | Thinking per game (mean / max) |
+| --- | --- | --- | --- | --- | --- |
+| `r76` | 70.6% | — | — | 1.3 / 3.9 s | 55 / 449 s |
+| `act76` (+ `lkAct`) | 74.1% | **+12** (33–21) | .13 | 2.4 / 8.2 s | 193 / 2,362 s |
+| `buy76` (+ `lkBuy,lkB=2000,lkAny`) | 75.0% | **+16** (45–29) | .08 | 2.8 / 9.6 s | 188 / 1,075 s |
+| `wide76` (+ `lkK=5,lkB=1500`) | 74.7% | **+15** (25–10) | .017 | 3.6 / 10.7 s | 145 / 1,241 s |
+
+All three pass the +8 screen. `act76` had one game stopped at the 40-minute per-game cutoff.
+
+`buy76`'s larger budget also applies to its battle searches. In 7500, 8 worlds with a larger budget gained nothing, though, so the budget alone is unlikely to explain +16. `wide76` (more candidates) is the cleanest result.
+
+## Block 7700 ×1: the combinations. Pre-registered
+
+Reference `r77` = `r75`'s settings. Arms (each + `lkB=2000,lkAny`):
+- `all77`: + `lkAct,lkBuy,lkK=5`
+- `ab77`: + `lkAct,lkBuy`
+- `kb77`: + `lkBuy,lkK=5`
+
+An arm goes forward at net +8 or better. The best goes to an SPRT and the Tier 3 confirmation.
