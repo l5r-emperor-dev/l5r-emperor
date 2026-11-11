@@ -89,3 +89,27 @@ Arms on this block, compared with `p73` (`vc-plan`'s settings):
 - `n73-n8`: + `lkAny,lkN=8`, which repeats the 7200 result on a second block
 
 An arm goes forward when it is net +8 or better, with no soundness finding and no deck collapse.
+
+### Block 7300 results (2026-11-11)
+
+`p73` (`vc-plan`'s settings) won 72.8% against the Contender. Three arms ran at a time.
+
+| Arm | Win rate vs Contender | Net vs `p73` | p | Search median / p90 | Thinking per game (mean) |
+| --- | --- | --- | --- | --- | --- |
+| `p73` | 72.8% | — | — | 1.3 / 4.3 s | 55 s |
+| `v73` (+ `lkVal`) | 67.3% | **−20** | .009 | 3.0 / 10.0 s | 115 s |
+| `v73-n8` (+ `lkVal,lkAny,lkN=8`) | 72.0% | −3 | .78 | 5.2 / 10.0 s | 165 s |
+| `n73-n8` (+ `lkAny,lkN=8`) | 71.7% | −4 | .61 | 5.1 / 10.0 s | 156 s |
+
+Reading:
+- **`lkVal` as fitted is worse than the hand-set score** (−20, p = .009). It was fitted on start-of-turn (Dynasty) positions but scores positions at the end of an attack, and as a probability it compresses the differences between candidates that the material score keeps apart. Its searches also ran longer and, without `lkAny`, more of them hit the 10 s limit and fell back to the Contender's choice. Negative result; `lkVal` stays off.
+- **8 worlds did not repeat.** +13 on 7200, −4 here: +9 over 728 games, not a reliable gain at twice the thinking time. Worlds stay at 4.
+
+## Block 7400 ×1: more attack shapes (`lkShapes`). Pre-registered
+
+From Mendon's Lion vs Dragon games: split attacks, where each unit goes alone to a Province it beats on its own Force, and a pair of the strongest two at the weakest Province, keeping the rest home to defend. `lkShapes` adds both as `lkPlan` candidates. Arms, compared with `p74` (`vc-plan`'s settings):
+- `sh74`: + `lkShapes`
+- `sh74-k5`: + `lkShapes,lkK=5` (more candidates kept in Battle searches, so the new shapes are not crowded out)
+- `k74`: + `lkK=5` alone, to separate the two
+
+An arm goes forward at net +8 or better.

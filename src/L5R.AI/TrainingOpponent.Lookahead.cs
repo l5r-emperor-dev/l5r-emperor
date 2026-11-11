@@ -18,6 +18,7 @@ namespace L5R.AI;
 // The plan-driven parts (Mendon, 2026-11-10: "start with the plan and then make updated decisions based on new information"):
 //   lkPlan    the attack is chosen by search: at the attack declaration, not attacking and each of AttackShapes are played out to the end of the attack; the best
 //             becomes the turn plan's attack (BotContext.PlannedAttack), the infantry declaration carries it out, and searches it again if the table has changed;
+//   lkShapes  with lkPlan, two more attack shapes: each unit alone at a Province it beats on its own Force, and the strongest pair at the weakest Province;
 //   lkFar     with lkPlan, the attack's options are played out through the opponent's next attack, so units lost, Honor given away and the counter-attack count;
 //   lkIntent  playouts are scored for the plan's intent: under Develop the bot's own units count lkIw (1.5) times, under Attack the opponent's Provinces, under Defend its own;
 //   lkBuy     a Dynasty purchase is chosen by playing the best lkBK (3) purchases (or none) out on lkBN (3) samples through the bot's next attack; the score then also
@@ -179,6 +180,14 @@ public static partial class TrainingOpponent
         }
         if (spread.Values.Distinct().Count() > 1) yield return ("spread", spread);
         if (units.Count > 1) yield return ("probe", new(StringComparer.Ordinal) { [units[0].Id] = weakest.Index });
+        if (!Rule(x, "lkShapes")) yield break;
+        // lkShapes: each unit alone at a Province it beats on its own Force (strongest unit at the strongest Province it beats), the rest home; Mendon's split attacks.
+        var split = new Dictionary<string, int>(StringComparer.Ordinal); var open = targets.ToList();
+        foreach (var unit in units)
+            if (open.Where(p => UnitForce(x, unit) > p.Strength).OrderByDescending(p => p.Strength).FirstOrDefault() is { } beaten) { split[unit.Id] = beaten.Index; open.Remove(beaten); }
+        if (split.Values.Distinct().Count() > 1) yield return ("split", split);
+        // and the strongest two units together at the weakest Province, the rest home (a raze that keeps defenders back).
+        if (units.Count > 2) yield return ("pair", new(StringComparer.Ordinal) { [units[0].Id] = weakest.Index, [units[1].Id] = weakest.Index });
     }
 
     // ---- defence shapes (lkVar) ---------------------------------------------------------------------------------------------------------------------------------------
