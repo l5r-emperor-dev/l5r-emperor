@@ -313,6 +313,8 @@ internal static class BattlePolicyTests
         Check(First(4, none, few, many) == "many" && First(4, many, none, few) == "many", "a tie in Force goes to the card with the most printed Battle actions");
         Check(First(4, none, few) == "few", "a printed Battle action beats none");
         Check(First(4, T("bowed-many", 3, busy, bowed: true), few) == "few", "a bowed card cannot use its Battle actions, so they do not count");
+        var spentIds = busy.Abilities!.Where(id => AbilityCatalog.All.TryGetValue(id, out var ab) && ab.Timing is "Battle" or "BattleOrOpen").ToArray();
+        Check(First(4, many with { SpentAbilityIds = spentIds }, few) == "few", "Battle actions a card has already used this turn do not count");
 
         // Still tied: the Personality over the Follower.
         var follower = CardCatalog.Cards.Values.First(d => d.Type == CardType.Follower && Battles(d) == 0);
