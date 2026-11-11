@@ -136,6 +136,7 @@ public static partial class TrainingOpponent
                 var c = total; var defenders = new int[remaining.Length];
                 for (var i = 0; i < units.Length; i++) { choice[i] = c % offered.Length; c /= offered.Length; defenders[Array.FindIndex(remaining, p => p.Index == offered[choice[i]].Index)] += forces[i]; }
                 if (reach.OverBudget) break; // issue #1211: keep the best assignment found so far rather than stall the decision
+                if ((total & 1023) == 0) CheckDeadline(x.Memory);
                 var destroyed = reach.MaxDestroyed(remaining.Select((p, k) => Need(p, defenders[k])).ToArray());
                 if (destroyed >= remaining.Length) continue;
                 var slack = remaining.Select((p, k) => p.Strength + defenders[k]).Sum();

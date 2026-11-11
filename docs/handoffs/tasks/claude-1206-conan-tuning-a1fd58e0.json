@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Conan tuning: engine Gold-quote memo within one action query (QueryScope, verified by L5R_VERIFY_QUERY_SCOPE); lookahead knobs lkDef, lkVar, lkPlan, lkIntent, lkBuy, lkT (10 s search limit, Contender choice stands); arena per-game cutoff via BotContext.Deadline with killed-game logs, stuck-game watchdog, one-game-at-a-time workers; carries the #1211 stall fixes (cavalry reach, Payable).",
+  "validation": "bash tools/check.sh --skip-client passed (before the zero-cost Payable guard, which restores the old behaviour); action-list hash identical before/after the quote memo; arena results in docs/bots/experiments/2026-11-10-conan-tuning.md (lkVar +4/+3; lkPlan +3, lkIntent -3, lkBuy -10, all n.s.); five longest games replayed before/after the stall fixes.",
+  "remaining": "No Conan setting made default (needs Mendon's approval: lkDef, lkVar). Next: merge main once #1212 lands; idle-machine thinking-time measurement; larger search budgets (lkN, lkK); lkPlan confirmation on 7100.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
+  "branch": "claude/1206-conan-tuning",
+  "updated": "2026-11-10T17:45:32.284285+00:00"
+}

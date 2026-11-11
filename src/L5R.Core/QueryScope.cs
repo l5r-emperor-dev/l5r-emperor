@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace L5R.Core;
 
 /// <summary>
@@ -21,8 +23,29 @@ public sealed partial class MatchEngine
         // changes during the call, and VerifyQueryScopeForTests recomputes every remembered list at each reuse to prove that.
         _queryScopeDepth++;
         try { return QueryActionsUnscoped(playerId); }
-        finally { if (--_queryScopeDepth == 0) _paymentTokenMemo = null; }
+        finally { if (--_queryScopeDepth == 0) { _paymentTokenMemo = null; _quoteMemo = null; } }
     }
+
+    // Issue #1206: the same holds for the payment options and sources a fixed Gold quote lists. They depend only on the payer, the amount, the excluded cards, the
+    // subject paid for and the match, and in a bot's lookahead playout 93% of the quotes one action list builds repeat an earlier one exactly.
+    private Dictionary<object, Array>? _quoteMemo;
+
+    private T[] QueryMemo<T>(object key, Func<T[]> compute)
+    {
+        if (_queryScopeDepth == 0) return compute();
+        var memo = _quoteMemo ??= [];
+        if (memo.TryGetValue(key, out var kept))
+        {
+            if (VerifyQueryScopeForTests && JsonSerializer.Serialize(compute()) != JsonSerializer.Serialize((T[])kept))
+                throw new InvalidOperationException($"A remembered Gold quote is stale: {key}.");
+            return [.. (T[])kept];
+        }
+        var computed = compute();
+        memo[key] = computed.ToArray();
+        return computed;
+    }
+
+    private static string ExcludeKey(IReadOnlySet<string>? exclude) => exclude is null or { Count: 0 } ? "" : string.Join(",", exclude.Order(StringComparer.Ordinal));
 
     private List<PaymentToken> PaymentTokens(int playerId, PaymentSubject? paying)
     {
