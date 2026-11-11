@@ -12,6 +12,8 @@ using L5R.Core;
 //   L5R_HUMAN_OUT=<path>                   the log (default artifacts/bots/human/<replay name>.compare.log)
 //   L5R_HUMAN_BOT=contender|<arm>          the comparison bot for seat 0 (default contender; any BotTournament arm, e.g. champion)
 //   L5R_HUMAN_CHECKCHAMP=1                 also check that a fresh Champion in seat 1 picks each logged seat-1 command (a stepping sanity check)
+//   L5R_HUMAN_PROBE=<i,j,...>              before each of these (0-based) commands, whichever seat acts: list its offered options and the Force of each unit in play, and ask a
+//                                          fresh L5R_HUMAN_PROBE_BOT (default conan, rules from L5R_C2) with a Sampler for that seat, logging its lookahead (issue #1216)
 //   L5R_HUMAN_SYNTH=<path.json>            instead write a synthetic replay: the Champion at both seats, driven as the practice client drives the opponent, for testing the tool
 //                                          (L5R_HUMAN_SYNTH_DECKS="Classic Crane|Spider Conquer", L5R_HUMAN_SYNTH_SEED=<n>)
 //   dotnet run -c Release --project tests/L5R.AI.Tests -- --filter human-compare
@@ -78,8 +80,38 @@ internal static class HumanReplayCompare
         string Format(GameCommand c) => $"{c.Type}{(c.AbilityId is null ? "" : "/" + c.AbilityId)}{(c.CardId is null ? "" : " card=" + Name(c.CardId))}{(c.TargetId is null ? "" : " target=" + Name(c.TargetId))}{(c.PerformerId is null ? "" : " by=" + Name(c.PerformerId))}{(c.Choice is null ? "" : " choice=" + c.Choice)}{(c.Province is null ? "" : " prov=" + c.Province)}{(c.CardIds is { Length: > 0 } ids ? " cards=" + string.Join(",", ids.Select(Name)) : "")}{(c.Assignments is { Count: > 0 } asg ? " assign=" + string.Join(",", asg.Select(a => Name(a.Key) + ">" + a.Value)) : "")}{(c.GoldAmount is null ? "" : " gold=" + c.GoldAmount)}{(c.TargetPlayerId is null ? "" : " player=" + c.TargetPlayerId)}";
         string Tag(int seat) => seat == 0 ? "s0H" : "s1c";
 
+        var probes = (Env("L5R_HUMAN_PROBE") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToHashSet(); var index = -1;
         foreach (var command in replay.Commands)
         {
+            if (probes.Contains(++index))
+            {
+                var at = command.PlayerId; var probe = BotTournament.Arms[Env("L5R_HUMAN_PROBE_BOT") ?? "conan"](); var live = game;
+                probe.Sampler = sample => live.Sample(at, sample);
+                log.Append($"  ## probe before command {index} (seat {at}, {game.Phase})\n");
+                foreach (var p in game.GetView(at).Players)
+                    log.Append($"     seat {p.Id}: {string.Join(", ", p.Home.Concat(p.Army).Where(c => c.Definition?.Type is CardType.Personality or CardType.Follower).Select(c => $"{c.Definition!.Name} {c.Force}F{(c.Bowed ? " bowed" : "")}"))}\n");
+                foreach (var a in game.QueryActions(at).Where(a => a.Enabled)) log.Append($"     offered {a.Type}{(a.Command is { } c ? ": " + Format(c) : "")}{(a.TargetIds is { Length: > 0 } t ? " targets=" + string.Join(",", t.Select(Name)) : "")}\n");
+                var answer = Ask(game, at, probe, roundTrip: false);
+                log.Append($"     probe bot: {(answer is null ? "(no command)" : Format(answer))}\n");
+                foreach (var l in probe.LookLog) log.Append($"     look: {l}\n");
+                // L5R_HUMAN_PROBE_PLAY=<n>: then play the real match (every card known: a diagnostic, never a bot's input) forward with the Contender at both seats for n
+                // decisions after each offered option, as a playout would, and log the moves and the end state.
+                if (int.TryParse(Env("L5R_HUMAN_PROBE_PLAY"), out var steps))
+                    foreach (var option in game.QueryActions(at).Where(a => a.Enabled && a.Command is not null && a.Type != "concede"))
+                    {
+                        var copy = game.Clone(); var bots = new[] { BotContext.Contender(), BotContext.Contender() }; var turn = copy.TurnNumber;
+                        log.Append($"     -- play {Format(option.Command!)}: {(copy.Execute(option.Command!).Accepted ? "" : "refused")}\n");
+                        for (var n = 0; n < steps && copy.WinnerId is null && copy.TurnNumber == turn && copy.Phase is Phase.Battle or Phase.BattleSelection; n++)
+                        {
+                            var who = copy.PendingChoicePlayerId ?? copy.PriorityPlayerId; var acts = copy.QueryActions(who);
+                            if (!acts.Any(a => a.Enabled && a.Type is not ("concede" or "wait"))) { who = 1 - who; acts = copy.QueryActions(who); }
+                            var d = TrainingOpponent.Choose(copy.GetView(who), acts, bots[who]).Command; if (d is null) break;
+                            var events = copy.State.Events.Count; var name = Format(d); copy.Execute(d);
+                            log.Append($"        s{who} {name}{string.Concat(copy.State.Events.Skip(events).Where(e => e.Message.Contains("destroyed") || e.Message.Contains("Force")).Select(e => " | " + e.Message))}\n");
+                        }
+                        foreach (var p in copy.GetView(at).Players) log.Append($"        end seat {p.Id}: provinces {p.Provinces.Count(q => !q.Destroyed)} Honor {p.Honor} units {string.Join(", ", p.Home.Concat(p.Army).Where(c => c.Definition?.Type is CardType.Personality or CardType.Follower).Select(c => c.Definition!.Name))}\n");
+                    }
+            }
             var v0 = game.GetView(0);
             if (v0.TurnNumber != lastTurn) // the same turn header as the tournament's per-game logs (BotTournament.Play, L5R_TOURN_LOG)
             {
