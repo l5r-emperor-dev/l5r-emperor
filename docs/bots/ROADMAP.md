@@ -73,15 +73,15 @@ A slider is worth building only if win rate rises monotonically with a usable sp
 Mendon's example, from a game against Allan. Allan's Lion brought out Akodo Suoh on turn 1, equipped Dual Warfans on turn 2 and attacked. Mendon's Scorpion held Heavily Engaged: he waited for Allan's Tactical action, then bowed Suoh. He had judged that he could absorb the rush, so he kept investing in his economy, and he out-developed Allan with Personalities. Without the answer in hand he would have bought a Personality to match. With a very strong economic opening he might have conceded the first Province and still expected to win the race.
 
 What a bot needs for this, card-agnostically and without hidden information:
-1. **The posture as a decision searched by playing it forward** (`lkPosture`, opt-in, built 2026-11-11). At each Dynasty phase up to turn `lkPmax` (10), Conan plays each posture out `lkPH` turns on `lkPN` redealt worlds and keeps the better one:
-   - economy (Develop: Holdings first; the tuned `econ` rule stays);
-   - bodies (Defend: Personalities first; `econ` stands aside).
+1. **Purchases decided from the position, every time.** A first try, `lkPosture`, searched two blanket postures, economy first or bodies first, over six turns. Mendon judged it too inflexible: "Decisions should be much more contextually based on opportunities and threats." It was removed before any arena test. What replaces it:
+   - For Conan, `lkMix` with `lkBuy`: each purchase searches the Contender's pick, the best Holding on offer, the best Personality on offer, and buying nothing. Each is played `lkBH` turns forward from this table, with every later decision made normally, and the choice is made again at the next purchase.
+   - For the Contender, `econctx`: the tuned economy-first opening rule (`econ`) gives way when the table calls for a body. That is when the opponent's army beats the bot's own on its weakest Province, or when one affordable Personality closes the gap to razing the opponent's weakest Province.
    
-   The playouts use Conan's real hand (an answer like Heavily Engaged gets played if it works) and the opponent's real board (their rush). Hidden cards come from the sampler, as everywhere else. The score counts each Holding's Gold production `lkPG` (3) times, so an economy lead is worth something at the horizon. Nothing in it names a card.
+   Both use only the bot's view: its own hand and the public board, with hidden cards from the sampler.
 2. **Reading intentions from what the opponent did** (not built). The sampler redeals the opponent's hidden cards uniformly. A player infers from behaviour: attacking a lone Personality into an open board suggests a held Battle action. A belief-weighted sampler would keep or weight each redealt world by how likely the opponent's observed choices were in it, judged by the Contender's policy. The oracle diagnostic (84% against 74%) bounds what better beliefs can give.
 3. **The race estimate behind the posture:** each side's Gold per turn, Personalities in play and Force threatened against Province strength, over the next few turns. The playouts above compute this implicitly; an explicit version would be cheaper and could be shown to a player.
 
-A regression for this belongs with item 1. In a fixed position (an early rush against a hand with an answer), the posture should change with and without the answer in hand.
+A regression for this belongs with item 1. In a fixed position (an early rush against a hand holding an answer), the purchase should change depending on whether the answer is in hand.
 
 ## Still open
 

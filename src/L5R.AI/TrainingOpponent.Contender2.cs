@@ -107,9 +107,9 @@ public static partial class TrainingOpponent
         if (Rule(x, "bodyfirst") && action.Type == "purchase" && x.Card(command.CardId)?.Definition is { Type: CardType.Holding } && Holdings(x.Self) >= Knob(x, "bfH", 3)
             && ProvinceCards(x).Any(c => c.Definition!.Type == CardType.Personality && EffectiveCost(x, c) <= Ready(x)))
             return Math.Min(score, 60);
-        // lkPosture: under the bodies posture (Defend) the economy-first rule stands aside; the posture's own preference decides.
+        // econctx (Mendon, 2026-11-11: decisions by opportunities and threats, not a fixed opening): economy first gives way when the table calls for a body (Contested).
         if (Rule(x, "econ") && action.Type == "purchase" && x.Card(command.CardId)?.Definition is { } bought && FairHolding(x, bought) && !(Rule(x, "threatbody") && Threatened(x))
-            && !(x.Memory.Posture is { Intent: not PlanIntent.Develop } posture && x.View.TurnNumber <= posture.Until) && (Holdings(x.Self) < Knob(x, "econN", 8) && x.Self.TurnsTaken <= Knob(x, "econT", Rule(x, "econT2") ? 2 : 4) || Rule(x, "econ2") && Holdings(x.Self) < 10)
+            && !(Rule(x, "econctx") && Contested(x)) && (Holdings(x.Self) < Knob(x, "econN", 8) && x.Self.TurnsTaken <= Knob(x, "econT", Rule(x, "econT2") ? 2 : 4) || Rule(x, "econ2") && Holdings(x.Self) < 10)
             && !(Rule(x, "body1") && Personalities(x.Self) == 0 && x.Self.TurnsTaken >= 2 && ProvinceCards(x).Any(c => c.Definition!.Type == CardType.Personality && EffectiveCost(x, c) <= Ready(x))))
             return SlateBonus + 50 + 5 * (bought.GoldProduction - bought.GoldCost) + score * 0.0001;
         if (Rule(x, "econ") && action.Type == "discardProvince" && x.Card(command.CardId)?.Definition is { } kept)
@@ -369,6 +369,18 @@ public static partial class TrainingOpponent
     }
 
     /// <summary>threatbody: the opponent has more Personalities and their whole unit Force beats the bot's plus its weakest Province's Strength.</summary>
+    /// <summary>econctx: a Personality now matters more than a Holding: the opponent's whole army (all of it straightens) beats the bot's whole army on its weakest Province, so a
+    /// Province falls next turn unless bodies arrive; or the bot's army is short of razing the opponent's weakest Province, and the best Personality it can afford closes the gap.</summary>
+    private static bool Contested(Ctx x)
+    {
+        var theirs = UnitCards(x.Opponent).Sum(c => UnitForceOf(x, c)); var mine = UnitCards(x.Self).Sum(c => UnitForceOf(x, c));
+        var weakest = x.Self.Provinces.Where(p => !p.Destroyed).Select(p => p.Strength).DefaultIfEmpty(0).Min();
+        if (theirs > mine + weakest) return true;
+        var target = x.Opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Strength).DefaultIfEmpty(int.MaxValue).Min();
+        var gap = target + theirs - mine; var ready = Ready(x);
+        return gap > 0 && ProvinceCards(x).Any(c => c.Definition!.Type == CardType.Personality && EffectiveCost(x, c) <= ready && Math.Max(0, c.Definition.Force) >= gap);
+    }
+
     private static bool Threatened(Ctx x)
     {
         if (Personalities(x.Self) >= Personalities(x.Opponent)) return false;
