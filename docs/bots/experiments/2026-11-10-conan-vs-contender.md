@@ -58,3 +58,34 @@ This block is fresh: no arm has used it.
 The value-model training data comes from 1,456 Contender games on blocks 8000–8003 (`L5R_TOURN_SNAP`). Those blocks are not used for evaluation.
 
 ## Results below this line
+
+### Block 7200 results (2026-11-11)
+
+The Contender A/A on this block scored 52.7% (192–172). The value-model export (blocks 8000–8003, Contender against Contender) scored 49.7% over 1,456 games, with no stalls. Three arms ran at a time, so thinking times run high.
+
+| Arm | Settings | Win rate vs Contender | Net vs A/A | Net vs `p72` | Search median / p90 / p99 | Thinking per game (mean / max) |
+| --- | --- | --- | --- | --- | --- | --- |
+| `p72` | `vc-plan` (4 worlds, no anytime) | 73.4% | +75 | — | 1.3 / 4.0 / 10.0 s | 53 / 302 s |
+| `s72-n1` | + `lkAny,lkN=1` | 72.0% | +70 | −5 | 0.7 / 2.1 / 6.4 s | 29 / 258 s |
+| `s72-n2` | + `lkAny,lkN=2` | 74.7% | +80 | +5 | 1.4 / 4.0 / 10.0 s | 53 / 373 s |
+| `s72-n4` | + `lkAny` (4 worlds) | 74.2% | +78 | +3 | 2.7 / 8.3 / 10.1 s | 100 / 418 s |
+| `s72-n8` | + `lkAny,lkN=8` | **76.9%** | +88 | **+13 (p = .024)** | 4.6 / 10.0 / 10.1 s | 148 / 583 s |
+| `s72-n16` | + `lkAny,lkN=16` | 76.9% | +88 | +13 (p = .024) | 7.3 / 10.0 / 10.1 s | 188 / 801 s |
+| `o72` | oracle: the real match, `lkN=1,lkK=5` (a diagnostic, not a player) | **84.1%** | +114 | — | 0.4 / 1.4 / 5.4 s | 19 / 371 s |
+
+Reading:
+- **The number of worlds scales strength, but only a little.** One world is already 72% against the Contender, and 8 worlds reach 77%. Above 8 nothing more is gained: `s72-n16` hit the 10 s limit on 36% of its searches (3,692 of 10,124), so it really decided on about 8–10 worlds. The 8- and 16-world arms differ on 20 games, with the same net.
+- **As a difficulty slider, worlds alone span about 5 points against the Contender** (72% to 77%), at 6× the thinking time. That is too narrow to be a slider on its own. The larger steps come from the bot rungs and from which decisions are searched (`lkPlan` was +30). A slider would combine these. `docs/bots/ROADMAP.md` tracks that.
+- **The oracle bounds what better sampling can gain.** With perfect knowledge of hidden cards, Conan wins 84%, about 10 points above the sampled bot. Even a perfect information model leaves 16% of games lost. The rest of the gap to 80% has to come from the candidates and the evaluation, not from the sampler.
+- `lkAny` alone (`s72-n4` against `p72`) changed only 9 games (+3).
+
+## Block 7300 ×1: `lkVal` screen. Pre-registered
+
+The value model was fitted on the Dynasty-phase snapshots of blocks 8000–8003 (`ValueModel.Weights`). On held-out games it predicts the winner in 65.8% of positions (log-loss 0.576, against 0.693 for a constant guess).
+
+Arms on this block, compared with `p73` (`vc-plan`'s settings):
+- `v73`: + `lkVal`
+- `v73-n8`: + `lkVal,lkAny,lkN=8`
+- `n73-n8`: + `lkAny,lkN=8`, which repeats the 7200 result on a second block
+
+An arm goes forward when it is net +8 or better, with no soundness finding and no deck collapse.

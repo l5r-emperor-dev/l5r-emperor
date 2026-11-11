@@ -33,8 +33,10 @@ public static class ValueModel
         return [.. f];
     }
 
-    /// <summary>Fitted weights, one per feature (tools/bots/fit_value.py). All zero until a fit is pasted in.</summary>
-    public static double[] Weights { get; set; } = new double[Names.Length];
+    /// <summary>Fitted weights, one per feature, by tools/bots/fit_value.py on the Dynasty-phase snapshots (the first state after an attack) of 1,456 Contender games,
+    /// blocks 8000-8003 (2026-11-11): validation log-loss 0.576 against 0.693 for a constant, the winner predicted in 65.8% of positions.</summary>
+    public static double[] Weights { get; set; } =
+        [-0.2122, 0.0000, 0.4243, 0.1363, 0.6388, -0.0078, 0.1854, 0.3117, 0.1307, 0.1206, 3.0312, -0.8757, 0.0901, 0.0516, -0.6388, 0.0078, -0.1854, -0.3117, -0.1307, -0.1206, -3.0312, 0.8757, -0.0901, -0.0516];
 
     /// <summary>The log-odds that the viewer wins.</summary>
     public static double Logit(MatchView view)
