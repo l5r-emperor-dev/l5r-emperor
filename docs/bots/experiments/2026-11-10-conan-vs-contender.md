@@ -187,3 +187,29 @@ Reference `r77` = `r75`'s settings. Arms (each + `lkAny`; the `lkB=2000` also pa
 - `kb77`: + `lkBuy,lkK=5`
 
 An arm goes forward at net +8 or better. The best goes to an SPRT and the Tier 3 confirmation.
+
+### Block 7700 results (2026-11-11): `lkBuy` with `lkK=5` is the new best
+
+`r77` won 67.9% against the Contender.
+
+| Arm | Win rate | Net vs `r77` | p (two-sided) | Search median / p90 | Thinking per game (mean / max) |
+| --- | --- | --- | --- | --- | --- |
+| `r77` | 67.9% | — | — | 1.3 / 3.8 s | 52 / 408 s |
+| `all77` (+ `lkAct,lkBuy,lkK=5`) | 73.4% | **+20** (52–32) | .038 | 3.1 / 11.0 s | 315 / 3,013 s |
+| `ab77` (+ `lkAct,lkBuy`) | 71.4% | +13 (49–36) | .19 | 2.8 / 9.5 s | 283 / 2,558 s |
+| `kb77` (+ `lkBuy,lkK=5`) | 74.7% | **+25** (54–29) | .008 | 3.8 / 11.8 s | 234 / 2,431 s |
+
+All three pass the +8 screen, and `kb77` is the best. Adding `lkAct` to it (`all77`) costs 81 s a game and gains nothing. Across 7600 and 7700, searching purchases and searching more candidates each add about +15 net, and together about +25. `lkAct` is dropped.
+
+**Change to the plan.** At about 75%, `kb77` would fail the 80% Tier 3 claim, and Tier 3 costs about 2,200 Conan games at 4 minutes of thinking each. So Tier 3 waits for a candidate that screens at 80% or better. The SPRT continues on fresh blocks: block 7800's `k78` against `r78` is its first chunk.
+
+## Block 7800 ×1: economy or bodies, by the table. Pre-registered
+
+Reference `r78` = `r77`'s settings (`PB`). `K` = `PB` + `lkAny,lkBuy,lkK=5` (`kb77`'s settings without the ineffective `lkB=2000`). Arms:
+- `k78`: `K`. Compared with `r78`, this is the first SPRT chunk for `K` (p1 0.6, α = β = 0.05).
+- `mix78`: `K` + `lkMix,lkDedup,lkBH=4` (the best Holding and the best Personality are always among the purchases searched, and purchase playouts run 4 turns ahead).
+- `ec78`: `K` + `econctx` (in Conan's own rules and its playouts, the Contender's economy-first purchase gives way when the table is contested).
+
+`mix78` and `ec78` are compared with `k78` on the same games, and go forward at net +8 or better.
+
+Contender screen (Contender against the default Contender, the same block): `c78` = `T2`, `cx78` = `T2,econctx`. `econctx` goes forward for the Contender at net +8 or better. It becomes a Moderate default only with Mendon's approval.
