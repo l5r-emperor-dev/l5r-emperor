@@ -107,7 +107,9 @@ public static partial class TrainingOpponent
         if (Rule(x, "bodyfirst") && action.Type == "purchase" && x.Card(command.CardId)?.Definition is { Type: CardType.Holding } && Holdings(x.Self) >= Knob(x, "bfH", 3)
             && ProvinceCards(x).Any(c => c.Definition!.Type == CardType.Personality && EffectiveCost(x, c) <= Ready(x)))
             return Math.Min(score, 60);
-        if (Rule(x, "econ") && action.Type == "purchase" && x.Card(command.CardId)?.Definition is { } bought && FairHolding(x, bought) && !(Rule(x, "threatbody") && Threatened(x)) && (Holdings(x.Self) < Knob(x, "econN", 8) && x.Self.TurnsTaken <= Knob(x, "econT", Rule(x, "econT2") ? 2 : 4) || Rule(x, "econ2") && Holdings(x.Self) < 10)
+        // lkPosture: under the bodies posture (Defend) the economy-first rule stands aside; the posture's own preference decides.
+        if (Rule(x, "econ") && action.Type == "purchase" && x.Card(command.CardId)?.Definition is { } bought && FairHolding(x, bought) && !(Rule(x, "threatbody") && Threatened(x))
+            && !(x.Memory.Posture is { Intent: not PlanIntent.Develop } posture && x.View.TurnNumber <= posture.Until) && (Holdings(x.Self) < Knob(x, "econN", 8) && x.Self.TurnsTaken <= Knob(x, "econT", Rule(x, "econT2") ? 2 : 4) || Rule(x, "econ2") && Holdings(x.Self) < 10)
             && !(Rule(x, "body1") && Personalities(x.Self) == 0 && x.Self.TurnsTaken >= 2 && ProvinceCards(x).Any(c => c.Definition!.Type == CardType.Personality && EffectiveCost(x, c) <= Ready(x))))
             return SlateBonus + 50 + 5 * (bought.GoldProduction - bought.GoldCost) + score * 0.0001;
         if (Rule(x, "econ") && action.Type == "discardProvince" && x.Card(command.CardId)?.Definition is { } kept)

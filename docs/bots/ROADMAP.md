@@ -68,6 +68,21 @@ The measurement:
 
 A slider is worth building only if win rate rises monotonically with a usable spread. The UI would need a decision (Mendon's lane, with Alfredo for the client).
 
+## Reading the opponent: rush or out-develop (Mendon, 2026-11-11)
+
+Mendon's example, from a game against Allan. Allan's Lion brought out Akodo Suoh on turn 1, equipped Dual Warfans on turn 2 and attacked. Mendon's Scorpion held Heavily Engaged: he waited for Allan's Tactical action, then bowed Suoh. He had judged that he could absorb the rush, so he kept investing in his economy, and he out-developed Allan with Personalities. Without the answer in hand he would have bought a Personality to match. With a very strong economic opening he might have conceded the first Province and still expected to win the race.
+
+What a bot needs for this, card-agnostically and without hidden information:
+1. **The posture as a decision searched by playing it forward** (`lkPosture`, opt-in, built 2026-11-11). At each Dynasty phase up to turn `lkPmax` (10), Conan plays each posture out `lkPH` turns on `lkPN` redealt worlds and keeps the better one:
+   - economy (Develop: Holdings first; the tuned `econ` rule stays);
+   - bodies (Defend: Personalities first; `econ` stands aside).
+   
+   The playouts use Conan's real hand (an answer like Heavily Engaged gets played if it works) and the opponent's real board (their rush). Hidden cards come from the sampler, as everywhere else. The score counts each Holding's Gold production `lkPG` (3) times, so an economy lead is worth something at the horizon. Nothing in it names a card.
+2. **Reading intentions from what the opponent did** (not built). The sampler redeals the opponent's hidden cards uniformly. A player infers from behaviour: attacking a lone Personality into an open board suggests a held Battle action. A belief-weighted sampler would keep or weight each redealt world by how likely the opponent's observed choices were in it, judged by the Contender's policy. The oracle diagnostic (84% against 74%) bounds what better beliefs can give.
+3. **The race estimate behind the posture:** each side's Gold per turn, Personalities in play and Force threatened against Province strength, over the next few turns. The playouts above compute this implicitly; an explicit version would be cheaper and could be shown to a player.
+
+A regression for this belongs with item 1. In a fixed position (an early rush against a hand with an answer), the posture should change with and without the answer in hand.
+
 ## Still open
 
 - **Conan is not in the game yet.** It is not wired into practice or rooms: the client supplies no sampler. Shipping it needs a server-side sampler for the bot's seat and a decision on its thinking time.

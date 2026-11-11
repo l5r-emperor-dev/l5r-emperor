@@ -69,6 +69,7 @@ public static partial class TrainingOpponent
         var mine = TotalForce(self); var theirs = TotalForce(opponent);
         var dynasty = PhaseGroup(x.View.Phase) == "dynasty";
         if (attack is not null) return (PlanIntent.Attack, attack.Why);
+        if (dynasty && Posture(x) is { } posture) return posture;
         // The Dynasty phase buys for NEXT turn: behind in material, buy bodies even if the race looks lost; far ahead, build the economy; otherwise buy toward the next attack.
         if (mine < theirs) return (PlanIntent.Defend, $"behind in Force ({mine} to {theirs}): bodies deter a counterattack");
         // pressahead (Mendon's games, 2026-11-09: well ahead, he kept buying Personalities and attacked with them): a lead is pressed with bodies, not banked in Holdings.
@@ -82,6 +83,15 @@ public static partial class TrainingOpponent
     // ---- the purchase slate -----------------------------------------------------------------------------------------------------------------------------------------
 
     private static double CardValue(Ctx x, CardView card, PlanIntent intent)
+    {
+        var def = card.Definition!; var cost = EffectiveCost(x, card);
+        // lkPosture: a posture is a clear preference, not a nudge: the economy posture (Develop) buys Holdings before Personalities, the bodies posture (Defend) the reverse.
+        if (x.Memory.Posture is { } posture && x.View.TurnNumber <= posture.Until && def.Type is CardType.Holding or CardType.Personality)
+            return CardValue(x, card, intent, raw: true) * ((def.Type == CardType.Holding) == (posture.Intent == PlanIntent.Develop) ? Knob(x, "lkPx", 3) : 1);
+        return CardValue(x, card, intent, raw: true);
+    }
+
+    private static double CardValue(Ctx x, CardView card, PlanIntent intent, bool raw)
     {
         var def = card.Definition!; var cost = EffectiveCost(x, card);
         var holdings = x.Self.Home.Count(c => c.Definition?.Type == CardType.Holding);

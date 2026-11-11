@@ -24,6 +24,9 @@ namespace L5R.AI;
 //   lkFar     with lkPlan, the attack's options are played out through the opponent's next attack, so units lost, Honor given away and the counter-attack count;
 //   lkIntent  playouts are scored for the plan's intent: under Develop the bot's own units count lkIw (1.5) times, under Attack the opponent's Provinces, under Defend its own;
 //   lkAct     an Action-phase move (outside battle: equipping, Holdings, other actions, passing) is searched too, played out through the end of this turn's attack;
+//   lkPosture at the Dynasty phase (to turn lkPmax, 10), the posture of the purchases (Develop: Holdings first; Defend: Personalities first, each preferred lkPx (3) times)
+//             is chosen by playing each out lkPH (3) turns on lkPN (3) samples, the bot buying under it every turn; the score counts each Holding's Gold production lkPG (3) times. Mendon, 2026-11-11: read the
+//             opponent's opening and decide whether to match a rush with Personalities or out-develop it, by what he threatens and what you hold to answer it;
 //   lkBuy     a Dynasty purchase is chosen by playing the best lkBK (3) purchases (or none) out on lkBN (3) samples through the bot's next attack; the score then also
 //             counts each Holding's Gold production lkG (3) times.
 public static partial class TrainingOpponent
@@ -268,13 +271,64 @@ public static partial class TrainingOpponent
         return Material(x, after) - before;
     }
 
+    /// <summary>Issue #1206 (lkPosture): the Dynasty intent, chosen once a turn by playing each intent out several turns on redealt samples. Card-agnostic: what the opponent's
+    /// opening threatens and what the bot's own hand can answer are not read from rules about cards; they come from playing the real cards forward.</summary>
+    private static (PlanIntent, string)? Posture(Ctx x)
+    {
+        if (x.Memory.Posture is { } set && x.View.TurnNumber <= set.Until) return (set.Intent, $"posture {set.Intent}");
+        if (x.Memory.Sampler is not { } sampler || !Rule(x, "look") || !Rule(x, "lkPosture") || x.View.TurnNumber > Knob(x, "lkPmax", 10)) return null;
+        PlanIntent[] intents = [PlanIntent.Develop, PlanIntent.Defend]; var sums = new double[intents.Length]; var rounds = 0;
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        var limit = DateTime.UtcNow.AddSeconds(Knob(x, "lkPT", 60)); var deadline = x.Memory.Deadline is { } cutoff && cutoff < limit ? cutoff : limit;
+        try
+        {
+            for (var s = 0; s < (int)Knob(x, "lkPN", 3); s++)
+            {
+                var seed = (ulong)x.View.Version * 1_000_003UL + (ulong)s * 7919UL + (ulong)x.View.ViewerId + 17UL;
+                var round = intents.Select(intent => PosturePlayout(x, sampler(seed), intent, deadline)).ToArray();
+                for (var i = 0; i < intents.Length; i++) sums[i] += round[i];
+                rounds++;
+            }
+        }
+        catch (BotDeadlineException) when ((x.Memory.Deadline is not { } game || DateTime.UtcNow < game) && rounds > 0) { }
+        catch (BotDeadlineException) when (x.Memory.Deadline is not { } game || DateTime.UtcNow < game) { return null; }
+        var best = Enumerable.Range(0, intents.Length).MaxBy(i => sums[i]);
+        x.Memory.ThinkMs.Add(clock.Elapsed.TotalMilliseconds);
+        x.Memory.LookLog.Add($"T{x.View.TurnNumber} posture {clock.Elapsed.TotalMilliseconds:0}ms {rounds} samples: {string.Join(" | ", intents.Select((p, i) => $"{p} {sums[i] / rounds:0.0}"))} -> {intents[best]}");
+        x.Memory.Posture = (intents[best], x.View.TurnNumber);
+        return (intents[best], $"posture search: {intents[best]}");
+    }
+
+    /// <summary>The value to the deciding seat of buying under <paramref name="intent"/> for lkPH turns on one redealt copy, the Contender playing both seats.</summary>
+    private static double PosturePlayout(Ctx x, MatchEngine game, PlanIntent intent, DateTime deadline)
+    {
+        var me = x.View.ViewerId; var until = x.View.TurnNumber + (int)Knob(x, "lkPH", 3);
+        var bots = new BotContext[2];
+        for (var seat = 0; seat < 2; seat++) bots[seat] = BotContext.Contender(rules: x.Memory.Rules.Where(r => r != "look"));
+        bots[me].Archetype = x.Memory.Archetype; bots[me].Posture = (intent, until);
+        bots[0].Deadline = bots[1].Deadline = deadline;
+        for (var n = 0; n < 6000 && game.WinnerId is null && game.TurnNumber <= until; n++)
+        {
+            if (DateTime.UtcNow > deadline) throw new BotDeadlineException("a posture playout ran past its deadline");
+            var seat = game.PendingChoicePlayerId ?? game.PriorityPlayerId;
+            var actions = game.QueryActions(seat);
+            if (!actions.Any(a => a.Enabled && a.Type is not ("concede" or "wait"))) { seat = 1 - seat; actions = game.QueryActions(seat); }
+            var decision = Choose(game.GetView(seat), actions, bots[seat]);
+            if (decision.Command is null) break;
+            if (!game.Execute(decision.Command).Accepted) bots[seat].NoteRejection(game.Version, decision.Command, null);
+        }
+        var after = game.GetView(me);
+        if (after.WinnerId is { } winner) return winner == me ? 1000 : -1000;
+        return Material(x, after, Knob(x, "lkPG", 3)) - Material(x, x.View, Knob(x, "lkPG", 3));
+    }
+
     /// <summary>The deciding seat's standing, card-agnostically: Provinces, the Gold and Force of what is in play, Honor and cards in hand, each side's minus the other's.
     /// With lkIntent the plan's intent weights it: Develop the bot's own units, Attack the opponent's Provinces, Defend the bot's own Provinces.</summary>
-    private static double Material(Ctx x, MatchView view)
+    private static double Material(Ctx x, MatchView view, double? economy = null)
     {
         double province = Knob(x, "lkP", 12), unit = Knob(x, "lkU", 1), honor = Knob(x, "lkH", 1.5), card = Knob(x, "lkC", 1.5);
         var intent = Rule(x, "lkIntent") ? x.Plan?.Intent : null; var lean = Knob(x, "lkIw", 1.5);
-        var gold = Knob(x, "lkG", Rule(x, "lkBuy") ? 3 : 0); // a purchase's worth includes the economy it buys; a battle rarely changes Holdings
+        var gold = economy ?? Knob(x, "lkG", Rule(x, "lkBuy") ? 3 : 0); // a purchase's worth includes the economy it buys; a battle rarely changes Holdings
         // lkPS: a Province is worth more the fewer remain (losing the last of four costs four times the first); lkHS: each point of Honor past lkHT (30) counts lkHx (3) more, as the Honor win nears.
         var scarce = Rule(x, "lkPS"); var steep = Rule(x, "lkHS"); double threshold = Knob(x, "lkHT", 30), extra = Knob(x, "lkHx", 3);
         double Provinces(int n) => scarce ? Enumerable.Range(1, n).Sum(k => 4.0 / k) : n;
