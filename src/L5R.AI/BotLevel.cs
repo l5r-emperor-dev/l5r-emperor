@@ -7,13 +7,6 @@ public static class BotLevels
 {
     public static string Label(this BotLevel level) => level switch { BotLevel.Easy => "Easy", BotLevel.Moderate => "Moderate", _ => "Hard" };
 
-    public static string Describe(this BotLevel level) => level switch
-    {
-        BotLevel.Easy => "The Champion: plays sensibly, quickly.",
-        BotLevel.Moderate => "The Contender: plans its turn and spends well.",
-        _ => "Conan: also plays out its battles ahead. It can take several seconds to decide."
-    };
-
     /// <summary>A fresh memory for one match at this level. Hard only searches once the caller sets <see cref="BotContext.Sampler"/> (see <see cref="NeedsSampler"/>).</summary>
     public static BotContext NewMemory(this BotLevel level) => level switch { BotLevel.Easy => new BotContext(), BotLevel.Moderate => BotContext.Contender(), _ => BotContext.Hard() };
 

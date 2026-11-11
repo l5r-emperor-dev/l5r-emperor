@@ -41,9 +41,10 @@ public partial class PracticeSetupProbe : Node
             File.Delete(_screen.Choices[0].Path!); Click(_screen.StartButton); await Wait(.3); Check(!_started && _screen.StartButton.Disabled, "deleted selected file is revalidated before launch"); await Capture("C-missing-file");
             _screen.Browse(0); _screen.Select(PracticeSetupScreen.Preset("Crane")); _screen.ShowSetup(); await Wait(.3);
             // Issue #1214: the opponent's difficulty starts Easy (the Champion, as before), is chosen on the setup page with three buttons, and says what each level is.
-            Check(_screen.Difficulty == BotLevel.Easy && new[] { "Easy", "Moderate", "Hard" }.All(t => Walk(_screen).OfType<Button>().Any(b => b.Text == t)), "setup offers Easy, Moderate and Hard, Easy first");
-            Click(Button("Moderate")); await Wait(.2); Check(_screen.Difficulty == BotLevel.Moderate, "Moderate chosen"); Click(Button("Hard")); await Wait(.2); Check(_screen.Difficulty == BotLevel.Hard, "Hard chosen");
-            Check(Walk(_screen).OfType<Label>().Any(l => l.Text == BotLevel.Hard.Describe()), "the chosen level is described"); await Capture("A-hard");
+            Check(_screen.Difficulty == BotLevel.Easy && Enumerable.Range(0, _screen.DifficultyMenu.ItemCount).Select(i => _screen.DifficultyMenu.GetItemText(i)).SequenceEqual(["Easy", "Moderate", "Hard"]), "one drop-down offers Easy, Moderate and Hard, Easy first");
+            await Capture("A-closed"); Check(!Walk(_screen).OfType<Label>().Any(l => l.Text.Contains("Champion") || l.Text.Contains("Contender") || l.Text.Contains("Conan")), "no internal bot name is shown");
+            Click(_screen.DifficultyMenu); await Wait(.5); await Capture("A-dropdown"); Check(_screen.DifficultyMenu.GetPopup().Visible || _screen.DifficultyMenu.ButtonPressed, "clicking the drop-down opens its list");
+            _screen.DifficultyMenu.GetPopup().Hide(); _screen.DifficultyMenu.Select(2); _screen.DifficultyMenu.EmitSignal(OptionButton.SignalName.ItemSelected, 2); await Wait(.3); Check(_screen.Difficulty == BotLevel.Hard, "Hard chosen from the list"); await Capture("A-hard");
             Click(_screen.StartButton); await Wait(.3);
             Check(_started && session.Snapshot?.View.Scenario == CustomPractice.Scenario, "native Start creates selected custom match"); Check(session.Snapshot!.View.ViewerId == 0 && session.Snapshot.View.Players[0].Name == "Practice reviewer", "player seat and name preserved");
             // The last choices are remembered from session to session: a preset for one side, a saved deck for the other; a deck that has since gone falls back to the default.
