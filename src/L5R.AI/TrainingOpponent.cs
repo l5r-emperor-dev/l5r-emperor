@@ -22,6 +22,7 @@ public static partial class TrainingOpponent
         if (view.WinnerId is not null) return new(null, "The match has finished.");
         // A seat waits unless the engine offers it something to do: a pending choice can belong to the player who does not hold priority (the province order, a reaction).
         if (view.ViewerId != view.PriorityPlayerId && !actions.Any(a => a.Enabled && a.Type is not ("concede" or "wait"))) return new(null, "Waiting for the other player's decision.");
+        CheckDeadline(memory);
         memory.Observe(view);
         if (memory.UsePlannerTriage) memory.NoteBattleActions(view); // issue #1185: what each performer has already used this turn
         var self = view.Players.Single(p => p.Id == view.ViewerId);

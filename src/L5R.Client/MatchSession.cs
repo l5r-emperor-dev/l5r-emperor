@@ -200,6 +200,43 @@ public sealed partial class MatchSession : IDisposable
         return false;
     }
 
+    // Issue #1214: a practice opponent that thinks for seconds (Hard plays its battles out ahead) decides on a private copy of the match in the background, so the table stays responsive. Its answer is
+    // used only if nothing has happened at the table meanwhile; otherwise it is dropped and the opponent decides again.
+    private Task<GameCommand?>? _thinking;
+    private MatchEngine? _thinkingEngine;
+    private long _thinkingVersion, _refusedVersion = -1;
+    private int _refusals;
+
+    /// <summary>True while a background decision of the practice opponent is running.</summary>
+    public bool OpponentThinking => _thinking is { IsCompleted: false };
+
+    /// <summary>One move of a slow practice opponent. Call it every frame: the first call starts a decision on a copy of the match (<paramref name="choose"/> gets that copy's view, actions and the copy
+    /// itself, which it may sample from, and runs on another thread); a later call, once the decision is ready and the match is unchanged, plays it. Refusals go to <paramref name="refused"/> and the opponent
+    /// chooses again, up to a dozen times at one position, as in <see cref="StepPracticeOpponent"/>. Returns true when a move was played.</summary>
+    public bool StepPracticeOpponentAsync(Func<MatchView, ActionOption[], MatchEngine, GameCommand?> choose, Action<GameCommand, string?, long> refused)
+    {
+        if (_engine is null || _tutorial is not null || Online || _engine.WinnerId is not null || _engine.PriorityPlayerId == _localSeat) { _thinking = null; return false; }
+        var opponent = 1 - _localSeat;
+        if (_thinking is null)
+        {
+            if (_engine.Version != _refusedVersion) { _refusedVersion = -1; _refusals = 0; }
+            if (_refusals >= 12) { Notice?.Invoke("The practice opponent could not act."); _refusals = 0; return false; }
+            var copy = _engine.Clone(); var view = copy.GetView(opponent); var actions = copy.QueryActions(opponent);
+            _thinkingEngine = _engine; _thinkingVersion = view.Version;
+            _thinking = Task.Run(() => choose(view, actions, copy));
+            return false;
+        }
+        if (!_thinking.IsCompleted) return false;
+        var task = _thinking; _thinking = null;
+        if (task.IsFaulted || !ReferenceEquals(_thinkingEngine, _engine) || _engine.Version != _thinkingVersion || task.Result is not { } command) return false;
+        var result = _engine.Execute(command);
+        if (result.Accepted) { _refusals = 0; RefreshLocal(); return true; }
+        if (_engine.Version != _refusedVersion) { _refusedVersion = _engine.Version; _refusals = 0; }
+        _refusals++;
+        refused(command, result.Error, _thinkingVersion);
+        return false;
+    }
+
     /// <summary>Core never asks a player who holds no Reaction to pass once a Reaction has resolved or the other player has passed (issue #644): the window is handed on or closed
     /// there, online and solo alike (the small timing leak that costs was accepted for the proclaim and entry windows in #639/#644). A window can still open on a player whose only
     /// option is the pass (Core does not decide that at the opening). Against a real opponent that pass is explicit, as bluffing is part of the game; solo against the practice bot

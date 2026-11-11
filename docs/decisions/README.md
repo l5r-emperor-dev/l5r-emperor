@@ -119,3 +119,5 @@ interpretation this register's decision docs already settled.
 - [No deck counts; generic hidden-card refusals](2026-10-13-no-deck-counts.md) — current Dynasty/Fate deck sizes are hidden from both seats (protocol 4); a request naming a hidden card gets one fixed error.
 
 - [Action resolution area (#917)](2026-10-13-action-resolution-area.md) — accepted and built (Phase 1, Strategies and Rings): a played card leaves the hand for Zone.Resolving at announcement, public to both seats, shown in MatchView.ResolutionArea; the Attack/Duel stopgap stays.
+
+- [Practice difficulty](2026-11-11-practice-difficulty.md) — Easy is the Champion, Moderate the Contender, Hard Conan in its best-measured state; Hard decides off the UI thread on a copy of the match.

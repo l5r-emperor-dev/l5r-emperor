@@ -29,6 +29,14 @@ A single "confidence" number cannot capture those decisions. Conan does not try.
   - `lkAtk` and `lkDef`: also search the decision to attack and the choice of defenders;
   - `lkOpp`: model the other seat as the Champion in playouts;
   - `lkP`, `lkU`, `lkH`, `lkC`: the score's weights.
+  - `lkT`: a search's time limit in seconds (10). Past it, the search is abandoned and the Contender's own choice stands, so a player never waits longer than that on one decision.
+  - `lkVar`: with `lkDef`, also compare a few defence shapes.
+  - `lkAny`: anytime search. At the time limit, decide on the samples every candidate has completed instead of abandoning the search.
+  - `lkVal`: score the end of a playout by the learned win chance of `ValueModel` (fitted by `tools/bots/fit_value.py` from `L5R_TOURN_SNAP` exports) instead of the material score.
+  - `lkFar`: with `lkPlan`, play the attack's options through the opponent's next attack.
+  - `lkPS`, `lkHS`: Provinces worth more as fewer remain; Honor worth more near the win.
+  - `lkDedup`: a move offered twice is searched once.
+  - `lkPlan`, `lkIntent`, `lkBuy`: plan-driven search (attack chosen by search and then followed; intent-weighted scoring; purchases played out through the next attack). See `docs/bots/experiments/2026-11-10-conan-tuning.md`.
 
 ## Results against the Champion
 
@@ -54,8 +62,15 @@ L5R_TOURN_BUDGET=20 tools/bots/par.sh 7100 1 <baseline> 1 "conan=$(tr -d '\n' < 
 
 You can also use the `conan` arm, which takes extra rules from `L5R_C2` when set.
 
+## Speed and safety
+
+- The engine remembers repeated Gold quotes within one action query, which made playouts about 25% faster with identical action lists.
+- Two of the Contender's own searches were exponential and could stall a decision for minutes or hours: the cavalry last stand and the purchase planner's payment check. Both now finish in moments (regression tests `cavalry-defense/LastStandIsBounded` and `planner/ManySources`).
+- In the arena, `L5R_TOURN_BUDGET` is also a hard per-game cutoff, checked inside decisions. A killed game is logged with where it was.
+
 ## Limits
 
-- Conan runs only bot-vs-bot. The practice opponent and rooms do not supply a sampler, so their bots are unchanged.
+- Conan plays people only as the **Hard** practice level (`docs/decisions/2026-11-11-practice-difficulty.md`, `BotContext.Hard()`), where the client supplies a sampler made from a copy of the match and decides off the UI thread. Rooms do not supply a sampler, so their bots are unchanged.
 - A sampled copy can occasionally reach an engine state the real match would not. `ValidateAbilityResult` then throws. That playout counts as neutral and the real game is unaffected.
+- **The sampler knows the other player's decklist.** `Sample` reshuffles the real multiset of hidden faces, so across samples Conan effectively knows which cards are in a person's hand and Fate deck and Dynasty deck and Provinces, though never which is where. A human opponent would not reveal that. Accepted for bot-vs-bot measurement, and for the Hard practice level by Mendon's decision of 2026-11-11; a blind sampler (`lkBlind`) has not been measured.
 - Playouts use fresh Contender memories, so they forget the cards seen and the abilities spent earlier in the match.

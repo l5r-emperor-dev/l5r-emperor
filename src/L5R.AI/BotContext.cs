@@ -74,11 +74,22 @@ public sealed class BotContext
     /// <summary>Conan (issue #1206): the Contender with battle lookahead (TrainingOpponent.Lookahead.cs). It searches only when the caller also supplies <see cref="Sampler"/>.</summary>
     public static BotContext Conan(IEnumerable<string>? rules = null) => Contender(rules: [.. rules ?? TunedRules, .. ConanRules]);
     public static readonly string[] ConanRules = ["look"];
+    /// <summary>Issue #1214: what Conan plays with for a person: the Contender's tuned rules plus <c>look</c> and the searches of the defence, its shapes and the planned attack (lkDef, lkVar, lkPlan), the best-measured
+    /// state (71-73% against the Contender on blocks 7000, 7200 and 7300; docs/bots/experiments/2026-11-10-conan-vs-contender.md). Experimental rules stay off. The caller must still supply <see cref="Sampler"/>.</summary>
+    public static readonly string[] HardRules = ["lkDef", "lkVar", "lkPlan"];
+    public static BotContext Hard() => Conan(rules: [.. TunedRules, .. HardRules]);
     /// <summary>Issue #1206: a copy of the match with every card hidden from this seat redealt (MatchEngine.Sample), for a given seed; null: no lookahead. The caller supplies it, so the bot
     /// still never reads the real match: what it plays forward is a world consistent with its own view.</summary>
     public Func<ulong, MatchEngine>? Sampler { get; set; }
     /// <summary>Issue #1206: one line per lookahead decision (the candidates' values and the choice), for reviewing games.</summary>
     public List<string> LookLog { get; } = [];
+    /// <summary>Issue #1206 (lkPlan): the attack the search chose at this turn's attack declaration (the infantry assignment and its shape's name); the infantry declaration carries it out.</summary>
+    internal (int Turn, Dictionary<string, int> Assignment, string Label)? PlannedAttack { get; set; }
+    /// <summary>Issue #1206: past this moment the bot abandons the decision it is making and throws <see cref="BotDeadlineException"/> (the arena's per-game cutoff, and a search's own time limit
+    /// inside its playouts). Null: no limit.</summary>
+    public DateTime? Deadline { get; set; }
+    /// <summary>Issue #1206: the wall time, in milliseconds, of each lookahead search this seat made: the thinking a player waits for.</summary>
+    public List<double> ThinkMs { get; } = [];
     /// <summary>Issue #1185 tuning: the Contender's further rules, each named and switched on separately (see TrainingOpponent.Contender2.cs). Empty: none.</summary>
     public HashSet<string> Rules { get; init; } = new(StringComparer.Ordinal);
     public bool Has(string rule) => Rules.Contains(rule);
@@ -278,3 +289,6 @@ public sealed class BotContext
         }
     }
 }
+
+/// <summary>Issue #1206: thrown when a bot runs past <see cref="BotContext.Deadline"/>.</summary>
+public sealed class BotDeadlineException(string message) : Exception(message);

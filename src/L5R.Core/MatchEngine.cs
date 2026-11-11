@@ -38,6 +38,9 @@ public sealed partial class MatchEngine
     public int ActivePlayerId => _state.ActivePlayerId;
     public int PriorityPlayerId => _state.PriorityPlayerId;
     public bool HasPendingChoice => _state.PendingChoice is not null;
+    public int? PendingChoicePlayerId => _state.PendingChoice?.PlayerId; // issue #1206: a lookahead playout picks the seat to ask without building a view
+    public Phase Phase => _state.Phase;
+    public int TurnNumber => _state.TurnNumber;
     public static MatchEngine CreateStarterMatch(ulong seed = 20260906) => Create(seed, "starter");
     public static MatchEngine CreateEconomyScenario(ulong seed = 20260906) => Create(seed, "economy");
     public static MatchEngine CreatePublishedMatch(ulong seed = 20260906) => Create(seed, PublishedContent.Scenario);

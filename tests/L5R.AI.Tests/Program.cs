@@ -285,6 +285,7 @@ runner.Run("bodies-first", BodiesFirstTests.Tests); // issue #963: bot loop roun
 runner.Run("planner", PlannerTests.Tests); // issue #1185: the turn-planning bot
 runner.Run("triage", TriageTests.Tests); // issue #1185 slice 3: ability triage
 runner.Run("challenge-guard", ChallengeGuardTests.Tests); // issue #1203: no challenge to a higher duel stat
+runner.Run("bot-level", BotLevelTests.Tests); // issue #1214: practice difficulty (Easy Champion, Moderate Contender, Hard Conan)
 runner.Run("informed-defense", InformedDefenseTests.Tests); // issue #963: bot loop round 2
 runner.Run("seppuku", SeppukuTests.Tests); // issue #963: bot loop round 1
 runner.Run("michi-stall", MichiStallReplayTests.Tests); // issue #967

@@ -1,4 +1,5 @@
 using Godot;
+using L5R.AI;
 using L5R.Core;
 namespace L5R.Client;
 
@@ -11,6 +12,14 @@ public partial class Main
         _practiceLayer?.QueueFree(); _practiceLayer = null;
         _opponentClock = 0;
         if (!MenuVisible) Render();
+    }
+    /// <summary>Issue #1214: one decision of the Hard opponent, on a worker thread. <paramref name="copy"/> is a private copy of the match: the sampler redeals every card hidden from the bot's seat on it, so the bot
+    /// reasons about worlds consistent with what it could see, never the real hidden cards. A failure plays the Champion's move instead, so the opponent always acts.</summary>
+    private static GameCommand? ChooseHard(MatchView view, ActionOption[] actions, MatchEngine copy, BotContext memory)
+    {
+        if (view.PendingDuel is not null) return DuelOpponent.Choose(view, actions);
+        try { memory.Sampler = seed => copy.Sample(view.ViewerId, seed); return TrainingOpponent.Choose(view, actions, memory).Command; }
+        catch (Exception e) when (e is not OutOfMemoryException) { GD.PushWarning("Hard opponent fell back to the Champion: " + e.Message); return TrainingOpponent.Choose(view, actions, new BotContext()).Command; }
     }
     private void ShowPracticeSetup()
     {
@@ -27,7 +36,7 @@ public partial class Main
                 try
                 {
                     // Core validates before the active session is disconnected.
-                    _session.StartCustomPractice(your, opponent); _session.AllowIdleBattlePasses();
+                    _session.StartCustomPractice(your, opponent); _session.AllowIdleBattlePasses(); _botLevel = screen.Difficulty; _botMemory = null;
                     ResetMatchPresentation(); _autoOpponent = true; ClosePracticeSetup(); EnterTable();
                 }
                 catch (ArgumentException e) { var (dialog, body) = Dialog("Deck needs attention", 660, 380); body.AddChild(Palette.Wrapped(e.Message, 22)); }
