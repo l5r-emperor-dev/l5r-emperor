@@ -1,9 +1,9 @@
 {
   "lane": "shared",
-  "summary": "Conan tuning: engine Gold-quote memo within one action query (QueryScope, verified by L5R_VERIFY_QUERY_SCOPE); lookahead knobs lkDef, lkVar, lkPlan, lkIntent, lkBuy, lkT (10 s search limit, Contender choice stands); arena per-game cutoff via BotContext.Deadline with killed-game logs, stuck-game watchdog, one-game-at-a-time workers; carries the #1211 stall fixes (cavalry reach, Payable).",
-  "validation": "bash tools/check.sh --skip-client passed (before the zero-cost Payable guard, which restores the old behaviour); action-list hash identical before/after the quote memo; arena results in docs/bots/experiments/2026-11-10-conan-tuning.md (lkVar +4/+3; lkPlan +3, lkIntent -3, lkBuy -10, all n.s.); five longest games replayed before/after the stall fixes.",
-  "remaining": "No Conan setting made default (needs Mendon's approval: lkDef, lkVar). Next: merge main once #1212 lands; idle-machine thinking-time measurement; larger search budgets (lkN, lkK); lkPlan confirmation on 7100.",
+  "summary": "Conan (#1206): lkB work budget for searches (screens since block 7200 were biased by CPU contention against the wall-clock limit); opt-in lkShapes, lkVal (ValueModel), lkAny, lkDedup, lkPS/lkHS, lkFar; arena snapshot/oracle options; sprt.py and fit_value.py; replay probe for #1216 (Tomaru went home correctly: Lion held Tactical Assault).",
+  "validation": "Release/Debug builds 0 errors; arena blocks 7000-7400 recorded in docs/bots/experiments/2026-11-10-conan-vs-contender.md; block 7500 (fair, lkB=600) running; human-compare probe run on the #1216 replay.",
+  "remaining": "Block 7500 results; continue toward 80% vs Contender per CONAN_CAMPAIGN_BRIEF (purchases/development, larger budgets); Toth-Amon after. No defaults changed.",
   "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
   "branch": "claude/1206-conan-tuning",
-  "updated": "2026-11-10T17:45:32.284285+00:00"
+  "updated": "2026-11-11T12:25:25.900002+00:00"
 }
