@@ -324,3 +324,14 @@ The block 8200 run was stopped partway, at Mendon's direction: "It doesn't seem 
 The first `guard` screen changed no game. The Contender does not use the planner's attack (`PlannerAttack` is off), so `guard` now runs where the attack assignment is finalised, beside `deter`.
 
 **Why the reviews' counts did not become wins.** The review found 104 games in which a losing defence fed an Honor win, but `hgift` changed only 14. A review that compares the loser's decisions with the winner's mostly measures the position, not the decision: a side that is losing makes more losing defences. None of these rules is adopted. Historically, the rules that did gain came from Mendon's own decisions at real positions: `spreadwide` and `conf` from the battle grill (+24 and +19), and `selfplayer` through `raid` from his practice games (+13).
+
+## Block 8400 ×1: the baseline after merging main (2026-11-12)
+
+Run after merging `origin/main` (through #1220) into the branch, as the starting point for `docs/bots/CONAN_STRATEGY_BRIEF.md`. 364 games each, `L5R_TOURN_BUDGET=20`, opponent the frozen Contender (`T2`).
+
+| Arm | Rules | Won | Lost | Win rate |
+| --- | --- | --- | --- | --- |
+| `ca84` | `T2` (Contender A/A) | 192 | 172 | 52.7% |
+| `r84` | `PB` = `T2` + `look,lkDef,lkVar,lkPlan,lkB=600,lkT=60` | 271 | 93 | 74.5% |
+
+Compared on the same games, `r84` is net +79 against `ca84` (93 games gained, 14 lost). Conan is where it was on blocks 7800, 7900 and 8100 (72.7 to 74.5%): the merge changed nothing measurable.
