@@ -239,3 +239,33 @@ Reference `r79` = `PB`. Arms:
 - `b979`: `PB` with `lkB=900` + `lkAny,lkBuy,lkK=5`
 
 `k879` and `b979` are compared with `k79` and go forward at net +8 or better.
+
+### A review of `k78`'s 94 losses (2026-11-12, scripted over all games, 16 logs read)
+
+How the games were lost: 83 on Provinces, 8 on Honor, 3 on Dishonor. `r78` also lost 67 of them. In 30 of the 32 games `K` lost that `r78` won, the first move that differed was a purchase on turns 1–4.
+
+| Pattern | Losses | `r78` won the same game |
+| --- | --- | --- |
+| Lost the Province race: Conan ahead or level, and its last Provinces fell while its army was bowed from attacking | 32 | 10 |
+| Ahead at some point, then lost defending with units at home | 24 | 9 |
+| Out-developed: behind on Personalities and Force from turn 7 | 16 | 2 |
+| Lost to an Honor or Dishonor clock while ahead on Force | 11 | 4 |
+| Behind throughout | 11 | 0 |
+
+Two other measures:
+- **Undefended against an attack:** turns on which the opponent attacked with no Conan Personality left unbowed came to 205 for `K` and 158 for `r78`.
+- **Cards held in hand:** won and lost games held about the same number of battle tricks for four turns or more, so holding cards does not explain the losses.
+
+Changes that follow:
+- `lkFar` again, now with a work budget: it lost under the old time limit (block 7000).
+- A new `lkClock`: the Honor win is checked at the start of a turn, so a playout that ends the turn on 40 Honor is scored as that win; and when the opponent is projected to reach 40 within a round, only the Provinces and Honor taken from them count.
+- A replay of the Honor loss with `lkClock` (`Scottish Lion Deck` against `Crane preset`, seed 79500092): `lkClock` fires but does not change the game. Attacking gave the defender battle-won Honor and reached 40 sooner, so not attacking stayed best there. That game was lost earlier, through passivity on turns 10–14.
+
+## Block 8100 ×1: `lkFar` on a budget, and `lkClock`. Pre-registered
+
+Reference `r81` = `PB`. Arms:
+- `k81`: `K`, SPRT chunk 3
+- `far81`: `K` + `lkFar`
+- `clk81`: `K` + `lkClock`
+
+Each arm is compared with `k81` and goes forward at net +8 or better.

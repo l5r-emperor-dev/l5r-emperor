@@ -26,6 +26,8 @@ namespace L5R.AI;
 //   lkAct     an Action-phase move (outside battle: equipping, Holdings, other actions, passing) is searched too, played out through the end of this turn's attack;
 //   lkMix     with lkBuy, the best Holding and the best Personality on offer are always searched; lkBH: purchase playouts run lkBH (2) turns ahead (also lkFar's);
 //             lkBB: the budget of a search played through later turns (lkB times twice lkBH);
+//   lkClock   a playout that ends with the next player at 40 Honor is scored as that player's Honor win (it is checked at the start of their turn); and one that ends with the
+//             opponent within lkCl (1) rounds of 40 at the rate their Honor has climbed lately scores -lkCw (500) plus only the Provinces and Honor it took from them;
 //   lkBuy     a Dynasty purchase is chosen by playing the best lkBK (3) purchases (or none) out on lkBN (3) samples through the bot's next attack; the score then also
 //             counts each Holding's Gold production lkG (3) times.
 public static partial class TrainingOpponent
@@ -38,6 +40,7 @@ public static partial class TrainingOpponent
     private static (GameCommand Command, ActionOption Action)? LookAhead(Ctx x, (ActionOption Action, GameCommand Command, double Score)[] candidates)
     {
         if (x.Memory.Sampler is not { } sampler || !Rule(x, "look") || !Searched(x) || candidates.Length == 0) return null;
+        x.Memory.SeenHonor.TryAdd(x.View.TurnNumber, x.Opponent.Honor);
         if (x.View.Phase == Phase.InfantryDeclaration) return FollowAttackPlan(x, sampler, candidates);
         if (x.View.Phase == Phase.AttackDeclaration && Rule(x, "lkPlan")) return PlanAttack(x, sampler, candidates);
         var dynasty = x.View.Phase == Phase.Dynasty;
@@ -275,7 +278,24 @@ public static partial class TrainingOpponent
         // lkVal: the end state is scored as the learned chance of winning, in percent (ValueModel); a decided game is 100 or 0.
         if (Rule(x, "lkVal")) return after.WinnerId is { } decided ? decided == me ? 100 : 0 : 100 / (1 + Math.Exp(-ValueModel.Logit(after)));
         if (after.WinnerId is { } winner) return winner == me ? 1000 : -1000;
+        if (Rule(x, "lkClock") && Clock(x, after) is { } clock) return clock;
         return Material(x, after) - before;
+    }
+
+    /// <summary>lkClock: the Honor win a playout's end leads to before the bot can act again, or null. The player whose turn comes next wins at 40 Honor at its start;
+    /// beyond that, the opponent's Honor is projected at the rate it climbed over the last round or more the bot saw.</summary>
+    private static double? Clock(Ctx x, MatchView after)
+    {
+        var me = after.Players.Single(p => p.Id == after.ViewerId); var them = after.Players.Single(p => p.Id != after.ViewerId);
+        var next = after.ActivePlayerId == me.Id ? them : me;
+        if (next.Honor >= 40) return next == me ? 1000 : -1000;
+        var turn = x.View.TurnNumber; var seen = x.Memory.SeenHonor.Where(s => s.Key <= turn - 2).OrderByDescending(s => s.Key).Select(s => (int?)s.Key).FirstOrDefault();
+        if (seen is not { } from) return null;
+        var perRound = 2.0 * (x.Opponent.Honor - x.Memory.SeenHonor[from]) / (turn - from);
+        if (perRound <= 0 || them.Honor + perRound * Knob(x, "lkCl", 1) < 40) return null;
+        // the units a race costs do not matter; only what slows the opponent does: Provinces taken from them and Honor they lost
+        var was = x.Opponent;
+        return -Knob(x, "lkCw", 500) + Knob(x, "lkP", 12) * (was.Provinces.Count(p => !p.Destroyed) - them.Provinces.Count(p => !p.Destroyed)) + Knob(x, "lkH", 1.5) * (was.Honor - them.Honor);
     }
 
     /// <summary>The deciding seat's standing, card-agnostically: Provinces, the Gold and Force of what is in play, Honor and cards in hand, each side's minus the other's.
