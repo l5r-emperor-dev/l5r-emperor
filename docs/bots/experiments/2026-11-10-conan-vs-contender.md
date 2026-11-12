@@ -261,11 +261,26 @@ Changes that follow:
 - A new `lkClock`: the Honor win is checked at the start of a turn, so a playout that ends the turn on 40 Honor is scored as that win; and when the opponent is projected to reach 40 within a round, only the Provinces and Honor taken from them count.
 - A replay of the Honor loss with `lkClock` (`Scottish Lion Deck` against `Crane preset`, seed 79500092): `lkClock` fires but does not change the game. Attacking gave the defender battle-won Honor and reached 40 sooner, so not attacking stayed best there. That game was lost earlier, through passivity on turns 10–14.
 
-## Block 8100 ×1: `lkFar` on a budget, and `lkClock`. Pre-registered
+### Block 7900 results (2026-11-12): the SPRT rejects `K`
+
+`r79` won 72.7% against the Contender.
+
+| Arm | Win rate | Net | Thinking per game (mean) |
+| --- | --- | --- | --- |
+| `k79` (`K`) vs `r79` | 70.3% | −8 (32–40) | 232 s |
+| `k879` (`lkK=8`) vs `k79` | 70.4% | +1 (10–9) | 244 s |
+| `b979` (`lkB=900`) vs `k79` | 70.2% | 0 (2–2) | 235 s |
+
+- **The SPRT for `K`**, on the fresh blocks 7800 and 7900 (716 games): gained 64, lost 67, net −3. LLR −3.28 is below −2.94, so H0 is accepted: `K` is no better than `PB`.
+- **Why the screens misled:** the +15 to +25 in blocks 7600 and 7700 came from picking the best of three arms in each block on 364 games, where a net of ±10 is common.
+- **The lesson:** a screen's best arm needs the fresh-block SPRT before it is built on. `K` costs four times `PB`'s thinking for nothing, so later arms build on `PB` again.
+- **Budget and candidates:** `lkB=900` changed only 4 games, so the 600-decision budget is rarely what limits a search. `lkK=8` adds nothing over 5.
+
+## Block 8100 ×1: `lkFar` on a budget, and `lkClock`. Pre-registered (revised before any game was played: built on `PB`, not `K`)
 
 Reference `r81` = `PB`. Arms:
-- `k81`: `K`, SPRT chunk 3
-- `far81`: `K` + `lkFar`
-- `clk81`: `K` + `lkClock`
+- `far81`: `PB` + `lkAny,lkFar`
+- `clk81`: `PB` + `lkClock`
+- `fc81`: `PB` + `lkAny,lkFar,lkClock`
 
-Each arm is compared with `k81` and goes forward at net +8 or better.
+Each arm is compared with `r81` and goes forward at net +8 or better, then to an SPRT on fresh blocks before anything builds on it.
