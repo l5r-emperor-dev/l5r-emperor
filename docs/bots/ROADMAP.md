@@ -1,6 +1,26 @@
 # Bot development roadmap
 
-This is the long-running plan for the practice bots. It is the place to return to after a break: what each bot is for, where it stands, and what comes next. Experiment details live in `docs/bots/experiments/`; the method for the Conan campaign lives in `docs/bots/CONAN_CAMPAIGN_BRIEF.md`.
+This is the long-running plan for the practice bots. It is the place to return to after a break: what each bot is for, where it stands, and what comes next. Experiment details live in `docs/bots/experiments/`; the method for the Conan campaign lives in `docs/bots/CONAN_STRATEGY_BRIEF.md` (since 2026-11-12; it replaces the search-first strategy of `CONAN_CAMPAIGN_BRIEF.md`, whose test method it keeps).
+
+## The direction since 2026-11-12: a read of the game, then contextual rules
+
+Mendon, 2026-11-12: more thinking time is not producing better decisions; the bots need rules that are "more complex and contextual but not heavily computational", driven by "a plan that it executes on the fly that is constantly being updated by the changing information". The goal is unchanged (Conan at 80% against the frozen Contender) and extended: "I want the bar to be genuinely challenging" for skilled players, with licence "to actually rethink the Conan strategy from the ground up."
+
+Where Conan stands: 72.7 to 74.5% against the frozen Contender on three fresh blocks (7800, 7900, 8100), flat across five blocks of search work.
+
+What was prepared for the next stage (all under `docs/bots/`):
+
+| File | What it is |
+| --- | --- |
+| `CONAN_STRATEGY_BRIEF.md` | The operating brief for the model that does the work: the Read (effect descriptors, ledger, belief, exchange, posture), six steps with checkable completion criteria, the calibration gate, the test loop |
+| `strategy/PLAYER_MODEL.md` | How Mendon decides, mined from his eight replays, as nested rules with the turn behind each |
+| `strategy/RULE_FAMILIES.md` | Nine families of seed rules (attack, Cavalry, counter-attack, defence, battle, Dynasty, posture, reading the opponent, Favor and hand) |
+| `strategy/ARENA_BEHAVIOUR.md` | What the bots measurably do well and badly over 4,000 logged games; the behaviour profile |
+| `strategy/RULES_DIGEST.md`, `strategy/CODE_MAP.md` | The comprehensive rules as a bot needs them; the decision code as it stands |
+
+The order of work: instruments (a rule registry with fire counters, battle records, the decision test set), then the Read in shadow until its predictions beat the existing estimators on real battles, then one rule family at a time, then the question of where the lookahead belongs, then confirmation, then the human bar (agreement with Mendon's decisions, the behaviour profile, exploiter decks, his own playtests).
+
+Open for Mendon: a screenshot interview on Cavalry forcing and on the counter-attack at two Provinces or fewer (`strategy/PLAYER_MODEL.md` section 5); his games contain one Cavalry attack and no position where an empty home was punished.
 
 ## Improving the Contender too (Mendon, 2026-11-11)
 
@@ -38,7 +58,7 @@ Results against the Contender on block 7000 (364 games, compared on the same gam
 | + `lkPlan,clock` | 70.9% | −1 |
 | + `lkPlan,lkFar` | 69.2% | −7 (searches hit the 10 s limit) |
 
-The campaign brief's method (fresh blocks, SPRT, a frozen pool, an oracle for mining losses) governs the next steps. Its hypothesis backlog, in order:
+The campaign brief's method (fresh blocks, SPRT, a frozen pool, an oracle for mining losses) still governs testing. Its hypothesis backlog below is kept as a record; items 1, 2, 9, 12 and 13 were tried and rejected or not repeatable, and the work now follows `CONAN_STRATEGY_BRIEF.md`:
 1. Anytime search.
 2. More worlds.
 3. A cheaper forward model.
