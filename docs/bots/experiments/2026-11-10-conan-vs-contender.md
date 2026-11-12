@@ -213,3 +213,29 @@ Reference `r78` = `r77`'s settings (`PB`). `K` = `PB` + `lkAny,lkBuy,lkK=5` (`kb
 `mix78` and `ec78` are compared with `k78` on the same games, and go forward at net +8 or better.
 
 Contender screen (Contender against the default Contender, the same block): `c78` = `T2`, `cx78` = `T2,econctx`. `econctx` goes forward for the Contender at net +8 or better. It becomes a Moderate default only with Mendon's approval.
+
+### Block 7800 results (2026-11-12): `K` holds a little on fresh games; `lkMix` hurts; `econctx` does nothing
+
+`r78` won 72.8% against the Contender.
+
+| Arm | Win rate | Net | p (two-sided) | Thinking per game (mean / max) |
+| --- | --- | --- | --- | --- |
+| `r78` | 72.8% | — | — | 55 / 400 s |
+| `k78` (`K`) vs `r78` | 73.8% | +5 (32–27) | .60 | 235 / 1,181 s |
+| `ec78` (`K` + `econctx`) vs `k78` | 74.0% | 0 (3–3) | 1.0 | 236 / 1,180 s |
+| `mix78` (`K` + `lkMix,lkDedup,lkBH=4`) vs `k78` | 68.6% | **−18** (23–41) | .033 | 299 / 1,176 s |
+
+Five of `k78`'s games and twelve of `mix78`'s ended undecided at the 20-minute cutoff.
+
+- **SPRT for `K`**, fresh blocks only (block 7700 chose `K`, so it does not count): after chunk 1, LLR −0.19 with bounds ±2.94, so the test continues.
+- **`lkMix` is rejected.** Purchase playouts 4 turns long are slower and noisier, and they cost wins.
+- **`econctx` changed 6 of Conan's games, and 12 of the Contender's (Contender screen: `cx78` 51.4% against `c78` 51.9%, net −2).** It only removes the economy bonus. Without that bonus, the Contender's base purchase score usually still picks the Holding, so the choice hardly changes. An earlier fixed rule that bought bodies first (`firstbody`, `bodyfirst`; 2026-11-09 grill) lost up to −41. The next step is a judgment comparing the two futures (roadmap: an explicit race estimate), not a stronger fixed rule.
+
+## Block 7900 ×1: SPRT chunk 2, more candidates, more budget. Pre-registered
+
+Reference `r79` = `PB`. Arms:
+- `k79`: `K` (SPRT chunk 2 against `r79`)
+- `k879`: `PB` + `lkAny,lkBuy,lkK=8`
+- `b979`: `PB` with `lkB=900` + `lkAny,lkBuy,lkK=5`
+
+`k879` and `b979` are compared with `k79` and go forward at net +8 or better.
