@@ -1,4 +1,4 @@
 # Full image decoding is used to validate downloaded source scans.
-Pillow==12.3.0
+Pillow==13.0.0
 # Writes the card inventory workbook (build_card_inventory.py).
 openpyxl==3.1.5
