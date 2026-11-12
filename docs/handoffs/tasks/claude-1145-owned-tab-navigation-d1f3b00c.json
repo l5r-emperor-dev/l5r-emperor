@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Card Library Owned editor: Tab accepts the number and opens the next card's field (right, else first of the next row) with its value highlighted; Shift+Tab accepts and opens the previous card (left, else last of the row above). The list's ends stop.",
+  "validation": "Client builds; native MyCollectionProbe with real key events: 48 assertions pass (5 new: Tab, highlight, Shift+Tab, row wrap forward and back); dotnet format clean.",
+  "remaining": "Tab at the very last or first card only accepts. Not hand-tested beyond the native probe.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1145",
+  "branch": "claude/1145-owned-tab-navigation",
+  "updated": "2026-10-29T22:10:25.547302+00:00"
+}
