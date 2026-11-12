@@ -133,14 +133,21 @@ public static class BattlePolicy
         (card.Definition?.GoldCost ?? 0) + all.Where(c => c.AttachedTo == card.Id).Sum(c => c.Definition?.GoldCost ?? 0);
 
     /// <summary>
-    /// Issue #788, rule 2: the Attack target ranking. The highest-Force target whose Force the Attack can destroy (Force at most <paramref name="strength"/>, which the caller raises
-    /// by every Attack augment still available); ties go to the highest total printed gold cost of the target's unit. Targets above the strength rank below every destroyable
-    /// one, weakest first, so a failed Attack at least aims at the card nearest to falling.
+    /// Printed Battle actions the card could still use: its Battle (or Battle or Open) abilities that have not used up their uses this turn (the view's SpentAbilityIds), none when it is bowed or may not act.
+    /// </summary>
+    public static int UnusedBattleActions(CardView card) =>
+        card.Bowed || card.ActionLocked ? 0 : Printed(card).Count(p => p.Ability.Timing is "Battle" or "BattleOrOpen" && card.SpentAbilityIds?.Contains(p.Id) != true);
+
+    /// <summary>
+    /// Issue #788, rule 2, as Mendon changed it on 2026-11-11: the Attack target ranking. The largest Force the Attack can destroy (Force at most <paramref name="strength"/>, which the caller raises
+    /// by every Attack augment still available). A tie goes to the card with the most printed Battle actions it could still use, and a further tie to the Personality over the Follower. Targets above the
+    /// strength rank below every destroyable one, weakest first, so a failed Attack at least aims at the card nearest to falling.
     /// </summary>
     public static double AttackTargetScore(CardView target, int strength, IEnumerable<CardView> all)
     {
-        var gold = Math.Min(UnitGold(target, all), 99);
-        return target.Force <= strength ? 1000 + target.Force * 100 + gold : 500 - target.Force;
+        if (target.Force > strength) return 500 - target.Force;
+        var battle = Math.Min(UnusedBattleActions(target), 9);
+        return 1000 + target.Force * 100 + battle * 10 + (target.Definition?.Type == CardType.Personality ? 1 : 0);
     }
 
     // ---- trade attacks ------------------------------------------------------------------------------------------------------------------------------------------------

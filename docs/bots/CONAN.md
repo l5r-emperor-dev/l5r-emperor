@@ -70,6 +70,7 @@ You can also use the `conan` arm, which takes extra rules from `L5R_C2` when set
 
 ## Limits
 
-- Conan runs only bot-vs-bot. The practice opponent and rooms do not supply a sampler, so their bots are unchanged.
+- Conan plays people only as the **Hard** practice level (`docs/decisions/2026-11-11-practice-difficulty.md`, `BotContext.Hard()`), where the client supplies a sampler made from a copy of the match and decides off the UI thread. Rooms do not supply a sampler, so their bots are unchanged.
 - A sampled copy can occasionally reach an engine state the real match would not. `ValidateAbilityResult` then throws. That playout counts as neutral and the real game is unaffected.
+- **The sampler knows the other player's decklist.** `Sample` reshuffles the real multiset of hidden faces, so across samples Conan effectively knows which cards are in a person's hand and Fate deck and Dynasty deck and Provinces, though never which is where. A human opponent would not reveal that. Accepted for bot-vs-bot measurement, and for the Hard practice level by Mendon's decision of 2026-11-11; a blind sampler (`lkBlind`) has not been measured.
 - Playouts use fresh Contender memories, so they forget the cards seen and the abilities spent earlier in the match.

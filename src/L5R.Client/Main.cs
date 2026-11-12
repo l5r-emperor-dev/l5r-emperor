@@ -37,6 +37,7 @@ public partial class Main : Node
     private readonly Dictionary<int, Button> _laneSummaries = [];
     private bool _autoOpponent = true, _reducedMotion;
     private BotContext? _botMemory;
+    private BotLevel _botLevel = BotLevel.Easy; // issue #1214: the practice opponent's difficulty, chosen on the Practice setup screen
     private string? _botMemoryKey;
     private double _opponentClock, _captureClock;
     private string? _capturePath;
@@ -197,10 +198,13 @@ public partial class Main : Node
             {
                 _opponentClock = 0;
                 // Issue #642: the bot keeps one memory per match (what it has seen played, what the engine refused) and chooses again after a refusal.
-                if (_botMemory is null || _botMemoryKey != _session.MatchKey) { _botMemory = new BotContext(); _botMemoryKey = _session.MatchKey; }
+                if (_botMemory is null || _botMemoryKey != _session.MatchKey) { _botMemory = _botLevel.NewMemory(); _botMemoryKey = _session.MatchKey; }
                 var botMemory = _botMemory;
-                _session.StepPracticeOpponent((view, actions) => view.PendingDuel is not null ? DuelOpponent.Choose(view, actions) : TrainingOpponent.Choose(view, actions, botMemory).Command,
-                    (command, error, version) => botMemory.NoteRejection(version, command, error));
+                if (_botLevel.NeedsSampler()) // issue #1214: Hard decides in the background on a copy of the match and plays out its battles on redealt copies of that, so the table never freezes
+                    _session.StepPracticeOpponentAsync((view, actions, copy) => ChooseHard(view, actions, copy, botMemory), (command, error, version) => botMemory.NoteRejection(version, command, error));
+                else
+                    _session.StepPracticeOpponent((view, actions) => view.PendingDuel is not null ? DuelOpponent.Choose(view, actions) : TrainingOpponent.Choose(view, actions, botMemory).Command,
+                        (command, error, version) => botMemory.NoteRejection(version, command, error));
             }
             // No delay: this only fires when declining is the player's sole legal option, so there is
             // nothing for them to weigh — unlike the opponent's move above, it needs no "thinking" pause.

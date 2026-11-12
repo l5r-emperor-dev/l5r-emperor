@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Practice difficulty (#1214): Easy = Champion (default), Moderate = Contender, Hard = Conan with look,lkDef,lkVar,lkPlan on the tuned rules (best measured, 71-73% vs the Contender). Hard decides on a worker thread on a private copy of the match, sampler from that copy. Includes the unmerged #1208 tuning branch.",
+  "validation": "bash tools/check.sh --skip-client passed; bot-level (2) and client transport (24) tests pass; tools/check-practice-setup.sh passed with the new Difficulty buttons (screenshot reviewed); changed-file format check clean. Confirmation arena block 9500 vs the Contender: A/A 49.7%; Hard run pending.",
+  "remaining": "Hard's sampler knows the person's decklist (blind sampler never measured). Not playtested by a human; Windows graphical playtest of Hard pending.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1214",
+  "branch": "claude/1214-practice-difficulty",
+  "updated": "2026-11-11T08:45:05.434873+00:00"
+}
