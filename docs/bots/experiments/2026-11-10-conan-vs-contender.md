@@ -303,3 +303,24 @@ Each arm is compared with `r81` and goes forward at net +8 or better, then to an
 First, `far81`'s 30 undecided games are replayed with a 60-minute cutoff, and the `far81` result is restated with them.
 
 Then block 8200 runs with `L5R_TOURN_BUDGET=60`: reference `r82` = `PB`, arm `far82` = `PB` + `lkAny,lkFar`. This is SPRT chunk 1 for `lkFar` (p1 0.6, α = β = 0.05), and games that still end undecided are reported.
+
+## The direction changes: rules, not search (Mendon, 2026-11-12)
+
+The block 8200 run was stopped partway, at Mendon's direction: "It doesn't seem like adding more thinking time is helping the bot make better decisions. We probably need to look at iterating on the contender and Conan's core rules and adding more nested if statements that account for a wider variety of scenarios."
+
+**`far81`'s undecided games, finished.** Before the stop, the 30 `far81` games left undecided were replayed with a 60-minute cutoff. `lkFar` won 25, lost none, and 5 were still undecided. With those games, `far81` stands at about +12 against `r81`, at five times the thinking. Its effect is to keep defenders home against the counter-attack, which a rule can do without searching.
+
+**How rules are screened now.** Each scenario rule is tested Contender against the default Contender, on block 8300 with 4 seeds (1,456 games, about 15 minutes an arm). The A/A reference `ca83` won 49.6%. The rules come from two loss reviews: `K`'s losses (above) and the losing seat's decisions in `ca83`.
+
+| Rule | What it does | Games changed | Net |
+| --- | --- | --- | --- |
+| `guard` | with 2 or fewer Provinces left, the cheapest set of units that stops the opponent's whole army razing the weakest stays home (not when the attack takes the opponent's last Province, or when no guard could stop it); the rest attack only where they still beat Province and defenders | 46 | +6 (p .46) |
+| `guard,guardN=3` | the same from 3 Provinces | 112 | −8 |
+| `hgift` | with the attacker within 10 Honor of its win and Provinces to spare, a defence that loses after the attacker's likely removals is not made (not the last stand) | 14 | −2 |
+| `cavblind` | a blind defence before the Cavalry declares plans without the defenders the attacker's hand can remove | 12 | −2 |
+| `lobbycycle` | the Favor lobbied for this turn is not discarded to draw, while the opponent has an army | 5 | +3 |
+| all four | | 76 | −2 |
+
+The first `guard` screen changed no game. The Contender does not use the planner's attack (`PlannerAttack` is off), so `guard` now runs where the attack assignment is finalised, beside `deter`.
+
+**Why the reviews' counts did not become wins.** The review found 104 games in which a losing defence fed an Honor win, but `hgift` changed only 14. A review that compares the loser's decisions with the winner's mostly measures the position, not the decision: a side that is losing makes more losing defences. None of these rules is adopted. Historically, the rules that did gain came from Mendon's own decisions at real positions: `spreadwide` and `conf` from the battle grill (+24 and +19), and `selfplayer` through `raid` from his practice games (+13).

@@ -148,6 +148,12 @@ public static partial class TrainingOpponent
         // conf (Mendon, 2026-11-09): with low confidence, the hardest threat takes the biggest hit (destroy, then send home, then bow); with high confidence, the cheapest removal that does
         // the job: a card from hand waits while a printed ability in play reaches the same unit, and a destroy waits while a bow does as much (no attachments to strip). Cards in hand are options.
         if (Rule(x, "conf") && x.View.Phase == Phase.Battle && action.Type is "useAbility" or "playStrategy" && ConfidenceScore(x, action, command, score) is { } judged) return judged;
+        // hgift (Contender review of block 8300: in 104 games the loser defended, lost and gave Honor to an attacker already at 30+, and 77 of them ended in an Honor win): when the attacker's
+        // Honor is within hgN (10) of its win, a defense that loses the battle is not made while the bot has Provinces to spare. Exceptions: the last stand, and a defense that still wins or
+        // saves its Province after the attacker's likely removals (HostileDefenseHolds).
+        if (Rule(x, "hgift") && action.Type == "assignDefense" && command.Assignments is { Count: > 0 } offered && x.Opponent.Honor >= 40 - Knob(x, "hgN", 10)
+            && x.Self.Provinces.Count(p => !p.Destroyed) >= 2 && !HostileDefenseHolds(x, offered))
+            return Math.Min(score, BarredScore);
         // nogift: a defense that loses the battle hands an Honor deck Honor for every card destroyed; with Provinces to spare it is not made (a presence defense is judged by its own rule).
         if (Rule(x, "nogift") && action.Type == "assignDefense" && command.Assignments is { Count: > 0 } given && x.Opponent.Honor >= Knob(x, "nogiftH", 20) && x.Self.Provinces.Count(p => !p.Destroyed) > 2
             && !(Rule(x, "presence") && PresencePlan(x, action) is { } presenceKept && SameAssignments(presenceKept, given))
@@ -579,6 +585,9 @@ public static partial class TrainingOpponent
             && x.Self.Hand.Count() <= x.Opponent.HandCount - Knob(x, "hkN", 2)) return true;
         // cycle: the Favor's discard-and-draw throws away a card the bot chose to keep.
         if (Rule(x, "cycle") && command.AbilityId == "favor-cycle") return true;
+        // lobbycycle (block 8300 review: 291 times a Personality bowed to lobby and the Favor was then thrown away for a card the same turn): the Favor won this turn is kept,
+        // unless the opponent has no army to threaten the bot with.
+        if (Rule(x, "lobbycycle") && command.AbilityId == "favor-cycle" && x.Memory.LobbiedThisTurn(x.View.TurnNumber) && UnitCards(x.Opponent).Any(c => UnitForceOf(x, c) > 0)) return true;
         return false;
     }
 
