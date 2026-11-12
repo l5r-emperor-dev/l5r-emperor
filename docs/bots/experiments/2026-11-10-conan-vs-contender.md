@@ -284,3 +284,22 @@ Reference `r81` = `PB`. Arms:
 - `fc81`: `PB` + `lkAny,lkFar,lkClock`
 
 Each arm is compared with `r81` and goes forward at net +8 or better, then to an SPRT on fresh blocks before anything builds on it.
+
+### Block 8100 results (2026-11-12): `lkFar` gains on decided games but stalls; `lkClock` is inert
+
+`r81` won 74.5% against the Contender.
+
+| Arm | Decided | Win rate | Net vs `r81` | p | Thinking per game (mean / max) |
+| --- | --- | --- | --- | --- | --- |
+| `far81` (`lkAny,lkFar`) | 334 | 76.0% | **+12** (29–17) | .10 | 294 / 1,170 s |
+| `clk81` (`lkClock`) | 364 | 74.5% | 0 (2–2) | 1.0 | 112 / 915 s |
+| `fc81` (both) | 335 | 74.6% | +8 (30–22) | .33 | 290 / 1,177 s |
+
+- **`lkFar` makes Conan cautious.** 30 of its games reached the 20-minute cutoff, at turns 25 to 65. Of its decided games, 18 lasted 30 turns or more, against 3 for `r81`, and its median game ran 16 turns against 14. `r81` won 29 of the 30 undecided games, so `far81`'s +12 is not yet a result.
+- **`lkClock` changed 4 games and is dropped.**
+
+## Block 8200 ×1: `lkFar`, with the time to finish. Pre-registered
+
+First, `far81`'s 30 undecided games are replayed with a 60-minute cutoff, and the `far81` result is restated with them.
+
+Then block 8200 runs with `L5R_TOURN_BUDGET=60`: reference `r82` = `PB`, arm `far82` = `PB` + `lkAny,lkFar`. This is SPRT chunk 1 for `lkFar` (p1 0.6, α = β = 0.05), and games that still end undecided are reported.
