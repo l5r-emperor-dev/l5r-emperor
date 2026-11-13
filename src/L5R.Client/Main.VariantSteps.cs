@@ -17,10 +17,32 @@ public partial class Main
     private ActionOption[] VariantsOf(ActionOption option) => Actions.Where(a => a.Enabled && a.Type == option.Type && a.CardId == option.CardId && a.AlternativeCost is null
         && a.Command is { AbilityId: not null } c && c.AbilityId == option.Command!.AbilityId && c.PerformerId == option.Command.PerformerId).ToArray();
 
-    /// <summary>The variants that differ only by Command.Choice for the drafted target: what the player is asked after the target.</summary>
-    private ActionOption[] ChoiceVariants(ActionOption option) => option.ChoiceLabel is null || option.Command?.TargetId is not { } target ? []
+    /// <summary>The variants that differ only by Command.Choice for the drafted target: what the player is asked after the target. For a modal ability, its modes for the chosen performer.</summary>
+    private ActionOption[] ChoiceVariants(ActionOption option) => option.ChoiceLabel is null || option.Command?.TargetId is not { } target ? ModeVariants(option)
         : VariantsOf(option).Where(a => a.ChoiceLabel is not null && a.Command!.CostOption == option.Command.CostOption && a.TargetIds?.Contains(target) == true)
             .GroupBy(a => a.Command!.Choice).Select(g => g.First()).ToArray();
+
+    // Issue #1228: the modes of one printed ability (Wall of Honor's "increase or decrease", Inspired Devotion's two bonuses) are separate abilities in Core that share one use, have no target and
+    // name a performer. They are one play: the card is clicked, the performer is clicked on the table, and the mode is asked last. Reactions keep their own flow.
+    private static AbilityDefinition? ModalAbility(ActionOption option) => option.Command?.AbilityId is { } id && AbilityCatalog.All.TryGetValue(id, out var ability)
+        && ability.UsageKey is not null && ability.Target == "none" && ability.Performer is not null && ability.Timing != "Reaction" ? ability : null;
+
+    /// <summary>The modes Core enables for the drafted performer, one option each; empty unless there is more than one to choose between.</summary>
+    private ActionOption[] ModeVariants(ActionOption option)
+    {
+        if (ModalAbility(option) is not { } ability || option.Command!.PerformerId is not { } performer) return [];
+        var modes = Actions.Where(a => a.Enabled && a.Type == option.Type && a.CardId == option.CardId && a.AlternativeCost is null && a.Command?.PerformerId == performer
+            && ModalAbility(a)?.UsageKey == ability.UsageKey).GroupBy(a => a.Command!.AbilityId).Select(g => g.First()).ToArray();
+        return modes.Length > 1 ? modes : [];
+    }
+
+    /// <summary>What a mode does: its ability's text after the shared cost or performer ("Increase the strength of ...").</summary>
+    private static string ModeLabel(ActionOption option)
+    {
+        var label = FlowLabel(option);
+        var colon = label.IndexOf(": ", StringComparison.Ordinal);
+        return colon >= 0 ? label[(colon + 2)..] : label;
+    }
 
     private bool ChoiceStepActive => IsAbilityDraft(_chosen) && !ReactionFlowOwnsControls && !_choicePicked && ChoiceVariants(_chosen!).Length > 1;
 
@@ -51,14 +73,15 @@ public partial class Main
     {
         _inspector.AddChild(Palette.Text("STEP · CHOOSE ONE", 11, Palette.Gold));
         var target = action.Command?.TargetId is { } id && FindCard(id) is { } card ? ShortName(card) : "the target";
-        _inspector.AddChild(Palette.Wrapped($"Choose what to use from {target}. Nothing happens until you confirm.", 13, Palette.PaperDim));
+        _inspector.AddChild(Palette.Wrapped(action.ChoiceLabel is null ? "Choose one. Nothing happens until you confirm." : $"Choose what to use from {target}. Nothing happens until you confirm.", 13, Palette.PaperDim));
         var rows = new VBoxContainer(); rows.AddThemeConstantOverride("separation", 6); _inspector.AddChild(rows);
         foreach (var variant in ChoiceVariants(action))
         {
             var pick = variant;
-            var row = SidebarSkin.Button(variant.ChoiceLabel!, () => PickChoice(pick));
-            row.SetMeta("choice_row", variant.Command!.Choice ?? ""); row.Disabled = !DecisionCanSubmit; row.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-            row.CustomMinimumSize = new Vector2(0, 26 + 24 * (int)Math.Ceiling(variant.ChoiceLabel!.Length / 30.0)); // an ability's whole printed text wraps: the row is as tall as its lines
+            var text = variant.ChoiceLabel ?? ModeLabel(variant);
+            var row = SidebarSkin.Button(text, () => PickChoice(pick));
+            row.SetMeta("choice_row", variant.Command!.Choice ?? variant.Command.AbilityId ?? ""); row.Disabled = !DecisionCanSubmit; row.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            row.CustomMinimumSize = new Vector2(0, 26 + 24 * (int)Math.Ceiling(text.Length / 30.0)); // an ability's whole printed text wraps: the row is as tall as its lines
             rows.AddChild(row);
         }
         _inspector.AddChild(Palette.Wrapped("Choose one to continue.", 13, Palette.Error));

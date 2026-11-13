@@ -323,7 +323,7 @@ public static class AbilityCatalog
         // "From cards in his unit" -- unlike Again!'s unscoped grant, these two are only usable by the
         // Kensai himself or one of his own attached Followers/Items (see the execution case below).
         ["two-hands-grant"] = new("Battle", "Choose your performing Kensai: take two additional Battle actions from cards in his unit; other actions will not grant new additional Battle actions this battle",
-            "none", Performer: "own-unbowed-personality-at-battle-with-keyword", RequiredKeywords: ["Kensai"]),
+            "none", Performer: "own-personality-with-keyword-at-battle", RequiredKeywords: ["Kensai"]), // no "unbowed" printed: a bowed Kensai performs it (R-035, issue #1228)
         ["effortless-counterattack-negate"] = new("Reaction", "Before an additional Battle action resolves: negate its effects", "none", Trigger: "before-additional-action-resolves"),
         ["effortless-counterattack-move"] = new("Battle", "Target your performing unbowed Personality: move home a target Personality without attachments",
             "personality", Performer: "own-unbowed-personality-at-battle", RequireNoAttachments: true),
@@ -2669,7 +2669,7 @@ public static class AbilityCatalog
             "own-follower-or-personality-in-army", Performer: "own-follower-or-personality-in-army", Costs: ActionCost.BowPerformer),
         // Elite Training (oracle-l5r-10255): "Limited: Target your performing Personality. He undergoes vigorous training. Permanently give him Elite." -- Embracing
         // Battle's own shape (Seeds of Decay), a bare permanent keyword grant.
-        ["elite-training-grant"] = new("Limited", "Target your performing Personality: Permanently give him Elite", "none", Performer: "own-unbowed-personality"),
+        ["elite-training-grant"] = new("Limited", "Target your performing Personality: Permanently give him Elite", "none", Performer: "own-personality"), // no "unbowed" printed (R-035, issue #1228)
         // Isawa Taiken (oracle-l5r-10243): "Battle: Bow Taiken: Ranged 4 Attack." -- Tsuruchi Isas' own plain bow-and-attack shape.
         ["taiken-attack"] = new("Battle", "Bow Taiken: Ranged 4 Attack", "attack", Costs: ActionCost.BowSource),
         // Shiba Mitsushen (oracle-l5r-10245): "Battle: Target your Personality: Move him to Mitsushen's battlefield. If he moved, straighten his unit." -- the
@@ -6074,7 +6074,7 @@ public sealed partial class MatchEngine
                 // already-bowed Kensai. Generic on RequiredKeywords like the unbowed variant above.
                 // Same actingAsBattle generalization as own-unbowed-personality-at-battle-with-keyword.
                 "own-personality-with-keyword-at-battle" => Definition(performer).Type == CardType.Personality &&
-                    HasKeywords(performer, ability.RequiredKeywords) && (!actingAsBattle || AtBattle(performer)),
+                    HasKeywords(performer, ability.RequiredKeywords) && (!(actingAsBattle || PerformerMustBeAtCurrentBattlefield(id)) || AtBattle(performer)),
                 // Bishamon's Tower (The Shadow's Embrace pass, issue #476 batch 6): "your performing Berserker or unbowed Personality" -- a Personality with the RequiredKeywords
                 // (bowed or not), or any unbowed one, at the battle.
                 "own-personality-with-keyword-or-unbowed-at-battle" => Definition(performer).Type == CardType.Personality &&
@@ -11527,7 +11527,7 @@ public sealed partial class MatchEngine
                 "own-tactician-at-battle" => _state.Cards.Values.Where(c => c.OwnerId == playerId && Definition(c).Type == CardType.Personality && (actingAsBattle ? AtBattle(c) : InPlay(c)) && Keyword(c, "Tactician")).OrderBy(c => c.Id, StringComparer.Ordinal).Select(c => (string?)c.Id).ToArray(),
                 // Kitsu Fukui / Fading Shadows (issue #337): the generic "performing [Keyword] Personality", bowed or not. It was missing from
                 // this listing, so an ability that used it (Again!'s shape) could only be played by a hand-built command.
-                "own-personality-with-keyword-at-battle" => _state.Cards.Values.Where(c => c.OwnerId == playerId && Definition(c).Type == CardType.Personality && (!actingAsBattle || AtBattle(c)) && HasKeywords(c, ability.RequiredKeywords)).OrderBy(c => c.Id, StringComparer.Ordinal).Select(c => (string?)c.Id).ToArray(),
+                "own-personality-with-keyword-at-battle" => _state.Cards.Values.Where(c => c.OwnerId == playerId && Definition(c).Type == CardType.Personality && (!(actingAsBattle || PerformerMustBeAtCurrentBattlefield(id)) || AtBattle(c)) && HasKeywords(c, ability.RequiredKeywords)).OrderBy(c => c.Id, StringComparer.Ordinal).Select(c => (string?)c.Id).ToArray(),
                 "own-personality-with-keyword-or-unbowed-at-battle" => _state.Cards.Values.Where(c => c.OwnerId == playerId && Definition(c).Type == CardType.Personality && (!actingAsBattle || AtBattle(c))
                     && (HasKeywords(c, ability.RequiredKeywords) || !c.Bowed)).OrderBy(c => c.Id, StringComparer.Ordinal).Select(c => (string?)c.Id).ToArray(),
                 // Hiruma Tensin (issue #337): the unbowed Followers of the source's own unit.

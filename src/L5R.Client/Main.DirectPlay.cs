@@ -12,7 +12,7 @@ public partial class Main
     private (string CardId, string Key)? _playPrompt;
 
     /// <summary>The ability a play belongs to, whatever it is played as. Used to tell a variant of an available action from an action that is not available at all.</summary>
-    private static string PlayBaseKey(ActionOption option) => option.Type + ":" + (option.Command?.AbilityId ?? option.AlternativeCost?.AbilityId ?? "");
+    private static string PlayBaseKey(ActionOption option) => option.Type + ":" + (ModalAbility(option) is { } modal ? "modes:" + modal.UsageKey : option.Command?.AbilityId ?? option.AlternativeCost?.AbilityId ?? ""); // issue #1228: an ability's modes are one play
 
     /// <summary>
     /// One key per distinct play. Core lists a separate option for each thing a card can be played as: where it goes (a Fate deck's top or bottom), which card it creates or shows, and what it compares. Those are
@@ -89,7 +89,7 @@ public partial class Main
     {
         var option = choice.Option;
         return option.RequiresInput() || NeedsPlayerPick(choice) || NeedsTargetPick(option) || IsProvinceTarget(option) || HasAttackTargets(option)
-            || choice.Variants.Select(v => v.Command?.PerformerId).Distinct().Count() > 1; // Core's own fields first (ActionOption.RequiresInput); only what the client alone knows after
+            || choice.Variants.Select(v => v.Command?.PerformerId).Distinct().Count() > 1 || ModeVariants(option).Length > 1; // Core's own fields first (ActionOption.RequiresInput); only what the client alone knows after
     }
 
     private bool RenderPlayPrompt()

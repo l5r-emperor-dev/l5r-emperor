@@ -9,7 +9,7 @@ public static class RequestedCreatedCardAbilities
             Trigger: "after-engaging", Creates: new(CardType.Personality, Force: 4, Chi: 4, PersonalHonor: 3,
                 Keywords: ["Imperial", "Samurai", "Duelist", "Magistrate"], ProxyId: "oracle-l5r-9996", AtBattlefield: true, UntilBattleEnds: true));
         all["grateful-reward-create"] = new("Reaction", "After engaging, choose your performing Samurai here: Create a Mounted Ashigaru Follower and attach it to him; if he is a Paragon, gain 2 Honor and draw a card", "none",
-            Trigger: "after-engaging", Performer: "own-unbowed-personality-at-battle-with-keyword", RequiredKeywords: ["Samurai"],
+            Trigger: "after-engaging", Performer: "own-personality-with-keyword-at-battle", RequiredKeywords: ["Samurai"], // no "unbowed" printed (R-035, issue #1228)
             Creates: new(CardType.Follower, Force: 1, Keywords: ["Ashigaru", "Cavalry"], ProxyId: "oracle-l5r-10010") { HostIsPerformer = true });
         all["sword-for-hire-create"] = new("Limited", "Target another player's Personality: Create an Assassin Duelist, who duels the target; destroy the loser and remove the Assassin after the duel", "enemy-personality-at-any-location",
             ActionKeywords: ["Iaijutsu"], IssuesDuel: true, Creates: new(CardType.Personality, Force: 0, Chi: 3, PersonalHonor: 0,
