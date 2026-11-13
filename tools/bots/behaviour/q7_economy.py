@@ -48,9 +48,8 @@ import sys
 import l5rlog as L
 
 
-def main(argv):
-    games = L.load(argv)
-    P = L.ptypes(games)
+def collect(games):
+    """Accumulators of every table in this script, from parsed games (profile.py reuses them)."""
     A = collections.defaultdict(lambda: collections.defaultdict(list))
     B = collections.defaultdict(lambda: collections.defaultdict(list))
     C = collections.defaultdict(collections.Counter)
@@ -154,6 +153,13 @@ def main(argv):
             # prev_attacked[x] = "x was attacked on the opponent's most recent turn"
             prev_attacked[1 - s] = L.has_attack(t)
 
+    return A, B, C, D, E, F
+
+
+def main(argv):
+    games = L.load(argv)
+    P = L.ptypes(games)
+    A, B, C, D, E, F = collect(games)
     print('## Q7a  Economy per own turn (means per turn; games\' final turns excluded)\n')
     rows = []
     for p in P:

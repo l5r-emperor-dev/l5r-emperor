@@ -37,9 +37,8 @@ def is_cav(name):
     return L.CAT.kw(name, 'Cavalry')
 
 
-def main(argv):
-    games = L.load(argv)
-    P = L.ptypes(games)
+def collect(games):
+    """Accumulators of every table in this script, from parsed games (profile.py reuses them)."""
     a5 = collections.defaultdict(lambda: [0, 0, 0, 0, 0, 0])   # attacks, offered, used, cavP inf-seg, cavP cav-seg, attacks w/ cav pers
     b5 = collections.defaultdict(collections.Counter)
     c5 = collections.defaultdict(lambda: [0, 0, 0.0])           # (ptype, used?) -> attacks, with destruction, provinces
@@ -109,6 +108,13 @@ def main(argv):
                 bb['destroyed|undef'] += bool(b and b.destroyed and inf_def[pp] == 0)
                 bb['destroyed|def'] += bool(b and b.destroyed and inf_def[pp] > 0)
                 bb['def'] += (inf_def[pp] > 0)
+    return a5, b5, c5, deck_c, d5
+
+
+def main(argv):
+    games = L.load(argv)
+    P = L.ptypes(games)
+    a5, b5, c5, deck_c, d5 = collect(games)
     print('## Q5a  Use of the Cavalry segment\n')
     L.table(['attacker', 'attacks', 'Cavalry segment offered', 'Cavalry segment used', 'used / offered',
              'Cavalry Personalities sent in the Infantry segment', '... in the Cavalry segment',

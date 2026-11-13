@@ -45,8 +45,18 @@ internal static class HumanReplayCompare
         Assignments = c.Assignments?.OrderBy(kv => kv.Key, StringComparer.Ordinal).ToDictionary(kv => kv.Key, kv => kv.Value)
     });
 
+    /// <summary>A card's printed name from the match it is in, for logs (the id when the card is unknown).</summary>
+    internal static string CardName(MatchEngine game, string? id) => id is not null && game.State.Cards.TryGetValue(id, out var ci) && CardCatalog.Cards.TryGetValue(ci.DefinitionId, out var cd) ? cd.Name : id ?? "";
+
+    /// <summary>One line naming a command the way the compare log does: type, ability, card, target, performer, choice, province, cards, assignments, Gold, player.</summary>
+    internal static string Describe(MatchEngine game, GameCommand c)
+    {
+        string Name(string? id) => CardName(game, id);
+        return $"{c.Type}{(c.AbilityId is null ? "" : "/" + c.AbilityId)}{(c.CardId is null ? "" : " card=" + Name(c.CardId))}{(c.TargetId is null ? "" : " target=" + Name(c.TargetId))}{(c.PerformerId is null ? "" : " by=" + Name(c.PerformerId))}{(c.Choice is null ? "" : " choice=" + c.Choice)}{(c.Province is null ? "" : " prov=" + c.Province)}{(c.CardIds is { Length: > 0 } ids ? " cards=" + string.Join(",", ids.Select(Name)) : "")}{(c.Assignments is { Count: > 0 } asg ? " assign=" + string.Join(",", asg.Select(a => Name(a.Key) + ">" + a.Value)) : "")}{(c.GoldAmount is null ? "" : " gold=" + c.GoldAmount)}{(c.TargetPlayerId is null ? "" : " player=" + c.TargetPlayerId)}";
+    }
+
     /// <summary>The bot's answer at this position, as the tournament and the practice client get it: a refusal is noted in the bot's memory and the bot asked again (tested on a copy of the match).</summary>
-    private static GameCommand? Ask(MatchEngine game, int seat, BotContext memory, bool roundTrip)
+    internal static GameCommand? Ask(MatchEngine game, int seat, BotContext memory, bool roundTrip)
     {
         for (var attempt = 0; attempt < 24; attempt++)
         {
@@ -76,8 +86,8 @@ internal static class HumanReplayCompare
         var byPhase = new SortedDictionary<string, int[]>(StringComparer.Ordinal); // phase -> [decisions, choices, diffs]
         var byType = new SortedDictionary<string, int[]>(StringComparer.Ordinal); // the human's command type -> [choices, diffs]
         var champLines = new List<string>();
-        string Name(string? id) => id is not null && game.State.Cards.TryGetValue(id, out var ci) && CardCatalog.Cards.TryGetValue(ci.DefinitionId, out var cd) ? cd.Name : id ?? "";
-        string Format(GameCommand c) => $"{c.Type}{(c.AbilityId is null ? "" : "/" + c.AbilityId)}{(c.CardId is null ? "" : " card=" + Name(c.CardId))}{(c.TargetId is null ? "" : " target=" + Name(c.TargetId))}{(c.PerformerId is null ? "" : " by=" + Name(c.PerformerId))}{(c.Choice is null ? "" : " choice=" + c.Choice)}{(c.Province is null ? "" : " prov=" + c.Province)}{(c.CardIds is { Length: > 0 } ids ? " cards=" + string.Join(",", ids.Select(Name)) : "")}{(c.Assignments is { Count: > 0 } asg ? " assign=" + string.Join(",", asg.Select(a => Name(a.Key) + ">" + a.Value)) : "")}{(c.GoldAmount is null ? "" : " gold=" + c.GoldAmount)}{(c.TargetPlayerId is null ? "" : " player=" + c.TargetPlayerId)}";
+        string Name(string? id) => CardName(game, id);
+        string Format(GameCommand c) => Describe(game, c);
         string Tag(int seat) => seat == 0 ? "s0H" : "s1c";
 
         var probes = (Env("L5R_HUMAN_PROBE") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToHashSet(); var index = -1;

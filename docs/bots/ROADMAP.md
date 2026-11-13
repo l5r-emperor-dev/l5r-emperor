@@ -112,6 +112,10 @@ What a bot needs for this, card-agnostically and without hidden information:
 
 A regression for this belongs with item 1. In a fixed position (an early rush against a hand holding an answer), the purchase should change depending on whether the answer is in hand.
 
+## The strategy campaign's instruments (2026-11-13)
+
+Step 1 of `CONAN_STRATEGY_BRIEF.md` is split across two sessions (issue #1206): Windows holds step 0 and the rule registry; the Mac branch `claude/1206-conan-instruments` delivered the battle records (`L5R_TOURN_BATTLES`, `tools/bots/battles.py`), the behaviour profile (`tools/bots/behaviour/profile.py`), the decision test set (`--filter conan-positions`, 52 of Mendon's positions, replays in `docs/bots/replays/`) and step 2's effect descriptors (`EffectDescriptors.Of`, 59 of 60 right on a blind sample, 0 unknown in the audited decks). Evidence: `docs/bots/experiments/2026-11-13-conan-instruments.md`. Next on the Mac: the ledger, the belief and the exchange in shadow, then the calibration gate on battle records from a fresh block.
+
 ## Still open
 
 - **Conan is in local Practice only.** It is the Hard level (`docs/decisions/2026-11-11-practice-difficulty.md`): the client samples a private copy of the match and decides off the UI thread. Rooms do not supply a sampler. When a better Conan is measured, update `BotContext.HardRules`.
