@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Conan strategy campaign, Mac half of step 1 and the start of step 2: battle records (L5R_TOURN_BATTLES, battles.py), behaviour profile (profile.py), decision test set (conan-positions, 52 positions, T2 9/50, Conan-best 12/50), effect descriptors (EffectDescriptors.Of; 0 unknown in the audited decks, 59/60 on a blind hand check). Block 9100 Contender A/A 48.9%.",
+  "validation": "bash tools/check.sh --skip-client: all requested checks passed (72/72 in the last shard). New cases: effect-descriptor (11), conan-positions (1, 16 s with T2). Audit: descriptor-audit over 35 decks, 299 abilities. Profile reproduces ARENA_BEHAVIOUR's headline table on blocks 8400 and 9100. Battle records vs parsed Q1e differ beyond two points; the cause is the parser (1,625 uncertain attacks dropped, attachment Force missed), recorded in the note.",
+  "remaining": "Windows session holds step 0 (T2Rules, A/A, Conan-best baseline) and the rule registry; after it merges, point ConanPositions and the arms at T2Rules. Next on the Mac: the ledger, the belief and the exchange in shadow mode, then the calibration gate on battle records from a fresh block (9200+). G2's two defence positions are unreachable until the ring-of-fire performer reading is decided. Nothing becomes a default.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
+  "branch": "claude/1206-conan-instruments",
+  "updated": "2026-11-13T16:50:18.797716+00:00"
+}
