@@ -257,10 +257,11 @@ internal static class HonorAndTreacheryPassTests
     {
         var s = Table(Phase.Action, 0);
         var performer = Add(s, "training-lion-samurai", 0, Zone.Home);
+        performer.Bowed = true; // "your performing Personality" prints no "unbowed" (R-035, issue #1228)
         var training = Add(s, EliteTraining, 0, Zone.Hand);
         var e = MatchEngine.FromTestState(s);
         Accept(e, Use(e, 0, "elite-training-grant", training.Id, performerId: performer.Id));
-        Check(e.HasKeyword(performer.Id, "Elite"), "permanently given Elite");
+        Check(e.HasKeyword(performer.Id, "Elite"), "permanently given Elite, performed by a bowed Personality");
     }
 
     private static void TaikenAttack()

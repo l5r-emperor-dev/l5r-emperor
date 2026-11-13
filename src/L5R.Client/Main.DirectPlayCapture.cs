@@ -155,7 +155,33 @@ public partial class Main
             SupportRequire(ActionTextBlocks().Count() == 0 && (_playPrompt is not null || _chosen is not null) && PlayChoices(misstep).Length == 1, "Imprudent Misstep names another player, so there is nothing to choose");
             SupportRequire(PlayChoices(misstep).Single().Option.Command!.TargetPlayerId == 1 && !StabilizationText(_inspector).Contains("Not available now", StringComparison.Ordinal), "It should play on the opponent without listing the you-variant as unavailable: " + string.Join("/", StabilizationText(_inspector).Split((char)10)));
 
-            GD.Print("DIRECT_PLAY_PASS: confirm-first for an automatic action only, two-action text selection that begins the action, assumed single legal action begun at once, click-to-choose performer, a player chosen by clicking a stronghold or plaque and a card that names the player, blood-red Declare Attack, end-of-match main menu.");
+            // 8. Issue #1228: Wall of Honor is played and its performer chosen by clicks on the table alone, a bowed Personality among the performers.
+            CardInstance lishan = null!, chikako = null!;
+            await LoadDirectPlay(s =>
+            {
+                BattleSetup(s);
+                lishan = SupportFixtureCard(s, 9083, 0, Zone.Battlefield, 0, bowed: true);
+                chikako = SupportFixtureCard(s, 10102, 0, Zone.Battlefield, 0);
+                SupportFixtureCard(s, 9198, 0, Zone.Hand);
+            });
+            var wall = View.Players[0].Hand.Single();
+            var wallHonor = View.Players[0].Honor;
+            await SupportClick(_tiles.Single(t => t.Card.Id == wall.Id)); await EventFrames(6);
+            SupportRequire(ActionTextBlocks().Count() == 0 && PlayChoices(wall).Length == 1, "Wall of Honor's increase and decrease are one play, not a choice of actions in the sidebar");
+            SupportRequire(PerformerStepActive && PerformerClicks().ContainsKey(lishan.Id) && PerformerClicks().ContainsKey(chikako.Id), "Clicking the card goes straight to the performer, bowed Lishan included: " + string.Join(",", PerformerClicks().Keys));
+            SupportRequire(_tiles.Single(t => t.Card.Id == lishan.Id).LegalTarget && _tiles.Single(t => t.Card.Id == chikako.Id).LegalTarget, "The performers are highlighted on the table");
+            await SupportClick(_tiles.Single(t => t.Card.Id == lishan.Id)); await EventFrames(6);
+            SupportRequire(_chosen?.Command?.PerformerId == lishan.Id && !PerformerStepActive, "Clicking bowed Lishan on the table chose her as the performer");
+            var modes = StabilizationButtons(_inspector).Where(b => b.HasMeta("choice_row")).ToArray();
+            SupportRequire(modes.Length == 2 && modes.Any(b => b.Text.StartsWith("Increase", StringComparison.Ordinal)) && modes.Any(b => b.Text.StartsWith("Decrease", StringComparison.Ordinal)) && _paymentConfirm is { Disabled: true },
+                "Then increase or decrease is asked, and Confirm waits: " + string.Join(" | ", modes.Select(b => b.Text)));
+            await SupportClick(modes.Single(b => b.Text.StartsWith("Decrease", StringComparison.Ordinal))); await EventFrames(4);
+            SupportRequire(_chosen?.Command?.AbilityId == "wall-of-honor-lower" && _chosen.Command.PerformerId == lishan.Id && _paymentConfirm is { Disabled: false }, "Decrease keeps Lishan as the performer and Confirm is ready");
+            await SupportClick(_paymentConfirm!); await WaitDecisionPresentation(); await EventFrames(8);
+            SupportRequire(FindCard(lishan.Id)?.Zone == Zone.Home && View.Players[0].Honor == wallHonor + 2 && View.Events.Any(e => e.Message.Contains("Wall of Honor:", StringComparison.Ordinal) && e.Message.Contains("-1 strength", StringComparison.Ordinal)),
+                $"Wall of Honor resolved: Lishan home, the battlefield's province at -1 strength, 2 Honor gained (Lishan {FindCard(lishan.Id)?.Zone}, Honor {wallHonor} -> {View.Players[0].Honor}; {string.Join(" ; ", View.Events.TakeLast(5).Select(l => l.Message))})");
+
+            GD.Print("DIRECT_PLAY_PASS:confirm-first for an automatic action only, two-action text selection that begins the action, assumed single legal action begun at once, click-to-choose performer, Wall of Honor played and performed (bowed) by table clicks with its mode asked last, a player chosen by clicking a stronghold or plaque and a card that names the player, blood-red Declare Attack, end-of-match main menu.");
             GetTree().Quit(0);
         }
         catch (Exception e) { GD.PushError(e.ToString()); GetTree().Quit(1); }

@@ -5279,6 +5279,7 @@ static void AdditionalActionPrimitive()
         var enemyHost = Add(s, "training-lion-veteran", 1, Zone.Battlefield, province: 0);
         var enemy = Add(s, "training-follower", 1, Zone.Attached, province: 0, attachedTo: enemyHost.Id); // Force 2, matching the Weapon's Melee 2
         var twoHands = Add(s, "oracle-l5r-10175", 0, Zone.Hand);
+        kensai.Bowed = true; // "your performing Kensai" prints no "unbowed": a bowed Kensai performs it (R-035, issue #1228)
         var e = MatchEngine.FromTestState(s);
         Accept(e, new GameCommand("useAbility", 0, e.Version, CardId: twoHands.Id, PerformerId: kensai.Id, AbilityId: "two-hands-grant"));
         Equal(e.State.AdditionalActions.Count(g => g.PlayerId == 0), 2, "Grants two additional Battle actions");
