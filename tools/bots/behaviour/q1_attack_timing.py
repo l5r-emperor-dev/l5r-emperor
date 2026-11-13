@@ -30,9 +30,8 @@ import sys
 import l5rlog as L
 
 
-def main(argv):
-    games = L.load(argv)
-    P = L.ptypes(games)
+def collect(games):
+    """Accumulators of every table in this script, from parsed games (profile.py reuses them)."""
     opp = collections.Counter()      # (ptype, bucket) turns with a decision
     att = collections.Counter()
     out = collections.defaultdict(lambda: [0, 0, 0, 0])   # attacks, destroyed>=1, lost unit, nothing
@@ -77,6 +76,13 @@ def main(argv):
                 mm[1] += dest
                 mm[2] += lost
                 mm[3] += nothing
+    return opp, att, out, force, cond, marg
+
+
+def main(argv):
+    games = L.load(argv)
+    P = L.ptypes(games)
+    opp, att, out, force, cond, marg = collect(games)
     buckets = [L.tb(i) for i in range(1, 10)]
     print('## Q1a  Attack rate by own turn (turns with >=1 unbowed Personality at the header)\n')
     L.table(['own turn'] + ['%s' % p for p in P],

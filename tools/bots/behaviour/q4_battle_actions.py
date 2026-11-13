@@ -40,29 +40,16 @@ import sys
 import l5rlog as L
 
 
-def main(argv):
-    show = '--table' in argv
-    argv = [a for a in argv if a != '--table']
-    games = L.load(argv)
-    P = L.ptypes(games)
+def neutral_strategy_cards(games):
+    """Strategy cards that the logs show used as a home/bow/destroy/reduce Battle action more often than not.
+    Derived from the games given, so the set depends on which logs are loaded together."""
     cc = L.card_classes(games)
-    neutral_cards = set(c for c, k in cc.items()
-                        if L.CAT.type(c) == 'Strategy' and sum(k[x] for x in L.NEUTRALISING) * 2 > sum(k.values()))
-    if show:
-        tab = collections.Counter()
-        txt = {}
-        for g in games:
-            for t in g.turns:
-                for a in t.attacks:
-                    for b in a.battles.values():
-                        for c, k in L.battle_actions(b):
-                            tab[(k, c.ability)] += 1
-                            txt[c.ability] = (c.args.get('card') or '', c.text())
-        print('## Battle-action classification table\n')
-        L.table(['class', 'ability id', 'card', 'uses', 'engine description'],
-                [[k, a, txt[a][0], v, txt[a][1][:110].replace('|', '/')]
-                 for (k, a), v in sorted(tab.items(), key=lambda x: (L.ACTION_CLASSES.index(x[0][0]), -x[1]))])
-        print('Strategy cards counted as neutralisers in 4e: ' + ', '.join(sorted(neutral_cards)) + '\n')
+    return set(c for c, k in cc.items()
+               if L.CAT.type(c) == 'Strategy' and sum(k[x] for x in L.NEUTRALISING) * 2 > sum(k.values()))
+
+
+def collect(games, neutral_cards):
+    """Accumulators of every table in this script, from parsed games (profile.py reuses them)."""
     per = collections.defaultdict(collections.Counter)    # (ptype, role) -> class -> n
     nb = collections.Counter()                            # (ptype, role) -> contested battles
     pg = collections.defaultdict(collections.Counter)     # ptype -> class -> n ; '_games'
@@ -139,6 +126,31 @@ def main(argv):
             x[1] += k > 0
             x[2] += k
 
+    return per, nb, pg, flip, more, hand_fall, hand_end
+
+
+def main(argv):
+    show = '--table' in argv
+    argv = [a for a in argv if a != '--table']
+    games = L.load(argv)
+    P = L.ptypes(games)
+    neutral_cards = neutral_strategy_cards(games)
+    if show:
+        tab = collections.Counter()
+        txt = {}
+        for g in games:
+            for t in g.turns:
+                for a in t.attacks:
+                    for b in a.battles.values():
+                        for c, k in L.battle_actions(b):
+                            tab[(k, c.ability)] += 1
+                            txt[c.ability] = (c.args.get('card') or '', c.text())
+        print('## Battle-action classification table\n')
+        L.table(['class', 'ability id', 'card', 'uses', 'engine description'],
+                [[k, a, txt[a][0], v, txt[a][1][:110].replace('|', '/')]
+                 for (k, a), v in sorted(tab.items(), key=lambda x: (L.ACTION_CLASSES.index(x[0][0]), -x[1]))])
+        print('Strategy cards counted as neutralisers in 4e: ' + ', '.join(sorted(neutral_cards)) + '\n')
+    per, nb, pg, flip, more, hand_fall, hand_end = collect(games, neutral_cards)
     cl = L.ACTION_CLASSES
     print('## Q4a  Battle actions per contested battle (both sides assigned units), by class\n')
     rows = []

@@ -34,9 +34,8 @@ import l5rlog as L
 CH = ['none', 'partial', 'all-in']
 
 
-def main(argv):
-    games = L.load(argv)
-    P = L.ptypes(games)
+def collect(games):
+    """Accumulators of every table in this script, from parsed games (profile.py reuses them)."""
     A = collections.defaultdict(lambda: collections.defaultdict(list))   # (ptype, choice) -> metric -> values
     G = collections.defaultdict(lambda: collections.defaultdict(list))   # (ptype, guard bucket)
     R = collections.defaultdict(lambda: collections.defaultdict(list))   # (ptype, ratio bucket)
@@ -79,6 +78,13 @@ def main(argv):
             for k, v in rec.items():
                 S[(p, stratum, ch)][k].append(v)
 
+    return A, G, R, S
+
+
+def main(argv):
+    games = L.load(argv)
+    P = L.ptypes(games)
+    A, G, R, S = collect(games)
     def row(lab, p, d):
         n = len(d['back'])
         return lab + [n, L.mean(d['guard']), L.mean(d['guardF']), L.rate(sum(d['back']), n, p),

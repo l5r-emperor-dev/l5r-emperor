@@ -40,9 +40,8 @@ import l5rlog as L
 
 
 
-def main(argv):
-    games = L.load(argv)
-    P = L.ptypes(games)
+def collect(games):
+    """Accumulators of every table in this script, from parsed games (profile.py reuses them)."""
     A = collections.defaultdict(collections.Counter)
     B = collections.defaultdict(collections.Counter)
     C = collections.defaultdict(collections.Counter)
@@ -137,6 +136,13 @@ def main(argv):
                     x['dest'] += bool(t.attack.destroyed)
                     x['lost'] += t.attack.att_lost > 0
 
+    return A, B, C, D
+
+
+def main(argv):
+    games = L.load(argv)
+    P = L.ptypes(games)
+    A, B, C, D = collect(games)
     print('## Q8a  The next attack decision after the defender did / did not show a removal action\n')
     rows = []
     for (p, res, rem), x in sorted(A.items(), key=lambda z: (P.index(z[0][0]), z[0][1], z[0][2])):

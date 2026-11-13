@@ -119,6 +119,7 @@ Conan loses 11% of its lost games to Honor, 23 of those 32 to one deck (Q9a, Q9e
 
 ```
 python3 tools/bots/behaviour/q1_attack_timing.py <logs-dir>...   # likewise q2 to q9, one script per table file
+python3 tools/bots/behaviour/profile.py <logs-dir>... [dir=Label,Label] [--json]   # the behaviour profile above, one row per measure, from the same definitions
 ```
 
 Log directories come from a tournament run with `L5R_TOURN_LOG=<dir>` (`tools/bots/par.sh` sets it to `artifacts/bots/logs-<name>`). The directory name tells the parser who is at each seat; see the header of `tools/bots/behaviour/l5rlog.py` for the convention and for the `dir=ChallengerLabel,ChampionLabel` override. `digest.py <log>` prints one game turn by turn as the parser understood it, for checking the parser against a raw log.

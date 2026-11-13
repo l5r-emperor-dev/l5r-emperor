@@ -50,9 +50,8 @@ def classify(b):
     return CLASSES[2] if b.att_lost else CLASSES[3]
 
 
-def main(argv):
-    games = L.load(argv)
-    P = L.ptypes(games)
+def collect(games):
+    """Accumulators of every table in this script, from parsed games (profile.py reuses them)."""
     a3 = collections.defaultdict(lambda: [0, 0, 0, 0])   # attacks faced w/ unbowed pers, defended, sum assigned, sum unbowed
     cls = collections.defaultdict(collections.Counter)
     gift = collections.defaultdict(lambda: [0, 0, 0])   # (ptype, provinces) -> battlefields attacked, defended, gifts
@@ -104,6 +103,13 @@ def main(argv):
                             u[0] += 1
                             u[1] += (spare >= m0)
                             u[2] += b.destroyed
+    return a3, cls, gift, paper, undef
+
+
+def main(argv):
+    games = L.load(argv)
+    P = L.ptypes(games)
+    a3, cls, gift, paper, undef = collect(games)
     print('## Q3a  Does the defender assign anyone? (attacks faced with >=1 unbowed Personality at home)\n')
     L.table(['defender', 'attacks faced', 'assigned >=1 defender', 'defenders assigned / unbowed Personalities'],
             [[p, a3[p][0], L.rate(a3[p][1], a3[p][0], p), L.rate(a3[p][2], a3[p][3], p)] for p in P if a3[p][0]])

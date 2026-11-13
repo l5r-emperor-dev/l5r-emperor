@@ -33,9 +33,8 @@ def surplus_bucket(x):
     return 'a: < 0' if x < 0 else 'b: 0..9' if x < 10 else 'c: 10..19' if x < 20 else 'd: >= 20'
 
 
-def main(argv):
-    games = L.load(argv)
-    P = L.ptypes(games)
+def collect(games):
+    """Accumulators of every table in this script, from parsed games (profile.py reuses them)."""
     a6 = collections.defaultdict(collections.Counter)
     b6 = collections.defaultdict(collections.Counter)
     c6 = collections.defaultdict(collections.Counter)
@@ -94,6 +93,13 @@ def main(argv):
             d6[p]['wins2'] += seen2[s] > 0 and g.winner == s
             d6[p]['wins'] += g.winner == s
 
+    return a6, b6, c6, d6
+
+
+def main(argv):
+    games = L.load(argv)
+    P = L.ptypes(games)
+    a6, b6, c6, d6 = collect(games)
     print('## Q6a  How often an attack is split (attacks with >=2 Personalities assigned, defender has >=2 Provinces)\n')
     L.table(['attacker', 'attacks', 'at 2 Provinces', 'at 3+ Provinces', 'split (any)'],
             [[p, a6[p]['n'], L.rate(a6[p]['2'], a6[p]['n'], p), L.rate(a6[p]['3+'], a6[p]['n'], p),
