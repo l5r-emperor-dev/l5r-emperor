@@ -15,7 +15,11 @@ Nothing here drives a decision. Each instrument has a criterion from the brief, 
    - Pre-registered: block **9200** (Contender against Contender, 1,456 games, records on) is the fit set: `battles.py` learns the fall rate of each (open, likely, worst) cell and of each baseline bucket there. Block **9300** (same arms, records on) is the held-out set on which the Brier score of each estimator is reported. Block 9200 is also run with `T2 + read` against the Contender on the same seeds: the gate requires zero games whose result differs from the A/A (the shadow Read changes nothing).
    - Gate (brief step 2): the Read's Brier below both baselines on 9300, and in each cell holding 200 or more battlefields the observed rate within 10 points of the fitted one; the same for the threat answer (not yet built: recorded as open); need and have reproduced on the attack positions of the decision set, or each miss with a cause.
 
-Blocks used by this note: 9100, 9200, 9300.
+5. **The threat answer and its calibration** (step 2, last part; branch `claude/1206-conan-threat`, from main after the Read merged). `Threat.Of(read, home, army)` (`src/L5R.AI/Read/Threat.cs`, `Read.ThreatNow()`) is section 4.5's `threat(home)`: their whole army straightened (every unit, bowed or not, with its full Force, its abilities fresh and next turn's Gold) against what is unbowed at my home; they choose the attack worst for me among all-in at any Province and a balanced split across any two, I choose the defence best for me among nobody, everybody at one battlefield and a balanced split, each judged by the exchange under the open, likely and worst hand; the outcome is read in Mendon's cumulative tiers (a Province falls; held; held and no defender lost; held, nobody lost and an attacker destroyed) with the exchange's margin after answers at the worst battlefield. Rule `read` logs it once a turn at the first Dynasty decision and drives nothing.
+   - Threat records (`L5R_TOURN_THREATS=<dir>`, `tests/L5R.AI.Tests/ThreatRecords.cs`, read by `tools/bots/threats.py`): one JSON line per player turn with the projection at three moments (at the seat's attack declaration with the units its exchange expects to destroy left out; after its last Dynasty decision; at the first decision of the opponent's turn, their army as it really straightened), two paper baselines (their Force minus my unbowed home Force minus my weakest Strength; the guard ratio of `ARENA_BEHAVIOUR.md` Q2c) and what the opponent's turn did (attacked or not, Provinces lost, units lost on each side).
+   - Pre-registered: block **9400** (Contender against Contender, 1,456 games, threat and battle records on) is the fit set; block **9600** (same arms) the held-out set. Block 9400 is also run as `T2 + read` against the Contender on the same seeds for the identity check (the threat log is new code under the shadow rule). Gate: the threat's Brier on 9600 below both paper baselines, every cell of 200 or more turns within 10 points of its fitted rate; reported before and after the opponent's first Fate reveal.
+
+Blocks used by this note: 9100, 9200, 9300, 9400, 9600.
 
 ## Results (below the line)
 
@@ -122,7 +126,54 @@ Cells, fitted on 9200 / observed on 9300: the Read says "held" under every hand 
 | 57 of 60 abilities classified correctly; unknown share by deck | Met: 59 of 60 blind; 0% in every audited deck |
 | A/A with the shadow Read identical to one without | Met: 0 flipped on block 9200 |
 | The Read's Brier below both baselines on a held-out block; every cell of 200+ within 10 points | Met: 0.152 against 0.213 (paper) and 0.223 (`EstimateAttack`); 0 cells off |
-| The same two tests for the threat answer | **Not built**: `threat(home)` is the next piece; recorded as open |
+| The same two tests for the threat answer | See the threat section below (blocks 9400 and 9600) |
 | `need` and `have` reproduce Mendon's counts on the attack positions, or each miss has a cause | Met on every position where he attacked (above); the two he razed below Strength on Force alone are read as razes once Tactician late Force counts |
 
 Limits worth stating: the Read's exchange is a projection with fixed habits (each side plays its best neutraliser while not getting its result; a duel is counted as half a removal; a Negate cancels the other side's decisive answer); its "likely" verdict rarely differs from "open" against these bots because the belief's prior is weak, which is also why the upper bound carries the signal. The threat answer and the questions of section 4.5 come next; nothing decides on the Read yet.
+
+### 2026-11-13: the threat answer (blocks 9400 and 9600)
+
+- Block 9400 (seeds 9400 to 9403), Contender against Contender, 1,456 games, all decided, threat and battle records on: **50.1%** (729 to 727); the fit set.
+- Block 9600 (seeds 9600 to 9603), same arms: **49.6%** (722 to 734); the held-out set.
+- Block 9400 run again as `T2 + read` against the Contender on the same seeds (the threat log is new code under the shadow rule): **0 games gained, 0 lost**; all 1,456 games identical in winner, turn, reason, final Honor and Provinces (50.1% both).
+
+The smoke block of one seed found two faults in the first recorder before any number was taken: the ledger took the engine's `UnitForce`, which is 0 for a bowed Personality and leaves bowed Followers out, so their straightened army was under-counted by 2 to 10 Force in a third of the turns; and the "after Dynasty" view missed the seat's own purchases when the buy was the last command of the phase. Both fixed (a bowed unit's `UnitForce` is now its full Force and `Contribution` zeroes it; the view is taken before and after each Dynasty decision while the turn is still the seat's).
+
+**Calibration of threat(home)**: fitted on the 19,034 turns of block 9400 that had an opponent turn after them, scored on the 18,786 of block 9600. The target is "lost a Province on the opponent's next turn" (30% of turns; the opponent attacked in 49%).
+
+| Estimator | Brier on 9600 | Cells of 200+ turns off by more than 10 points |
+| --- | --- | --- |
+| Constant rate | 0.2100 | — |
+| Paper margin (their Force − my unbowed home Force − my weakest Strength), five buckets | 0.1296 | 0 |
+| Paper margin, eight buckets | 0.1202 | 0 |
+| Guard ratio (`ARENA_BEHAVIOUR.md` Q2c), four buckets | 0.1247 | 0 |
+| Threat three-hand cell alone (open / likely / worst says a Province falls) | 0.1424 | 0 |
+| Threat tiers alone (the tier under each hand) | 0.1348 | 0 |
+| Threat likely-hand margin after answers, alone | 0.1398 | 0 (not monotone: see below) |
+| **Threat: the three-hand cell crossed with the projection's own Force gap, eight buckets** | **0.1096** | 0 |
+| The same from the "after my last Dynasty decision" projection | 0.1130 | 1 |
+
+The cells of the headline estimator: "000" runs from 2% (gap −10 or less) to 58% (gap above +14); "001" from 5% to 80%; "111" from 7% to 95%; every cell of 200 or more turns within 5 points of its fitted rate.
+
+**What this says, exactly.** The exchange's verdict on its own is coarser than the Force gap: the cell alone scores worse than both paper baselines. The verdict adds to the gap what the gap cannot see (my answers, their answers under the belief, the split, the best defence): crossed with it, the threat scores 0.110 against 0.130 and 0.125, and 0.120 for the gap at the same resolution. The gate's letter ("the Read's Brier lower than both baselines, every cell within 10 points") is met by the crossed estimator and not by the verdict alone; the Force gap in it is the ledger's own number (their straightened army, Followers counted, against my unbowed home and weakest Province), which is the paper margin. The threat answer the rules will read is therefore the pair (cell, gap) with this table, not the verdict alone.
+
+Two findings for the rules:
+
+- **Held at the cost of the army.** The projection's best defence puts Provinces first (Mendon's tiers), so it reads "held" where everybody dies to keep the Province; the tier table shows those turns ("111": held with defenders lost under all three hands) lose a Province 28% of the time and the Contender in play does not make that defence. Family C's price of a defence must weigh the units, which is what `exposure(choice)` is for.
+- **Open says held, the gap says +14 or more: 58% lost.** The exchange's optimism there comes from my own hand answers and printed abilities, which it assumes I will play and the Contender often does not. The belief's two other hands raise the cell, as they should.
+
+Before the opponent's first Fate reveal the cell alone scores 0.0675 against a constant 0.0983 (6,090 turns, 11% lost); after it 0.1746 against 0.2382 (12,696 turns, 39% lost). The two populations differ too much in base rate to compare the belief's effect from this; the split is recorded as the brief asks.
+
+The threat projected at the seat's own attack declaration (with the units its exchange expects to destroy left out, before its purchases) scores 0.2040 on attacking turns alone: it is the answer the attack rules will see, and it is weaker than the end-of-turn one because it does not yet know what will be bought; the "after Dynasty" projection is the right moment for family F and the declaration one for family A, each with its own table.
+
+The battle Read's calibration repeats on these blocks after the ledger change: Read at defence or undefended 0.1491 against paper at defence 0.2132 and `EstimateAttack` 0.2243 (fitted on 9400, scored on 9600, 12,212 battlefields, 0 cells off).
+
+### Criteria of step 2 as they stand after the threat answer
+
+| Criterion | Status |
+| --- | --- |
+| The same two tests for the threat answer | Met by the threat as (cell, Force gap): 0.110 against 0.130 and 0.125 on held-out block 9600, 0 cells off. Not met by the verdict alone (0.142). Stated as such |
+| A/A with the shadow Read identical to one without | Met again on block 9400 with the threat log on: 1,456 of 1,456 games identical |
+
+Nothing decides on the Read yet. Next: the opportunity and race answers, the posture, and replanning (section 4.5 and 4.6), then family D.
+

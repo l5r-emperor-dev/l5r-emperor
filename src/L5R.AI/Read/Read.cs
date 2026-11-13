@@ -48,5 +48,10 @@ public sealed record Read(Ledger Ledger, Belief Belief, string Key, int Attacker
         }
     }
 
+    /// <summary>threat(home) from the board as it stands: their whole army straightened against my unbowed home units (section 4.5, question 2). <paramref name="projectStraighten"/> off reads
+    /// their units as they are, for a view taken on their own turn after they straightened.</summary>
+    public ThreatRead ThreatNow(bool projectStraighten = true, IEnumerable<string>? theirUnitsExpectedDestroyed = null) =>
+        Threat.Of(this, Threat.Defenders(Ledger.Me.Units), projectStraighten ? Threat.Straightened(Ledger.Them.Units, theirUnitsExpectedDestroyed) : Ledger.Them.Home.Where(u => !u.Bowed).ToArray());
+
     public override string ToString() => $"T{Ledger.Turn} {Ledger.Phase} {(AttackerId == Ledger.ViewerId ? "attacking" : "defending")}; belief {Belief}; " + string.Join("; ", Battles());
 }

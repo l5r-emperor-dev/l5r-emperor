@@ -92,7 +92,10 @@ public sealed class BotContext
         if (CurrentRead?.Key == key) return;
         CurrentRead = Read.Of(view);
         if (ReadLog.Count < 2000 && CurrentRead.Battles().Any()) ReadLog.Add(CurrentRead.ToString());
+        // threat(home) once a turn, at the first Dynasty decision: their straightened army against what is unbowed at my home before I buy (section 4.5, question 2)
+        if (view.Phase == Phase.Dynasty && view.ActivePlayerId == view.ViewerId && _threatTurn != view.TurnNumber) { _threatTurn = view.TurnNumber; if (ReadLog.Count < 2000) ReadLog.Add($"T{view.TurnNumber} {CurrentRead.ThreatNow()}"); }
     }
+    private int _threatTurn = -1;
     /// <summary>Issue #1206 (lkPlan): the attack the search chose at this turn's attack declaration (the infantry assignment and its shape's name); the infantry declaration carries it out.</summary>
     internal (int Turn, Dictionary<string, int> Assignment, string Label)? PlannedAttack { get; set; }
     /// <summary>Issue #1206: past this moment the bot abandons the decision it is making and throws <see cref="BotDeadlineException"/> (the arena's per-game cutoff, and a search's own time limit

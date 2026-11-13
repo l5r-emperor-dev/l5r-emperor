@@ -5,7 +5,7 @@ namespace L5R.AI;
 // Issue #1206 (docs/bots/CONAN_STRATEGY_BRIEF.md section 4.2): the ledger. Everything public or the seat's own, read once from the view into the shape the exchange reasons with: each unit with
 // its Force, its abilities as descriptors and which are spent; Provinces and their Strength; Gold now; Honor; the Favor; the seat's own hand exactly, the opponent's as a count.
 
-/// <summary>One unit (a Personality with its attachments) as the Read sees it. Force counts only when unbowed; UnitForce adds the attachments.</summary>
+/// <summary>One unit (a Personality with its attachments) as the Read sees it. UnitForce adds the Followers and is the unit's Force when straightened; Contribution is what counts now (nothing while bowed).</summary>
 public sealed record LedgerUnit(string Id, string Name, int OwnerId, int Force, int UnitForce, bool Bowed, bool Cavalry, int? Province, EffectDescriptor[] Abilities, string[] Spent,
     int Chi, int PersonalHonor, bool Dishonorable, bool ActionLocked, int Attachments, int Followers, int GoldCost, string[]? Keywords = null)
 {
@@ -45,7 +45,8 @@ public sealed record Ledger(int ViewerId, int Turn, Phase Phase, LedgerSide Me, 
         {
             var attached = all.Where(a => a.AttachedTo == c.Id).ToArray();
             var followers = attached.Where(a => a.Definition?.Type == CardType.Follower).ToArray();
-            var unitForce = c.UnitForce ?? Math.Max(0, c.Force) + followers.Where(f => !f.Bowed).Sum(f => Math.Max(0, f.Force));
+            // the engine's UnitForce is the contribution now (0 while bowed, bowed Followers left out); a bowed unit keeps its full Force here, for the projection of it straightened, and Contribution zeroes it
+            var unitForce = c.Bowed ? Math.Max(0, c.Force) + followers.Sum(f => Math.Max(0, f.Force)) : c.UnitForce ?? Math.Max(0, c.Force) + followers.Where(f => !f.Bowed).Sum(f => Math.Max(0, f.Force));
             var abilities = EffectDescriptors.Of(c).Concat(attached.SelectMany(EffectDescriptors.Of)).ToArray();
             var spent = (c.SpentAbilityIds ?? []).Concat(attached.SelectMany(a => a.SpentAbilityIds ?? [])).ToArray();
             var cavalry = (c.Definition?.Keywords?.Contains("Cavalry") ?? false) && followers.All(f => f.Definition?.Keywords?.Contains("Cavalry") ?? false);
