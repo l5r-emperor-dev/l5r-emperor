@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Every recruit ability offers Clan discount / Clan allegiance (RecruitOffersClanModes: all TargetRecruit abilities except Holding and slot recruits); each recruit's QuotePurchase uses the command's flags so Honor Requirement and Proclaim eligibility follow the way to pay. Proclaim per CR: province Personality, own turn, no Clan discount, once per turn, any phase. Ruling R-096.",
+  "validation": "bash tools/check.sh --skip-client: All requested checks passed (Core 4682/4682 incl. new GoldRulingsTests.RecruitAbilityClanModesAndProclaim). tools/check-variant-steps-ui.sh and tools/check-direct-play-ui.sh exit 0. Not playtested by a human.",
+  "remaining": "Holding recruits, slot recruits (Resurrection, Renewal) and deck-search recruits (Sacrifice of Pawns, Searching for Answers) do not offer Clan options.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1232",
+  "branch": "claude/1232-recruit-clan-options",
+  "updated": "2026-11-13T21:50:10.010451+00:00"
+}

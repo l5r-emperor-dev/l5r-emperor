@@ -16,9 +16,9 @@ namespace L5R.Core;
 public sealed partial class MatchEngine
 {
     // The action's effect: he enters play at home, the province refills, and his return is scheduled. True when an entry window opened.
-    private bool SearchPlayMasayaRecruit(PlayerState player, CardInstance masaya)
+    private bool SearchPlayMasayaRecruit(PlayerState player, CardInstance masaya, GameCommand command)
     {
-        var opened = RecruitFromProvince(player, masaya, proclaimResumesTo: 1 - player.Id); // P21 (ZoneExtensions.cs): the province recruit
+        var opened = RecruitFromProvince(player, masaya, proclaimResumesTo: 1 - player.Id, clanDiscount: command.ClanDiscount, clanAllegiance: command.ClanAllegiance); // P21 (ZoneExtensions.cs): the province recruit
         ScheduleToDeck(masaya, "Top", DelayUntil.EndOfTurn, player.Id, "Masaya returns to the top of the Dynasty deck"); // P21: the to-deck delay
         return opened;
     }

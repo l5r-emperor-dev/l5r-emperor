@@ -125,3 +125,5 @@ interpretation this register's decision docs already settled.
 - [Two-Fold Virtue at the Paragon's battlefield](2026-11-13-two-fold-virtue-at-paragon.md) — accepted ruling R-095: the created Personality enters at the targeted Paragon's battlefield.
 
 - [At Any Cost: Clan discount and Clan allegiance](2026-11-13-at-any-cost-clan-options.md) — accepted: four ways to pay, asked after the Samurai; Proclaim not offered (its text needs a Personality in a province), open for Mendon.
+
+- [Every recruit offers the Clan options; Proclaim on your own turn](2026-11-13-recruit-clan-options-and-proclaim.md) — accepted ruling R-096: all recruit abilities offer Clan discount/allegiance; Proclaim in any phase for a province Personality on your own turn, once per turn.

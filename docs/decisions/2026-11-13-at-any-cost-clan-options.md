@@ -1,6 +1,6 @@
 # At Any Cost offers Clan discount and Clan allegiance
 
-Date: 2026-11-13. Issue #1230. Requested by Mendon (`mdornbrook`). Accepted for Clan discount and Clan allegiance; the Proclaim part is open (below).
+Date: 2026-11-13. Issue #1230. Requested by Mendon (`mdornbrook`). Accepted. Extended to every recruit ability, and the Proclaim question settled, by [R-096](2026-11-13-recruit-clan-options-and-proclaim.md) (issue #1232).
 
 ## Request
 

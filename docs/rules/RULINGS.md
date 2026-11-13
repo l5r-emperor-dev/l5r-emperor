@@ -801,3 +801,10 @@ The engine had wired Air and Water from the Twenty Festivals reprint and left Ea
 - **Cards/primitives:** Two-Fold Virtue (oracle-l5r-9939); `p5-two-fold-virtue`, `CreateTwoFoldVirtue` → `CreatePersonality(battlefield)`.
 - **Date:** 2026-11-13
 - **Source:** Mendon, issue #1224 — [decision](../decisions/2026-11-13-two-fold-virtue-at-paragon.md).
+
+### R-096 — Every recruit offers Clan discount and allegiance; Proclaim in any phase on your own turn
+"Recruit should always behave the same unless otherwise specified." Every ability that recruits a Personality offers Clan discount, Clan allegiance, both or neither. Proclaim follows its text in any phase: a Personality in your province, of your Clan, without Clan discount, on your own turn, once per turn; taking it spends that turn's Proclaim.
+
+- **Cards/primitives:** Your Clan Needs You!, Shinden Shorai, Requesting Reinforcements, Masaya, Rise of the Dark Naga, the dead-pile recruits; `RecruitOffersClanModes`, `QuotePurchase` (`ProclaimEligible`), `ProclaimAllowed`.
+- **Date:** 2026-11-13
+- **Source:** Mendon, issue #1232 — [decision](../decisions/2026-11-13-recruit-clan-options-and-proclaim.md).

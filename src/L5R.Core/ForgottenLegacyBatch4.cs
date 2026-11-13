@@ -72,9 +72,9 @@ public sealed partial class MatchEngine
 
     // Rise of the Dark Naga: the shared recruit entry sequence into HOME at the full recruit price (Shinden Shorai's shape), then "Refill the province
     // face-up" (Kharmic's own face-up replacement). True when an entry window opened.
-    private bool RiseOfTheDarkNagaRecruit(PlayerState player, CardInstance recruit)
+    private bool RiseOfTheDarkNagaRecruit(PlayerState player, CardInstance recruit, GameCommand command)
     {
-        var quote = QuotePurchase(player.Id, recruit.Id);
+        var quote = QuotePurchase(player.Id, recruit.Id, command.ClanDiscount, command.ClanAllegiance); // issue #1232: the way to pay the player chose
         Require(quote.Error is null && Definition(recruit).Type == CardType.Personality, quote.Error ?? "");
         var province = player.Provinces.Single(p => p.CardId == recruit.Id);
         var opened = BringProvincePersonalityIntoPlay(player, recruit, quote, null, "Rise of the Dark Naga", proclaimResumesTo: 1 - player.Id);

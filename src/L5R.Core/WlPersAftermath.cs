@@ -142,7 +142,7 @@ public sealed partial class MatchEngine
                 return ExecuteAttach(command, c.ability.Attach!, player, source, target);
             case WlPersAftermathAbilities.EndoRecruit:
                 {
-                    var quote = QuotePurchase(player.Id, source!.Id, fromDeadPile: true);
+                    var quote = QuotePurchase(player.Id, source!.Id, command.ClanDiscount, command.ClanAllegiance, fromDeadPile: true);
                     Require(quote.Error is null, quote.Error ?? "");
                     return BringDeadPersonalityIntoPlay(player, source, "Daigotsu Endo", null);
                 }

@@ -211,7 +211,7 @@ public sealed partial class MatchEngine
                 if (command.TargetId is { } yojimboId && _state.Cards.TryGetValue(yojimboId, out var yojimbo))
                 {
                     Require(Wave835YojimboCandidate(player.Id, yojimbo), "Choose a Yojimbo Personality of yours in your discard pile (not dead).");
-                    var quote = QuotePurchase(player.Id, yojimbo.Id, fromDeadPile: true);
+                    var quote = QuotePurchase(player.Id, yojimbo.Id, command.ClanDiscount, command.ClanAllegiance, fromDeadPile: true);
                     Require(quote.Error is null, quote.Error ?? "");
                 }
                 break;
@@ -269,7 +269,7 @@ public sealed partial class MatchEngine
                 {
                     var yojimbo = target!;
                     var battlefield = _state.CurrentBattleProvince!.Value;
-                    var quote = QuotePurchase(player.Id, yojimbo.Id, fromDeadPile: true);
+                    var quote = QuotePurchase(player.Id, yojimbo.Id, command.ClanDiscount, command.ClanAllegiance, fromDeadPile: true);
                     Require(quote.Error is null && Definition(yojimbo).Type == CardType.Personality, quote.Error ?? "");
                     SpendHandPlayedCard(player, source);
                     return BringDeadPersonalityIntoPlay(player, yojimbo, Definition(source!).Name, battlefield);

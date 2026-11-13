@@ -7383,13 +7383,13 @@ public sealed partial class MatchEngine
         // (Honor Requirement -- waived when the Personality itself is Lion Clan, unlike
         // HonorRequirementWaiverClan's recruiting-player-Clan check -- Unique/Singular, Loyal) is
         // validated here too, so an offered command is one that really resolves, and its cost is "all
-        // costs": the Personality's full Gold cost, no Clan discount/allegiance route.
+        // costs": the Personality's recruit price, with the Clan discount or allegiance the player chose (issue #1232).
         if (id == "shinden-shorai-recruit")
         {
             if (!(player.TurnsTaken > 2)) return "Shinden Shorai cannot be used on your first or second turn.";
             var recruit = Card(command.TargetId!);
             if (!(recruit.ProvinceIndex == source!.ProvinceIndex)) return "Choose the face-up Personality in this Region's own province.";
-            var recruitQuote = QuotePurchase(player.Id, recruit.Id, ignoreHonorRequirementIfPersonalityClan: "Lion");
+            var recruitQuote = QuotePurchase(player.Id, recruit.Id, command.ClanDiscount, command.ClanAllegiance, ignoreHonorRequirementIfPersonalityClan: "Lion");
             if (!(recruitQuote.Error is null)) return recruitQuote.Error ?? "";
         }
         RegisteredValidateLate(new ValidationHookContext(id, ability!, command, player, source));
@@ -8150,7 +8150,7 @@ public sealed partial class MatchEngine
             case "your-clan-needs-you":
                 {
                     var card = target!;
-                    var quote = QuotePurchase(player.Id, card.Id);
+                    var quote = QuotePurchase(player.Id, card.Id, command.ClanDiscount, command.ClanAllegiance);
                     Require(quote.Error is null && Definition(card).Type == CardType.Personality, quote.Error ?? "");
                     // The shared entry sequence (issue #301: factored out once Shinden Shorai became its
                     // fourth caller) -- unchanged behavior, straight into the current battlefield.
@@ -8168,7 +8168,7 @@ public sealed partial class MatchEngine
             case "shinden-shorai-recruit":
                 {
                     var recruit = target!;
-                    var recruitQuote = QuotePurchase(player.Id, recruit.Id, ignoreHonorRequirementIfPersonalityClan: "Lion");
+                    var recruitQuote = QuotePurchase(player.Id, recruit.Id, command.ClanDiscount, command.ClanAllegiance, ignoreHonorRequirementIfPersonalityClan: "Lion");
                     Require(recruitQuote.Error is null && Definition(recruit).Type == CardType.Personality, recruitQuote.Error ?? "");
                     if (BringProvincePersonalityIntoPlay(player, recruit, recruitQuote, null, "Shinden Shorai", proclaimResumesTo: 1 - player.Id)) return;
                     break;
@@ -9259,7 +9259,7 @@ public sealed partial class MatchEngine
             // Essence of Undeath: the Spell's destruction was the cost and the Gold was paid; he enters at his Shugenja's location (home, or the battlefield he stands at).
             case "essence-of-undeath-recruit":
                 {
-                    var quote = QuotePurchase(player.Id, target!.Id, fromDeadPile: true);
+                    var quote = QuotePurchase(player.Id, target!.Id, command.ClanDiscount, command.ClanAllegiance, fromDeadPile: true);
                     Require(quote.Error is null, quote.Error ?? "");
                     var shugenja = Card(command.PerformerId!);
                     if (BringDeadPersonalityIntoPlay(player, target, "Essence of Undeath", shugenja.Zone == Zone.Battlefield ? shugenja.ProvinceIndex : null, entered =>
@@ -9273,7 +9273,7 @@ public sealed partial class MatchEngine
             // Goju Plot: the performer's destruction was the cost and the reduced recruit cost was paid; he enters at the current battlefield, and another Battle action may follow.
             case "goju-plot-recruit":
                 {
-                    var quote = QuotePurchase(player.Id, target!.Id, fromDeadPile: true);
+                    var quote = QuotePurchase(player.Id, target!.Id, command.ClanDiscount, command.ClanAllegiance, fromDeadPile: true);
                     Require(quote.Error is null, quote.Error ?? "");
                     var entryWindow = BringDeadPersonalityIntoPlay(player, target, "Goju Plot", _state.CurrentBattleProvince!.Value, _ => GainHonor(player.Id, -2, "Goju Plot", source));
                     GrantAdditionalAction(player.Id, null);
@@ -9907,7 +9907,7 @@ public sealed partial class MatchEngine
             case "requesting-reinforcements-recruit":
                 {
                     var reinforcement = target!;
-                    var reinforcementQuote = QuotePurchase(player.Id, reinforcement.Id);
+                    var reinforcementQuote = QuotePurchase(player.Id, reinforcement.Id, command.ClanDiscount, command.ClanAllegiance);
                     Require(reinforcementQuote.Error is null && Definition(reinforcement).Type == CardType.Personality, reinforcementQuote.Error ?? "");
                     if (HasReconnaissanceAtCurrentBattlefield(player.Id)) GrantAdditionalAction(player.Id, null);
                     SpendHandPlayedCard(player, source);
@@ -10119,7 +10119,7 @@ public sealed partial class MatchEngine
             case "kunji-exp-return-free": if (BringDeadPersonalityIntoPlay(player, source!, "Kunji", null)) return; break;
             case "kunji-exp-return-paid":
                 {
-                    var kunjiQuote = QuotePurchase(player.Id, source!.Id, fromDeadPile: true);
+                    var kunjiQuote = QuotePurchase(player.Id, source!.Id, command.ClanDiscount, command.ClanAllegiance, fromDeadPile: true);
                     Require(kunjiQuote.Error is null, kunjiQuote.Error ?? "");
                     if (BringDeadPersonalityIntoPlay(player, source, "Kunji", null)) return;
                     break;
@@ -10554,7 +10554,7 @@ public sealed partial class MatchEngine
             case "game-of-dice-draw": QueueExtraEndPhaseDraws(player, 2, Definition(source!).Name); break;
             case "yojimbos-duty-recruit":
                 {
-                    var yojimboQuote = QuotePurchase(player.Id, target!.Id, fromDeadPile: true);
+                    var yojimboQuote = QuotePurchase(player.Id, target!.Id, command.ClanDiscount, command.ClanAllegiance, fromDeadPile: true);
                     Require(yojimboQuote.Error is null, yojimboQuote.Error ?? "");
                     if (BringDeadPersonalityIntoPlay(player, target, "A Yojimbo's Duty", null)) return;
                     break;
@@ -10626,7 +10626,7 @@ public sealed partial class MatchEngine
                 break;
             case "dark-naga-rise-recruit":
                 SpendHandPlayedCard(player, source);
-                if (RiseOfTheDarkNagaRecruit(player, target!)) return;
+                if (RiseOfTheDarkNagaRecruit(player, target!, command)) return;
                 break;
             case "seeking-truth-recon": SeekingTheTruth(command, player); break;
             case "siege-volley-raise": case "siege-volley-lower": SiegeVolleyStrength(player.Id, id == "siege-volley-raise"); break;
@@ -11721,6 +11721,7 @@ public sealed partial class MatchEngine
                                             + (compareChoice is null ? "" : AttackCompareOptions(id) is { } compareLabels ? $" · compare against {compareLabels.First(o => o.Key == compareChoice).Label}" : $" · {(MechEChoiceOptions(id) ?? P2ChoiceOptions(id) ?? P5ChoiceOptions(id, playerId) ?? Wave9601ChoiceOptions(id, playerId))!.First(o => o.Key == compareChoice).Label}")
                                             + (provinceOwner is int owner ? ability.Target == "player" ? (owner == playerId ? " · you" : " · your opponent") : (owner == playerId ? " · your Province" : " · an enemy Province") : "")
                                             + (clanMode.Label is null ? "" : $" · {clanMode.Label}");
+                                        if (legal.Count == 0 && (clanMode.Discount || clanMode.Allegiance)) continue; // issue #1232: a Clan way to pay no target allows (another Clan's Personality) is not listed; the full-cost option says why the play is off
                                         yield return new("useAbility", label, legal.Count > 0, legal.Count > 0 ? null : error ?? (candidates.Length == 0 ? EmperorRemainingENoCandidateReason(ability.Target) : null) ?? "No legal target or performer.",
                                             legal.FirstOrDefault(), source?.Id, ability.Target == "provinces" ? provinces : legal.Where(c => c.TargetId is not null).Select(c => c.TargetId!).Distinct().ToArray(),
                                             // The battlefields a move's destination rule lists (issue #336) or, for an Attack, the province it may name instead of a card (issue #335): the
@@ -11742,12 +11743,16 @@ public sealed partial class MatchEngine
     }
 
     // Issue #1230 (Mendon; Comprehensive Rules, "Clan alignment and entering play" and the Emperor changes' "apply at any time, not just in the Dynasty Phase"): a recruit of one's own Clan-aligned
-    // Personality may be paid with Clan discount (2 less Gold), Clan allegiance (2 more Gold, ignoring the Honor Requirement), both, or neither. Offered for the recruit abilities listed here; each
-    // offered option carries its way to pay as ChoiceLabel, so the client asks it once the Personality is chosen. Proclaim is not offered: it needs a Personality "in your province".
+    // Personality may be paid with Clan discount (2 less Gold), Clan allegiance (2 more Gold, ignoring the Honor Requirement), both, or neither. Each offered option carries its way to pay as
+    // ChoiceLabel, so the client asks it once the Personality is chosen. Issue #1232 (Mendon: "Recruit should always behave the same unless otherwise specified"): every ability that brings a
+    // Personality into play at his recruit price (GoldCostRule.TargetRecruit) offers them, not only At Any Cost. Proclaim follows its own text: a Personality "in your province", "if it is your
+    // turn", once per turn, in any phase (QuotePurchase's ProclaimEligible). Not here: the Holding recruits, and the recruits whose cards are picked in slots (a documented limit).
+    private static readonly HashSet<string> HoldingRecruits = [Wave739Abilities.MikaruRecruit, PromoEmperorFateAbilities.GovernHolding, PromoEmperorFateAbilities.FortHolding];
     private static readonly (bool Discount, bool Allegiance, string? Label)[] NoClanModes = [(false, false, null)];
     private static readonly (bool Discount, bool Allegiance, string? Label)[] ClanModes =
         [(false, false, "Full cost"), (true, false, "Clan discount: 2 less Gold"), (false, true, "Clan allegiance: 2 more Gold, ignoring the Honor Requirement"), (true, true, "Clan discount and allegiance: ignoring the Honor Requirement")];
-    internal static bool RecruitOffersClanModes(string abilityId) => abilityId == "at-any-cost-recruit";
+    internal static bool RecruitOffersClanModes(string abilityId) => AbilityCatalog.All.TryGetValue(abilityId, out var ability) && ability.Cost?.Basis == GoldCostBasis.TargetRecruit
+        && ability.Slots is null && !HoldingRecruits.Contains(abilityId);
     private static (bool Discount, bool Allegiance, string? Label)[] RecruitClanModes(string abilityId) => RecruitOffersClanModes(abilityId) ? ClanModes : NoClanModes;
     private string AbilityOptionLabel(string id, AbilityDefinition ability, string? performer, CardInstance? source, CostOption? costOption = null) =>
         ability.Label + (performer is null ? "" : $" · {Definition(Card(performer)).Name} ({performer})") + (costOption is null ? "" : $" · {costOption.Label}")
