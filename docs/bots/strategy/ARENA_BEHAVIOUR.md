@@ -33,9 +33,9 @@ One row per measure. "Good" is the direction a stronger player moves it, judged 
 | Turns with two or more Provinces destroyed, per 100 attacks | 15.8 | 9.7 | 6.4 | 8.0 | higher | Q6d |
 | Defended battlefields held with an attacker destroyed | 7 of 12 | 25% | 7% | 20% | higher | Q3b |
 | Gift defences: Province lost and defenders destroyed | 0 of 12 | 14% | 32% | 20% | lower | Q3b |
-| Unbowed Personalities assigned when attacked | 36 of 67 | 65% | 75% | 77% | fewer, better placed | Q3a |
+| Unbowed Personalities assigned when attacked | 36 of 67 | 68% | 78% | 77% | fewer, better placed | Q3a |
 | A Province lost on the opponent's turn after an all-in attack | 0 of 8 | 34% | 47% | — | lower | Q2a |
-| A neutralising card in hand when an undefended Province fell with an unbowed Personality at home | — | 70% | — | — | lower | Q4e |
+| A neutralising card in hand when an undefended Province fell with an unbowed Personality at home | 1 of 1 | 68% | 74% | — | lower | Q4e |
 | Cavalry Personalities held for the Cavalry segment | 1 of 1 | 15% | 80% | 81% | higher | Q5a |
 | Gold capacity left unproduced, turns 1 to 8 | 12% | 24% | 29% | 27% | lower | Q7a |
 | First purchase is a Personality when behind on Personalities | 9 of 9 | 38% | 42% | 41% | higher | Q7c |
@@ -64,7 +64,7 @@ Of the 1,072 Provinces Conan lost in battle in its lost games (Q9b):
 | No guard, after its own attack | 25% |
 | No guard, and it had not attacked | 14% |
 
-Two opposite errors sit side by side. **Gift defences**: 14% of Conan's defended battlefields lose the Province and the defenders with it (32% for the Contender; Q3b). About half of them are at the last Province, where defending is forced (Q3c); the rest are a choice. **Declined defences with the answer in hand**: in 70% of the 564 cases where a Province fell undefended with an unbowed Personality at home, Conan held at least one neutralising Strategy card (1.7 on average) that it could not play, because no unit of its own was at the battlefield (Q4e). Between 11% and 17% of the undefended battlefields that fell on paper could have been held on paper by the units left at home (Q3e).
+Two opposite errors sit side by side. **Gift defences**: 14% of Conan's defended battlefields lose the Province and the defenders with it (32% for the Contender; Q3b). About a third of them are at the last Province, where defending is forced and half of all defences there are gifts (Q3c); the rest are a choice, and their rate rises as Provinces fall (Conan 8% of defences at four Provinces, 14% at two). **Declined defences with the answer in hand**: in 68% of the 458 cases where a Province fell undefended with an unbowed Personality at home, Conan held at least one neutralising Strategy card (1.6 on average) that it could not play, because no unit of its own was at the battlefield (Q4e). Between 8% and 14% of the undefended battlefields that fell on paper could have been held on paper by the units left at home (Q3e).
 
 A fixed rule cannot fix both. The decision needs a projection of the battle that counts the cards a single defender would unlock.
 

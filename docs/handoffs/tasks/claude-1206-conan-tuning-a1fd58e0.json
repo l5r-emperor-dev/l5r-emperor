@@ -1,9 +1,9 @@
 {
   "lane": "shared",
-  "summary": "Conan (#1206): lkB work budget for searches (screens since block 7200 were biased by CPU contention against the wall-clock limit); opt-in lkShapes, lkVal (ValueModel), lkAny, lkDedup, lkPS/lkHS, lkFar; arena snapshot/oracle options; sprt.py and fit_value.py; replay probe for #1216 (Tomaru went home correctly: Lion held Tactical Assault).",
-  "validation": "Release/Debug builds 0 errors; arena blocks 7000-7400 recorded in docs/bots/experiments/2026-11-10-conan-vs-contender.md; block 7500 (fair, lkB=600) running; human-compare probe run on the #1216 replay.",
-  "remaining": "Block 7500 results; continue toward 80% vs Contender per CONAN_CAMPAIGN_BRIEF (purchases/development, larger budgets); Toth-Amon after. No defaults changed.",
+  "summary": "Conan strategy brief (docs/bots/CONAN_STRATEGY_BRIEF.md) for the next stage of #1206: a calibrated Read of the position (effect descriptors, two-sided ledger, belief about the opponent's hand, battle exchange, posture) with contextual rules on top, replacing the search-first direction. Supporting research under docs/bots/strategy/: Mendon's decision model from eight replays, nine rule families with seed rules, an arena behaviour profile over 4,000+ logged games (good and weak bot behaviour), rules digest, code map; analysis scripts in tools/bots/behaviour/. Block 8400 baseline recorded. Docs and scripts only; no bot behaviour or default changed.",
+  "validation": "Block 8400 (364 games each, frozen Contender T2): Contender A/A 192-172 (52.7%), Conan-best 271-93 (74.5%), net +79 on the same games; matches blocks 7800-8100. Behaviour scripts rerun from the repo copy on logs-r78/r79/r81 (1,091 games) reproduce the committed tables; every figure cited in ARENA_BEHAVIOUR.md and RULE_FAMILIES.md checked against the final tables. No C# changed, so no test run.",
+  "remaining": "The work the brief describes (steps 0-6) is not started. Mendon to answer a screenshot interview on Cavalry forcing and on the counter-attack at two Provinces or fewer (PLAYER_MODEL.md section 5); arena tables are observational and Mendon's sample is seven games.",
   "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
   "branch": "claude/1206-conan-tuning",
-  "updated": "2026-11-11T12:25:25.900002+00:00"
+  "updated": "2026-11-13T08:14:28.972382+00:00"
 }

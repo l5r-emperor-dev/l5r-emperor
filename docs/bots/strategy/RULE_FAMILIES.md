@@ -106,7 +106,7 @@ IF T.likely holds: improve the tier only with resources the attack does not need
 
 ## D. Defence assignment
 
-**Symptom.** Of the battlefields the Contender defends, 20 to 32% end with the Province lost **and** the defenders destroyed (Conan 14%, Mendon 0 of 12, AB Q3b). When an undefended Province falls, the defender still holds a neutralising Strategy in 70% of cases, 1.8 cards on average, and in 564 of Conan's cases an unbowed Personality stayed home (AB Q4e). The two leaks pull in opposite directions (defend less, defend more); only a projection of the battle tells them apart. Whoever plays more neutralising actions wins the battle: the Province falls 52 to 58% of the time when the attacker plays more and 11 to 21% when the defender does (AB Q4d).
+**Symptom.** Of the battlefields the Contender defends, 20 to 32% end with the Province lost **and** the defenders destroyed (Conan 14%, Mendon 0 of 12, AB Q3b). When an undefended Province falls, the defender still holds a neutralising Strategy in about 70% of cases, and in 458 of Conan's cases an unbowed Personality had stayed home that could have unlocked it (68% held one, 1.6 cards on average; AB Q4e). The two leaks pull in opposite directions (defend less, defend more); only a projection of the battle tells them apart. Whoever plays more neutralising actions wins the battle: the Province falls 45 to 58% of the time when the attacker plays more and 11 to 21% when the defender does (AB Q4d).
 
 **Seed rule** (PM 3.4).
 
