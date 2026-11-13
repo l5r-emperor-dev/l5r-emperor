@@ -49,18 +49,53 @@ def cell_count(p):
     return f"{min(2, p['likely']['provincesLost'])}/{min(2, p['worst']['provincesLost'])}"
 
 
+def tiers(p):
+    """The tier under each hand (0 a Province falls, 1 held, 2 held and nobody lost, 3 held and an attacker destroyed), open/likely/worst."""
+    if not p:
+        return None
+    if p['candidates'] == 0:
+        return 'no army'
+    return ''.join(str(p[k]['tier']) for k in ('open', 'likely', 'worst'))
+
+
+def margin(p):
+    if not p:
+        return None
+    return 'no army' if p['candidates'] == 0 else bucket(p['likely']['margin'])
+
+
+FINE_BUCKETS = [('<= -10', lambda m: m <= -10), ('-9..-5', lambda m: -10 < m <= -5), ('-4..-1', lambda m: -5 < m < 0), ('0..+2', lambda m: 0 <= m <= 2), ('+3..+5', lambda m: 2 < m <= 5), ('+6..+9', lambda m: 5 < m <= 9), ('+10..+14', lambda m: 9 < m <= 14), ('> +14', lambda m: m > 14)]
+
+
+def fine(m):
+    for name, f in FINE_BUCKETS:
+        if f(m):
+            return name
+    return '?'
+
+
+def read_margin(p):
+    """The projection's own Force gap: their straightened army against my unbowed home and weakest Strength (the paper margin as the ledger counts it)."""
+    return p['attackForce'] - p['homeForce'] - p['weakestStrength']
+
+
 ESTIMATORS = {
     'paper margin (their Force - my unbowed home - weakest Strength)': lambda t: bucket(t['paperMargin']),
+    'paper margin, eight buckets': lambda t: fine(t['paperMargin']),
     'guard ratio (my unbowed home Force / their Force)': lambda t: ratio_bucket(t['guardRatio']),
+    'threat at their turn: the three-hand cell crossed with the projection\'s own Force gap, eight buckets (the headline estimator)': lambda t: (cell(t.get('atStart')) or '?') + ' ' + fine(read_margin(t['atStart'])) if t.get('atStart') else None,
+    'threat projected after my last Dynasty decision: cell crossed with the Force gap, eight buckets': lambda t: (cell(t.get('atEnd')) or '?') + ' ' + fine(read_margin(t['atEnd'])) if t.get('atEnd') else None,
     'threat at the first decision of their turn (open/likely/worst)': lambda t: cell(t.get('atStart')),
     'threat projected after my last Dynasty decision (open/likely/worst)': lambda t: cell(t.get('atEnd')),
     'threat projected at my attack declaration, attacking turns only (open/likely/worst)': lambda t: cell(t.get('atDeclaration')),
     'threat at their turn, Provinces lost likely/worst (capped at 2)': lambda t: cell_count(t.get('atStart')),
-    'threat at their turn, the likely hand\'s margin after answers (their Force - my defenders - Strength at the worst battlefield)': lambda t: bucket(t['atStart']['likely']['margin']) if t.get('atStart') else None,
-    'threat at their turn, cell crossed with the likely margin': lambda t: (cell(t.get('atStart')) or '?') + ' ' + bucket(t['atStart']['likely']['margin']) if t.get('atStart') else None,
+    'threat tiers at their turn (open/likely/worst; 0 falls, 1 held, 2 held and nobody lost, 3 held and an attacker destroyed)': lambda t: tiers(t.get('atStart')),
+    'threat at their turn, the likely hand\'s margin after answers (their Force - my defenders - Strength at the worst battlefield)': lambda t: margin(t.get('atStart')),
+    'threat at their turn, cell crossed with the likely margin': lambda t: (cell(t.get('atStart')) or '?') + ' ' + (margin(t.get('atStart')) or '?'),
     'threat at their turn crossed with the paper margin': lambda t: (cell(t.get('atStart')) or '?') + ' ' + bucket(t['paperMargin']),
+    'threat likely tier at their turn crossed with the paper margin': lambda t: (str(t['atStart']['likely']['tier']) if t.get('atStart') else '?') + ' ' + bucket(t['paperMargin']),
 }
-ORDER = [n for n, _ in MARGIN_BUCKETS] + [n for n, _ in RATIO_BUCKETS] + ['000', '001', '011', '111', '0/0', '0/1', '0/2', '1/1', '1/2', '2/2']
+ORDER = ['no army'] + [n for n, _ in MARGIN_BUCKETS] + [n for n, _ in FINE_BUCKETS if n != '<= -10'] + [n for n, _ in RATIO_BUCKETS] + ['000', '001', '011', '111', '0/0', '0/1', '0/2', '1/1', '1/2', '2/2', '0', '1', '2', '3']
 
 
 def order_key(k):

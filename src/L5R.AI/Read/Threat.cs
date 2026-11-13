@@ -18,9 +18,14 @@ public sealed record ThreatCase(int ProvincesLost, int DefendersLost, int Attack
 
 public sealed record ThreatRead(int AttackForce, int HomeForce, int WeakestStrength, int Candidates, ThreatCase Open, ThreatCase Likely, ThreatCase Worst)
 {
-    private static readonly ThreatCase Quiet = new(0, 0, 0, "none", "none");
+    /// <summary>The projection's own Force gap: their straightened army against my unbowed home and weakest Province. The calibration (threats.py) reads the threat as the pair of this and
+    /// the three-hand cell: the cell alone is coarser than the gap, the pair is better than either (experiment note of 2026-11-13, blocks 9400 and 9600).</summary>
+    public int Gap => AttackForce - HomeForce - WeakestStrength;
+    /// <summary>Whether a Province falls under the open, likely and worst hand, as "000" to "111": the cell of the calibration table.</summary>
+    public string Cell => $"{(Open.ProvincesLost > 0 ? 1 : 0)}{(Likely.ProvincesLost > 0 ? 1 : 0)}{(Worst.ProvincesLost > 0 ? 1 : 0)}";
+    private static readonly ThreatCase Quiet = new(0, 0, 0, "none", "none", -99);
     public static readonly ThreatRead None = new(0, 0, 0, 0, Quiet, Quiet, Quiet);
-    public override string ToString() => $"threat {AttackForce} v home {HomeForce} + s{WeakestStrength} ({Candidates} attacks): open {Open.Tier}/{Open.ProvincesLost} likely {Likely.Tier}/{Likely.ProvincesLost} worst {Worst.Tier}/{Worst.ProvincesLost}; likely {Likely}";
+    public override string ToString() => $"threat {AttackForce} v home {HomeForce} + s{WeakestStrength} gap {Gap:+0;-0;0} cell {Cell} ({Candidates} attacks): open {Open.Tier}/{Open.ProvincesLost} likely {Likely.Tier}/{Likely.ProvincesLost} worst {Worst.Tier}/{Worst.ProvincesLost}; likely {Likely}";
 }
 
 public static class Threat

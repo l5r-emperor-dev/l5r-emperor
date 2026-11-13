@@ -81,7 +81,7 @@ internal static class ThreatTests
         {
             var me = Side(0, [U("m1", 0, 3)], [(0, 4)]); var them = Side(1, [], [(0, 7)]);
             var t = Threat.Of(ReadOf(me, them), Threat.Defenders(me.Units), Threat.Straightened(them.Units));
-            Check(t.Candidates == 0 && t.Open.ProvincesLost == 0 && t.HomeForce == 3, $"nothing to attack with: {t}");
+            Check(t.Candidates == 0 && t.Open.ProvincesLost == 0 && t.HomeForce == 3 && t.Cell == "000" && t.Gap == -7, $"nothing to attack with: {t}");
         }),
     ];
 }
