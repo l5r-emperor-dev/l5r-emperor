@@ -20,7 +20,10 @@ public partial class Main
     /// <summary>The variants that differ only by Command.Choice for the drafted target: what the player is asked after the target. For a modal ability, its modes for the chosen performer.</summary>
     private ActionOption[] ChoiceVariants(ActionOption option) => option.ChoiceLabel is null || option.Command?.TargetId is not { } target ? ModeVariants(option)
         : VariantsOf(option).Where(a => a.ChoiceLabel is not null && a.Command!.CostOption == option.Command.CostOption && a.TargetIds?.Contains(target) == true)
-            .GroupBy(a => a.Command!.Choice).Select(g => g.First()).ToArray();
+            .GroupBy(a => (a.Command!.Choice, a.Command.ClanDiscount, a.Command.ClanAllegiance)).Select(g => g.First()).ToArray(); // issue #1230: a recruit's ways to pay are answers too
+
+    /// <summary>Issue #1230: the answers are ways to pay (At Any Cost's Clan discount and allegiance), not things to use from the target.</summary>
+    private static bool IsPaymentChoice(ActionOption option) => option.Command is { } c && AbilityCatalog.All.TryGetValue(c.AbilityId ?? "", out var ability) && ability.Cost?.Basis == GoldCostBasis.TargetRecruit && option.ChoiceLabel is not null;
 
     // Issue #1228: the modes of one printed ability (Wall of Honor's "increase or decrease", Inspired Devotion's two bonuses) are separate abilities in Core that share one use, have no target and
     // name a performer. They are one play: the card is clicked, the performer is clicked on the table, and the mode is asked last. Reactions keep their own flow.
@@ -73,14 +76,16 @@ public partial class Main
     {
         _inspector.AddChild(Palette.Text("STEP · CHOOSE ONE", 11, Palette.Gold));
         var target = action.Command?.TargetId is { } id && FindCard(id) is { } card ? ShortName(card) : "the target";
-        _inspector.AddChild(Palette.Wrapped(action.ChoiceLabel is null ? "Choose one. Nothing happens until you confirm." : $"Choose what to use from {target}. Nothing happens until you confirm.", 13, Palette.PaperDim));
+        _inspector.AddChild(Palette.Wrapped(action.ChoiceLabel is null ? "Choose one. Nothing happens until you confirm." : IsPaymentChoice(action) ? $"Choose how to pay for {target}. Nothing happens until you confirm."
+            : $"Choose what to use from {target}. Nothing happens until you confirm.", 13, Palette.PaperDim));
         var rows = new VBoxContainer(); rows.AddThemeConstantOverride("separation", 6); _inspector.AddChild(rows);
         foreach (var variant in ChoiceVariants(action))
         {
             var pick = variant;
-            var text = variant.ChoiceLabel ?? ModeLabel(variant);
+            var price = IsPaymentChoice(variant) && action.Command?.TargetId is { } priced && variant.TargetGold?.TryGetValue(priced, out var quote) == true ? $" · {quote.Cost} Gold" : "";
+            var text = (variant.ChoiceLabel ?? ModeLabel(variant)) + price;
             var row = SidebarSkin.Button(text, () => PickChoice(pick));
-            row.SetMeta("choice_row", variant.Command!.Choice ?? variant.Command.AbilityId ?? ""); row.Disabled = !DecisionCanSubmit; row.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            row.SetMeta("choice_row", variant.Command!.Choice ?? (IsPaymentChoice(variant) ? $"discount={variant.Command.ClanDiscount},allegiance={variant.Command.ClanAllegiance}" : variant.Command.AbilityId) ?? ""); row.Disabled = !DecisionCanSubmit; row.AutowrapMode = TextServer.AutowrapMode.WordSmart;
             row.CustomMinimumSize = new Vector2(0, 26 + 24 * (int)Math.Ceiling(text.Length / 30.0)); // an ability's whole printed text wraps: the row is as tall as its lines
             rows.AddChild(row);
         }

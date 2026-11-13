@@ -123,3 +123,5 @@ interpretation this register's decision docs already settled.
 - [Practice difficulty](2026-11-11-practice-difficulty.md) — Easy is the Champion, Moderate the Contender, Hard Conan in its best-measured state; Hard decides off the UI thread on a copy of the match.
 
 - [Two-Fold Virtue at the Paragon's battlefield](2026-11-13-two-fold-virtue-at-paragon.md) — accepted ruling R-095: the created Personality enters at the targeted Paragon's battlefield.
+
+- [At Any Cost: Clan discount and Clan allegiance](2026-11-13-at-any-cost-clan-options.md) — accepted: four ways to pay, asked after the Samurai; Proclaim not offered (its text needs a Personality in a province), open for Mendon.

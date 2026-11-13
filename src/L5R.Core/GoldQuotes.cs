@@ -352,7 +352,7 @@ public sealed partial class MatchEngine
                 }
             case GoldCostBasis.TargetRecruit:
                 {
-                    var recruit = QuotePurchase(command.PlayerId, target.Id, ignoreHonorRequirementIfPersonalityClan: rule.HonorWaiverClan, fromDeadPile: target.Zone is Zone.Dead or Zone.DynastyDiscard,
+                    var recruit = QuotePurchase(command.PlayerId, target.Id, command.ClanDiscount, command.ClanAllegiance, ignoreHonorRequirementIfPersonalityClan: rule.HonorWaiverClan, fromDeadPile: target.Zone is Zone.Dead or Zone.DynastyDiscard,
                         anyOwnerPile: rule.AnyOwnerPile);
                     var derivation = recruit.Error is null && recruit.Cost != Definition(target).GoldCost && recruit.Basis is { } terms ? $" ({terms})" : "";
                     var performerCost = 0; var performerNote = "";
