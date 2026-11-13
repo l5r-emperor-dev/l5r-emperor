@@ -5492,6 +5492,7 @@ public sealed partial class MatchEngine
         if (slotAbility is not null) ability = slotAbility;
         ability = RulebookAbility(ability!, id, command); // P19 (issue #717, RulebookModifiers.cs): a rulebook action's timing / Absent as the performer's modifiers leave them
         RequireNotBarredFromTargeting(command, ability!);
+        if ((command.ClanDiscount || command.ClanAllegiance) && !RecruitOffersClanModes(id)) return "This action does not offer Clan discount or Clan allegiance."; // issue #1230
         if (ability!.Timing == "Reaction" && ability.UsesPerTurn == 1 && ReactionTriggerKey(command.CardId, id) is { } takenKey && _state.ReactionsTakenThisTrigger.Contains(takenKey)) return "This card has already taken this Reaction to this trigger.";
         var __valid1 = ability!.Timing switch
         {
@@ -7785,7 +7786,7 @@ public sealed partial class MatchEngine
                 break;
             case "at-any-cost-recruit":
                 {
-                    var quote = QuotePurchase(player.Id, target!.Id, fromDeadPile: true);
+                    var quote = QuotePurchase(player.Id, target!.Id, command.ClanDiscount, command.ClanAllegiance, fromDeadPile: true); // issue #1230: the way to pay the player chose
                     Require(quote.Error is null, quote.Error ?? "");
                     SpendHandPlayedCard(player, source);
                     if (BringDeadPersonalityIntoPlay(player, target, "At Any Cost", _state.CurrentBattleProvince!.Value)) return;
@@ -11600,12 +11601,13 @@ public sealed partial class MatchEngine
                     foreach (var createChoice in createChoices)
                         foreach (var shownChoice in AlternativeDiscard.Choices(costOption, shownChoices, player, source))
                             foreach (var deckPosition in id == "goju-house-guard-return" ? new string?[] { "Top", "Bottom" } : new string?[] { null }) // the card asks where on its owner's Fate deck it goes (issue #833): one offered action per end, each carrying the choice
-                                foreach (var compareChoice in compareChoices)
+                                foreach (var (compareChoice, clanMode) in compareChoices.SelectMany(c => RecruitClanModes(id).Select(m => (c, m)))) // issue #1230: also one offered option per way to pay (At Any Cost's Clan discount / allegiance)
                                 {
                                     var provinces = player.Provinces.Where(p => !p.Destroyed && p.CardId is not null).Select(p => OwnProvinceTargetId(player, p)).ToArray(); // a face-down card by its place (issue #586)
                                     var armyIds = _state.CurrentBattleProvince is int currentProvince ? Army(playerId, currentProvince).Select(a => a.Id).OrderBy(x => x, StringComparer.Ordinal).ToArray() : [];
                                     var prototype = new GameCommand("useAbility", playerId, _state.Version, source?.Id, null,
-                                        CardIds: ability.Target == "provinces" ? provinces : shownChoice is null ? null : [shownChoice], AbilityId: id, PerformerId: performer, DeckPosition: deckPosition, CostOption: costOption?.Id, CreatedCard: createChoice?.Id, Choice: compareChoice);
+                                        CardIds: ability.Target == "provinces" ? provinces : shownChoice is null ? null : [shownChoice], AbilityId: id, PerformerId: performer, DeckPosition: deckPosition, CostOption: costOption?.Id, CreatedCard: createChoice?.Id, Choice: compareChoice,
+                                        ClanDiscount: clanMode.Discount, ClanAllegiance: clanMode.Allegiance);
                                     // Multi-target actions (issue #336): one option carrying every slot's legal candidates, and the default selection as its command.
                                     if (ability.Slots is not null)
                                     {
@@ -11717,7 +11719,8 @@ public sealed partial class MatchEngine
                                         var label = AbilityOptionLabel(id, ability, performer, source, costOption) + (createChoice is null ? "" : $" · {createChoice.Name}") + (deckPosition is null ? "" : $" · {deckPosition.ToLowerInvariant()} of your Fate deck")
                                             + (shownChoice is null ? "" : $" · {(costOption is { Verb: CostVerbs.Discard } ? "discards" : null) ?? MechCCostCardVerb(id) ?? Wave827CostCardVerb(id) ?? P5CostCardVerb(id) ?? SearchPlayCostCardVerb(id) ?? WlCostCardVerb(id) /* issue #674 */ ?? "shows"} {Definition(Card(shownChoice)).Name} ({shownChoice})")
                                             + (compareChoice is null ? "" : AttackCompareOptions(id) is { } compareLabels ? $" · compare against {compareLabels.First(o => o.Key == compareChoice).Label}" : $" · {(MechEChoiceOptions(id) ?? P2ChoiceOptions(id) ?? P5ChoiceOptions(id, playerId) ?? Wave9601ChoiceOptions(id, playerId))!.First(o => o.Key == compareChoice).Label}")
-                                            + (provinceOwner is int owner ? ability.Target == "player" ? (owner == playerId ? " · you" : " · your opponent") : (owner == playerId ? " · your Province" : " · an enemy Province") : "");
+                                            + (provinceOwner is int owner ? ability.Target == "player" ? (owner == playerId ? " · you" : " · your opponent") : (owner == playerId ? " · your Province" : " · an enemy Province") : "")
+                                            + (clanMode.Label is null ? "" : $" · {clanMode.Label}");
                                         yield return new("useAbility", label, legal.Count > 0, legal.Count > 0 ? null : error ?? (candidates.Length == 0 ? EmperorRemainingENoCandidateReason(ability.Target) : null) ?? "No legal target or performer.",
                                             legal.FirstOrDefault(), source?.Id, ability.Target == "provinces" ? provinces : legal.Where(c => c.TargetId is not null).Select(c => c.TargetId!).Distinct().ToArray(),
                                             // The battlefields a move's destination rule lists (issue #336) or, for an Attack, the province it may name instead of a card (issue #335): the
@@ -11732,11 +11735,20 @@ public sealed partial class MatchEngine
                                             NoTarget: ability.Target == "attack" && legal.Any(c => c.TargetId is null && c.Province is null),
                                             AlternativeCost: costOption is null ? null : new(id, performer, costOption.Id, costOption.Label + (costOption.Verb == CostVerbs.Discard && shownChoice is not null ? ": " + Definition(Card(shownChoice)).Name : ""), ability.Label),
                                             Movement: MovementPreview(id, ability, source, performer), MoveTo: ability.Move?.Destination,
-                                            Attack: legal.Count > 0 ? AttackCue(legal[0]) : null);
+                                            Attack: legal.Count > 0 ? AttackCue(legal[0]) : null, ChoiceLabel: clanMode.Label);
                                     }
                                 }
         }
     }
+
+    // Issue #1230 (Mendon; Comprehensive Rules, "Clan alignment and entering play" and the Emperor changes' "apply at any time, not just in the Dynasty Phase"): a recruit of one's own Clan-aligned
+    // Personality may be paid with Clan discount (2 less Gold), Clan allegiance (2 more Gold, ignoring the Honor Requirement), both, or neither. Offered for the recruit abilities listed here; each
+    // offered option carries its way to pay as ChoiceLabel, so the client asks it once the Personality is chosen. Proclaim is not offered: it needs a Personality "in your province".
+    private static readonly (bool Discount, bool Allegiance, string? Label)[] NoClanModes = [(false, false, null)];
+    private static readonly (bool Discount, bool Allegiance, string? Label)[] ClanModes =
+        [(false, false, "Full cost"), (true, false, "Clan discount: 2 less Gold"), (false, true, "Clan allegiance: 2 more Gold, ignoring the Honor Requirement"), (true, true, "Clan discount and allegiance: ignoring the Honor Requirement")];
+    internal static bool RecruitOffersClanModes(string abilityId) => abilityId == "at-any-cost-recruit";
+    private static (bool Discount, bool Allegiance, string? Label)[] RecruitClanModes(string abilityId) => RecruitOffersClanModes(abilityId) ? ClanModes : NoClanModes;
     private string AbilityOptionLabel(string id, AbilityDefinition ability, string? performer, CardInstance? source, CostOption? costOption = null) =>
         ability.Label + (performer is null ? "" : $" · {Definition(Card(performer)).Name} ({performer})") + (costOption is null ? "" : $" · {costOption.Label}")
         // The Discipline play of a card in a discard pile says what it is, next to its Gold quote (issue #331); so does the

@@ -97,7 +97,35 @@ public partial class Main
             await SupportClick(StabilizationButtons(_decisionActions).Single(b => b.Name == "CommitAction")); await WaitDecisionPresentation(); await EventFrames(6);
             SupportRequire(_chosen is null && View.Events.TakeLast(6).Any(e => e.Message.Contains("Stolen Merchandise", StringComparison.Ordinal)), "Confirming used Stolen Merchandise: " + string.Join(" | ", View.Events.TakeLast(6).Select(e => e.Message)));
 
-            GD.Print("VARIANT_STEPS_PASS: Governor's Court asks the performer, then how to pay (each way once, nothing pre-selected, Back); Stolen Merchandise lists two plays and asks the Holding, then which ability.");
+            // 3. Issue #1230: At Any Cost asks the dead Samurai, then how to pay -- full cost, Clan discount, Clan allegiance, or both -- each with its price; the discount recruits him for 2 less.
+            CardInstance genshin = null!;
+            await LoadDirectPlay(s =>
+            {
+                BattleSetup(s);
+                s.Players[0].Clan = "Crane";
+                for (var i = 0; i < 3; i++) SupportFixtureCard(s, "training-marketplace", 0, Zone.Home); // enough Gold for every way to pay (9 with allegiance)
+                genshin = SupportFixtureCard(s, 2078, 0, Zone.Dead);         // Doji Genshin: Crane Samurai, 7 Gold, Honor Requirement 6
+                SupportFixtureCard(s, 639, 0, Zone.Hand);                    // At Any Cost
+            });
+            var atAnyCost = View.Players[0].Hand.Single();
+            SelectCard(atAnyCost); await EventFrames(4);
+            SupportRequire(ActionTextBlocks().Count() == 0 && PlayChoices(atAnyCost).Length == 1, "At Any Cost's ways to pay are one play, not four actions: " + string.Join(" | ", Actions.Where(a => a.CardId == atAnyCost.Id).Select(a => a.Label)));
+            SupportRequire(_chosen is not null && _chosen.TargetIds?.Contains(genshin.Id) == true && StabilizationText(_inspector).Contains("CHOOSE A TARGET"), "The dead Samurai is asked first: " + StabilizationText(_inspector));
+            ChooseTarget(genshin.Id); await EventFrames(3);
+            var ways = RowsWith("choice_row");
+            SupportRequire(StabilizationText(_inspector).Contains("Choose how to pay") && ways.Length == 4, $"Then how to pay, four ways, found {ways.Length}: " + string.Join(" | ", ways.Select(b => b.Text)) + $" ;; choiceLabel={_chosen?.ChoiceLabel} target={_chosen?.Command?.TargetId} variants={ChoiceVariants(_chosen!).Length} picked={_choicePicked} offered=" + string.Join(" | ", Actions.Where(a => a.CardId == atAnyCost.Id).Select(a => $"{a.Enabled}/{a.ChoiceLabel}/{string.Join(",", a.TargetIds ?? [])}/{a.Reason}")) + " ;; " + StabilizationText(_inspector));
+            SupportRequire(ways.Any(b => b.Text == "Full cost · 7 Gold") && ways.Any(b => b.Text == "Clan discount: 2 less Gold · 5 Gold") && ways.Any(b => b.Text.StartsWith("Clan allegiance", StringComparison.Ordinal) && b.Text.EndsWith("· 9 Gold", StringComparison.Ordinal)),
+                "Each way shows its price: " + string.Join(" | ", ways.Select(b => b.Text)));
+            SupportRequire(StabilizationButtons(_decisionActions).All(b => b.Name != "CommitAction" || b.Disabled), "Confirm waits for the way to pay");
+            await SupportClick(ways.Single(b => b.Text.StartsWith("Clan discount: 2 less", StringComparison.Ordinal))); await EventFrames(3);
+            SupportRequire(_chosen?.Command is { ClanDiscount: true, ClanAllegiance: false } discounted && discounted.TargetId == genshin.Id, "The discount is carried with the Samurai");
+            foreach (var source in _chosen!.TargetGold![genshin.Id].Payments[0].SourceIds) await SupportClick(_tiles.Single(t => t.Card.Id == source)); // the player bows the suggested holdings on the table
+            await EventFrames(3);
+            await SupportClick(StabilizationButtons(_decisionActions).Single(b => b.Name == "CommitAction")); await WaitDecisionPresentation(); await EventFrames(6);
+            SupportRequire(FindCard(genshin.Id)?.Zone == Zone.Battlefield && View.Events.TakeLast(8).Any(e => e.Message.Contains("paid 5 Gold", StringComparison.Ordinal)),
+                "At Any Cost recruited Genshin for 5 Gold: " + string.Join(" | ", View.Events.TakeLast(8).Select(e => e.Message)));
+
+            GD.Print("VARIANT_STEPS_PASS: Governor's Court asks the performer, then how to pay (each way once, nothing pre-selected, Back); Stolen Merchandise lists two plays and asks the Holding, then which ability; At Any Cost asks the dead Samurai, then the Clan discount or allegiance, each with its price.");
             GetTree().Quit(0);
         }
         catch (Exception e) { GD.PushError(e.ToString()); GetTree().Quit(1); }
