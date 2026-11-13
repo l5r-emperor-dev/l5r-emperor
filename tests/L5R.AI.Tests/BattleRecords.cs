@@ -38,18 +38,27 @@ internal sealed class BattleRecorder(string dir, int challengerSeat)
         var attached = view.Players.SelectMany(p => p.Home.Concat(p.Army)).Where(a => a.AttachedTo == c.Id).ToArray();
         return new()
         {
-            Id = c.Id, Name = c.Definition?.Name ?? c.Id, Force = Math.Max(0, c.Force), UnitForce = c.UnitForce ?? Math.Max(0, c.Force) + attached.Where(a => a.Definition?.Type == CardType.Follower).Sum(a => Math.Max(0, a.Force)),
+            Id = c.Id,
+            Name = c.Definition?.Name ?? c.Id,
+            Force = Math.Max(0, c.Force),
+            UnitForce = c.UnitForce ?? Math.Max(0, c.Force) + attached.Where(a => a.Definition?.Type == CardType.Follower).Sum(a => Math.Max(0, a.Force)),
             Cavalry = (c.Definition?.Keywords?.Contains("Cavalry") ?? false) && attached.Where(a => a.Definition?.Type == CardType.Follower).All(a => a.Definition?.Keywords?.Contains("Cavalry") ?? false),
-            Attachments = attached.Length, Spent = c.SpentAbilityIds ?? [], Segment = segment
+            Attachments = attached.Length,
+            Spent = c.SpentAbilityIds ?? [],
+            Segment = segment
         };
     }
 
     private static Side Snapshot(MatchView view, PlayerView p) => new()
     {
-        Honor = p.Honor, Hand = p.HandCount, Provinces = p.Provinces.Count(q => !q.Destroyed),
+        Honor = p.Honor,
+        Hand = p.HandCount,
+        Provinces = p.Provinces.Count(q => !q.Destroyed),
         Gold = (p.Stronghold.Definition?.GoldProduction ?? 0) + p.Home.Where(h => h.Definition?.Type == CardType.Holding).Sum(h => h.Definition!.GoldProduction),
-        Personalities = p.Home.Concat(p.Army).Count(c => c.Definition?.Type == CardType.Personality), UnbowedForce = BattlePolicy.Force(p.Home),
-        UnbowedPersonalities = p.Home.Count(c => c.Definition?.Type == CardType.Personality && !c.Bowed), Favor = view.FavorPlayerId == p.Id,
+        Personalities = p.Home.Concat(p.Army).Count(c => c.Definition?.Type == CardType.Personality),
+        UnbowedForce = BattlePolicy.Force(p.Home),
+        UnbowedPersonalities = p.Home.Count(c => c.Definition?.Type == CardType.Personality && !c.Bowed),
+        Favor = view.FavorPlayerId == p.Id,
         Home = p.Home.Where(c => c.Definition?.Type is CardType.Personality).Select(c => $"{c.Definition!.Name}:{Math.Max(0, c.Force)}{(c.Bowed ? "*" : "")}").ToArray()
     };
 
@@ -76,8 +85,13 @@ internal sealed class BattleRecorder(string dir, int challengerSeat)
             {
                 _current = new()
                 {
-                    Seed = seed, ChallengerSeat = challengerSeat, Attacker = seat, Turn = before.TurnNumber, Decks = decks,
-                    Sides = before.Players.Select(p => Snapshot(before, p)).ToArray(), DefenderHomeUnbowedForce = BattlePolicy.Force(before.Players.Single(p => p.Id != seat).Home)
+                    Seed = seed,
+                    ChallengerSeat = challengerSeat,
+                    Attacker = seat,
+                    Turn = before.TurnNumber,
+                    Decks = decks,
+                    Sides = before.Players.Select(p => Snapshot(before, p)).ToArray(),
+                    DefenderHomeUnbowedForce = BattlePolicy.Force(before.Players.Single(p => p.Id != seat).Home)
                 };
                 _attacks.Add(_current);
             }
