@@ -92,10 +92,37 @@ public sealed class BotContext
         if (CurrentRead?.Key == key) return;
         CurrentRead = Read.Of(view);
         if (ReadLog.Count < 2000 && CurrentRead.Battles().Any()) ReadLog.Add(CurrentRead.ToString());
-        // threat(home) once a turn, at the first Dynasty decision: their straightened army against what is unbowed at my home before I buy (section 4.5, question 2)
-        if (view.Phase == Phase.Dynasty && view.ActivePlayerId == view.ViewerId && _threatTurn != view.TurnNumber) { _threatTurn = view.TurnNumber; if (ReadLog.Count < 2000) ReadLog.Add($"T{view.TurnNumber} {CurrentRead.ThreatNow()}"); }
+        // the game's course, once a turn, for the race's rates (section 4.5, question 3)
+        if (History.Count == 0 || History[^1].Turn != view.TurnNumber)
+        {
+            var me = view.Players.Single(p => p.Id == view.ViewerId); var them = view.Players.Single(p => p.Id != view.ViewerId);
+            History.Add((view.TurnNumber, me.Honor, them.Honor, me.Provinces.Count(p => !p.Destroyed), them.Provinces.Count(p => !p.Destroyed)));
+        }
+        // the three questions and the posture (section 4.5) on my own turn at the attack declaration and at the first Dynasty decision; a rebuild that changes the posture or the best attack is logged with what preceded it (4.6)
+        if (view.ActivePlayerId == view.ViewerId && (view.Phase == Phase.AttackDeclaration || view.Phase == Phase.Dynasty && _answersTurn != view.TurnNumber))
+        {
+            if (view.Phase == Phase.Dynasty) _answersTurn = view.TurnNumber;
+            var before = CurrentAnswers; CurrentAnswers = Questions.Of(CurrentRead, TrendNow());
+            if (ReadLog.Count < 2000)
+            {
+                var change = before is null ? "first" : before.Posture != CurrentAnswers.Posture || before.Opportunity.Best.Label != CurrentAnswers.Opportunity.Best.Label ? $"replan from {before.Posture}/{before.Opportunity.Best.Label}" : "same";
+                ReadLog.Add($"T{view.TurnNumber} {view.Phase} answers ({change}{(change.StartsWith("replan") && view.Events.Length > 0 ? " after: " + view.Events[^1].Message : "")}): {CurrentAnswers}");
+            }
+        }
     }
-    private int _threatTurn = -1;
+    private int _answersTurn = -1;
+    /// <summary>Issue #1206 (section 4.5): the Read's three answers and the posture, last computed on this seat's own turn. Shadow: nothing reads it to decide.</summary>
+    public Answers? CurrentAnswers { get; private set; }
+    /// <summary>Once a turn: (turn, my Honor, their Honor, my Provinces, their Provinces), for the race's rates.</summary>
+    public List<(int Turn, int MyHonor, int TheirHonor, int MyProvinces, int TheirProvinces)> History { get; } = [];
+    /// <summary>Honor and Provinces per turn over the last four turns the seat saw (two of its own), or nothing when the game is too young.</summary>
+    public Trend TrendNow() => TrendOf(History);
+    public static Trend TrendOf(List<(int Turn, int MyHonor, int TheirHonor, int MyProvinces, int TheirProvinces)> history)
+    {
+        if (history.Count < 3) return Trend.None;
+        var now = history[^1]; var from = history[Math.Max(0, history.Count - 5)]; var turns = Math.Max(1, (now.Turn - from.Turn) / 2.0); // each side moves once a round
+        return new((now.MyHonor - from.MyHonor) / turns, (now.TheirHonor - from.TheirHonor) / turns, (from.TheirProvinces - now.TheirProvinces) / turns, (from.MyProvinces - now.MyProvinces) / turns);
+    }
     /// <summary>Issue #1206 (lkPlan): the attack the search chose at this turn's attack declaration (the infantry assignment and its shape's name); the infantry declaration carries it out.</summary>
     internal (int Turn, Dictionary<string, int> Assignment, string Label)? PlannedAttack { get; set; }
     /// <summary>Issue #1206: past this moment the bot abandons the decision it is making and throws <see cref="BotDeadlineException"/> (the arena's per-game cutoff, and a search's own time limit

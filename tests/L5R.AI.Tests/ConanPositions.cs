@@ -171,9 +171,11 @@ internal static class ConanPositions
         var searches = bot.Has("look");
         var found = new Dictionary<string, Verdict>();
         var counts = new Dictionary<(int, Phase), int>();
+        var history = new List<(int Turn, int MyHonor, int TheirHonor, int MyProvinces, int TheirProvinces)>(); // the game's course from seat 0, for the race's rates (as BotContext.History)
         foreach (var command in replay.Commands)
         {
             var v0 = game.GetView(0);
+            if (history.Count == 0 || history[^1].Turn != v0.TurnNumber) history.Add((v0.TurnNumber, v0.Players[0].Honor, v0.Players[1].Honor, v0.Players[0].Provinces.Count(p => !p.Destroyed), v0.Players[1].Provinces.Count(p => !p.Destroyed)));
             if (command.PlayerId == 0)
             {
                 var offered = game.QueryActions(0).Where(a => a.Enabled && a.Type != "concede").ToArray();
@@ -190,7 +192,7 @@ internal static class ConanPositions
                 if (at is not null)
                 {
                     if (Environment.GetEnvironmentVariable("L5R_POS_READ") == "1" && v0.Phase is Phase.InfantryDeclaration or Phase.CavalryDeclaration or Phase.DefenseAssignment or Phase.CavalryDefense or Phase.Battle or Phase.AttackDeclaration)
-                        notes.AppendLine($"  {at.Id} read: {ReadAt(game, command)}");
+                        notes.AppendLine($"  {at.Id} read: {ReadAt(game, command, BotContext.TrendOf(history))}");
                     var human = HumanReplayCompare.Describe(game, command); var described = answer is null ? null : HumanReplayCompare.Describe(game, answer);
                     var agree = answer is not null && Matches(at, command, answer, described!);
                     var look = bot.LookLog.Skip(before).ToArray();
@@ -206,7 +208,7 @@ internal static class ConanPositions
 
     /// <summary>The Read's exchange at the position, from seat 0: for an assignment command, the battle the human's own assignment makes (his units against the defenders at home, or his defenders against the attackers there);
     /// for a battle in progress, the current battlefield.</summary>
-    private static string ReadAt(MatchEngine game, GameCommand command)
+    private static string ReadAt(MatchEngine game, GameCommand command, Trend trend)
     {
         var view = game.GetView(0); var read = Read.Of(view);
         if (command.Type == "attack" && command.Assignments is { Count: > 0 } asg)
@@ -214,7 +216,8 @@ internal static class ConanPositions
             {
                 var attackers = read.Ledger.Me.Units.Where(u => g.Any(a => a.Key == u.Id)).ToArray(); var defenders = read.Ledger.Them.Home.Where(u => !u.Bowed).ToArray();
                 return $"to P{g.Key + 1} vs all unbowed defenders: {read.Battle(g.Key, attackers, defenders, true)}";
-            }));
+            })) + (view.Phase == Phase.InfantryDeclaration && asg.All(a => read.Ledger.Me.Units.FirstOrDefault(u => u.Id == a.Key)?.Province is null) ? $"\n    answers: {Questions.Of(read, trend)}" : "");
+        if (view.Phase is Phase.AttackDeclaration && view.ActivePlayerId == 0) return $"answers: {Questions.Of(read, trend)}";
         if (command.Type == "assignDefense" && command.Assignments is { Count: > 0 } def)
             return string.Join("; ", def.GroupBy(a => a.Value).Select(g =>
             {
