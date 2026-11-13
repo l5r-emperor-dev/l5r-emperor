@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "The Infantry defence segment's pass option reads 'Assign no Infantry defenders' (was 'Assign no defenders'), matching its siblings.",
+  "validation": "bash tools/check.sh --skip-client: all stages passed. Label-only change; no test asserts the label text.",
+  "remaining": "None; ready for review. Not checked in the graphical client.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1226",
+  "branch": "claude/1226-infantry-defenders-label",
+  "updated": "2026-11-13T18:33:27.375541+00:00"
+}

@@ -829,7 +829,7 @@ public sealed partial class MatchEngine
                                     null, targets: [solo], provinces: [province]);
                         }
                     // Spiritual Manipulation (issue #476 batch 4): assigning no attackers is refused while a forced target can be assigned in this segment.
-                    Add("pass", attack ? (cavalrySegment ? "Assign no Cavalry attackers" : "Assign no Infantry attackers") : (cavalrySegment ? "Assign no Cavalry defenders" : "Assign no defenders"), Command("pass"),
+                    Add("pass", attack ? (cavalrySegment ? "Assign no Cavalry attackers" : "Assign no Infantry attackers") : (cavalrySegment ? "Assign no Cavalry defenders" : "Assign no Infantry defenders"), Command("pass"),
                         attack ? ForcedAssignmentRefusal(playerId, null, cavalrySegment) : null);
                     break;
                 case Phase.BattleSelection:
