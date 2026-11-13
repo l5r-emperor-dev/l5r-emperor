@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Two-Fold Virtue creates its Personality at the targeted Paragon's battlefield instead of home (Mendon's ruling, R-095). Shared only because the ruling is recorded in docs/decisions and docs/rules/RULINGS.md beside the engine change; no client or interface change.",
+  "validation": "bash tools/check.sh --skip-client: all stages passed (79/79 core; emperor-p5/TwoFoldVirtueCard PASS). The updated test asserts the created Personality is at battlefield 0; the old code created it at home, so it fails there.",
+  "remaining": "None; ready for review. No graphical playtest.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1224",
+  "branch": "claude/1224-two-fold-virtue-battlefield",
+  "updated": "2026-11-13T18:26:40.957124+00:00"
+}

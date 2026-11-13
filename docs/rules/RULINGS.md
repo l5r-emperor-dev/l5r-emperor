@@ -794,3 +794,10 @@ The engine had wired Air and Water from the Twenty Festivals reprint and left Ea
 - **Cards/primitives:** Ring of Air, Ring of Water, Ring of Earth (oracle-l5r-6333, -6339, -6334); `NoteRingActionCounts`, `ring-of-air-straighten`, `ring-of-water-move-home`, `ring-of-water-move-battlefield`, `MoveSpec.EnemyBattlefield`, `PersonalityDestroyedThisBattle`; `content/published/ring-wave-1.json`.
 - **Date:** 2026-11-03
 - **Source:** Mendon, this task's request (issue #1160).
+
+### R-095 — Two-Fold Virtue creates its Personality at the targeted Paragon's battlefield
+"Two fold virtue should create the personality at the battlefield where the targeted paragon is located." As a Battle action its target is at the current battlefield, so the Personality joins that battle.
+
+- **Cards/primitives:** Two-Fold Virtue (oracle-l5r-9939); `p5-two-fold-virtue`, `CreateTwoFoldVirtue` → `CreatePersonality(battlefield)`.
+- **Date:** 2026-11-13
+- **Source:** Mendon, issue #1224 — [decision](../decisions/2026-11-13-two-fold-virtue-at-paragon.md).
