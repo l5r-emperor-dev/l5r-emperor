@@ -83,6 +83,16 @@ public sealed class BotContext
     public Func<ulong, MatchEngine>? Sampler { get; set; }
     /// <summary>Issue #1206: one line per lookahead decision (the candidates' values and the choice), for reviewing games.</summary>
     public List<string> LookLog { get; } = [];
+    /// <summary>Issue #1206 (the strategy brief, rule "read"): the Read in shadow mode, rebuilt when its key changes and logged; nothing decides on it yet.</summary>
+    public Read? CurrentRead { get; private set; }
+    public List<string> ReadLog { get; } = [];
+    internal void NoteRead(MatchView view)
+    {
+        var key = Read.KeyOf(view);
+        if (CurrentRead?.Key == key) return;
+        CurrentRead = Read.Of(view);
+        if (ReadLog.Count < 2000 && CurrentRead.Battles().Any()) ReadLog.Add(CurrentRead.ToString());
+    }
     /// <summary>Issue #1206 (lkPlan): the attack the search chose at this turn's attack declaration (the infantry assignment and its shape's name); the infantry declaration carries it out.</summary>
     internal (int Turn, Dictionary<string, int> Assignment, string Label)? PlannedAttack { get; set; }
     /// <summary>Issue #1206: past this moment the bot abandons the decision it is making and throws <see cref="BotDeadlineException"/> (the arena's per-game cutoff, and a search's own time limit

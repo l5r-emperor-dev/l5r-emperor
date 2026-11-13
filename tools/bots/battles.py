@@ -109,7 +109,17 @@ ESTIMATORS = {
     'EstimateAttack.net': lambda b: bucket(b['estimate']['net'] - b['estimate']['strength']) if b.get('estimate') else None,
     'EstimateAttack.razes': lambda b: ('razes' if b['estimate']['razes'] else 'wins' if b['estimate']['wins'] else 'loses') if b.get('estimate') else None,
     'Odds at first Battle decision': lambda b: bucket(b['odds'][0] - b['odds'][1] - max(0, b['odds'][2])) if b.get('odds') else None,
+    'Read at declaration, against every unbowed home defender (open/likely/worst)': lambda b: read_bucket(b.get('readAtDeclaration')),
+    'Read at defence (open/likely/worst)': lambda b: read_bucket(b.get('readAtDefence')),
+    'Read at defence, or undefended when nobody defended': lambda b: read_bucket(b.get('readAtDefence') or b.get('readUndefended')),
+    'Read (defence or undefended) with the paper margin at defence': lambda b: (read_bucket(b.get('readAtDefence') or b.get('readUndefended')) or '?') + ' ' + (bucket(b['paperAtDefence']) if b.get('paperAtDefence') is not None else bucket(b['paperAtDeclaration']) if b.get('paperAtDeclaration') is not None else '?'),
 }
+
+
+def read_bucket(r):
+    if not r:
+        return None
+    return ''.join('1' if r[k] else '0' for k in ('open', 'likely', 'worst'))
 
 
 def fields(records):
@@ -135,16 +145,31 @@ def calibration(records, fit=None):
                 counts[k][0] += 1; counts[k][1] += b['provinceDestroyed']
         rows = []
         order = [n for n, _ in MARGIN_BUCKETS] + ['loses', 'wins', 'razes']
+        observed = collections.defaultdict(lambda: [0, 0])
+        if fit_recs is not None:
+            for _, b in recs:
+                k = f(b)
+                if k is not None:
+                    observed[k][0] += 1; observed[k][1] += b['provinceDestroyed']
+        misses = 0
         for k in sorted(counts, key=lambda k: order.index(k) if k in order else 99):
             n, d = counts[k]
-            rows.append([k, n, pct(d, n)])
+            if fit_recs is None:
+                rows.append([k, n, pct(d, n)])
+            else:
+                on, od = observed.get(k, [0, 0])
+                fitted = d / n if n else base_rate; obs = od / on if on else None
+                flag = ''
+                if on >= 200 and obs is not None and abs(obs - fitted) > 0.10:
+                    flag = ' MISS'; misses += 1
+                rows.append([k, n, f'{100 * fitted:.0f}%', on, pct(od, on) + flag])
         brier = ''
         if fit_recs is not None:
             scored = [(counts[k][1] / counts[k][0] if k in counts and counts[k][0] else base_rate, b['provinceDestroyed']) for _, b in recs for k in [f(b)] if k is not None]
             if scored:
                 brier = f' Brier on the scored records: {sum((p - y) ** 2 for p, y in scored) / len(scored):.4f} ({len(scored)} battlefields)'
-        print(f'### {name}{brier}\n')
-        table(['bucket', 'battlefields', 'Province fell'], rows)
+        print(f'### {name}{brier}{(" ; cells of 200+ off by more than 10 points: " + str(misses)) if fit_recs is not None else ""}\n')
+        table(['bucket', 'fit battlefields', 'fitted fall rate', 'scored battlefields', 'observed'] if fit_recs is not None else ['bucket', 'battlefields', 'Province fell'], rows)
 
 
 def main(argv):

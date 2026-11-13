@@ -11,7 +11,11 @@ Nothing here drives a decision. Each instrument has a criterion from the brief, 
 2. **The behaviour profile** (`tools/bots/behaviour/profile.py`): one command over a log directory, the thirteen measures of `ARENA_BEHAVIOUR.md`'s headline table, each taken from the q script that defines it (the q scripts were split into `collect()` and `main()` so their definitions are imported, with outputs byte-identical before and after). Criterion: reproduces the headline table from fresh logs.
 3. **The decision test set** (`tests/L5R.AI.Tests/ConanPositions.cs`, case `conan-positions`; replays in `docs/bots/replays/`). 52 positions: `PLAYER_MODEL.md` section 7, the old brief's section 6.4, and four of his mistakes (section 6) stored with the correct move. Each is (replay, turn, phase, nth real choice); the expected move is his logged command, or a fragment list for positions where only part of the command matters (the immune unit alone, no defender at the attacked Province, the Tactical Advantage whichever card is discarded). Any rule set runs through `L5R_POS_ARMS`. Criterion: runs under 60 seconds; the agreement of T2 and of Conan-best is the baseline.
 
-Blocks used by this note: 9100.
+4. **The Read in shadow and the calibration gate** (step 2, second part; branch `claude/1206-conan-read-shadow`, stacked on the instruments branch). `Read.Of(view)` builds the ledger (units with their descriptors and spent abilities, Provinces, Gold, Honor, the Favor, the own hand exactly), the belief (the opponent's hand by effect class: a prior of about four Battle answers in ten cards, updated by every Fate card of theirs that is public) and the exchange (one battle played out defender first, each side using its best neutraliser on its best target while it is not getting the result it wants, resolved by the rules). Rule `read` builds and logs it at every change of its key and drives nothing. Battle records now carry the Read's three verdicts (open, likely, worst) from the attacker's view at declaration and from the defender's at assignment.
+   - Pre-registered: block **9200** (Contender against Contender, 1,456 games, records on) is the fit set: `battles.py` learns the fall rate of each (open, likely, worst) cell and of each baseline bucket there. Block **9300** (same arms, records on) is the held-out set on which the Brier score of each estimator is reported. Block 9200 is also run with `T2 + read` against the Contender on the same seeds: the gate requires zero games whose result differs from the A/A (the shadow Read changes nothing).
+   - Gate (brief step 2): the Read's Brier below both baselines on 9300, and in each cell holding 200 or more battlefields the observed rate within 10 points of the fitted one; the same for the threat answer (not yet built: recorded as open); need and have reproduced on the attack positions of the decision set, or each miss with a cause.
+
+Blocks used by this note: 9100, 9200, 9300.
 
 ## Results (below the line)
 
@@ -74,3 +78,51 @@ Known imprecisions that do not change the class: a spurious Negate secondary fro
 | Decision set under 60 s, T2 and Conan-best baselines recorded | Met: 16 s and 45 s; 9/50 and 10/50 (12/50 for Conan-best with the late-Force positions judged on the Tactical Advantage alone) |
 | Descriptors: 57 of 60 right; unknown share per deck | Met: 59 of 60 on the blind sample; 0% unknown in every audited deck |
 | Shadow Read A/A identical; Brier below both baselines; need/have on the decision set | Not started (next: the ledger, the belief, the exchange) |
+
+### 2026-11-13: the Read in shadow, block 9200
+
+Block 9200 (seeds 9200 to 9203), Contender against Contender, 1,456 games, all decided, 14 minutes: **50.6%** (737 to 719).
+
+The first records of the Read showed a flaw in how the record took it at declaration, not in the Read: the attacker's exchange was projected against the defenders already assigned, which at declaration is nobody, so 10,797 of 12,410 battlefields read "falls" under all three hands while 57% fell. The defence-time Read, projected against the defenders actually assigned, separated the battlefields: 11% fell where all three hands said "held" (2,675), 27% where only the upper bound said "falls" (2,200), 74% where all three said "falls" (879). The record now takes the declaration Read against every unbowed defender at home (the paper margin's convention) and once against nobody, so an undefended battlefield has a Read of its own; block 9200's records are regenerated on the same seeds before the fit (identical games; the A/A result does not change).
+
+Two things the Read lacked at Mendon's attack positions, found with `L5R_POS_READ=1` on family A, and the first is fixed:
+
+- **Tactician late Force.** At GT T5 both of his groups were below Strength 7 at declaration and he razed both with Tactical Advantage; the exchange now gives each unbowed Tactician at the battle one discard worth the hand's best Focus Value, and reads GT T5 as two razes under every hand, and G3 T9's Province 1 as a raze with his own hand. The Contender assigns the same positions as "nothing achieved".
+- **The belief is pessimistic where the opponent had shown nothing.** At G3 T9 the likely and worst hands stop the raze that happened; the prior gives an eight-card hand one send-home, one bow and one destroy. Whether that prior is too heavy is what the calibration on blocks 9200 and 9300 measures.
+
+`need` and `have` at the attack positions: G6 T9 and T11 (the immune Dairuko alone) read need 1, have 8 and 10 against 3; GT T7 need 1, have 4 against 1; G7 T7 Province 2 need 2, have 5 against 4; G3 T9 and GT T5 need "-" on Force alone (razed with late Force), have 3 to 6 against 1 to 4. These match his own counts in `PLAYER_MODEL.md` 3.1 ("he usually held 1.5 to 4 times need") on every position where he attacked.
+
+### 2026-11-13: the calibration gate (blocks 9200 and 9300)
+
+- Block 9200 run again with `T2 + read` against the Contender on the same seeds as its A/A: **0 games gained, 0 lost** (1,456 games, 50.6% both). The shadow Read changes nothing.
+- Block 9300 (seeds 9300 to 9303), Contender against Contender, 1,456 games, all decided: **51.8%** (754 to 702), records on; the held-out set.
+- Block 9200's records regenerated with the current recorder on the same seeds (identical games, 50.6%); the fit set.
+
+Each estimator's bucket rates fitted on 9200 and scored on 9300 (`battles.py artifacts/bots/battles-ca93 --fit artifacts/bots/battles-ca92`; 12,338 fought battlefields with attackers; the Province fell in 52%):
+
+| Estimator (bucketed) | Brier on 9300 | Cells of 200+ battlefields off by more than 10 points |
+| --- | --- | --- |
+| Constant rate | 0.2496 | — |
+| Paper margin at declaration | 0.2179 | 0 |
+| Paper margin at defence | 0.2134 | 0 |
+| `EstimateAttack` net (the planner's, `pattack`'s and `guard`'s number) | 0.2229 | 0 |
+| `EstimateAttack` verdict (loses / wins / razes) | 0.2258 | 0 |
+| `BattlePolicy.Odds` at the attacker's first Battle decision | 0.1809 | 0 |
+| Read at declaration, against every unbowed home defender | 0.2120 | 0 |
+| Read at defence (defended battlefields only, 5,728) | 0.1540 | 0 |
+| **Read at defence, or against nobody when undefended** | **0.1516** | 0 |
+| Read (as above) crossed with the paper margin at defence | 0.1417 | 0 |
+
+Cells, fitted on 9200 / observed on 9300: the Read says "held" under every hand 10% / 10% (3,219 battlefields); "falls" only under the belief's upper bound 26% / 26% (2,103); "falls" under every hand 79% / 79% (7,001). Crossed with the paper margin, the extremes are 3% / 2% ("held", margin −10 or worse) and 91% / 93% ("falls", margin above +12); the Read tells apart battlefields the paper margin lumps together: at a margin of 0 to +5 the Province fell 82% of the time when the Read said "falls" and 12% when it said "held" (2,697 and 859 battlefields).
+
+**Gate (brief step 2), as it stands:**
+
+| Criterion | Status |
+| --- | --- |
+| 57 of 60 abilities classified correctly; unknown share by deck | Met: 59 of 60 blind; 0% in every audited deck |
+| A/A with the shadow Read identical to one without | Met: 0 flipped on block 9200 |
+| The Read's Brier below both baselines on a held-out block; every cell of 200+ within 10 points | Met: 0.152 against 0.213 (paper) and 0.223 (`EstimateAttack`); 0 cells off |
+| The same two tests for the threat answer | **Not built**: `threat(home)` is the next piece; recorded as open |
+| `need` and `have` reproduce Mendon's counts on the attack positions, or each miss has a cause | Met on every position where he attacked (above); the two he razed below Strength on Force alone are read as razes once Tactician late Force counts |
+
+Limits worth stating: the Read's exchange is a projection with fixed habits (each side plays its best neutraliser while not getting its result; a duel is counted as half a removal; a Negate cancels the other side's decisive answer); its "likely" verdict rarely differs from "open" against these bots because the belief's prior is weak, which is also why the upper bound carries the signal. The threat answer and the questions of section 4.5 come next; nothing decides on the Read yet.
