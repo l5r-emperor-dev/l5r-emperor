@@ -78,3 +78,16 @@ Known imprecisions that do not change the class: a spurious Negate secondary fro
 | Decision set under 60 s, T2 and Conan-best baselines recorded | Met: 16 s and 45 s; 9/50 and 10/50 (12/50 for Conan-best with the late-Force positions judged on the Tactical Advantage alone) |
 | Descriptors: 57 of 60 right; unknown share per deck | Met: 59 of 60 on the blind sample; 0% unknown in every audited deck |
 | Shadow Read A/A identical; Brier below both baselines; need/have on the decision set | Not started (next: the ledger, the belief, the exchange) |
+
+### 2026-11-13: the Read in shadow, block 9200
+
+Block 9200 (seeds 9200 to 9203), Contender against Contender, 1,456 games, all decided, 14 minutes: **50.6%** (737 to 719).
+
+The first records of the Read showed a flaw in how the record took it at declaration, not in the Read: the attacker's exchange was projected against the defenders already assigned, which at declaration is nobody, so 10,797 of 12,410 battlefields read "falls" under all three hands while 57% fell. The defence-time Read, projected against the defenders actually assigned, separated the battlefields: 11% fell where all three hands said "held" (2,675), 27% where only the upper bound said "falls" (2,200), 74% where all three said "falls" (879). The record now takes the declaration Read against every unbowed defender at home (the paper margin's convention) and once against nobody, so an undefended battlefield has a Read of its own; block 9200's records are regenerated on the same seeds before the fit (identical games; the A/A result does not change).
+
+Two things the Read lacked at Mendon's attack positions, found with `L5R_POS_READ=1` on family A, and the first is fixed:
+
+- **Tactician late Force.** At GT T5 both of his groups were below Strength 7 at declaration and he razed both with Tactical Advantage; the exchange now gives each unbowed Tactician at the battle one discard worth the hand's best Focus Value, and reads GT T5 as two razes under every hand, and G3 T9's Province 1 as a raze with his own hand. The Contender assigns the same positions as "nothing achieved".
+- **The belief is pessimistic where the opponent had shown nothing.** At G3 T9 the likely and worst hands stop the raze that happened; the prior gives an eight-card hand one send-home, one bow and one destroy. Whether that prior is too heavy is what the calibration on blocks 9200 and 9300 measures.
+
+`need` and `have` at the attack positions: G6 T9 and T11 (the immune Dairuko alone) read need 1, have 8 and 10 against 3; GT T7 need 1, have 4 against 1; G7 T7 Province 2 need 2, have 5 against 4; G3 T9 and GT T5 need "-" on Force alone (razed with late Force), have 3 to 6 against 1 to 4. These match his own counts in `PLAYER_MODEL.md` 3.1 ("he usually held 1.5 to 4 times need") on every position where he attacked.
