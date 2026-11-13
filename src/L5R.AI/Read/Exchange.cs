@@ -88,6 +88,10 @@ public static class Exchange
         var list = new List<Answer>();
         foreach (var u in units) foreach (var e in u.Unit.UsableBattle.Where(e => e.Neutralises || e.Class is EffectClass.ForceAdd or EffectClass.Negate)) list.Add(new(e, u.Unit.Name, false, e.GoldCost));
         list.AddRange(side.TableAnswers); list.AddRange(hand);
+        // Tactical Advantage: each unbowed Tactician there may discard one card for its Focus Value in Force, once a turn, while the hand has a card (the own hand's best Focus, or a typical one for the opponent)
+        if (side.BestFocus > 0 && side.HandCount > 0)
+            foreach (var u in units.Where(u => u.Unit.Tactician && !u.Bowed && !u.Locked && !u.Unit.Spent.Contains("tactical-advantage")))
+                list.Add(new(new("tactical-advantage", "Battle", null, EffectClass.ForceAdd, side.BestFocus, false, TargetSide.Own, TargetKind.Personality, [], [], "Tactician", true, true, false, false, true, 0, 0, false, true, 0, false, null), u.Unit.Name + " TA", true, 0));
         return list;
     }
 

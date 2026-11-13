@@ -19,14 +19,16 @@ internal sealed class BattleRecorder(string dir, int challengerSeat)
     {
         public int Province; public int Strength; public List<Unit> Attackers = []; public List<Unit> Defenders = [];
         public int? PaperAtDeclaration; public int? PaperAtDefence; public AttackDiagnosis? Estimate; public int[]? Odds; // [own, enemy, strength] from the attacker's view at its first Battle decision
-        public ReadSummary? ReadAtDeclaration; public ReadSummary? ReadAtDefence; // the Read's exchange from the attacker's view when it assigned, and from the defender's view when it assigned
+        public ReadSummary? ReadAtDeclaration; public ReadSummary? ReadUndefended; public ReadSummary? ReadAtDefence; // the Read's exchange from the attacker's view when it assigned (against every unbowed defender at home, and against nobody), and from the defender's view when it assigned
         public List<string> Actions = []; // "seat:kind:abilityId" in order, the engine's own battle action log
         public bool Fought; public int? AttackingForce; public int? DefendingForce; public bool ProvinceDestroyed; public List<string> AttackersDestroyed = []; public List<string> DefendersDestroyed = [];
     }
     public sealed class ReadSummary { public bool Open; public bool Likely; public bool Worst; public int? Need; public int HaveAttacker; public int HaveDefender; public string Text = ""; }
-    private static ReadSummary Summarise(MatchView view, int province, bool viewerAttacks)
+    private static ReadSummary Summarise(MatchView view, int province, bool viewerAttacks, bool allHomeDefenders = false, bool noDefenders = false)
     {
         var read = Read.Of(view); var me = read.Ledger.Me.At(province).ToArray(); var them = read.Ledger.Them.At(province).ToArray();
+        if (allHomeDefenders) them = read.Ledger.Them.Home.Where(u => !u.Bowed && !u.ActionLocked).ToArray(); // at declaration nobody has defended yet: project against the whole unbowed home, as the paper margin does
+        if (noDefenders) them = [];
         var b = viewerAttacks ? read.Battle(province, me, them, true) : read.Battle(province, them, me, false);
         return new() { Open = b.Open.Falls, Likely = b.Likely.Falls, Worst = b.Worst.Falls, Need = b.Need, HaveAttacker = b.HaveAttacker, HaveDefender = b.HaveDefender, Text = b.ToString() };
     }
@@ -114,7 +116,8 @@ internal sealed class BattleRecorder(string dir, int challengerSeat)
                 var committed = field.Attackers.Sum(u => u.UnitForce);
                 field.PaperAtDeclaration = committed - BattlePolicy.Force(opponent.Home) - field.Strength; // the defender's unbowed home Force, before it assigns
                 field.Estimate = TrainingOpponent.DiagnoseAttack(after, memory[seat], field.Attackers.Select(u => u.Id), group.Key);
-                field.ReadAtDeclaration = Summarise(after, group.Key, viewerAttacks: true);
+                field.ReadAtDeclaration = Summarise(after, group.Key, viewerAttacks: true, allHomeDefenders: true);
+                field.ReadUndefended = Summarise(after, group.Key, viewerAttacks: true, noDefenders: true);
             }
         }
         else if (command.Type == "assignDefense" && command.Assignments is { Count: > 0 } defended && _current is not null && _current.Turn == before.TurnNumber)

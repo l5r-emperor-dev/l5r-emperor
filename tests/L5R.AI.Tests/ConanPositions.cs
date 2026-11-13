@@ -12,6 +12,7 @@ using L5R.Core;
 //                                                      hard = the practice Hard level; name:rules = the Contender with exactly those rules; name:+rules = t2 plus those rules.
 //   L5R_POS_LOG=1                                       also print the search's own log at each searched position.
 //   L5R_POS_FAMILY=D                                    only the positions of one family.
+//   L5R_POS_READ=1                                      at every attack and defence position, also print the Read's exchange (need, have, open/likely/worst) from the human's seat (brief step 2 gate).
 //   dotnet run -c Release --project tests/L5R.AI.Tests -- --filter conan-positions
 internal static class ConanPositions
 {
@@ -188,6 +189,8 @@ internal static class ConanPositions
                 var answer = HumanReplayCompare.Ask(game, 0, bot, roundTrip: true);
                 if (at is not null)
                 {
+                    if (Environment.GetEnvironmentVariable("L5R_POS_READ") == "1" && v0.Phase is Phase.InfantryDeclaration or Phase.CavalryDeclaration or Phase.DefenseAssignment or Phase.CavalryDefense or Phase.Battle or Phase.AttackDeclaration)
+                        notes.AppendLine($"  {at.Id} read: {ReadAt(game, command)}");
                     var human = HumanReplayCompare.Describe(game, command); var described = answer is null ? null : HumanReplayCompare.Describe(game, answer);
                     var agree = answer is not null && Matches(at, command, answer, described!);
                     var look = bot.LookLog.Skip(before).ToArray();
@@ -199,6 +202,29 @@ internal static class ConanPositions
             if (!result.Accepted) { notes.AppendLine($"NOTE {replayName}: command refused at T{v0.TurnNumber} {v0.Phase} ({HumanReplayCompare.Describe(game, command)}): {result.Error}; later positions unreached"); break; }
         }
         foreach (var p in positions) yield return found.TryGetValue(p.Id, out var v) ? v : new(p, "?", null, null, []);
+    }
+
+    /// <summary>The Read's exchange at the position, from seat 0: for an assignment command, the battle the human's own assignment makes (his units against the defenders at home, or his defenders against the attackers there);
+    /// for a battle in progress, the current battlefield.</summary>
+    private static string ReadAt(MatchEngine game, GameCommand command)
+    {
+        var view = game.GetView(0); var read = Read.Of(view);
+        if (command.Type == "attack" && command.Assignments is { Count: > 0 } asg)
+            return string.Join("; ", asg.GroupBy(a => a.Value).Select(g =>
+            {
+                var attackers = read.Ledger.Me.Units.Where(u => g.Any(a => a.Key == u.Id)).ToArray(); var defenders = read.Ledger.Them.Home.Where(u => !u.Bowed).ToArray();
+                return $"to P{g.Key + 1} vs all unbowed defenders: {read.Battle(g.Key, attackers, defenders, true)}";
+            }));
+        if (command.Type == "assignDefense" && command.Assignments is { Count: > 0 } def)
+            return string.Join("; ", def.GroupBy(a => a.Value).Select(g =>
+            {
+                var defenders = read.Ledger.Me.Units.Where(u => g.Any(a => a.Key == u.Id)).ToArray(); var attackers = read.Ledger.Them.At(g.Key).ToArray();
+                return $"at P{g.Key + 1}: {read.Battle(g.Key, attackers, defenders, false)}";
+            }));
+        if (command.Type is "pass" or "passAllBattles" && view.Phase is Phase.DefenseAssignment or Phase.AttackDeclaration)
+            return string.Join("; ", read.Ledger.Them.Units.Where(u => u.Province is not null).GroupBy(u => u.Province!.Value).Select(g => $"undefended P{g.Key + 1}: {read.Battle(g.Key, g.ToArray(), [], false)}")
+                .DefaultIfEmpty($"home: mine {read.Ledger.Me.UnbowedHomeForce}F unbowed, theirs {read.Ledger.Them.UnbowedHomeForce}F; belief {read.Belief}"));
+        return string.Join("; ", read.Battles().Select(b => b.ToString()).DefaultIfEmpty("no battlefield"));
     }
 
     private static bool Matches(Position p, GameCommand human, GameCommand bot, string described)

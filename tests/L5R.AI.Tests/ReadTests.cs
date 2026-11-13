@@ -61,6 +61,14 @@ internal static class ReadTests
             var cutRun = Exchange.Run(Side(0), [L(Unit("a1", 0, 9))], Side(1), [cutter], 3, [], []);
             Check(cutRun.AttackForce == 5 && !cutRun.Falls, $"9 - 4 = 5 is not more than 3 + 3: {cutRun}");
         }),
+        ("late Force: a Tactician with a card in hand adds its Focus Value, so 7 against Strength 7 razes; without a hand it does not (PM 3.5, GT T5)", () =>
+        {
+            var tactician = L(Unit("a1", 0, 7)) with { Keywords = ["Tactician"] };
+            var withHand = Exchange.Run(Side(0) with { HandCount = 3, BestFocus = 3 }, [tactician], Side(1), [], 7, [], []);
+            Check(withHand.Falls && withHand.AttackerPlayed.Length == 1 && withHand.AttackerPlayed[0].Contains("TA"), $"7 + 3 > 7 with Tactical Advantage: {withHand}");
+            var empty = Exchange.Run(Side(0), [tactician], Side(1), [], 7, [], []);
+            Check(!empty.Falls, $"no card to discard: {empty}");
+        }),
         ("the belief: a hand of eight with nothing seen holds the prior; three send-homes shown raise that class; the upper bound never exceeds the hand", () =>
         {
             var game = MatchEngine.CreateStarterMatch(); var view = game.GetView(0);

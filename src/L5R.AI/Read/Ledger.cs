@@ -7,8 +7,10 @@ namespace L5R.AI;
 
 /// <summary>One unit (a Personality with its attachments) as the Read sees it. Force counts only when unbowed; UnitForce adds the attachments.</summary>
 public sealed record LedgerUnit(string Id, string Name, int OwnerId, int Force, int UnitForce, bool Bowed, bool Cavalry, int? Province, EffectDescriptor[] Abilities, string[] Spent,
-    int Chi, int PersonalHonor, bool Dishonorable, bool ActionLocked, int Attachments, int Followers, int GoldCost)
+    int Chi, int PersonalHonor, bool Dishonorable, bool ActionLocked, int Attachments, int Followers, int GoldCost, string[]? Keywords = null)
 {
+    /// <summary>A Tactician may take one Tactical action a turn: Tactical Advantage discards a card for its Focus Value in Force (RULES_DIGEST.md section 5), the late Force Mendon counts at declaration.</summary>
+    public bool Tactician => Keywords?.Contains("Tactician") ?? false;
     /// <summary>What this unit contributes to its army's total now.</summary>
     public int Contribution => Bowed ? 0 : UnitForce;
     /// <summary>Battle-timed abilities the unit can still use: not spent, the unit unbowed and free to act.</summary>
@@ -21,7 +23,7 @@ public sealed record Answer(EffectDescriptor Effect, string Source, bool FromHan
     public override string ToString() => $"{Effect.Class}{(Effect.Magnitude is { } m ? m : "")}{(Synthetic ? "?" : "")}@{Source}";
 }
 
-public sealed record LedgerSide(int Id, LedgerUnit[] Units, (int Index, int Strength)[] Provinces, int GoldNow, int GoldCapacity, int Honor, bool Favor, int HandCount, Answer[] HandAnswers, Answer[] TableAnswers)
+public sealed record LedgerSide(int Id, LedgerUnit[] Units, (int Index, int Strength)[] Provinces, int GoldNow, int GoldCapacity, int Honor, bool Favor, int HandCount, Answer[] HandAnswers, Answer[] TableAnswers, int BestFocus = 0)
 {
     public IEnumerable<LedgerUnit> Home => Units.Where(u => u.Province is null);
     public IEnumerable<LedgerUnit> At(int province) => Units.Where(u => u.Province == province);
@@ -48,7 +50,7 @@ public sealed record Ledger(int ViewerId, int Turn, Phase Phase, LedgerSide Me, 
             var spent = (c.SpentAbilityIds ?? []).Concat(attached.SelectMany(a => a.SpentAbilityIds ?? [])).ToArray();
             var cavalry = (c.Definition?.Keywords?.Contains("Cavalry") ?? false) && followers.All(f => f.Definition?.Keywords?.Contains("Cavalry") ?? false);
             return new LedgerUnit(c.Id, c.Definition?.Name ?? c.Id, p.Id, Math.Max(0, c.Force), unitForce, c.Bowed, cavalry, c.Zone == Zone.Battlefield ? c.ProvinceIndex : null, abilities, spent,
-                c.Chi, c.Definition?.PersonalHonor ?? 0, c.Dishonorable, c.ActionLocked, attached.Length, followers.Length, c.Definition?.GoldCost ?? 0);
+                c.Chi, c.Definition?.PersonalHonor ?? 0, c.Dishonorable, c.ActionLocked, attached.Length, followers.Length, c.Definition?.GoldCost ?? 0, c.Definition?.Keywords);
         }).ToArray();
         var provinces = p.Provinces.Where(q => !q.Destroyed).Select(q => (q.Index, q.Strength)).ToArray();
         int Production(CardView c) => c.Bowed ? 0 : c.Definition?.GoldProduction ?? 0;
@@ -60,6 +62,7 @@ public sealed record Ledger(int ViewerId, int Turn, Phase Phase, LedgerSide Me, 
             foreach (var d in EffectDescriptors.Of(card).Where(d => d.IsBattle && d.Neutralises && !(card.SpentAbilityIds?.Contains(d.Id) ?? false))) table.Add(new(d, card.Definition?.Name ?? card.Id, false, d.GoldCost));
         if (view.FavorPlayerId == p.Id && AbilityCatalog.All.ContainsKey("favor-battle")) table.Add(new(EffectDescriptors.Of("favor-battle"), "Favor", false, 0));
         var hand = own ? p.Hand.Where(c => c.Definition is not null).SelectMany(c => EffectDescriptors.Of(c).Where(d => d.IsBattle && (d.Neutralises || d.Class is EffectClass.ForceAdd or EffectClass.Negate)).Take(1).Select(d => new Answer(d, c.Definition!.Name, true, c.Definition.GoldCost))).ToArray() : [];
-        return new(p.Id, units, provinces, goldNow, capacity, p.Honor, view.FavorPlayerId == p.Id, p.HandCount, hand, table.ToArray());
+        var bestFocus = own ? p.Hand.Where(c => c.Definition is not null).Select(c => c.Definition!.Focus).DefaultIfEmpty(0).Max() : p.HandCount > 0 ? 3 : 0; // the opponent's best Focus Value is unseen: a typical card's
+        return new(p.Id, units, provinces, goldNow, capacity, p.Honor, view.FavorPlayerId == p.Id, p.HandCount, hand, table.ToArray(), bestFocus);
     }
 }
