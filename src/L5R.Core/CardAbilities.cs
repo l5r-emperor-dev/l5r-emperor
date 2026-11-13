@@ -11601,8 +11601,7 @@ public sealed partial class MatchEngine
                     foreach (var createChoice in createChoices)
                         foreach (var shownChoice in AlternativeDiscard.Choices(costOption, shownChoices, player, source))
                             foreach (var deckPosition in id == "goju-house-guard-return" ? new string?[] { "Top", "Bottom" } : new string?[] { null }) // the card asks where on its owner's Fate deck it goes (issue #833): one offered action per end, each carrying the choice
-                                foreach (var compareChoice in compareChoices)
-                                foreach (var clanMode in RecruitClanModes(id)) // issue #1230: At Any Cost's Clan discount / Clan allegiance, one offered option per way to pay
+                                foreach (var (compareChoice, clanMode) in compareChoices.SelectMany(c => RecruitClanModes(id).Select(m => (c, m)))) // issue #1230: also one offered option per way to pay (At Any Cost's Clan discount / allegiance)
                                 {
                                     var provinces = player.Provinces.Where(p => !p.Destroyed && p.CardId is not null).Select(p => OwnProvinceTargetId(player, p)).ToArray(); // a face-down card by its place (issue #586)
                                     var armyIds = _state.CurrentBattleProvince is int currentProvince ? Army(playerId, currentProvince).Select(a => a.Id).OrderBy(x => x, StringComparer.Ordinal).ToArray() : [];
