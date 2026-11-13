@@ -91,3 +91,38 @@ Two things the Read lacked at Mendon's attack positions, found with `L5R_POS_REA
 - **The belief is pessimistic where the opponent had shown nothing.** At G3 T9 the likely and worst hands stop the raze that happened; the prior gives an eight-card hand one send-home, one bow and one destroy. Whether that prior is too heavy is what the calibration on blocks 9200 and 9300 measures.
 
 `need` and `have` at the attack positions: G6 T9 and T11 (the immune Dairuko alone) read need 1, have 8 and 10 against 3; GT T7 need 1, have 4 against 1; G7 T7 Province 2 need 2, have 5 against 4; G3 T9 and GT T5 need "-" on Force alone (razed with late Force), have 3 to 6 against 1 to 4. These match his own counts in `PLAYER_MODEL.md` 3.1 ("he usually held 1.5 to 4 times need") on every position where he attacked.
+
+### 2026-11-13: the calibration gate (blocks 9200 and 9300)
+
+- Block 9200 run again with `T2 + read` against the Contender on the same seeds as its A/A: **0 games gained, 0 lost** (1,456 games, 50.6% both). The shadow Read changes nothing.
+- Block 9300 (seeds 9300 to 9303), Contender against Contender, 1,456 games, all decided: **51.8%** (754 to 702), records on; the held-out set.
+- Block 9200's records regenerated with the current recorder on the same seeds (identical games, 50.6%); the fit set.
+
+Each estimator's bucket rates fitted on 9200 and scored on 9300 (`battles.py artifacts/bots/battles-ca93 --fit artifacts/bots/battles-ca92`; 12,338 fought battlefields with attackers; the Province fell in 52%):
+
+| Estimator (bucketed) | Brier on 9300 | Cells of 200+ battlefields off by more than 10 points |
+| --- | --- | --- |
+| Constant rate | 0.2496 | — |
+| Paper margin at declaration | 0.2179 | 0 |
+| Paper margin at defence | 0.2134 | 0 |
+| `EstimateAttack` net (the planner's, `pattack`'s and `guard`'s number) | 0.2229 | 0 |
+| `EstimateAttack` verdict (loses / wins / razes) | 0.2258 | 0 |
+| `BattlePolicy.Odds` at the attacker's first Battle decision | 0.1809 | 0 |
+| Read at declaration, against every unbowed home defender | 0.2120 | 0 |
+| Read at defence (defended battlefields only, 5,728) | 0.1540 | 0 |
+| **Read at defence, or against nobody when undefended** | **0.1516** | 0 |
+| Read (as above) crossed with the paper margin at defence | 0.1417 | 0 |
+
+Cells, fitted on 9200 / observed on 9300: the Read says "held" under every hand 10% / 10% (3,219 battlefields); "falls" only under the belief's upper bound 26% / 26% (2,103); "falls" under every hand 79% / 79% (7,001). Crossed with the paper margin, the extremes are 3% / 2% ("held", margin −10 or worse) and 91% / 93% ("falls", margin above +12); the Read tells apart battlefields the paper margin lumps together: at a margin of 0 to +5 the Province fell 82% of the time when the Read said "falls" and 12% when it said "held" (2,697 and 859 battlefields).
+
+**Gate (brief step 2), as it stands:**
+
+| Criterion | Status |
+| --- | --- |
+| 57 of 60 abilities classified correctly; unknown share by deck | Met: 59 of 60 blind; 0% in every audited deck |
+| A/A with the shadow Read identical to one without | Met: 0 flipped on block 9200 |
+| The Read's Brier below both baselines on a held-out block; every cell of 200+ within 10 points | Met: 0.152 against 0.213 (paper) and 0.223 (`EstimateAttack`); 0 cells off |
+| The same two tests for the threat answer | **Not built**: `threat(home)` is the next piece; recorded as open |
+| `need` and `have` reproduce Mendon's counts on the attack positions, or each miss has a cause | Met on every position where he attacked (above); the two he razed below Strength on Force alone are read as razes once Tactician late Force counts |
+
+Limits worth stating: the Read's exchange is a projection with fixed habits (each side plays its best neutraliser while not getting its result; a duel is counted as half a removal; a Negate cancels the other side's decisive answer); its "likely" verdict rarely differs from "open" against these bots because the belief's prior is weak, which is also why the upper bound carries the signal. The threat answer and the questions of section 4.5 come next; nothing decides on the Read yet.
