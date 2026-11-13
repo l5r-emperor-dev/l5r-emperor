@@ -42,7 +42,8 @@ internal static class GoldQuoteTests
     private static ActionOption Option(MatchEngine e, Func<ActionOption, bool> where, int player = 0) =>
         e.QueryActions(player).Single(where);
     private static ActionOption Ability(MatchEngine e, string abilityId, int player = 0) =>
-        e.QueryActions(player).Single(a => a.Type == "useAbility" && (a.Command?.AbilityId == abilityId || a.Label.StartsWith(AbilityCatalog.All[abilityId].Label)));
+        e.QueryActions(player).Single(a => a.Type == "useAbility" && (a.Command?.AbilityId == abilityId || a.Label.StartsWith(AbilityCatalog.All[abilityId].Label))
+            && a.Command is not ({ ClanDiscount: true } or { ClanAllegiance: true })); // issue #1232: the full-cost way to pay, not the Clan discount / allegiance ones
 
     private static int Production(MatchEngine e) =>
         e.State.Cards.Values.Where(c => c.OwnerId == 0 && !c.Bowed && c.Zone is Zone.Home or Zone.Stronghold or Zone.Battlefield && CardCatalog.Get(c.DefinitionId).GoldProduction > 0)

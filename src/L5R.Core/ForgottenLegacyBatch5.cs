@@ -236,7 +236,7 @@ public sealed partial class MatchEngine
             // Black Pearl: "a Personality in any player's discard pile" brought into play under the acting player's control, paying all costs.
             case "black-pearl-recruit" when command.TargetId is not null && _state.Cards.TryGetValue(command.TargetId, out var pearlTarget):
                 {
-                    var quote = QuotePurchase(command.PlayerId, pearlTarget.Id, fromDeadPile: true, anyOwnerPile: true);
+                    var quote = QuotePurchase(command.PlayerId, pearlTarget.Id, command.ClanDiscount, command.ClanAllegiance, fromDeadPile: true, anyOwnerPile: true);
                     Require(quote.Error is null, quote.Error ?? "");
                     break;
                 }
@@ -298,7 +298,7 @@ public sealed partial class MatchEngine
             // Black Pearl: the Pearl's destruction was the cost and the Gold (4 less for a Nonhuman) was paid; he enters at home, under the acting player's control.
             case "black-pearl-recruit":
                 {
-                    var quote = QuotePurchase(player.Id, target!.Id, fromDeadPile: true, anyOwnerPile: true);
+                    var quote = QuotePurchase(player.Id, target!.Id, command.ClanDiscount, command.ClanAllegiance, fromDeadPile: true, anyOwnerPile: true);
                     Require(quote.Error is null, quote.Error ?? "");
                     TakeControl(target, player.Id);
                     return BringDeadPersonalityIntoPlay(player, target, "Black Pearl", null);

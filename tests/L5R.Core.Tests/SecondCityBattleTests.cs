@@ -402,7 +402,7 @@ internal static partial class SecondCityBattleTests
         foreach (var c in poor.S.Cards.Values.Where(c => c.DefinitionId == "training-border-keep").ToArray()) poor.S.Cards.Remove(c.Id);
         poor.S.Cards[poor.S.Players[0].StrongholdId].Bowed = true;
         var e2 = MatchEngine.FromTestState(poor.S);
-        var options = Options(e2, 0, "essence-of-undeath-recruit");
+        var options = Options(e2, 0, "essence-of-undeath-recruit").Where(o => o.Command is not ({ ClanDiscount: true } or { ClanAllegiance: true })).ToArray(); // issue #1232: at full cost (the Clan discount is 2 less)
         Check(options.Length > 0 && options.All(o => !o.Enabled), "with no Gold to pay he cannot be brought back: " + string.Join("; ", options.Select(o => o.Reason)));
         var theirs = UndeathTable(false);
         var enemyDead = Add(theirs.S, "training-lion-samurai", 1, Zone.Dead);
