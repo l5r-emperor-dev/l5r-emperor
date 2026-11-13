@@ -461,6 +461,7 @@ public sealed partial class MatchEngine
 
     // Two-Fold Virtue: the created Personality shows the target's scan as a created copy (its title marked, so a Unique target is not a second copy of his own title); its printed values are the
     // target's base Chi and Personal Honor, his printed keywords, and a base Force equal to his Personal Honor as it stands now; no abilities, no traits, Gold Cost 0, no Honor Requirement.
+    // It is created at the Paragon's battlefield (Mendon, issue #1224); a Battle action's target is at the current battlefield, so home is only a fallback.
     private bool CreateTwoFoldVirtue(PlayerState player, CardInstance source, CardInstance target)
     {
         if (!InPlay(target)) return false;
@@ -469,7 +470,8 @@ public sealed partial class MatchEngine
         var printed = new CardDefinition(copied.Id, $"{copied.Name} (Two-Fold Virtue)", CardType.Personality, copied.Clan, 0, 0, honor, copied.Chi, copied.PersonalHonor, null, 0, 0, "none",
             $"Created by Two-Fold Virtue: {honor}F/{copied.Chi}C/{copied.PersonalHonor}PH and the keywords of {copied.Name}.", false, copied.ArtworkKey, (copied.Keywords ?? []).ToArray(), [], 0, copied.Clans);
         var name = Definition(source).Name;
-        return CreatePersonality(player.Id, CardCatalog.Get(target.DefinitionId), false, null, out _, printed, () =>
+        var battlefield = target.Zone == Zone.Battlefield ? target.ProvinceIndex : null;
+        return CreatePersonality(player.Id, CardCatalog.Get(target.DefinitionId), false, battlefield, out _, printed, () =>
         {
             var created = Card($"created-{_state.CreatedCardSequence:D4}");
             _state.CreatedUntilBattleEndsIds.Add(created.Id);

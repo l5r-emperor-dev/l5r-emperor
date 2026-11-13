@@ -19,7 +19,7 @@ internal static partial class EmperorP5Tests
         ("Blessings of the Shi-Tien Yen-Wang: as its controller's turn begins he may put a dead Personality on top of his Dynasty deck (or decline); Battle: discarded, the opposed performer gets +1F per dead Personality and the next card effect that bows him is negated -- only the next", BlessingsCard),
         ("Step Through the Void: a Void Shugenja keeps the Spell; his unit leaves the game with its attachments attached and comes back into play at home before the turn ends, with no entering-play effect; a non-Void Shugenja's Spell is destroyed as the cost", StepThroughVoidCard),
         ("Riddle of Rebirth: the Henshin bows and the card leaves the game; the target sharing a keyword goes, with his Follower, to the bottom of the owners' decks in the order the acting player chooses; a Personality sharing no keyword is not a target", RiddleCard),
-        ("Two-Fold Virtue: a Personality is created at home with the Paragon's base Chi, Personal Honor and keywords and Force equal to his Personal Honor, shown as a copy, and removed from the game after the battle ends; a non-Paragon is not a target", TwoFoldVirtueCard),
+        ("Two-Fold Virtue: a Personality is created at the Paragon's battlefield with the Paragon's base Chi, Personal Honor and keywords and Force equal to his Personal Honor, shown as a copy, and removed from the game after the battle ends; a non-Paragon is not a target", TwoFoldVirtueCard),
         ("The Price of Honor: the target's controller may show his hand -- then the acting player may discard a card from it -- or refuse, and then the rulebook seppuku action may not be ordered for that Personality this turn", PriceOfHonorCard),
     ];
 
@@ -261,7 +261,8 @@ internal static partial class EmperorP5Tests
         Accept(e, Offer(e, 0, "p5-two-fold-virtue", card.Id, paragon.Id));
         Settle(e);
         var created = e.State.Cards.Values.Single(c => c.Id.StartsWith("created-", StringComparison.Ordinal));
-        Eq(created.Zone, Zone.Home, "created at home");
+        Eq(created.Zone, Zone.Battlefield, "created at the Paragon's battlefield (Mendon, issue #1224)");
+        Eq(created.ProvinceIndex, 0, "the battlefield the Paragon is at");
         Eq(e.CardForceForTest(created.Id), 2, "Force equal to the Paragon's Personal Honor");
         Eq(e.CardChiForTest(created.Id), 3, "his base Chi");
         Eq(e.PersonalHonorForTest(created.Id), 2, "his base Personal Honor");
