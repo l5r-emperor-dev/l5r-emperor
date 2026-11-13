@@ -38,6 +38,15 @@ public static partial class TrainingOpponent
                 return new DefensePlanner.Unit(c.Id, ArmyForce(cards), !IsCavalryUnit(x.Self, c), cards.Any(HasBattleAction));
             }).ToArray();
         var provinces = ProvincesByValue(x.Self, action.Provinces ?? x.Self.Provinces.Where(p => !p.Destroyed).Select(p => p.Index));
+        // cavblind (block 8300 review: blind assignments before the Cavalry declares lost 92 of 234 battles for the loser, 12 of 77 for the winner): the attacker's hand removes the strongest
+        // defenders it can reach, so those are planned as absent and stay home, and a group commits only where it holds without them.
+        if (Rule(x, "cavblind"))
+        {
+            var riders = x.Opponent.Home.Count(c => c.Definition?.Type == CardType.Personality && !c.Bowed && IsCavalryUnit(x.Opponent, c));
+            var removed = units.OrderByDescending(u => u.Force).Take(HandRemovals(x, riders)).Select(u => u.Id).ToHashSet(StringComparer.Ordinal);
+            units = units.Where(u => !removed.Contains(u.Id)).ToArray();
+            if (units.Length == 0) return null;
+        }
         return DefensePlanner.Plan(units, provinces, threat, x.Self.HandCount);
     }
 

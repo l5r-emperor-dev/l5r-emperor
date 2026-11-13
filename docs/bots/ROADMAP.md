@@ -1,6 +1,35 @@
 # Bot development roadmap
 
-This is the long-running plan for the practice bots. It is the place to return to after a break: what each bot is for, where it stands, and what comes next. Experiment details live in `docs/bots/experiments/`; the method for the Conan campaign lives in `docs/bots/CONAN_CAMPAIGN_BRIEF.md`.
+This is the long-running plan for the practice bots. It is the place to return to after a break: what each bot is for, where it stands, and what comes next. Experiment details live in `docs/bots/experiments/`; the method for the Conan campaign lives in `docs/bots/CONAN_STRATEGY_BRIEF.md` (since 2026-11-12; it replaces the search-first strategy of `CONAN_CAMPAIGN_BRIEF.md`, whose test method it keeps).
+
+## The direction since 2026-11-12: a read of the game, then contextual rules
+
+Mendon, 2026-11-12: more thinking time is not producing better decisions; the bots need rules that are "more complex and contextual but not heavily computational", driven by "a plan that it executes on the fly that is constantly being updated by the changing information". The goal is unchanged (Conan at 80% against the frozen Contender) and extended: "I want the bar to be genuinely challenging" for skilled players, with licence "to actually rethink the Conan strategy from the ground up."
+
+Where Conan stands: 72.7 to 74.5% against the frozen Contender on three fresh blocks (7800, 7900, 8100), flat across five blocks of search work.
+
+What was prepared for the next stage (all under `docs/bots/`):
+
+| File | What it is |
+| --- | --- |
+| `CONAN_STRATEGY_BRIEF.md` | The operating brief for the model that does the work: the Read (effect descriptors, ledger, belief, exchange, posture), six steps with checkable completion criteria, the calibration gate, the test loop |
+| `strategy/PLAYER_MODEL.md` | How Mendon decides, mined from his eight replays, as nested rules with the turn behind each |
+| `strategy/RULE_FAMILIES.md` | Nine families of seed rules (attack, Cavalry, counter-attack, defence, battle, Dynasty, posture, reading the opponent, Favor and hand) |
+| `strategy/ARENA_BEHAVIOUR.md` | What the bots measurably do well and badly over 4,000 logged games; the behaviour profile |
+| `strategy/RULES_DIGEST.md`, `strategy/CODE_MAP.md` | The comprehensive rules as a bot needs them; the decision code as it stands |
+
+The order of work: instruments (a rule registry with fire counters, battle records, the decision test set), then the Read in shadow until its predictions beat the existing estimators on real battles, then one rule family at a time, then the question of where the lookahead belongs, then confirmation, then the human bar (agreement with Mendon's decisions, the behaviour profile, exploiter decks, his own playtests).
+
+Open for Mendon: a screenshot interview on Cavalry forcing and on the counter-attack at two Provinces or fewer (`strategy/PLAYER_MODEL.md` section 5); his games contain one Cavalry attack and no position where an empty home was punished.
+
+## Improving the Contender too (Mendon, 2026-11-11)
+
+"It's okay to improve the contender and lose ground to it as Conan because the contender isn't particularly difficult to beat for a human at the moment." Contender gains are welcome even if they cost Conan its margin. They also make Conan stronger, because Conan's playouts are played by the Contender.
+
+How this is measured:
+- Contender changes are screened Contender against Contender, from an A/A baseline.
+- Conan's 80% goal is measured against a frozen snapshot of the Contender's rules (`T2`, the tuned set as of 2026-11-10), so the figure stays comparable while the live Contender improves.
+- An improved Contender becomes Moderate in practice only with Mendon's approval.
 
 ## The ladder
 
@@ -29,7 +58,7 @@ Results against the Contender on block 7000 (364 games, compared on the same gam
 | + `lkPlan,clock` | 70.9% | −1 |
 | + `lkPlan,lkFar` | 69.2% | −7 (searches hit the 10 s limit) |
 
-The campaign brief's method (fresh blocks, SPRT, a frozen pool, an oracle for mining losses) governs the next steps. Its hypothesis backlog, in order:
+The campaign brief's method (fresh blocks, SPRT, a frozen pool, an oracle for mining losses) still governs testing. Its hypothesis backlog below is kept as a record; items 1, 2, 9, 12 and 13 were tried and rejected or not repeatable, and the work now follows `CONAN_STRATEGY_BRIEF.md`:
 1. Anytime search.
 2. More worlds.
 3. A cheaper forward model.
@@ -67,6 +96,21 @@ The measurement:
 - 16 needs anytime search first, or its searches hit the 10 s limit and fall back.
 
 A slider is worth building only if win rate rises monotonically with a usable spread. The UI would need a decision (Mendon's lane, with Alfredo for the client).
+
+## Reading the opponent: rush or out-develop (Mendon, 2026-11-11)
+
+Mendon's example, from a game against Allan. Allan's Lion brought out Akodo Suoh on turn 1, equipped Dual Warfans on turn 2 and attacked. Mendon's Scorpion held Heavily Engaged: he waited for Allan's Tactical action, then bowed Suoh. He had judged that he could absorb the rush, so he kept investing in his economy, and he out-developed Allan with Personalities. Without the answer in hand he would have bought a Personality to match. With a very strong economic opening he might have conceded the first Province and still expected to win the race.
+
+What a bot needs for this, card-agnostically and without hidden information:
+1. **Purchases decided from the position, every time.** A first try, `lkPosture`, searched two blanket postures, economy first or bodies first, over six turns. Mendon judged it too inflexible: "Decisions should be much more contextually based on opportunities and threats." It was removed before any arena test. What replaces it:
+   - For Conan, `lkMix` with `lkBuy`: each purchase searches the Contender's pick, the best Holding on offer, the best Personality on offer, and buying nothing. Each is played `lkBH` turns forward from this table, with every later decision made normally, and the choice is made again at the next purchase.
+   - For the Contender, `econctx`: the tuned economy-first opening rule (`econ`) gives way when the table calls for a body. That is when the opponent's army beats the bot's own on its weakest Province, or when one affordable Personality closes the gap to razing the opponent's weakest Province.
+   
+   Both use only the bot's view: its own hand and the public board, with hidden cards from the sampler.
+2. **Reading intentions from what the opponent did** (not built). The sampler redeals the opponent's hidden cards uniformly. A player infers from behaviour: attacking a lone Personality into an open board suggests a held Battle action. A belief-weighted sampler would keep or weight each redealt world by how likely the opponent's observed choices were in it, judged by the Contender's policy. The oracle diagnostic (84% against 74%) bounds what better beliefs can give.
+3. **The race estimate behind the posture:** each side's Gold per turn, Personalities in play and Force threatened against Province strength, over the next few turns. The playouts above compute this implicitly; an explicit version would be cheaper and could be shown to a player.
+
+A regression for this belongs with item 1. In a fixed position (an early rush against a hand holding an answer), the purchase should change depending on whether the answer is in hand.
 
 ## Still open
 

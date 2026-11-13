@@ -107,7 +107,9 @@ public static partial class TrainingOpponent
         if (Rule(x, "bodyfirst") && action.Type == "purchase" && x.Card(command.CardId)?.Definition is { Type: CardType.Holding } && Holdings(x.Self) >= Knob(x, "bfH", 3)
             && ProvinceCards(x).Any(c => c.Definition!.Type == CardType.Personality && EffectiveCost(x, c) <= Ready(x)))
             return Math.Min(score, 60);
-        if (Rule(x, "econ") && action.Type == "purchase" && x.Card(command.CardId)?.Definition is { } bought && FairHolding(x, bought) && !(Rule(x, "threatbody") && Threatened(x)) && (Holdings(x.Self) < Knob(x, "econN", 8) && x.Self.TurnsTaken <= Knob(x, "econT", Rule(x, "econT2") ? 2 : 4) || Rule(x, "econ2") && Holdings(x.Self) < 10)
+        // econctx (Mendon, 2026-11-11: decisions by opportunities and threats, not a fixed opening): economy first gives way when the table calls for a body (Contested).
+        if (Rule(x, "econ") && action.Type == "purchase" && x.Card(command.CardId)?.Definition is { } bought && FairHolding(x, bought) && !(Rule(x, "threatbody") && Threatened(x))
+            && !(Rule(x, "econctx") && Contested(x)) && (Holdings(x.Self) < Knob(x, "econN", 8) && x.Self.TurnsTaken <= Knob(x, "econT", Rule(x, "econT2") ? 2 : 4) || Rule(x, "econ2") && Holdings(x.Self) < 10)
             && !(Rule(x, "body1") && Personalities(x.Self) == 0 && x.Self.TurnsTaken >= 2 && ProvinceCards(x).Any(c => c.Definition!.Type == CardType.Personality && EffectiveCost(x, c) <= Ready(x))))
             return SlateBonus + 50 + 5 * (bought.GoldProduction - bought.GoldCost) + score * 0.0001;
         if (Rule(x, "econ") && action.Type == "discardProvince" && x.Card(command.CardId)?.Definition is { } kept)
@@ -146,6 +148,12 @@ public static partial class TrainingOpponent
         // conf (Mendon, 2026-11-09): with low confidence, the hardest threat takes the biggest hit (destroy, then send home, then bow); with high confidence, the cheapest removal that does
         // the job: a card from hand waits while a printed ability in play reaches the same unit, and a destroy waits while a bow does as much (no attachments to strip). Cards in hand are options.
         if (Rule(x, "conf") && x.View.Phase == Phase.Battle && action.Type is "useAbility" or "playStrategy" && ConfidenceScore(x, action, command, score) is { } judged) return judged;
+        // hgift (Contender review of block 8300: in 104 games the loser defended, lost and gave Honor to an attacker already at 30+, and 77 of them ended in an Honor win): when the attacker's
+        // Honor is within hgN (10) of its win, a defense that loses the battle is not made while the bot has Provinces to spare. Exceptions: the last stand, and a defense that still wins or
+        // saves its Province after the attacker's likely removals (HostileDefenseHolds).
+        if (Rule(x, "hgift") && action.Type == "assignDefense" && command.Assignments is { Count: > 0 } offered && x.Opponent.Honor >= 40 - Knob(x, "hgN", 10)
+            && x.Self.Provinces.Count(p => !p.Destroyed) >= 2 && !HostileDefenseHolds(x, offered))
+            return Math.Min(score, BarredScore);
         // nogift: a defense that loses the battle hands an Honor deck Honor for every card destroyed; with Provinces to spare it is not made (a presence defense is judged by its own rule).
         if (Rule(x, "nogift") && action.Type == "assignDefense" && command.Assignments is { Count: > 0 } given && x.Opponent.Honor >= Knob(x, "nogiftH", 20) && x.Self.Provinces.Count(p => !p.Destroyed) > 2
             && !(Rule(x, "presence") && PresencePlan(x, action) is { } presenceKept && SameAssignments(presenceKept, given))
@@ -367,6 +375,18 @@ public static partial class TrainingOpponent
     }
 
     /// <summary>threatbody: the opponent has more Personalities and their whole unit Force beats the bot's plus its weakest Province's Strength.</summary>
+    /// <summary>econctx: a Personality now matters more than a Holding: the opponent's whole army (all of it straightens) beats the bot's whole army on its weakest Province, so a
+    /// Province falls next turn unless bodies arrive; or the bot's army is short of razing the opponent's weakest Province, and the best Personality it can afford closes the gap.</summary>
+    private static bool Contested(Ctx x)
+    {
+        var theirs = UnitCards(x.Opponent).Sum(c => UnitForceOf(x, c)); var mine = UnitCards(x.Self).Sum(c => UnitForceOf(x, c));
+        var weakest = x.Self.Provinces.Where(p => !p.Destroyed).Select(p => p.Strength).DefaultIfEmpty(0).Min();
+        if (theirs > mine + weakest) return true;
+        var target = x.Opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Strength).DefaultIfEmpty(int.MaxValue).Min();
+        var gap = target + theirs - mine; var ready = Ready(x);
+        return gap > 0 && ProvinceCards(x).Any(c => c.Definition!.Type == CardType.Personality && EffectiveCost(x, c) <= ready && Math.Max(0, c.Definition.Force) >= gap);
+    }
+
     private static bool Threatened(Ctx x)
     {
         if (Personalities(x.Self) >= Personalities(x.Opponent)) return false;
@@ -565,6 +585,9 @@ public static partial class TrainingOpponent
             && x.Self.Hand.Count() <= x.Opponent.HandCount - Knob(x, "hkN", 2)) return true;
         // cycle: the Favor's discard-and-draw throws away a card the bot chose to keep.
         if (Rule(x, "cycle") && command.AbilityId == "favor-cycle") return true;
+        // lobbycycle (block 8300 review: 291 times a Personality bowed to lobby and the Favor was then thrown away for a card the same turn): the Favor won this turn is kept,
+        // unless the opponent has no army to threaten the bot with.
+        if (Rule(x, "lobbycycle") && command.AbilityId == "favor-cycle" && x.Memory.LobbiedThisTurn(x.View.TurnNumber) && UnitCards(x.Opponent).Any(c => UnitForceOf(x, c) > 0)) return true;
         return false;
     }
 

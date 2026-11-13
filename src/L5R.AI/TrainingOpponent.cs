@@ -76,6 +76,18 @@ public static partial class TrainingOpponent
         // Issue #1185 tuning (deter): spare attackers stay home when they are enough to stop the opponent's whole army attacking next turn.
         if (command is { Assignments.Count: > 0 } && action.Type == "attack" && x.View.Phase == Phase.InfantryDeclaration && Rule(x, "deter") && DeterPlan(x, command.Assignments) is { } deter)
             return command with { Assignments = deter };
+        // guard (block 7800's losses): units that must stay home to stop the counter-attack razing a last Province are taken out of the attack; what is left goes only where it still
+        // beats the Province and every unbowed defender, else nobody goes.
+        if (command is { Assignments.Count: > 0 } && action.Type == "attack" && Rule(x, "guard")
+            && Guard(x, x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed).ToArray(), x.Self.Army.Where(c => c.Definition?.Type == CardType.Personality).ToArray()) is { Length: > 0 } guard)
+        {
+            var home = guard.Select(c => c.Id).ToHashSet(StringComparer.Ordinal);
+            var rest = command.Assignments.Where(a => !home.Contains(a.Key)).ToDictionary(a => a.Key, a => a.Value, StringComparer.Ordinal);
+            var defenders = ArmyForce(x.Opponent.Home);
+            bool Beats(IGrouping<int, KeyValuePair<string, int>> g) => x.Opponent.Provinces.FirstOrDefault(p => p.Index == g.Key) is { } target
+                && g.Sum(a => x.Card(a.Key) is { } c ? UnitForceOf(x, c) : 0) + x.Self.Army.Where(c => c.ProvinceIndex == g.Key && c.Definition?.Type == CardType.Personality).Sum(c => UnitForceOf(x, c)) > target.Strength + defenders;
+            return command with { Assignments = rest.GroupBy(a => a.Value).Where(Beats).SelectMany(g => g).ToDictionary(a => a.Key, a => a.Value, StringComparer.Ordinal) };
+        }
         return command;
     }
 

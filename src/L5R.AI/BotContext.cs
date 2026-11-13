@@ -90,6 +90,10 @@ public sealed class BotContext
     public DateTime? Deadline { get; set; }
     /// <summary>Issue #1206: the wall time, in milliseconds, of each lookahead search this seat made: the thinking a player waits for.</summary>
     public List<double> ThinkMs { get; } = [];
+    /// <summary>Issue #1206 (lkB): the playout decisions the current search has made, against its work budget.</summary>
+    internal int LookWork { get; set; }
+    /// <summary>Issue #1206 (lkClock): the opponent's Honor when this seat first searched in each turn, for the rate at which it climbs.</summary>
+    internal Dictionary<int, int> SeenHonor { get; } = [];
     /// <summary>Issue #1185 tuning: the Contender's further rules, each named and switched on separately (see TrainingOpponent.Contender2.cs). Empty: none.</summary>
     public HashSet<string> Rules { get; init; } = new(StringComparer.Ordinal);
     public bool Has(string rule) => Rules.Contains(rule);

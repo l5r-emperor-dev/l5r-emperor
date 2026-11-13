@@ -135,4 +135,25 @@ public static partial class TrainingOpponent
         if (sentAt is null && PlanAttack(x, units, provinces) is { } split && split.Values.Distinct().Count() >= 2) return HoldCavalry(x, OfferedOnly(split, units));
         return HoldCavalry(x, units.ToDictionary(c => c.Id, _ => target, StringComparer.Ordinal));
     }
+
+    /// <summary>guard (block 7800's losses: 56 of 94 lost their last Provinces to the counter-attack, the army bowed from its own attack): the units an attack leaves home.
+    /// An attack that takes the opponent's last Province goes in whole. Otherwise, with guardN (2) or fewer Provinces left and the opponent's whole army (it all straightens
+    /// for their turn) able to raze the weakest of them, the cheapest set of unbowed Personalities that stops it stays home: the smallest one strong enough alone, else the
+    /// strongest few together. If even all of them could not stop it, nothing is held back: a guard that cannot save the Province only weakens the attack.</summary>
+    private static CardView[] Guard(Ctx x, CardView[] ready, CardView[] sent)
+    {
+        if (!Rule(x, "guard") || ready.Length == 0) return [];
+        var theirs = x.Opponent.Provinces.Where(p => !p.Destroyed).ToArray();
+        if (theirs.Length == 1 && EstimateAttack(x, [.. ready, .. sent], theirs[0]).Razes) return [];
+        var mine = x.Self.Provinces.Where(p => !p.Destroyed).ToArray();
+        if (mine.Length == 0 || mine.Length > Knob(x, "guardN", 2)) return [];
+        var need = UnitCards(x.Opponent).Sum(c => UnitForceOf(x, c)) - mine.Min(p => p.Strength);
+        if (need <= 0) return [];
+        var forces = ready.Select(c => (Card: c, Force: UnitForceOf(x, c))).ToArray();
+        if (forces.Sum(f => f.Force) < need) return [];
+        if (forces.Where(f => f.Force >= need).OrderBy(f => f.Force).Select(f => f.Card).FirstOrDefault() is { } one) return [one];
+        var kept = new List<CardView>(); var held = 0;
+        foreach (var (card, force) in forces.OrderByDescending(f => f.Force)) { if (held >= need) break; kept.Add(card); held += force; }
+        return [.. kept];
+    }
 }
