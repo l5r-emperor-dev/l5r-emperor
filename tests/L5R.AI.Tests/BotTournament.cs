@@ -22,6 +22,7 @@ using L5R.Core;
 //   L5R_TOURN_SNAP=<dir>            each seat's ValueModel features at every new turn and phase, with whether it won (tools/bots/fit_value.py fits the value model from them).
 //   L5R_TOURN_ORACLE=1              a diagnostic: the challenger's search plays out the real match (hidden cards included); never a player, it bounds what better sampling could gain.
 //   L5R_TOURN_BATTLES=<dir>         one JSON line per declared attack: board, assignments, each estimator's number at the time, the real result (BattleRecords.cs; tools/bots/battles.py reads them).
+//   L5R_TOURN_THREATS=<dir>         one JSON line per player turn: threat(home) as the Read projects it and what the opponent's next turn did (ThreatRecords.cs; tools/bots/threats.py reads them).
 internal static class BotTournament
 {
     /// <summary>The bot arms. "champion" is the bot on main. A candidate branch registers its challenger here, with the BotContext flag that turns its change on.</summary>
@@ -99,10 +100,13 @@ internal static class BotTournament
         var snapDir = Environment.GetEnvironmentVariable("L5R_TOURN_SNAP"); var snaps = new List<(int Seat, int Turn, Phase Phase, double[] Features)>(); var lastSnap = (-1, Phase.Finished);
         // L5R_TOURN_BATTLES=<dir> (issue #1206, docs/bots/CONAN_STRATEGY_BRIEF.md step 1): one JSON line per declared attack, with the board, each estimator's number and the real result (BattleRecords.cs).
         var battles = Environment.GetEnvironmentVariable("L5R_TOURN_BATTLES") is { Length: > 0 } battleDir ? new BattleRecorder(battleDir, challengerSeat) : null;
+        // L5R_TOURN_THREATS=<dir> (issue #1206, step 2's threat calibration): one JSON line per player turn, threat(home) as projected and what the opponent's next turn did (ThreatRecords.cs).
+        var threats = Environment.GetEnvironmentVariable("L5R_TOURN_THREATS") is { Length: > 0 } threatDir ? new ThreatRecorder(threatDir, challengerSeat) : null;
         string Stem(GameRecord r) => $"{(r.Winner is null ? "none" : r.Winner == challengerSeat ? "CHAL" : "CHAMP")}-{name0}-vs-{name1}-{seed}-c{challengerSeat}".Replace(' ', '_').Replace('/', '_');
         GameRecord Logged(GameRecord r)
         {
             battles?.Finish(Stem(r), r.Winner, r.Reason);
+            threats?.Finish(Stem(r), r.Winner, r.Reason);
             if (snapDir is { Length: > 0 } && r.Winner is { } winner)
             {
                 Directory.CreateDirectory(snapDir);
@@ -124,6 +128,7 @@ internal static class BotTournament
                 if (v0.TurnNumber > BotSoak.TurnLimit) return Logged(End(null, "turn limit", v0.TurnNumber));
                 if (clock.Elapsed > budget) return Logged(End(null, "out of time", v0.TurnNumber, "wall budget"));
                 battles?.Tick(game, v0);
+                threats?.Tick(game, v0);
                 if (snapDir is { Length: > 0 } && (v0.TurnNumber, v0.Phase) != lastSnap) { lastSnap = (v0.TurnNumber, v0.Phase); for (var s = 0; s < 2; s++) snaps.Add((s, v0.TurnNumber, v0.Phase, ValueModel.Features(game.GetView(s)))); }
                 if (log is not null && v0.TurnNumber != lastTurn)
                 {
@@ -157,6 +162,7 @@ internal static class BotTournament
                 if (outcome.Accepted)
                 {
                     battles?.Accepted(game, seat, decision.Command, v0, memory, seed, [name0, name1]);
+                    threats?.Accepted(game, seat, decision.Command, v0, seed, [name0, name1]);
                     if (log is not null)
                     {
                         var c = decision.Command;

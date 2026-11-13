@@ -23,6 +23,7 @@ More rules were not clearly better, so measurement comes before ideas.
 - **Output:** `<out>.json` (summary plus every game: seed, seats, winner, reason, turn, final Honor/provinces/Personalities, action counts) and `<out>.md`.
 - **Arms:** `BotTournament.Arms`. A candidate branch registers `["<name>"] = () => new() { UseThing = true }`; `champion` is `new()`.
 - **Battle records (issue #1206):** `L5R_TOURN_BATTLES=<dir>` writes one JSON line per declared attack (board, assignments, each estimator's number at the time, the real result); `tools/bots/battles.py` prints the paper-margin table and estimator calibration from them. No bot reads them.
+- **Threat records (issue #1206):** `L5R_TOURN_THREATS=<dir>` writes one JSON line per player turn (the Read's `threat(home)` at declaration, after Dynasty and at the opponent's first decision; two paper baselines; what the opponent's turn then did); `tools/bots/threats.py` prints the calibration of each against the Provinces actually lost. No bot reads them.
 - **Decision test set (issue #1206):** `--filter conan-positions` re-decides Mendon's positions from `docs/bots/replays/` with any rule set (`L5R_POS_ARMS`, `tests/L5R.AI.Tests/ConanPositions.cs`) and prints agreement by family: a metric for where to look, never a proof.
 
 ## What "good" means

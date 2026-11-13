@@ -296,6 +296,7 @@ runner.Run("human-compare", HumanReplayCompare.Tests);
 runner.Run("conan-positions", ConanPositions.Tests); // issue #1206: the decision test set from Mendon's replays (docs/bots/CONAN_STRATEGY_BRIEF.md step 1) // issue #1185: opt-in, a human practice replay beside the bot's choices
 runner.Run("effect-descriptor", EffectDescriptorTests.Tests); // issue #1206: the card-agnostic effect descriptors (step 2 of the strategy brief)
 runner.Run("read", ReadTests.Tests); // issue #1206: the Read in shadow (ledger, belief, exchange)
+runner.Run("threat", ThreatTests.Tests); // issue #1206: threat(home), the Read's second question (section 4.5)
 runner.Run("descriptor-audit", DescriptorAudit.Tests); // issue #1206: opt-in coverage audit of the descriptors over the tournament and replay decks
 return runner.Finish();
 
