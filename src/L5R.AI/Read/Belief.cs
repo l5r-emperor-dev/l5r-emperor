@@ -10,7 +10,14 @@ public sealed record Belief(int HandCount, IReadOnlyDictionary<EffectClass, doub
     /// <summary>The prior share of a hand before anything is shown: Battle-timed answers are about four cards in ten of a typical Fate hand (the Contender's own UnseenStrategyShare), spread over the classes.</summary>
     public static readonly IReadOnlyDictionary<EffectClass, double> Prior = new Dictionary<EffectClass, double>
     {
-        [EffectClass.SendHome] = .09, [EffectClass.Bow] = .10, [EffectClass.Destroy] = .08, [EffectClass.ForceCut] = .06, [EffectClass.Negate] = .04, [EffectClass.ForceAdd] = .10, [EffectClass.Duel] = .02, [EffectClass.Lock] = .01
+        [EffectClass.SendHome] = .09,
+        [EffectClass.Bow] = .10,
+        [EffectClass.Destroy] = .08,
+        [EffectClass.ForceCut] = .06,
+        [EffectClass.Negate] = .04,
+        [EffectClass.ForceAdd] = .10,
+        [EffectClass.Duel] = .02,
+        [EffectClass.Lock] = .01
     };
     public const double PriorWeight = 6; // the prior counts as six seen cards
 

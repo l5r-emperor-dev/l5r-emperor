@@ -8,7 +8,8 @@ namespace L5R.AI;
 // steps on the ledger; never a match clone.
 public sealed record ExchangeUnit(LedgerUnit Unit)
 {
-    public int Force { get; set; } = Unit.Contribution; public bool Present { get; set; } = true; public bool Dead { get; set; } public bool Bowed { get; set; } = Unit.Bowed; public bool Locked { get; set; } = Unit.ActionLocked; public bool Followers { get; set; } = Unit.Followers > 0;
+    public int Force { get; set; } = Unit.Contribution; public bool Present { get; set; } = true; public bool Dead { get; set; }
+    public bool Bowed { get; set; } = Unit.Bowed; public bool Locked { get; set; } = Unit.ActionLocked; public bool Followers { get; set; } = Unit.Followers > 0;
     public int Contribution => Present && !Bowed ? Force : 0;
 }
 
