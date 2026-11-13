@@ -25,6 +25,7 @@ public static partial class TrainingOpponent
         CheckDeadline(memory);
         memory.Observe(view);
         if (memory.UsePlannerTriage) memory.NoteBattleActions(view); // issue #1185: what each performer has already used this turn
+        if (memory.Has("read")) memory.NoteRead(view); // issue #1206: the Read in shadow mode (docs/bots/CONAN_STRATEGY_BRIEF.md section 4); it drives nothing
         var self = view.Players.Single(p => p.Id == view.ViewerId);
         var opponent = view.Players.Single(p => p.Id != view.ViewerId);
         var x = new Ctx(view, self, opponent, BotProfile.Assess(self, memory.DeckAveragePersonalHonor), memory, AllCards(view)) { Actions = actions, Odds = BattlePolicy.Assess(view) };

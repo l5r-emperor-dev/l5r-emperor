@@ -109,7 +109,16 @@ ESTIMATORS = {
     'EstimateAttack.net': lambda b: bucket(b['estimate']['net'] - b['estimate']['strength']) if b.get('estimate') else None,
     'EstimateAttack.razes': lambda b: ('razes' if b['estimate']['razes'] else 'wins' if b['estimate']['wins'] else 'loses') if b.get('estimate') else None,
     'Odds at first Battle decision': lambda b: bucket(b['odds'][0] - b['odds'][1] - max(0, b['odds'][2])) if b.get('odds') else None,
+    'Read at declaration (open/likely/worst)': lambda b: read_bucket(b.get('readAtDeclaration')),
+    'Read at defence (open/likely/worst)': lambda b: read_bucket(b.get('readAtDefence')),
+    'Read at defence, or at declaration when undefended': lambda b: read_bucket(b.get('readAtDefence') or b.get('readAtDeclaration')),
 }
+
+
+def read_bucket(r):
+    if not r:
+        return None
+    return ''.join('1' if r[k] else '0' for k in ('open', 'likely', 'worst'))
 
 
 def fields(records):
