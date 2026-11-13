@@ -19,6 +19,8 @@ Nothing here drives a decision. Each instrument has a criterion from the brief, 
    - Threat records (`L5R_TOURN_THREATS=<dir>`, `tests/L5R.AI.Tests/ThreatRecords.cs`, read by `tools/bots/threats.py`): one JSON line per player turn with the projection at three moments (at the seat's attack declaration with the units its exchange expects to destroy left out; after its last Dynasty decision; at the first decision of the opponent's turn, their army as it really straightened), two paper baselines (their Force minus my unbowed home Force minus my weakest Strength; the guard ratio of `ARENA_BEHAVIOUR.md` Q2c) and what the opponent's turn did (attacked or not, Provinces lost, units lost on each side).
    - Pre-registered: block **9400** (Contender against Contender, 1,456 games, threat and battle records on) is the fit set; block **9600** (same arms) the held-out set. Block 9400 is also run as `T2 + read` against the Contender on the same seeds for the identity check (the threat log is new code under the shadow rule). Gate: the threat's Brier on 9600 below both paper baselines, every cell of 200 or more turns within 10 points of its fitted rate; reported before and after the opponent's first Fate reveal.
 
+6. **The questions and the posture, in shadow** (sections 4.5 and 4.6; branch `claude/1206-conan-posture`). `Questions.Of(read, trend)` (`src/L5R.AI/Read/Questions.cs`) answers the three questions: **opportunity**, family A's candidates (hold; everything at the weakest Province; at each Province the smallest group, strongest first, whose exchange razes under the likely hand; a balanced split across two Provinces, offered even below Strength on paper since the exchange counts late Force; the lone immune unit when every answer they have shown, Fate cards seen and printed Battle neutralisers alike, is conditional and one unit fails all of them), each against the defender's best reply among nobody, everybody at one battlefield and a balanced split, with the fall probability per battlefield read from the battle Read's calibration cell, `gain` = expected Provinces (the last worth 4, the second-last 2) + 0.3 per unit destroyed − 0.3 per unit lost − 0.1 per card, `exposure` = threat(home left by the attack, their expected dead left out) read through the threat calibration, and `score = gain − weight(posture) × (exposure − exposure(hold))`; **race**, each side's turns to each route at the current rates (Provinces at the rate the best attack and the threat take them, Honor at the rate it has moved over the last two rounds, from `BotContext.History`); **posture**, family G's rule in its order (punish, press on their last Province, wait, lock, drain, race, press, build, hold), with lock and drain taken only when the route is certain before their clock and within six turns, and race only when they have a route at all. Rule `read` computes the answers on the seat's own turn at the attack declaration and at the first Dynasty decision, logs a rebuild that changes the posture or the best attack with the event that preceded it, and drives nothing. `L5R_POS_READ=1` prints the answers at the decision set's attack positions.
+
 Blocks used by this note: 9100, 9200, 9300, 9400, 9600.
 
 ## Results (below the line)
@@ -176,4 +178,28 @@ The battle Read's calibration repeats on these blocks after the ledger change: R
 | A/A with the shadow Read identical to one without | Met again on block 9400 with the threat log on: 1,456 of 1,456 games identical |
 
 Nothing decides on the Read yet. Next: the opportunity and race answers, the posture, and replanning (section 4.5 and 4.6), then family D.
+
+### 2026-11-14: the questions and the posture at Mendon's positions (shadow)
+
+With `L5R_POS_READ=1` the decision set prints the Read's answers at the attack positions (T2 playing; the Read only watching). What the Read would have chosen against what he did:
+
+| Position | His move | The Read's best attack (shadow) | Posture (clocks me military/Honor/drain; them) |
+| --- | --- | --- | --- |
+| A-G3T9-split | one group per Province | split (Michitsu alone; Suoh, Suoh) | press (3/19/99; 99/99/99) |
+| A-G4T9-split | one group per Province | split (Dairuko; Uehara, Furu) | race (2/12/99; 6/99/99) |
+| A-G6T13-split | one group per Province | split, two groups over five units | lock (2/1/16; 99/99/99) |
+| A-GT5-split | two groups below Strength, razed with Tactical Advantage | split (Furu; Uehara, Makotai) | race (3/30/99; 6/99/99) |
+| A-G7T7-split | one group per Province | split (Suoh; Kamina, Lion Ancestor) | race (2/15/99; 99/12/99) |
+| A-GT7-split | one group per Province | split (Michitsu, Lion Ancestor; Suoh, Suoh) | race (2/12/99; 6/99/99) |
+| A-G6T9-alone | the immune Dairuko alone | everything = Dairuko (the only unbowed unit) | race (6/3/99; 80/9/99) |
+| A-G6T11-alone | the immune Dairuko alone | sufficient: Dairuko alone | lock (2/2/99; 99/26/99): the attack costs nothing |
+| A-G4T5-hold | hold at 6F against 7 | hold (gate: no group exceeds Strength) | build |
+| G-G5T12-hold | hold, drain | everything | race (6/99/99; 14/12/99): the drain had not started |
+| G-G5T20-hold | hold, drain | (split offered) | **drain** (5/99/6) |
+| G-G5T22-hold | hold, drain | (split offered) | race (4/99/12): the military estimate is shorter than the drain |
+| G-G5T24-hold | hold, drain | (split offered) | **drain** (2/99/4) |
+
+The shape agrees with his on all seven split and lone positions where T2 stacks one Province (`PLAYER_MODEL.md` section 7, rows 2 and 3); the hold at G4 T5 comes from the gate. The posture reads his drain game as drain on two of the four held turns; on the other two the military clock, estimated from an attack he would not make, is the shorter. Nothing decides on this yet; the Read's best attack becomes a rule in step 3 (family A), where its agreement with him is measured properly and its effect in the arena screened.
+
+Identity with the answers on (block 9400, seed 9400 only, 364 games, `T2 + read` against the Contender): **364 of 364 games identical** in winner, turn, reason, final Honor and Provinces. Wall time with the answers on: 2 m 50 s for the 364 games (the same seed took 3 m 11 s as an A/A without the Read on this machine: the answers twice a turn cost nothing measurable).
 

@@ -75,10 +75,10 @@ public static class Threat
         return new(attackForce, homeForce, provinces[0].Strength, candidates.Length, Under([]), Under(read.Belief.Answers(false)), Under(read.Belief.Answers(true)));
     }
 
-    private static string Describe(List<(int Province, int Strength, LedgerUnit[] Group)> attack) => string.Join(";", attack.Select(a => $"P{a.Province + 1}<-" + string.Join(",", a.Group.Select(u => u.Name))));
+    internal static string Describe(List<(int Province, int Strength, LedgerUnit[] Group)> attack) => string.Join(";", attack.Select(a => $"P{a.Province + 1}<-" + string.Join(",", a.Group.Select(u => u.Name))));
 
     /// <summary>All-in at each Province, and a balanced split across each pair where both groups exceed their Province's Strength on Force alone.</summary>
-    private static IEnumerable<List<(int Province, int Strength, LedgerUnit[] Group)>> Candidates(LedgerUnit[] army, (int Index, int Strength)[] provinces)
+    internal static IEnumerable<List<(int Province, int Strength, LedgerUnit[] Group)>> Candidates(LedgerUnit[] army, (int Index, int Strength)[] provinces, bool requireExceed = true)
     {
         foreach (var p in provinces) yield return [(p.Index, p.Strength, army)];
         if (army.Length < 2) yield break;
@@ -91,12 +91,12 @@ public static class Threat
                 {
                     if (f1 - provinces[i].Strength <= f2 - provinces[j].Strength) { g1.Add(u); f1 += u.UnitForce; } else { g2.Add(u); f2 += u.UnitForce; }
                 }
-                if (f1 > provinces[i].Strength && f2 > provinces[j].Strength) yield return [(provinces[i].Index, provinces[i].Strength, g1.ToArray()), (provinces[j].Index, provinces[j].Strength, g2.ToArray())];
+                if (!requireExceed || f1 > provinces[i].Strength && f2 > provinces[j].Strength) yield return [(provinces[i].Index, provinces[i].Strength, g1.ToArray()), (provinces[j].Index, provinces[j].Strength, g2.ToArray())];
             }
     }
 
-    /// <summary>My defences against one attack: nobody; everybody at each attacked Province; for a split, my units dealt to the battlefield where the shortfall is larger.</summary>
-    private static IEnumerable<Dictionary<int, LedgerUnit[]>> Defences(LedgerUnit[] home, List<(int Province, int Strength, LedgerUnit[] Group)> attack)
+    /// <summary>A side's defences against one attack: nobody; everybody at each attacked Province; for a split, its units dealt to the battlefield where the shortfall is larger.</summary>
+    internal static IEnumerable<Dictionary<int, LedgerUnit[]>> Defences(LedgerUnit[] home, List<(int Province, int Strength, LedgerUnit[] Group)> attack)
     {
         yield return [];
         if (home.Length == 0) yield break;

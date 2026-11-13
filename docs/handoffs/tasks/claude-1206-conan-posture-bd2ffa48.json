@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "The Read's three questions and the posture (CONAN_STRATEGY_BRIEF.md 4.5, 4.6) in shadow: Questions.Of answers opportunity (family A's candidates against the defender's best reply, scored gain - weight(posture) x (exposure - exposure(hold)) through the calibration tables), race (clocks from BotContext.History) and posture (family G's rule); rule read computes them twice a turn, logs replanning with its cause, drives nothing; L5R_POS_READ=1 prints them at the decision set's attack positions.",
+  "validation": "6 questions, 6 threat and 7 read cases pass; bash tools/check.sh --skip-client passed; seed 9400 as T2+read: 364 of 364 games identical to the A/A, 2 m 50 s; at Mendon's attack positions the Read's best attack has his shape on all seven split and lone positions, the posture reads G5 as drain on two of four held turns (note).",
+  "remaining": "Step 3: the rule families reading the Read, D first, screened at Contender speed on fresh Mac blocks from 9700; Windows side's T2Rules and registry still unmerged.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
+  "branch": "claude/1206-conan-posture",
+  "updated": "2026-11-13T23:21:11.484413+00:00"
+}
