@@ -122,7 +122,7 @@ public partial class Main
                     actions.AddChild(Palette.Wrapped(source.Definition.Name, 21, Palette.Gold));
                     foreach (var option in group)
                     {
-                        actions.AddChild(Palette.Wrapped(Placard(option), 15, Palette.PaperDim));
+                        if (Placard(option) is var caption && caption != ReactionOptionLabel(option)) actions.AddChild(Palette.Wrapped(caption, 15, Palette.PaperDim)); // issue #1240: not twice when the button already says it
                         AddAction(actions, option);
                         if (!option.Enabled && option.Reason is { } reason)
                             actions.AddChild(Palette.Wrapped(reason, 14, Palette.PaperDim));
@@ -171,6 +171,9 @@ public partial class Main
 
     private string ReactionOptionLabel(ActionOption option)
     {
+        // Issue #1240: a "choose a player" option Core already labels by its outcome ("You Gain 2 Honor", Armor of the Heavens) is shown as Core words it; a generic
+        // "Use <card> · you" would read the same for gaining and losing.
+        if (NamesItsPlayer(option)) return BattleActionText.WithoutIds(option.Label);
         var label = CommitActionLabel(option);
         if (option.Command?.PerformerId is { } performer && performer != option.CardId && FindCard(performer)?.Definition?.Name is { } performerName)
             label += " · " + performerName;
