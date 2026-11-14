@@ -216,7 +216,8 @@ internal static class ConanPositions
             {
                 var attackers = read.Ledger.Me.Units.Where(u => g.Any(a => a.Key == u.Id)).ToArray(); var defenders = read.Ledger.Them.Home.Where(u => !u.Bowed).ToArray();
                 return $"to P{g.Key + 1} vs all unbowed defenders: {read.Battle(g.Key, attackers, defenders, true)}";
-            })) + (view.Phase == Phase.InfantryDeclaration && asg.All(a => read.Ledger.Me.Units.FirstOrDefault(u => u.Id == a.Key)?.Province is null) ? $"\n    answers: {Questions.Of(read, trend)}" : "");
+            })) + (view.Phase == Phase.InfantryDeclaration && asg.All(a => read.Ledger.Me.Units.FirstOrDefault(u => u.Id == a.Key)?.Province is null) ? $"\n    answers: {Questions.Of(read, trend)}" : "")
+               + ForkAt(read, view.Phase);
         if (view.Phase is Phase.AttackDeclaration && view.ActivePlayerId == 0) return $"answers: {Questions.Of(read, trend)}";
         if (command.Type == "assignDefense" && command.Assignments is { Count: > 0 } def)
             return string.Join("; ", def.GroupBy(a => a.Value).Select(g =>
@@ -231,6 +232,15 @@ internal static class ConanPositions
         var battles = string.Join("; ", read.Battles().Select(b => b.ToString()).DefaultIfEmpty("no battlefield"));
         if (view.Phase == Phase.Battle && TrainingOpponent.DescribeFight(view, game.QueryActions(0), BotContext.Contender(rules: [.. BotContext.T2Rules, "read"])) is { } fight) return battles + "\n    " + fight;
         return battles;
+    }
+
+    /// <summary>Family B's plan (Fork.AtInfantry / AtCavalry) at a declaration, with its option log.</summary>
+    private static string ForkAt(Read read, Phase phase)
+    {
+        var plan = phase == Phase.CavalryDeclaration ? Fork.AtCavalry(read, null) : phase == Phase.InfantryDeclaration ? Fork.AtInfantry(read, null, null) : null;
+        if (plan is null) return "";
+        var part = phase == Phase.InfantryDeclaration ? plan.Infantry : plan.Cavalry;
+        return $"\n    fork: {(part.Count == 0 ? "nobody" : string.Join(",", part.Select(a => $"{read.Ledger.Me.Units.First(u => u.Id == a.Key).Name}>P{a.Value + 1}")))} ({plan.Why}) | {string.Join(" || ", plan.Log)}";
     }
 
     /// <summary>Family D's plan (Defence.Of) at a defence position, with its per-Province reading.</summary>

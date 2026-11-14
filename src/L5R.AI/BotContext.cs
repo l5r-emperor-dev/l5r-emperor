@@ -167,6 +167,18 @@ public sealed class BotContext
         var would = plan.Pick ?? "pass";
         FightLog.Add($"T{view.TurnNumber} P{(view.BattleStep?.BattlefieldProvince ?? view.CurrentBattleProvince ?? -1) + 1} {(chose == would ? "same" : "DIFFERS")}: chose {chose}, read {would} ({plan.Why}) | {position} | {plan.Standing}; {plan.Reach} | {string.Join(" || ", plan.Log)}");
     }
+    /// <summary>Issue #1206 (family B): the Cavalry fork's plan for the current decision, by view version (null: the fork does not apply).</summary>
+    internal (long Version, ForkPlan? Plan)? ReadForkPlan { get; set; }
+    /// <summary>Family B in shadow: what the fork would declare at each of the seat's declarations beside what the bot chose; a difference is logged.</summary>
+    public List<string> ForkLog { get; } = [];
+    internal void NoteFork(MatchView view, ForkPlan plan, GameCommand chosen)
+    {
+        if (ForkLog.Count >= 2000) return;
+        static string Shape(IEnumerable<KeyValuePair<string, int>> a) => a.Any() ? string.Join(",", a.GroupBy(p => p.Value).OrderBy(g => g.Key).Select(g => $"P{g.Key + 1}<-{g.Count()}")) : "nobody";
+        var would = Shape(view.Phase == Phase.InfantryDeclaration ? plan.Infantry : plan.Cavalry);
+        var chose = chosen.Type == "attack" && chosen.Assignments is { Count: > 0 } a ? Shape(a) : "nobody";
+        ForkLog.Add($"T{view.TurnNumber} {view.Phase} {(chose == would ? "same" : "DIFFERS")}: chose {chose}, read {would} ({plan.Why}; {plan.Option} / {plan.FollowUp}) | {string.Join(" || ", plan.Log)}");
+    }
     /// <summary>Issue #1206 (family D): the Read's defence plan for the current decision, by view version.</summary>
     internal (long Version, DefencePlan Plan)? ReadDefencePlan { get; set; }
     /// <summary>Family D in shadow: what the Read's defence would assign beside what the bot chose; a difference is logged (the step 3 shadow run reads these).</summary>
@@ -238,12 +250,12 @@ public sealed class BotContext
     private bool NegFlag(string name, bool on) { if (on) return true; if (Rules.Contains(name)) { if (name == Masked) return true; Consulted?.Add(name); } return false; }
     /// <summary>What a re-decision may change and the real decision must keep: the plan and its history, the planned attack, the Read's per-version caches, the logs' lengths.</summary>
     internal readonly record struct Snapshot(TurnPlan? Plan, string? PlanKey, string? PlanGroup, int Plans, int PlanLines, int LookLines, int Thinks, (int Turn, Dictionary<string, int> Assignment, string Label)? PlannedAttack,
-        (long Version, Answers Answers)? AnswersCache, (long Version, DefencePlan Plan)? DefenceCache, (long Version, FightPlan Plan)? FightCache, (long Version, string Key, GuardPlan Plan)? GuardCache, int LookWork);
-    internal Snapshot Save() => new(Plan, PlanKey, PlanGroup, PlanHistory.Count, PlanLog.Count, LookLog.Count, ThinkMs.Count, PlannedAttack, ReadAnswersCache, ReadDefencePlan, ReadFightPlan, ReadGuardPlan, LookWork);
+        (long Version, Answers Answers)? AnswersCache, (long Version, DefencePlan Plan)? DefenceCache, (long Version, FightPlan Plan)? FightCache, (long Version, string Key, GuardPlan Plan)? GuardCache, (long Version, ForkPlan? Plan)? ForkCache, int LookWork);
+    internal Snapshot Save() => new(Plan, PlanKey, PlanGroup, PlanHistory.Count, PlanLog.Count, LookLog.Count, ThinkMs.Count, PlannedAttack, ReadAnswersCache, ReadDefencePlan, ReadFightPlan, ReadGuardPlan, ReadForkPlan, LookWork);
     internal void Restore(Snapshot s)
     {
         Plan = s.Plan; PlanKey = s.PlanKey; PlanGroup = s.PlanGroup; Trim(PlanHistory, s.Plans); Trim(PlanLog, s.PlanLines); Trim(LookLog, s.LookLines); Trim(ThinkMs, s.Thinks);
-        PlannedAttack = s.PlannedAttack; ReadAnswersCache = s.AnswersCache; ReadDefencePlan = s.DefenceCache; ReadFightPlan = s.FightCache; ReadGuardPlan = s.GuardCache; LookWork = s.LookWork;
+        PlannedAttack = s.PlannedAttack; ReadAnswersCache = s.AnswersCache; ReadDefencePlan = s.DefenceCache; ReadFightPlan = s.FightCache; ReadGuardPlan = s.GuardCache; ReadForkPlan = s.ForkCache; LookWork = s.LookWork;
     }
     /// <summary>Drops the current plan so the next decision plans afresh (a re-decision under a mask must not reuse the real plan).</summary>
     internal void ForgetPlan() { Plan = null; PlanKey = null; PlanGroup = null; }

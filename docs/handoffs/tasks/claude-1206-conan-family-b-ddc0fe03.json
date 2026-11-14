@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Family B (the Cavalry fork, rule readB, src/L5R.AI/Read/Fork.cs): at the Infantry declaration the infantry option with the highest forced value over their replies and the Cavalry follow-ups; at the Cavalry declaration the follow-up against the defence as placed, sized to exceed Strength alone, the rest home. Built with ForkTests 6/6 and a shadow log; shadow block on seed 10500 running; A/A for block 10600 running.",
+  "validation": "ForkTests 6/6 (--filter fork); conan-positions unchanged (9/50); shadow and screen pending",
+  "remaining": "Judge the shadow sample (10 draws), screen t2,read,readB v t2 on block 10600 against the A/A, measures from q5_cavalry.py and profile.py, note, check.sh, PR.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
+  "branch": "claude/1206-conan-family-b",
+  "updated": "2026-11-14T22:15:39.181111+00:00"
+}
