@@ -178,7 +178,7 @@ public sealed partial class MatchEngine
                 // "May not perform actions" (issue #336): a Reaction is an action, so a locked performer is listed disabled with the reason.
                 why ??= ActionLockRejection(command);
                 var text = label ?? AbilityOptionLabel(abilityId, AbilityCatalog.All[abilityId], null, card);
-                if (chosenPlayer is int who) text += who == playerId ? " · you" : " · your opponent";
+                if (chosenPlayer is int who) text = PlayerChoiceOptionLabel(abilityId, who == playerId) ?? text + (who == playerId ? " · you" : " · your opponent");
                 Add("useAbility", text, command, why, card.Id, provinces: destinations, gold: gold);
             }
         }
