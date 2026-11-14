@@ -146,6 +146,17 @@ public sealed class BotContext
         string Shape(IReadOnlyDictionary<string, int> a) => a.Count == 0 ? "nobody" : string.Join(",", a.GroupBy(v => v.Value).OrderBy(g => g.Key).Select(g => $"P{g.Key + 1}<-{g.Count()}"));
         AttackLog.Add($"T{view.TurnNumber} assign {(same ? "same" : "DIFFERS")}: chose {Shape(mine)}, read {(best.IsHold ? "hold" : Shape(best.Assignment))} | {position} | {options}");
     }
+    /// <summary>Issue #1206 (family C): the Guard's plan for an attack assignment at the current decision, by view version and assignment.</summary>
+    internal (long Version, string Key, GuardPlan Plan)? ReadGuardPlan { get; set; }
+    /// <summary>Family C in shadow: what the Guard would have kept back from the attack chosen; a difference is logged.</summary>
+    public List<string> GuardLog { get; } = [];
+    internal void NoteGuard(MatchView view, GuardPlan plan, IReadOnlyDictionary<string, int> chosen)
+    {
+        if (GuardLog.Count >= 2000) return;
+        string Shape(IReadOnlyDictionary<string, int> a) => a.Count == 0 ? "nobody" : string.Join(",", a.GroupBy(v => v.Value).OrderBy(g => g.Key).Select(g => $"P{g.Key + 1}<-{g.Count()}"));
+        var me = view.Players.Single(p => p.Id == view.ViewerId); var them = view.Players.Single(p => p.Id != view.ViewerId);
+        GuardLog.Add($"T{view.TurnNumber} {view.Phase} {(plan.Stands ? "same" : "DIFFERS")}: chose {Shape(chosen)}, read {Shape(plan.Assignments)} kept {plan.Kept.Length} ({plan.Why}) | P{me.Provinces.Count(p => !p.Destroyed)}v{them.Provinces.Count(p => !p.Destroyed)} H{me.Honor}/{them.Honor} | {string.Join(" || ", plan.Log)}");
+    }
     /// <summary>Issue #1206 (family E): the Fight's plan for the current decision, by view version.</summary>
     internal (long Version, FightPlan Plan)? ReadFightPlan { get; set; }
     /// <summary>Family E in shadow: what the Fight would do at each Battle priority beside what the bot chose; a difference is logged.</summary>
@@ -227,12 +238,12 @@ public sealed class BotContext
     private bool NegFlag(string name, bool on) { if (on) return true; if (Rules.Contains(name)) { if (name == Masked) return true; Consulted?.Add(name); } return false; }
     /// <summary>What a re-decision may change and the real decision must keep: the plan and its history, the planned attack, the Read's per-version caches, the logs' lengths.</summary>
     internal readonly record struct Snapshot(TurnPlan? Plan, string? PlanKey, string? PlanGroup, int Plans, int PlanLines, int LookLines, int Thinks, (int Turn, Dictionary<string, int> Assignment, string Label)? PlannedAttack,
-        (long Version, Answers Answers)? AnswersCache, (long Version, DefencePlan Plan)? DefenceCache, (long Version, FightPlan Plan)? FightCache, int LookWork);
-    internal Snapshot Save() => new(Plan, PlanKey, PlanGroup, PlanHistory.Count, PlanLog.Count, LookLog.Count, ThinkMs.Count, PlannedAttack, ReadAnswersCache, ReadDefencePlan, ReadFightPlan, LookWork);
+        (long Version, Answers Answers)? AnswersCache, (long Version, DefencePlan Plan)? DefenceCache, (long Version, FightPlan Plan)? FightCache, (long Version, string Key, GuardPlan Plan)? GuardCache, int LookWork);
+    internal Snapshot Save() => new(Plan, PlanKey, PlanGroup, PlanHistory.Count, PlanLog.Count, LookLog.Count, ThinkMs.Count, PlannedAttack, ReadAnswersCache, ReadDefencePlan, ReadFightPlan, ReadGuardPlan, LookWork);
     internal void Restore(Snapshot s)
     {
         Plan = s.Plan; PlanKey = s.PlanKey; PlanGroup = s.PlanGroup; Trim(PlanHistory, s.Plans); Trim(PlanLog, s.PlanLines); Trim(LookLog, s.LookLines); Trim(ThinkMs, s.Thinks);
-        PlannedAttack = s.PlannedAttack; ReadAnswersCache = s.AnswersCache; ReadDefencePlan = s.DefenceCache; ReadFightPlan = s.FightCache; LookWork = s.LookWork;
+        PlannedAttack = s.PlannedAttack; ReadAnswersCache = s.AnswersCache; ReadDefencePlan = s.DefenceCache; ReadFightPlan = s.FightCache; ReadGuardPlan = s.GuardCache; LookWork = s.LookWork;
     }
     /// <summary>Drops the current plan so the next decision plans afresh (a re-decision under a mask must not reuse the real plan).</summary>
     internal void ForgetPlan() { Plan = null; PlanKey = null; PlanGroup = null; }

@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Family C (the Guard, rule readC, src/L5R.AI/Read/Guard.cs): the Contender's prepared attack read for the counter-attack it leaves home open to; units kept back or the whole army held when that turns the threat. Shadow on seed 10200 judged 8/10 then 10/10 (fault fixed: an attack razing their last Province is lethal by itself); a hang in remedy 2 at the Cavalry declaration fixed with a 20 s test. Screen on block 10300 (A/A 50.5%): 52.4%, +83/-55 vs the A/A, net +28, p .02; readC fires 0.68 a game. Sequential test Hard + readC v Hard on block 10400 in progress (chunk 1: 12/11, LLR -0.27).",
+  "validation": "GuardTests 6/6 (--filter guard); arena blocks 10200 (shadow), 10300 (screen, A/A), 10400-10402 (SPRT); check.sh pending",
+  "remaining": "Finish the sequential test (cap 1,456 games), record the verdict, run check.sh, PR. Promotion to a default needs Mendon's approval.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
+  "branch": "claude/1206-conan-family-c",
+  "updated": "2026-11-14T22:15:17.164841+00:00"
+}
