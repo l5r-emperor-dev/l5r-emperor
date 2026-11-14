@@ -19,6 +19,7 @@ public static class Fork
 {
     private const double UnitWorth = .3;      // in Provinces, as the opportunity's (Questions)
     private const double AttackMargin = .05;  // the forced value an attack must clear over the hold
+    private const double LastTurnWorth = .01; // per point of Force sent at their last Province: everything goes when the cells tie
 
     /// <summary>The Infantry declaration: the infantry option with the highest forced value, when the seat has Cavalry to follow with. Null when it has none (the fork does not apply).</summary>
     /// <param name="prepared">the Contender's own infantry assignment (unit id to Province), offered as one option; null when it has none.</param>
@@ -102,7 +103,7 @@ public static class Fork
         if (uncovered.Length > 0)
         {
             var weakest = uncovered[0];
-            follows.Add(("all Cavalry at the weakest uncovered", [(weakest.Index, weakest.Strength, cavalry)]));
+            if (cavalry.Sum(u => u.UnitForce) > weakest.Strength) follows.Add(("all Cavalry at the weakest uncovered", [(weakest.Index, weakest.Strength, cavalry)])); // sized: a group at an uncovered Province exceeds its Strength alone
             var part = new List<LedgerUnit>(); foreach (var u in cavalry) { part.Add(u); if (part.Sum(x => x.UnitForce) > weakest.Strength) break; }
             if (part.Count < cavalry.Length && part.Sum(x => x.UnitForce) > weakest.Strength) follows.Add(("the sufficient Cavalry at the weakest uncovered", [(weakest.Index, weakest.Strength, part.ToArray())]));
             // a split across uncovered Provinces, each group exceeding Strength alone, strongest units first; a Province whose group falls short is not attacked
@@ -162,7 +163,7 @@ public static class Fork
             var attacking = groups.SelectMany(g => g.Group).Select(u => u.Id).ToHashSet(StringComparer.Ordinal);
             var homeLeft = me.Home.Where(u => !attacking.Contains(u.Id)).ToArray();
             if (groups.Count == 0) return -weight * (Exposure(homeLeft, []) - Hold);
-            double provinces = 0; int kills = 0, losses = 0; var dead = new List<string>();
+            double provinces = 0; int kills = 0, losses = 0; var dead = new List<string>(); var lastFalls = false;
             foreach (var g in groups)
             {
                 var d = defence.GetValueOrDefault(g.Province, []);
@@ -170,8 +171,13 @@ public static class Fork
                 var cell = $"{(open.Falls ? 1 : 0)}{(likely.Falls ? 1 : 0)}{(worst.Falls ? 1 : 0)}";
                 provinces += Calibration.PFall(cell) * Questions.ProvinceWorth(them.Provinces.Length);
                 kills += likely.DefendersDestroyed.Length; losses += likely.AttackersDestroyed.Length; dead.AddRange(likely.DefendersDestroyed);
+                if (them.Provinces.Length == 1 && likely.Falls) lastFalls = true;
             }
-            return provinces + UnitWorth * (kills - losses) - weight * (Exposure(homeLeft, dead) - Hold);
+            // their last Province: the last turn of the game sends everything (PLAYER_MODEL.md 3.2); the cell cannot see the safety the rest of the army buys, so Force sent breaks the tie
+            // when their last Province falls the game ends, so the counter-attack is paid only when it does not fall
+            var lastTurn = them.Provinces.Length == 1 ? LastTurnWorth * groups.Sum(g => g.Group.Sum(u => u.UnitForce)) : 0;
+            var survives = lastFalls ? 0 : them.Provinces.Length == 1 ? 1 - Math.Min(1, provinces / Questions.ProvinceWorth(1)) : 1;
+            return provinces + UnitWorth * (kills - losses) - weight * survives * (Exposure(homeLeft, dead) - Hold) + lastTurn;
         }
 
         private double Exposure(LedgerUnit[] homeLeft, List<string> dead)

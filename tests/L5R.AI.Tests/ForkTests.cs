@@ -49,6 +49,12 @@ internal static class ForkTests
             Check(plan is not null && !plan.Cavalry.Values.Contains(1), $"the Strength 3 Province is not attacked by the 4 alone: {(plan is null ? "null" : Log(plan))}");
             Check(plan!.Cavalry.TryGetValue("c4", out var p) && p == 0, $"the 4 reinforces P1: {Log(plan)}");
         }),
+        ("their last Province: my 7 at it undefended razes alone (Strength 5); the Cavalry 4 at home is not needed on the read, but the last turn sends everything", () =>
+        {
+            var me = Side(0, [U("i7", 0, 7, province: 0), U("c4", 0, 4, cavalry: true)], [(0, 7), (1, 7)]); var them = Side(1, [U("t3", 1, 3, bowed: true)], [(0, 5)]);
+            var plan = Fork.AtCavalry(ReadOf(me, them, Phase.CavalryDeclaration), Posture.Hold);
+            Check(plan is not null && plan.Cavalry.TryGetValue("c4", out var p) && p == 0, $"the 4 joins the last attack: {(plan is null ? "null" : Log(plan))}");
+        }),
         ("an all-Cavalry army: nothing is declared in the Infantry segment and the plan is not null", () =>
         {
             var me = Side(0, [U("c7", 0, 7, cavalry: true), U("c5", 0, 5, cavalry: true)], [(0, 7), (1, 7)]); var them = Side(1, [U("t6", 1, 6)], [(0, 4), (1, 6)]);
