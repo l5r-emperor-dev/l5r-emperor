@@ -23,7 +23,7 @@ internal static class ReadATests
     private static ActionOption Pass(MatchView v) => new("pass", "Pass", true, null, new("pass", 0, v.Version));
     private static ActionOption Declare(MatchView v) => new("declareAttack", "Declare", true, null, new("declareAttack", 0, v.Version));
     private static ActionOption Attack(MatchView v) => new("attack", "Attack", true, null, new("attack", 0, v.Version, Assignments: []));
-    private static BotContext With(params string[] rules) => BotContext.Contender(rules: [.. BotContext.TunedRules, .. rules]);
+    private static BotContext With(params string[] rules) => BotContext.Contender(rules: [.. BotContext.T2Rules, .. rules]);
 
     public static readonly (string, Action)[] Tests =
     [

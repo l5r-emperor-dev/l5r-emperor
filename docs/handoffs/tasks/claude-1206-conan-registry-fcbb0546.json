@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Step 0 and the rule registry of the Conan strategy campaign, taken over from the Windows session: BotContext.T2Rules (the 22 Contender rules frozen; arm t2; token t2 in rule lists), src/L5R.AI/RuleRegistry.cs (every rule, flag and knob declared once; an unknown name fails the run naming the offenders), fire counters (L5R_TOURN_FIRES=1: per rule the decisions it was on in and changed, per game; counted games identical to uncounted). Docs: README, CONAN, ROADMAP, CODE_MAP; note docs/bots/experiments/2026-11-14-conan-step0-registry.md.",
+  "validation": "bash tools/check.sh --skip-client: all stages passed (rule-registry 4/4 incl. a counted game replayed move for move; source scan: every name read is declared and vice versa). conan-positions on t2: 9/50, the previous baseline. Block 9900: Contender A/A 51.0% (1,456); t2 identity 0 flipped games; Conan-best (hard) vs t2 73.4% (364, inside the brief's 70-77%); fire count on 364 games: all 22 T2 tokens fired, 0 decisions cut, counted games 0 flipped vs the A/A.",
+  "remaining": "None for step 0 and step 1 item 1. Next: Mendon's reading of the family A note; refit Calibration after the exchange fix; the Windows session has local work on these items only if it says so on #1206.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
+  "branch": "claude/1206-conan-registry",
+  "updated": "2026-11-14T10:31:10.824831+00:00"
+}

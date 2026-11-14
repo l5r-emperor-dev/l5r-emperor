@@ -23,6 +23,9 @@ using L5R.Core;
 //   L5R_TOURN_ORACLE=1              a diagnostic: the challenger's search plays out the real match (hidden cards included); never a player, it bounds what better sampling could gain.
 //   L5R_TOURN_BATTLES=<dir>         one JSON line per declared attack: board, assignments, each estimator's number at the time, the real result (BattleRecords.cs; tools/bots/battles.py reads them).
 //   L5R_TOURN_THREATS=<dir>         one JSON line per player turn: threat(home) as the Read projects it and what the opponent's next turn did (ThreatRecords.cs; tools/bots/threats.py reads them).
+//   L5R_TOURN_FIRES=1               fire counters (strategy brief step 1 item 1): the challenger decides each decision again once per rule it consulted with that rule masked, and the report
+//                                   prints, per rule, the decisions it was on in and the decisions it changed, per game. Slower by about the number of rules a decision consults; the games
+//                                   themselves are unchanged (the re-decisions' memory is put back), but a search arm's games may end at the cutoff sooner.
 internal static class BotTournament
 {
     /// <summary>The bot arms. "champion" is the bot on main. A candidate branch registers its challenger here, with the BotContext flag that turns its change on.</summary>
@@ -53,6 +56,7 @@ internal static class BotTournament
         ["triage-cap"] = () => new() { UsePlannerTriage = true, TriageTargets = false, TriagePrintedFirst = false }, // only the no-spend-on-a-won-battle cap
         ["triage-cap-bows"] = () => new() { UsePlannerTriage = true, TriageTargets = false, TriagePrintedFirst = false, TriageSpareKills = true }, // the cap, but destroys still allowed
         ["triage-null"] = () => new() { UsePlannerTriage = true, TriageTargets = false, TriagePrintedFirst = false, TriageWonCap = false }, // calibration: the triage flag with every rule off must replay the champion game for game
+        ["t2"] = () => BotContext.Contender(rules: BotContext.T2Rules), // issue #1206 step 0: the Contender frozen as the campaign's yardstick (BotContext.T2Rules); the Conan arms are measured against it
         ["contender"] = () => BotContext.Contender(), // issue #1185: the planning bot (docs/bots/CONTENDER.md); compare it with the champion's own baseline on the same games (tools/bots/compare_tournament.py)
         ["c2"] = () => BotContext.Contender(rules: (Environment.GetEnvironmentVariable("L5R_C2") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)), // issue #1185 tuning: the Contender plus the rules named in L5R_C2
         ["conan"] = () => BotContext.Conan(rules: (Environment.GetEnvironmentVariable("L5R_C2") is { Length: > 0 } c ? c.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) : null)), // issue #1206: the Contender with battle lookahead (rules from L5R_C2 when set)
@@ -69,7 +73,8 @@ internal static class BotTournament
     public const ulong DevSeedBase = 1_000_000UL, HoldoutSeedBase = 9_000_000UL, IndependentOffset = 500_000UL;
 
     public sealed record GameRecord(string Deck0, string Deck1, ulong Seed, int ChallengerSeat, int? Winner, string Reason, int Turn, double Seconds, int Refused, string? Error,
-        int[] Honor, int[] ProvincesLeft, int[] Personalities, Dictionary<string, int>[] Actions, double[]? ThinkMs = null);
+        int[] Honor, int[] ProvincesLeft, int[] Personalities, Dictionary<string, int>[] Actions, double[]? ThinkMs = null,
+        Dictionary<string, int>? Fires = null, Dictionary<string, int>? Active = null, int Counted = 0, int FiresCut = 0);
 
     /// <summary>The held-out decks are fixed by a hash of the name, not chosen by hand: the three lowest SHA-256 values of the 12 pool names.</summary>
     public static string[] HoldoutNames(IEnumerable<string> names) => names.OrderBy(n => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("l5r-bot-holdout:" + n)))).Take(3).ToArray();
@@ -84,7 +89,9 @@ internal static class BotTournament
         {
             int[] honor = [0, 0], provinces = [0, 0], people = [0, 0];
             if (game is not null) { var v = game.GetView(0); for (var i = 0; i < 2; i++) { var p = v.Players[i]; honor[i] = p.Honor; provinces[i] = p.Provinces.Count(x => !x.Destroyed); people[i] = p.Home.Concat(p.Army).Count(c => c.Definition?.Type == CardType.Personality); } }
-            return new(name0, name1, seed, challengerSeat, winner, reason, turn, clock.Elapsed.TotalSeconds, refused, error, honor, provinces, people, counts, memory?[challengerSeat].ThinkMs is { Count: > 0 } think ? [.. think] : null);
+            var counted = memory?[challengerSeat] is { CountFires: true } c ? c : null;
+            return new(name0, name1, seed, challengerSeat, winner, reason, turn, clock.Elapsed.TotalSeconds, refused, error, honor, provinces, people, counts, memory?[challengerSeat].ThinkMs is { Count: > 0 } think ? [.. think] : null,
+                counted is null ? null : new(counted.Fires), counted is null ? null : new(counted.Active), counted?.CountedDecisions ?? 0, counted?.FiresCut ?? 0);
         }
         try { game = MatchEngine.CreateCustomMatch(seed, deck0, deck1); }
         catch (Exception e) { return End(null, "setup", 0, e.Message.Split('\n')[0]); }
@@ -92,6 +99,7 @@ internal static class BotTournament
         // so its win rate bounds what better sampling could gain and its choices grade the real bot's.
         var oracle = Environment.GetEnvironmentVariable("L5R_TOURN_ORACLE") == "1";
         memory = [makers[0](), makers[1]()]; for (var seat = 0; seat < 2; seat++) { var own = seat; if (memory[seat].Has("look")) memory[seat].Sampler = oracle && seat == challengerSeat ? _ => game!.Clone() : sample => game!.Sample(own, sample); memory[seat].Deadline = DateTime.UtcNow + budget; }
+        if (Environment.GetEnvironmentVariable("L5R_TOURN_FIRES") == "1") memory[challengerSeat].CountFires = true; // issue #1206: fire counters for the challenger's rules
         memory[0].Archetype = DeckArchetypeTests.Of(deck0); memory[1].Archetype = DeckArchetypeTests.Of(deck1); var refusedAt = new HashSet<(long, int)>(); var sameAnswer = 0; string? lastRefusal = null;
         // L5R_TOURN_LOG=<dir>: one plain-text log per game (every accepted decision, by whom, and the engine's event messages), for reviewing why a game was won or lost.
         var logDir = Environment.GetEnvironmentVariable("L5R_TOURN_LOG"); var log = logDir is { Length: > 0 } ? new StringBuilder() : null; long lastEvent = -1; var lastTurn = -1;
@@ -333,6 +341,26 @@ internal static class BotTournament
             var mine = decided.Where(g => (g.ChallengerSeat == 0 ? g.Deck0 : g.Deck1) == name).ToArray();
             sb.AppendLine($"| {name}{(holdout.Contains(name) ? " (held out)" : "")} | {mine.Length} | {mine.Count(ChalWon)} ({(mine.Length == 0 ? 0 : 100.0 * mine.Count(ChalWon) / mine.Length):F0}%) |");
         }
+        var counted = results.Where(g => g.Fires is not null).ToArray(); Dictionary<string, int> fireTotals = new(StringComparer.Ordinal);
+        if (counted.Length > 0)
+        {
+            // Issue #1206 (L5R_TOURN_FIRES): per rule of the challenger's set, the decisions it was on in and the decisions it changed, per game; the rules that never fired are named.
+            var rules = Arms.TryGetValue(challenger, out var maker) ? maker().Rules.OrderBy(r => r, StringComparer.Ordinal).ToList() : [];
+            foreach (var extra in counted.SelectMany(g => g.Active!.Keys).Distinct().Where(r => !rules.Contains(r)).OrderBy(r => r, StringComparer.Ordinal)) rules.Add(extra);
+            int Sum(Func<GameRecord, Dictionary<string, int>?> of, string rule) => counted.Sum(g => of(g)?.GetValueOrDefault(rule) ?? 0);
+            foreach (var rule in rules) fireTotals[rule] = Sum(g => g.Fires, rule);
+            var decisions = counted.Sum(g => g.Counted);
+            sb.AppendLine().AppendLine("## Rule fires (challenger)").AppendLine();
+            sb.AppendLine($"{counted.Length} games counted, {decisions} decisions ({(double)decisions / counted.Length:F0} per game); the deadline cut the counting in {counted.Sum(g => g.FiresCut)} decisions. A rule is **on** in a decision when it was consulted and present; it **fires** when deciding again with that rule alone masked chose differently.").AppendLine();
+            sb.AppendLine("| Rule | On, per game | Fires, per game | Fires per 100 on | Games with a fire |").AppendLine("| --- | --- | --- | --- | --- |");
+            foreach (var rule in rules.OrderByDescending(r => fireTotals[r]).ThenBy(r => r, StringComparer.Ordinal))
+            {
+                var on = Sum(g => g.Active, rule); var fires = fireTotals[rule];
+                sb.AppendLine($"| {rule} | {(double)on / counted.Length:F1} | {(double)fires / counted.Length:F2} | {(on == 0 ? 0 : 100.0 * fires / on):F1} | {counted.Count(g => (g.Fires?.GetValueOrDefault(rule) ?? 0) > 0)} |");
+            }
+            var never = rules.Where(r => fireTotals[r] == 0).ToArray();
+            sb.AppendLine().AppendLine(never.Length == 0 ? "Every rule fired at least once." : $"Never fired: {string.Join(", ", never)}.");
+        }
         sb.AppendLine().AppendLine("## Power note").AppendLine();
         sb.AppendLine($"Independent games, exact binomial, two-sided alpha .05, 80% power: detect 55% needs about **{GamesNeeded(.55)}** decided games; 60% needs about **{GamesNeeded(.60)}**; 52% needs about {GamesNeeded(.52)}. At this run's throughput ({gamesPerSecond:F2} games/s, {decidedShare:P0} decided) that is {Eta(GamesNeeded(.55))} and {Eta(GamesNeeded(.60))} of wall clock. `same` pairing removes deck, seat and shuffle noise, so it needs fewer games when the bots differ; the A/A with `independent` pairing is the honest noise floor.");
         if (unplayable.Count > 0) sb.AppendLine().AppendLine($"{unplayable.Count} deck(s) were not playable.");
@@ -354,7 +382,9 @@ internal static class BotTournament
             split,
             soundnessFindings = bad.Length,
             wallSeconds = wall.TotalSeconds,
-            gamesPerSecond
+            gamesPerSecond,
+            fires = counted.Length > 0 ? fireTotals : null,
+            countedGames = counted.Length
         };
         return (sb.ToString(), summary);
     }

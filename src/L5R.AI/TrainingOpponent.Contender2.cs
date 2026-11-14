@@ -13,13 +13,8 @@ public static partial class TrainingOpponent
 {
     private static bool Rule(Ctx x, string name) => x.Memory.Has(name);
 
-    /// <summary>A numeric knob given as a rule "name=value" (tuning sweeps); the default when absent.</summary>
-    private static double Knob(Ctx x, string name, double fallback)
-    {
-        foreach (var rule in x.Memory.Rules)
-            if (rule.Length > name.Length + 1 && rule.StartsWith(name, StringComparison.Ordinal) && rule[name.Length] == '=' && double.TryParse(rule[(name.Length + 1)..], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var v)) return v;
-        return fallback;
-    }
+    /// <summary>A numeric knob given as a rule "name=value" (tuning sweeps); the default when absent (BotContext.Knob, which also serves the fire counters).</summary>
+    private static double Knob(Ctx x, string name, double fallback) => x.Memory.Knob(name, fallback);
 
     private static bool FairHolding(CardDefinition def) => def.Type == CardType.Holding && def.GoldCost <= def.GoldProduction + 1;
 

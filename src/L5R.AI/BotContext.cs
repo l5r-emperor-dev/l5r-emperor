@@ -22,10 +22,10 @@ public sealed class BotContext
     private int _borderRefreshTurn = -1;
 
     /// <summary>Issue #1185: the planning bot. True builds a turn plan (intent, Gold shape, purchase slate; TrainingOpponent.Planner.cs) and rebuilds it whenever the table changes. OFF by default: the champion plays as before.</summary>
-    public bool UsePlanner { get; init; } = false;
+    private readonly bool _usePlanner = false; public bool UsePlanner { get => NegFlag("noplanner", _usePlanner); init => _usePlanner = value; }
 
     /// <summary>Issue #1185 (slice 3): ability triage. Targets are ranked by what they can still do (unspent printed abilities, unspent Tacticians, Force), printed abilities in play go before hand cards, and no Gold or card is spent on a battle already comfortably won. Works with or without <see cref="UsePlanner"/>. OFF by default.</summary>
-    public bool UsePlannerTriage { get; init; } = false;
+    private readonly bool _usePlannerTriage = false; public bool UsePlannerTriage { get => NegFlag("notriage", _usePlannerTriage); init => _usePlannerTriage = value; }
 
     // What each performer has used this turn, remembered from the battle's public action list (the view says nothing about a card's once-per-turn abilities). Keyed by performer NAME,
     // as the list names them: two same-named cards are treated as one, the cautious reading.
@@ -40,7 +40,7 @@ public sealed class BotContext
     public bool SpentThisTurn(int turn, string performerName, string abilityId) => turn == _spentTurn && _spent.Contains(performerName + "|" + abilityId);
 
     /// <summary>Issue #1185 ablation switches, meaningful only with <see cref="UsePlanner"/>. PlannerReserve: Gold is kept untapped for Battle tricks (before this turn's attack, and at the end of the turn when an attack on the bot is likely). PlannerDiscard: Mendon's discard rule instead of the champion's.</summary>
-    public bool PlannerReserve { get; init; } = true;
+    private readonly bool _plannerReserve = true; public bool PlannerReserve { get => Flag("reserve", _plannerReserve); init => _plannerReserve = value; }
 
     /// <summary>
     /// The Contender (issue #1185): the planning bot, as one named configuration, for the bot-vs-bot tournament against the champion. It keeps the parts that paired testing found harmless: the
@@ -49,10 +49,13 @@ public sealed class BotContext
     /// <paramref name="discard"/> (the interview's discard rule; about -11), <paramref name="reserve"/> (Gold held for Battle tricks; no measurable effect) and <paramref name="wonCap"/> (no spending on a
     /// comfortably won battle; about -3, not significant). See docs/bots/CONTENDER.md for the evidence and how to run it. The champion on main is unchanged.
     /// </summary>
-    public static BotContext Contender(bool attack = false, bool discard = false, bool reserve = false, bool wonCap = false, IEnumerable<string>? rules = null) => Contender(attack, discard, reserve, wonCap, new HashSet<string>(rules ?? TunedRules, StringComparer.Ordinal));
+    public static BotContext Contender(bool attack = false, bool discard = false, bool reserve = false, bool wonCap = false, IEnumerable<string>? rules = null) => Contender(attack, discard, reserve, wonCap, new HashSet<string>(Expand(rules ?? TunedRules), StringComparer.Ordinal));
 
-    private static BotContext Contender(bool attack, bool discard, bool reserve, bool wonCap, HashSet<string> rules) => new()
+    private static BotContext Contender(bool attack, bool discard, bool reserve, bool wonCap, HashSet<string> rules)
     {
+        RuleRegistry.Check(rules); // issue #1206 (step 1 item 1): an unknown or misspelt name fails here instead of silently playing the baseline
+        return new()
+        {
         Rules = rules,
         UseSureReactions = rules.Contains("surereact"),
         UseTradeAttacks = rules.Contains("trades"),
@@ -65,12 +68,18 @@ public sealed class BotContext
         PlannerDiscard = discard || rules.Contains("pdiscard"),
         PlannerReserve = reserve || rules.Contains("reserve"),
         TriageWonCap = wonCap
-    };
+        };
+    }
+    /// <summary>A rule list may name a set: <c>t2</c> stands for <see cref="T2Rules"/>, so an arm is written "t2,read,readA" instead of spelling the yardstick out.</summary>
+    public static IEnumerable<string> Expand(IEnumerable<string> rules) => rules.SelectMany(r => r == "t2" ? T2Rules : [r]);
     /// <summary>Issue #1185 tuning: the Contender's default rules (TrainingOpponent.Contender2.cs), the set that won the most on unseen games (blocks 5000-5001). Ablation there showed that
     /// slate, selfharm, econT2 and battlepolicy+trades each LOST games, so they stay off; lobby and openbow are kept (dropping both lost games). spreadwide and conf, from Mendon's battle grill,
     /// gained 24 and 19 games on dev blocks 7000 and 7100 and were neutral on the holdout decks; selfplayer, presdepth (pdh=100), keepup, nofoeboost and raid, from Mendon's practice games,
     /// gained 13 games on each dev block and 15 on the holdout decks (docs/bots/experiments/2026-11-09-grill-rules.md). Passing <c>rules</c> replaces this set.</summary>
     public static readonly string[] TunedRules = ["econ", "presence", "lobby", "shinden", "openbow", "ownprov", "selflock", "surereact", "selfboost", "nostraighten", "provaim", "spreadwide", "conf", "selfplayer", "presdepth", "pdh=100", "keepup", "nofoeboost", "raid", "pdstrong", "defwin", "nobowgift"];
+    /// <summary>Issue #1206 (docs/bots/CONAN_STRATEGY_BRIEF.md step 0): the Contender frozen as the campaign's yardstick, T2, the 22 rules as they stood on 2026-11-13. This list never changes
+    /// (RuleRegistryTests fails if it does); <see cref="TunedRules"/> may move on with the practice bot. The tournament arm is <c>t2</c>, and a rule list may say <c>t2</c> for the set.</summary>
+    public static readonly string[] T2Rules = ["econ", "presence", "lobby", "shinden", "openbow", "ownprov", "selflock", "surereact", "selfboost", "nostraighten", "provaim", "spreadwide", "conf", "selfplayer", "presdepth", "pdh=100", "keepup", "nofoeboost", "raid", "pdstrong", "defwin", "nobowgift"];
     /// <summary>Conan (issue #1206): the Contender with battle lookahead (TrainingOpponent.Lookahead.cs). It searches only when the caller also supplies <see cref="Sampler"/>.</summary>
     public static BotContext Conan(IEnumerable<string>? rules = null) => Contender(rules: [.. rules ?? TunedRules, .. ConanRules]);
     public static readonly string[] ConanRules = ["look"];
@@ -174,17 +183,60 @@ public sealed class BotContext
     internal Dictionary<int, int> SeenHonor { get; } = [];
     /// <summary>Issue #1185 tuning: the Contender's further rules, each named and switched on separately (see TrainingOpponent.Contender2.cs). Empty: none.</summary>
     public HashSet<string> Rules { get; init; } = new(StringComparer.Ordinal);
-    public bool Has(string rule) => Rules.Contains(rule);
+    public bool Has(string rule)
+    {
+        if (!Rules.Contains(rule) || rule == Masked) return false;
+        Consulted?.Add(rule);
+        return true;
+    }
+    /// <summary>A numeric knob given as a rule "name=value" (tuning sweeps); the default when absent, or when the knob is the one masked for a fire count.</summary>
+    public double Knob(string name, double fallback)
+    {
+        foreach (var rule in Rules)
+            if (rule.Length > name.Length + 1 && rule.StartsWith(name, StringComparison.Ordinal) && rule[name.Length] == '=' && double.TryParse(rule[(name.Length + 1)..], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var v))
+            {
+                if (rule == Masked) return fallback;
+                Consulted?.Add(rule);
+                return v;
+            }
+        return fallback;
+    }
+    // ---- Issue #1206 (strategy brief step 1 item 1): fire counters. With CountFires on, a decision records the rules it consulted and found on (Consulted), then TrainingOpponent.CountFires
+    // decides it again once per consulted rule with that rule alone masked (Masked); the rule fires when the choice differs. Off, none of this is touched and the bot plays identically.
+    public bool CountFires { get; set; }
+    internal string? Masked { get; set; }
+    internal HashSet<string>? Consulted { get; set; }
+    /// <summary>Decisions in which the rule (or knob token) was consulted and on.</summary>
+    public Dictionary<string, int> Active { get; } = new(StringComparer.Ordinal);
+    /// <summary>Decisions the rule changed: masked, the bot chose something else.</summary>
+    public Dictionary<string, int> Fires { get; } = new(StringComparer.Ordinal);
+    public int CountedDecisions { get; set; }
+    /// <summary>Decisions whose counting the deadline cut short (their later rules are uncounted).</summary>
+    public int FiresCut { get; set; }
+    private bool Flag(string name, bool on) { if (!on) return false; if (Rules.Contains(name)) { if (name == Masked) return false; Consulted?.Add(name); } return true; }
+    private bool NegFlag(string name, bool on) { if (on) return true; if (Rules.Contains(name)) { if (name == Masked) return true; Consulted?.Add(name); } return false; }
+    /// <summary>What a re-decision may change and the real decision must keep: the plan and its history, the planned attack, the Read's per-version caches, the logs' lengths.</summary>
+    internal readonly record struct Snapshot(TurnPlan? Plan, string? PlanKey, string? PlanGroup, int Plans, int PlanLines, int LookLines, int Thinks, (int Turn, Dictionary<string, int> Assignment, string Label)? PlannedAttack,
+        (long Version, Answers Answers)? AnswersCache, (long Version, DefencePlan Plan)? DefenceCache, int LookWork);
+    internal Snapshot Save() => new(Plan, PlanKey, PlanGroup, PlanHistory.Count, PlanLog.Count, LookLog.Count, ThinkMs.Count, PlannedAttack, ReadAnswersCache, ReadDefencePlan, LookWork);
+    internal void Restore(Snapshot s)
+    {
+        Plan = s.Plan; PlanKey = s.PlanKey; PlanGroup = s.PlanGroup; Trim(PlanHistory, s.Plans); Trim(PlanLog, s.PlanLines); Trim(LookLog, s.LookLines); Trim(ThinkMs, s.Thinks);
+        PlannedAttack = s.PlannedAttack; ReadAnswersCache = s.AnswersCache; ReadDefencePlan = s.DefenceCache; LookWork = s.LookWork;
+    }
+    /// <summary>Drops the current plan so the next decision plans afresh (a re-decision under a mask must not reuse the real plan).</summary>
+    internal void ForgetPlan() { Plan = null; PlanKey = null; PlanGroup = null; }
+    private static void Trim<T>(List<T> list, int count) { if (list.Count > count) list.RemoveRange(count, list.Count - count); }
     /// <summary>PlannerAttack: the swing-based battle estimate decides whether and where to attack (slice 2); off leaves the champion's attack rules and only the purchase slate planned.</summary>
-    public bool PlannerAttack { get; init; } = true;
+    private readonly bool _plannerAttack = true; public bool PlannerAttack { get => Flag("pattack", _plannerAttack); init => _plannerAttack = value; }
     /// <summary>The three triage rules, each separately switchable (all on by default with <see cref="UsePlannerTriage"/>): TriageTargets ranks enemy targets by what they can still do; TriagePrintedFirst
     /// scores printed abilities in play above hand cards; TriageWonCap stops spending resources on a comfortably won battle; TriageSpareKills exempts abilities that DESTROY from that cap
     /// (a kill is permanent and shrinks their defence next turn; a bow is not). Off by default.</summary>
-    public bool TriageTargets { get; init; } = true;
-    public bool TriagePrintedFirst { get; init; } = true;
+    private readonly bool _triageTargets = true; public bool TriageTargets { get => NegFlag("notargets", _triageTargets); init => _triageTargets = value; }
+    private readonly bool _triagePrintedFirst = true; public bool TriagePrintedFirst { get => NegFlag("noprinted", _triagePrintedFirst); init => _triagePrintedFirst = value; }
     public bool TriageWonCap { get; init; } = true;
     public bool TriageSpareKills { get; init; } = false;
-    public bool PlannerDiscard { get; init; } = true;
+    private readonly bool _plannerDiscard = true; public bool PlannerDiscard { get => Flag("pdiscard", _plannerDiscard); init => _plannerDiscard = value; }
 
     internal TurnPlan? Plan { get; private set; }
     internal string? PlanKey { get; private set; }
@@ -200,7 +252,7 @@ public sealed class BotContext
     }
 
     /// <summary>Issue #788: false (the default while the arena results are inconclusive; see docs/parked) plays the bot as it was before the six battle changes (no pass-when-won, target priorities, send-home rule, reaction rule or Border Keep refresh). The arena uses it to measure the change.</summary>
-    public bool UseBattlePolicy { get; init; } = false;
+    private readonly bool _useBattlePolicy = false; public bool UseBattlePolicy { get => Flag("battlepolicy", _useBattlePolicy); init => _useBattlePolicy = value; }
 
     /// <summary>Issue #870 (Mendon's playtest note): Honor the player loses for using an ability is weighed by the deck's Honor tier (a high-Honor deck hardly ever pays it), Honor gain is worth more to a high-Honor deck, and an
     /// Attack that cannot destroy its target is valued only for the rest of its action. An Attack that swings the battle from losing to winning is exempt from the Honor penalty. False plays the bot as it was before.</summary>
@@ -224,7 +276,7 @@ public sealed class BotContext
     public bool UseEquipPolicy { get; init; } = true;
 
     /// <summary>Issue #788 (Mendon): true lets the bot attack when it cannot raze a Province but can destroy the defending army (or trade favourably in a tie). OFF by default: the arena found it lost more than it won (docs/parked/2026-10-09-what-makes-a-good-l5r-bot.md).</summary>
-    public bool UseTradeAttacks { get; init; } = false;
+    private readonly bool _useTradeAttacks = false; public bool UseTradeAttacks { get => Flag("trades", _useTradeAttacks); init => _useTradeAttacks = value; }
 
     /// <summary>Issue #818 (Mendon's eleven bot changes, 2026-10-10): buy-everything and discard-by-affordability in the Dynasty Phase, the catch-up recruit, the overlay limit, lobbying and defending with the Imperial Favor, the attack and attacker-pass rules, Honor attacks, equips that count Force removed, Shinden / optional bows, and never declining an optional destroy or bow. ON by default; the arena switches it off to measure it.</summary>
     public bool UseSpec818 { get; init; } = true;
@@ -245,7 +297,7 @@ public sealed class BotContext
     public bool UseBodiesFirst { get; init; } = false;
 
     /// <summary>Issue #963 (bot loop, round 4): a Reaction that helps, penalizes, bows or destroys is always played when it is worth anything, instead of being declined by a deterministic roll (30% to 90% chance to play). Off: the roll.</summary>
-    public bool UseSureReactions { get; init; } = false;
+    private readonly bool _useSureReactions = false; public bool UseSureReactions { get => Flag("surereact", _useSureReactions); init => _useSureReactions = value; }
 
     /// <summary>The route(s) to victory the bot's own decklist supports (<see cref="DeckArchetype"/>); the caller supplies it, as with <see cref="DeckAveragePersonalHonor"/>. Null: no archetype rule applies.</summary>
     public DeckArchetype? Archetype { get; set; }

@@ -60,7 +60,7 @@ The **cost** is that a Conan game takes about 5× as long: about 90 s against 19
 L5R_TOURN_BUDGET=20 tools/bots/par.sh 7100 1 <baseline> 1 "conan=$(tr -d '\n' < tuned-rules.txt),look"
 ```
 
-You can also use the `conan` arm, which takes extra rules from `L5R_C2` when set.
+You can also use the `conan` arm, which takes extra rules from `L5R_C2` when set. A rule list may write `t2` for the frozen Contender yardstick (`BotContext.T2Rules`, arm `t2`), and any name not declared in `src/L5R.AI/RuleRegistry.cs` fails the run.
 
 ## Speed and safety
 

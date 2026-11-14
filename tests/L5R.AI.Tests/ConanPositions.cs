@@ -113,10 +113,10 @@ internal static class ConanPositions
             var name = colon < 0 ? a : a[..colon]; var rules = colon < 0 ? null : a[(colon + 1)..];
             Func<BotContext> make = name switch
             {
-                "t2" when rules is null => () => BotContext.Contender(),
-                "conan" when rules is null => () => BotContext.Contender(rules: [.. BotContext.TunedRules, .. Conan]),
+                "t2" when rules is null => () => BotContext.Contender(rules: BotContext.T2Rules),
+                "conan" when rules is null => () => BotContext.Contender(rules: [.. BotContext.T2Rules, .. Conan]),
                 "hard" when rules is null => () => BotContext.Hard(),
-                _ when rules is not null && rules.StartsWith('+') => () => BotContext.Contender(rules: [.. BotContext.TunedRules, .. rules[1..].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)]),
+                _ when rules is not null && rules.StartsWith('+') => () => BotContext.Contender(rules: [.. BotContext.T2Rules, .. rules[1..].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)]),
                 _ when rules is not null => () => BotContext.Contender(rules: rules.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)),
                 _ => throw new Exception($"unknown arm '{a}': use t2, conan, hard, name:rules or name:+rules")
             };
