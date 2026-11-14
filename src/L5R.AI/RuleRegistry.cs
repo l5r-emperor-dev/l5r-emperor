@@ -202,6 +202,7 @@ public static class RuleRegistry
         R("readE", "battle", "family E: at the bot's own Battle priority the Fight decides from the Read's exchange: pass while the standing result is the one wanted, else the cheapest sufficient action"),
         R("readC", "attack", "family C: the prepared attack is read for the counter-attack it leaves home open to (threat at likely); units or groups are kept back, or nobody goes, when that turns it; a race or a lead with two Provinces to spare accepts the loss"),
         R("readB", "attack", "family B: the Cavalry fork; at the Infantry declaration the infantry option with the highest forced value over their replies and the Cavalry follow-ups, at the Cavalry declaration the follow-up against the defence as placed; groups at uncovered Provinces exceed Strength alone, the rest stays home"),
+        R("rbCav", "attack", "with readB, the fork decides only the Cavalry declaration (the Contender's own infantry plan stands); formulation 2"),
         R("reOpen", "battle", "with readE, what an action reaches and whether anything can is read against their open hand (shown answers only); the pass test keeps their likely hand"),
     ];
 

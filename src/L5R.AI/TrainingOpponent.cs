@@ -333,7 +333,7 @@ public static partial class TrainingOpponent
                 var shape = OfferedOnly(answersA.Opportunity.Best.Assignment.Where(a => provinces.Contains(a.Value)).ToDictionary(a => a.Key, a => a.Value, StringComparer.Ordinal), units);
                 if (shape.Count > 0) return command with { Assignments = HoldCavalry(x, shape) };
             }
-            if (action.Type == "attack" && Rule(x, "readB") && x.View.Phase is Phase.InfantryDeclaration or Phase.CavalryDeclaration && LethalPlan(x, units, provinces) is null && !HonorRace(x) && ReadFork(x) is { } fork)
+            if (action.Type == "attack" && Rule(x, "readB") && (x.View.Phase == Phase.CavalryDeclaration || x.View.Phase == Phase.InfantryDeclaration && !Rule(x, "rbCav")) && LethalPlan(x, units, provinces) is null && !HonorRace(x) && ReadFork(x) is { } fork)
             {
                 // issue #1206 (readB, RULE_FAMILIES.md family B): the Cavalry fork. At the Infantry declaration the infantry option with the highest forced value (nothing: the Cavalry goes alone in its segment);
                 // at the Cavalry declaration the follow-up against the defence as placed, sized to exceed Strength alone, the Cavalry it does not need home.
