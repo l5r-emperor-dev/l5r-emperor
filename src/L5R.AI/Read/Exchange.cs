@@ -59,13 +59,15 @@ public static class Exchange
                 : (a, d, aAnswers, aGold, aPlayed, () => Force(a) > Force(d) + strength);                                            // the attacker wants it destroyed
             var hasPresence = mine.Any(u => u.Present);
             if (want() || !hasPresence) { passes++; continue; }
-            var best = Best(mine, theirs, answers, gold, defenderTurn ? strength : -1);
+            var best = Best(mine, theirs, answers, gold, defenderTurn ? strength : -1, theirsAttack: defenderTurn);
             if (best is null) { passes++; continue; }
             passes = 0;
             var (answer, target) = best.Value;
             answers.Remove(answer); gold -= answer.Gold; if (defenderTurn) dGold = gold; else aGold = gold;
             played.Add(answer.ToString() + (target is null ? "" : ">" + target.Unit.Name));
             Apply(answer.Effect, mine, theirs, target);
+            // an ability that bows its performer takes that unit out of the Force count and out of its other abilities (a Shugenja casts one Spell that bows him, not two)
+            if (answer.Effect.BowsSource && !answer.FromHand && mine.FirstOrDefault(u => u.Unit.Name == answer.Source && u.Present && !u.Bowed) is { } source) { source.Bowed = true; answers.RemoveAll(a => !a.FromHand && a.Source == source.Unit.Name); }
             // the other side may hold a negation: it cancels this answer when the answer was decisive
             var negate = (defenderTurn ? aAnswers : dAnswers).FirstOrDefault(x => x.Effect.Class == EffectClass.Negate);
             if (negate is not null && target is not null && Decisive(defenderTurn, a, d, strength)) { (defenderTurn ? aAnswers : dAnswers).Remove(negate); Undo(answer.Effect, mine, theirs, target); (defenderTurn ? aPlayed : dPlayed).Add("Negate>" + answer); }
@@ -98,19 +100,21 @@ public static class Exchange
     private static bool Decisive(bool defenderPlayed, List<ExchangeUnit> a, List<ExchangeUnit> d, int strength) => defenderPlayed ? Force(a) <= Force(d) + strength : Force(a) > Force(d) + strength;
 
     /// <summary>The (answer, target) that takes most Force off the other side, or adds most to mine, affordable and legal on its conditions; printed abilities before hand cards, cheaper first.</summary>
-    private static (Answer, ExchangeUnit?)? Best(List<ExchangeUnit> mine, List<ExchangeUnit> theirs, List<Answer> answers, int gold, int strengthIfDefending)
+    private static (Answer, ExchangeUnit?)? Best(List<ExchangeUnit> mine, List<ExchangeUnit> theirs, List<Answer> answers, int gold, int strengthIfDefending, bool theirsAttack)
     {
         (Answer, ExchangeUnit?)? best = null; var bestGain = 0.0;
         var performer = mine.Where(u => u.Present && !u.Bowed).OrderByDescending(u => u.Force).FirstOrDefault();
         foreach (var answer in answers.Where(x => x.Gold <= gold && x.Effect.Class != EffectClass.Negate))
         {
+            // an answer that names its performer's keyword needs such a unit present and unbowed (a Spell that bows the Shugenja)
+            if (answer.Effect.PerformerKeyword is { } keyword && !mine.Any(u => u.Present && !u.Bowed && (u.Unit.Keywords?.Contains(keyword) ?? true))) continue;
             if (answer.Effect.Class == EffectClass.ForceAdd)
             {
                 var gain = (answer.Effect.Magnitude ?? 3) * 0.9 - (answer.FromHand ? 0.2 : 0);
                 if (gain > bestGain && performer is not null) { bestGain = gain; best = (answer, null); }
                 continue;
             }
-            foreach (var target in theirs.Where(t => t.Present && !t.Dead && Legal(answer.Effect, t, performer)))
+            foreach (var target in theirs.Where(t => t.Present && !t.Dead && Legal(answer.Effect, t, performer, theirsAttack)))
             {
                 var gain = Removes(answer.Effect, target) - (answer.FromHand ? 0.2 : 0) - answer.Gold * 0.05;
                 if (gain > bestGain) { bestGain = gain; best = (answer, target); }
@@ -119,12 +123,15 @@ public static class Exchange
         return bestGain > 0 ? best : null;
     }
 
-    /// <summary>Whether the effect may touch this unit on its own conditions, judged on the public numbers.</summary>
-    public static bool Legal(EffectDescriptor e, ExchangeUnit t, ExchangeUnit? performer)
+    /// <summary>Whether the effect may touch this unit on its own conditions, judged on the public numbers. <paramref name="targetAttacks"/>: whether the target is an attacker (null: unknown), for
+    /// effects that name an attacking or a defending target.</summary>
+    public static bool Legal(EffectDescriptor e, ExchangeUnit t, ExchangeUnit? performer, bool? targetAttacks = null)
     {
         foreach (var c in e.Conditions)
             switch (c.Kind)
             {
+                case "attacking": if (targetAttacks == false) return false; break;
+                case "defending": if (targetAttacks == true) return false; break;
                 case "force-at-most": if (t.Unit.Force > c.Value) return false; break;
                 case "without-followers": if (t.Followers) return false; break;
                 case "without-attachments": if (t.Unit.Attachments > 0) return false; break;

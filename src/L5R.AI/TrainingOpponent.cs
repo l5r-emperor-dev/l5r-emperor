@@ -41,10 +41,24 @@ public static partial class TrainingOpponent
         if (LookAhead(x, candidates) is { } looked) chosen = (looked.Action, looked.Command, chosen.Score);
         Remember(x, chosen.Command);
         if (chosen.Command.Type is "useAbility" or "playStrategy" or "equip") memory.NoteUse(view.TurnNumber, chosen.Command.AbilityId, chosen.Command.CardId);
+        // issue #1206 (family A in shadow): with read on and readA off, the opportunity's attack or hold and its shape beside what was chosen
+        if (memory.Has("read") && !memory.Has("readA") && view.ActivePlayerId == view.ViewerId && (view.Phase == Phase.AttackDeclaration || view.Phase == Phase.InfantryDeclaration && chosen.Command.Type == "attack") && ReadAnswers(x) is { } shadowA)
+            memory.NoteAttack(view, shadowA, chosen.Command);
         // issue #1206 (family D in shadow): with read on and readD off, what the Read's defence would have assigned beside what was chosen
         if (memory.Has("read") && !memory.Has("readD") && view.Phase == Phase.DefenseAssignment && chosen.Command.Type is "assignDefense" or "pass" && candidates.FirstOrDefault(c => c.Action.Type == "assignDefense").Action is { } offer)
             memory.NoteDefence(view, ReadDefence(x, offer), chosen.Command);
         return new(chosen.Command, Explain(chosen.Action.Type));
+    }
+
+    /// <summary>Issue #1206 (family A): the Read's three answers for this decision, computed once per view version (BotContext.CurrentAnswers holds the shadow's own, taken at the same moments).</summary>
+    private static Answers? ReadAnswers(Ctx x)
+    {
+        if (x.View.ActivePlayerId != x.Self.Id) return null;
+        if (x.Memory.ReadAnswersCache is { } cached && cached.Version == x.View.Version) return cached.Answers;
+        var read = x.Memory.CurrentRead is { } current && current.Key == Read.KeyOf(x.View) ? current : Read.Of(x.View);
+        var answers = Questions.Of(read, x.Memory.TrendNow());
+        x.Memory.ReadAnswersCache = (x.View.Version, answers);
+        return answers;
     }
 
     /// <summary>Issue #1206 (family D): the Read's defence plan for this decision, computed once per view version. Their last Province is conceded when the opportunity razes it next turn.</summary>
@@ -152,6 +166,12 @@ public static partial class TrainingOpponent
                 if (x.View.Phase == Phase.CavalryDeclaration && AlreadyAssigned(x).Length > 0) { if (Rule(x, "lean") || Rule(x, "lean3") && LeanArmiesRaze(x) || Rule(x, "lean2") && LeanArmiesSuffice(x)) return null; }
                 else if (LeanPlan(x, units, provinces) is { } lean) return command with { Assignments = lean };
                 else if (Rule(x, "lean")) return null; // lean2 falls back to the ordinary attack
+            }
+            if (action.Type == "attack" && Rule(x, "readA") && x.View.Phase == Phase.InfantryDeclaration && AlreadyAssigned(x).Length == 0 && LethalPlan(x, units, provinces) is null && ReadAnswers(x) is { Opportunity.Attacks: true } answersA)
+            {
+                // issue #1206 (readA): the opportunity's shape, restricted to what the engine offers; the Cavalry waits for its own segment. raShape (formulation 2): only the shape, the Contender decides attack or hold
+                var shape = OfferedOnly(answersA.Opportunity.Best.Assignment.Where(a => provinces.Contains(a.Value)).ToDictionary(a => a.Key, a => a.Value, StringComparer.Ordinal), units);
+                if (shape.Count > 0) return command with { Assignments = HoldCavalry(x, shape) };
             }
             if (action.Type == "attack")
             {
@@ -355,9 +375,15 @@ public static partial class TrainingOpponent
             // The Declaration Segment: declare when the whole unbowed home army would threaten the weakest province, as the old
             // per-maneuver attack score did, otherwise decline (pass scores 10).
             case "declareAttack":
+                // issue #1206 (readA, RULE_FAMILIES.md family A): the Read's opportunity decides attack or hold; a lethal attack is declared as before
+                if (Rule(x, "readA") && !Rule(x, "raShape") && LethalPlan(x, x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed).ToArray(), x.Opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Index).ToArray()) is null && ReadAnswers(x) is { } answersA)
+                    return answersA.Opportunity.Attacks ? 150 : PassScore - 1;
                 return DeclareScore(x);
             case "attack":
                 if (command.Assignments is not { Count: > 0 }) return -100;
+                // issue #1206 (readA): the opportunity's own shape is the attack; the old estimator does not judge it
+                if (Rule(x, "readA") && x.View.Phase == Phase.InfantryDeclaration && ReadAnswers(x) is { Opportunity.Attacks: true } readAttack
+                    && command.Assignments.All(a => readAttack.Opportunity.Best.Assignment.TryGetValue(a.Key, out var p) && p == a.Value)) return 150;
                 var assignments = WholeAttack(x, action, command.Assignments);
                 if (Spec(x)) // issue #818 item 8: the unit sent only to gain Honor is not part of the attack that must destroy a Province
                 {
