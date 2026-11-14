@@ -29,16 +29,10 @@ public static partial class TrainingOpponent
         var self = view.Players.Single(p => p.Id == view.ViewerId);
         var opponent = view.Players.Single(p => p.Id != view.ViewerId);
         var x = new Ctx(view, self, opponent, BotProfile.Assess(self, memory.DeckAveragePersonalHonor), memory, AllCards(view)) { Actions = actions, Odds = BattlePolicy.Assess(view) };
-        if (memory.UsePlanner) x = x with { Plan = PlanFor(x) }; // issue #1185: the turn plan, rebuilt when the table changes
-        var candidates = actions.Where(a => a.Enabled && a.Type is not ("concede" or "wait"))
-            .Select(a => (Action: a, Command: Prepare(x, a)))
-            .Where(p => p.Command is not null && !memory.IsRejected(view.Version, p.Command))
-            .Select(p => (p.Action, Command: p.Command!, Score: Score(x, p.Action, p.Command!)))
-            .OrderByDescending(p => p.Score).ThenBy(p => p.Action.Type, StringComparer.Ordinal)
-            .ThenBy(p => p.Command.CardId, StringComparer.Ordinal).ThenBy(p => p.Command.AbilityId, StringComparer.Ordinal).ToArray();
-        if (candidates.Length == 0) return new(null, "No complete legal action was supplied for this decision.");
-        var chosen = candidates[0];
-        if (LookAhead(x, candidates) is { } looked) chosen = (looked.Action, looked.Command, chosen.Score);
+        memory.Consulted = memory.CountFires ? new HashSet<string>(StringComparer.Ordinal) : null; // issue #1206 (fire counters): the rules this decision consults
+        if (Decide(x) is not { } decided) { memory.Consulted = null; return new(null, "No complete legal action was supplied for this decision."); }
+        if (memory.CountFires) CountFires(x, memory, decided.Chosen.Command);
+        var candidates = decided.Candidates; var chosen = decided.Chosen; x = decided.X;
         Remember(x, chosen.Command);
         if (chosen.Command.Type is "useAbility" or "playStrategy" or "equip") memory.NoteUse(view.TurnNumber, chosen.Command.AbilityId, chosen.Command.CardId);
         // issue #1206 (family A in shadow): with read on and readA off, the opportunity's attack or hold and its shape beside what was chosen
@@ -48,6 +42,46 @@ public static partial class TrainingOpponent
         if (memory.Has("read") && !memory.Has("readD") && view.Phase == Phase.DefenseAssignment && chosen.Command.Type is "assignDefense" or "pass" && candidates.FirstOrDefault(c => c.Action.Type == "assignDefense").Action is { } offer)
             memory.NoteDefence(view, ReadDefence(x, offer), chosen.Command);
         return new(chosen.Command, Explain(chosen.Action.Type));
+    }
+
+    /// <summary>The decision itself: the turn plan, every offered action prepared and scored, the best first, then the lookahead's say. Null when no action is complete and legal.</summary>
+    private static (Ctx X, (ActionOption Action, GameCommand Command, double Score)[] Candidates, (ActionOption Action, GameCommand Command, double Score) Chosen)? Decide(Ctx x)
+    {
+        var memory = x.Memory; var view = x.View;
+        if (memory.UsePlanner) x = x with { Plan = PlanFor(x) }; // issue #1185: the turn plan, rebuilt when the table changes
+        var candidates = x.Actions.Where(a => a.Enabled && a.Type is not ("concede" or "wait"))
+            .Select(a => (Action: a, Command: Prepare(x, a)))
+            .Where(p => p.Command is not null && !memory.IsRejected(view.Version, p.Command))
+            .Select(p => (p.Action, Command: p.Command!, Score: Score(x, p.Action, p.Command!)))
+            .OrderByDescending(p => p.Score).ThenBy(p => p.Action.Type, StringComparer.Ordinal)
+            .ThenBy(p => p.Command.CardId, StringComparer.Ordinal).ThenBy(p => p.Command.AbilityId, StringComparer.Ordinal).ToArray();
+        if (candidates.Length == 0) return null;
+        var chosen = candidates[0];
+        if (LookAhead(x, candidates) is { } looked) chosen = (looked.Action, looked.Command, chosen.Score);
+        return (x, candidates, chosen);
+    }
+
+    /// <summary>Issue #1206 (strategy brief step 1 item 1; the arena's L5R_TOURN_FIRES=1): the decision is made again once per rule it consulted, with that rule alone masked; a rule fires
+    /// when the choice differs (its knob token fires when the default would have changed the choice). What a re-decision touches in memory (the plan, the planned attack, the Read's caches, the
+    /// logs) is put back, so the real decision's state stands. The playout bots inside a search keep their full rule set; the game's deadline cuts the counting, never the game.</summary>
+    private static void CountFires(Ctx x, BotContext memory, GameCommand chosen)
+    {
+        var consulted = memory.Consulted!.OrderBy(r => r, StringComparer.Ordinal).ToArray(); memory.Consulted = null;
+        memory.CountedDecisions++;
+        foreach (var rule in consulted) memory.Active[rule] = memory.Active.GetValueOrDefault(rule) + 1;
+        var snapshot = memory.Save(); var want = System.Text.Json.JsonSerializer.Serialize(chosen);
+        foreach (var rule in consulted)
+        {
+            if (memory.Deadline is { } cutoff && DateTime.UtcNow >= cutoff) { memory.FiresCut++; break; }
+            memory.Masked = rule; memory.Restore(snapshot); memory.ForgetPlan(); memory.ReadAnswersCache = null; memory.ReadDefencePlan = null;
+            try
+            {
+                if (Decide(x) is not { } again || System.Text.Json.JsonSerializer.Serialize(again.Chosen.Command) != want) memory.Fires[rule] = memory.Fires.GetValueOrDefault(rule) + 1;
+            }
+            catch (BotDeadlineException) { memory.FiresCut++; break; }
+            finally { memory.Masked = null; }
+        }
+        memory.Restore(snapshot);
     }
 
     /// <summary>Issue #1206 (family A): the Read's three answers for this decision, computed once per view version (BotContext.CurrentAnswers holds the shadow's own, taken at the same moments).</summary>

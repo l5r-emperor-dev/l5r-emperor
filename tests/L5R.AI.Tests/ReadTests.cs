@@ -99,7 +99,7 @@ internal static class ReadTests
         {
             var view = BattlePolicyTests.Battle(6, 4, 7, botAttacks: true);
             var pass = BattlePolicyTests.Pass(view); var use = BattlePolicyTests.Use(view, FirstAbility(x => x.Class == EffectClass.Bow && x.Side == TargetSide.Enemy && x.Conditions.Length == 0), target: "enemy-main");
-            var off = TrainingOpponent.Choose(view, [pass, use], BotContext.Contender()).Command; var on = BotContext.Contender(rules: [.. BotContext.TunedRules, "read"]);
+            var off = TrainingOpponent.Choose(view, [pass, use], BotContext.Contender()).Command; var on = BotContext.Contender(rules: [.. BotContext.T2Rules, "read"]);
             var with = TrainingOpponent.Choose(view, [pass, use], on).Command;
             Check(HumanReplayCompare.Key(off!) == HumanReplayCompare.Key(with!), "the shadow Read changed a choice");
             Check(on.ReadLog.Count == 1 && on.ReadLog[0].Contains("P1 s7 1v1"), $"the Read was logged: {string.Join(" / ", on.ReadLog)}");
