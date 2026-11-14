@@ -111,6 +111,18 @@ public sealed class BotContext
         }
     }
     private int _answersTurn = -1;
+    /// <summary>Issue #1206 (family D): the Read's defence plan for the current decision, by view version.</summary>
+    internal (long Version, DefencePlan Plan)? ReadDefencePlan { get; set; }
+    /// <summary>Family D in shadow: what the Read's defence would assign beside what the bot chose; a difference is logged (the step 3 shadow run reads these).</summary>
+    public List<string> DefenceLog { get; } = [];
+    internal void NoteDefence(MatchView view, DefencePlan? plan, GameCommand chosen)
+    {
+        if (plan is null || plan.Why == "nobody attacks" || DefenceLog.Count >= 2000) return;
+        var chose = chosen.Type == "pass" || chosen.Assignments is not { Count: > 0 } ? "nobody" : string.Join(",", chosen.Assignments.GroupBy(a => a.Value).Select(g => $"P{g.Key + 1}<-{g.Count()}"));
+        var would = plan.Nobody ? "nobody" : string.Join(",", plan.Assignments.GroupBy(a => a.Value).Select(g => $"P{g.Key + 1}<-{g.Count()}"));
+        var same = chose == would && (plan.Nobody || chosen.Assignments is { } a && a.Count == plan.Assignments.Count && a.All(kv => plan.Assignments.TryGetValue(kv.Key, out var p) && p == kv.Value));
+        DefenceLog.Add($"T{view.TurnNumber} {(same ? "same" : "DIFFERS")}: chose {chose}, read {would} ({plan.Why}) | {string.Join(" || ", plan.Log)}");
+    }
     /// <summary>Issue #1206 (section 4.5): the Read's three answers and the posture, last computed on this seat's own turn. Shadow: nothing reads it to decide.</summary>
     public Answers? CurrentAnswers { get; private set; }
     /// <summary>Once a turn: (turn, my Honor, their Honor, my Provinces, their Provinces), for the race's rates.</summary>

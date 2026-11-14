@@ -40,6 +40,8 @@ public sealed record Belief(int HandCount, IReadOnlyDictionary<EffectClass, doub
         return new(them.HandCount, share, fate.Length, conditions.ToArray(), answers);
     }
 
+    /// <summary>How many of their Fate cards seen carried this class (the share with the prior taken back out).</summary>
+    public int SeenOf(EffectClass c) => (int)Math.Round(Share.GetValueOrDefault(c) * (PriorWeight + Seen) - Prior.GetValueOrDefault(c) * PriorWeight);
     public int Likely(EffectClass c) => (int)Math.Round(HandCount * Share.GetValueOrDefault(c));
     public int Worst(EffectClass c) => Math.Min(HandCount, (int)Math.Ceiling(HandCount * Share.GetValueOrDefault(c)) + (HandCount > 0 ? 1 : 0));
 

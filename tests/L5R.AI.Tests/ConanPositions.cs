@@ -223,11 +223,21 @@ internal static class ConanPositions
             {
                 var defenders = read.Ledger.Me.Units.Where(u => g.Any(a => a.Key == u.Id)).ToArray(); var attackers = read.Ledger.Them.At(g.Key).ToArray();
                 return $"at P{g.Key + 1}: {read.Battle(g.Key, attackers, defenders, false)}";
-            }));
+            })) + (view.Phase == Phase.DefenseAssignment ? DefenceAt(read) : "");
+        if (view.Phase == Phase.DefenseAssignment && command.Type is "pass" or "passAllBattles") return "undefended" + DefenceAt(read);
         if (command.Type is "pass" or "passAllBattles" && view.Phase is Phase.DefenseAssignment or Phase.AttackDeclaration)
             return string.Join("; ", read.Ledger.Them.Units.Where(u => u.Province is not null).GroupBy(u => u.Province!.Value).Select(g => $"undefended P{g.Key + 1}: {read.Battle(g.Key, g.ToArray(), [], false)}")
                 .DefaultIfEmpty($"home: mine {read.Ledger.Me.UnbowedHomeForce}F unbowed, theirs {read.Ledger.Them.UnbowedHomeForce}F; belief {read.Belief}"));
         return string.Join("; ", read.Battles().Select(b => b.ToString()).DefaultIfEmpty("no battlefield"));
+    }
+
+    /// <summary>Family D's plan (Defence.Of) at a defence position, with its per-Province reading.</summary>
+    private static string DefenceAt(Read read)
+    {
+        var answers = Questions.Of(read);
+        var concede = read.Ledger.Them.Provinces.Length == 1 && answers.Opportunity.Best.ExpectedProvinces >= .5 * Questions.ProvinceWorth(1);
+        var plan = Defence.Of(read, null, read.Ledger.Me.Provinces.Select(p => p.Index), concede);
+        return $"\n    defence: {plan}\n    their Provinces {read.Ledger.Them.Provinces.Length}, my attack next turn: {answers.Opportunity.Best}\n    " + string.Join("\n    ", plan.Log);
     }
 
     private static bool Matches(Position p, GameCommand human, GameCommand bot, string described)

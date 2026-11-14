@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Step 3, family D: rule readD (and rdDefend, formulation 2), the defence assignment read from the Read (Read/Defence.cs; nobody, presence, the strongest k fighters, everything, each through the exchange; PLAYER_MODEL.md 3.4's order; shadow log under read). Opt-in, off by default. Screened null twice on block 9700 and shelved with the evidence (docs/bots/experiments/2026-11-14-conan-family-d.md).",
+  "validation": "7 defence cases pass; read, threat, questions suites pass; bash tools/check.sh --skip-client passed; decision set 10/50 against T2's 9/50 (D 2/6 v 1/6), no position lost; shadow rounds on seed 9700 judged 5/10, 5/10, 8/10 right; screens on block 9700 (A/A 49.3%): formulation 1 49.2% (+99/-101), formulation 2 49.2% (+94/-95); profile: bodies assigned 76%->59%, undefended losses with an answer in hand 70%->57%, gift defences 20%->22%, held-and-killed 21%->18%.",
+  "remaining": "Family A (the attack from the Read's opportunity), reading the deck table of the family D screens; Windows side's T2Rules and registry still unmerged; next fresh Mac blocks from 9800.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
+  "branch": "claude/1206-conan-family-d",
+  "updated": "2026-11-14T00:29:04.407067+00:00"
+}

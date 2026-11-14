@@ -41,7 +41,22 @@ public static partial class TrainingOpponent
         if (LookAhead(x, candidates) is { } looked) chosen = (looked.Action, looked.Command, chosen.Score);
         Remember(x, chosen.Command);
         if (chosen.Command.Type is "useAbility" or "playStrategy" or "equip") memory.NoteUse(view.TurnNumber, chosen.Command.AbilityId, chosen.Command.CardId);
+        // issue #1206 (family D in shadow): with read on and readD off, what the Read's defence would have assigned beside what was chosen
+        if (memory.Has("read") && !memory.Has("readD") && view.Phase == Phase.DefenseAssignment && chosen.Command.Type is "assignDefense" or "pass" && candidates.FirstOrDefault(c => c.Action.Type == "assignDefense").Action is { } offer)
+            memory.NoteDefence(view, ReadDefence(x, offer), chosen.Command);
         return new(chosen.Command, Explain(chosen.Action.Type));
+    }
+
+    /// <summary>Issue #1206 (family D): the Read's defence plan for this decision, computed once per view version. Their last Province is conceded when the opportunity razes it next turn.</summary>
+    private static DefencePlan? ReadDefence(Ctx x, ActionOption action)
+    {
+        if (x.Memory.ReadDefencePlan is { } cached && cached.Version == x.View.Version) return cached.Plan;
+        var read = x.Memory.CurrentRead is { } current && current.Key == Read.KeyOf(x.View) ? current : Read.Of(x.View);
+        var provinces = action.Provinces ?? x.Self.Provinces.Where(p => !p.Destroyed).Select(p => p.Index).ToArray();
+        var concede = x.Opponent.Provinces.Count(p => !p.Destroyed) == 1 && Questions.Of(read, x.Memory.TrendNow()).Opportunity.Best.ExpectedProvinces >= .5 * Questions.ProvinceWorth(1);
+        var plan = Defence.Of(read, action.TargetIds, provinces, concede, concedeSpare: !Rule(x, "rdDefend"));
+        x.Memory.ReadDefencePlan = (x.View.Version, plan);
+        return plan;
     }
 
     /// <summary>Everything one decision reads, built once from the permitted view.</summary>
@@ -71,6 +86,9 @@ public static partial class TrainingOpponent
     private static GameCommand? Prepare(Ctx x, ActionOption action)
     {
         var command = PrepareCore(x, action);
+        // Issue #1206 (readD, RULE_FAMILIES.md family D): the defence assignment read from the Read; nobody is carried out by scoring the assignment below a pass (ScoreCore).
+        if (command is not null && action.Type == "assignDefense" && Rule(x, "readD") && x.View.Phase == Phase.DefenseAssignment && ReadDefence(x, action) is { } readPlan && readPlan.Why != "nobody attacks") // no infantry yet: the Cavalry plans keep the decision
+            return readPlan.Nobody ? (x.Actions.Any(a => a.Enabled && a.Type == "pass") ? null : command) : command with { Assignments = readPlan.Assignments }; // nobody: no assignment is offered, the pass wins
         // Issue #1185 tuning (presence): a defense the ordinary rules would not make, when one unit's presence lets the bot's removals save the Province.
         if (command is not null && action.Type == "assignDefense" && Rule(x, "presence") && PresencePlan(x, action) is { } presence && ScoreCore(x, action, command) < 95)
             return command with { Assignments = presence };
@@ -361,6 +379,7 @@ public static partial class TrainingOpponent
                 if (armies.Length == 1 && armies[0].Force > (opponent.Provinces.FirstOrDefault(p => p.Index == armies[0].Province)?.Strength ?? int.MaxValue / 2) && homeDefense == 0) return 80;
                 return armies.Length == 1 && TradeOf(x, assignments.Keys) is { } traded ? TradeScore(traded) : 0;
             case "assignDefense":
+                if (Rule(x, "readD") && x.View.Phase == Phase.DefenseAssignment && ReadDefence(x, action) is { Why: not "nobody attacks" } readPlan) return readPlan.Nobody ? PassScore - 1 : 150; // issue #1206 (family D)
                 if (CavalryLastStandPlan(x, action, null) is not null) return 200; // the Cavalry, with any army already assigned, could destroy every Province: defend with everything
                 if (x.Memory.UseInformedDefense && InformedDefenseScore(x, command) is { } informed) return informed;
                 var enemyForce = ArmyForce(opponent.Army);
