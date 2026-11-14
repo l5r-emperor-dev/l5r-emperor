@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Family E (inside a battle) of the Conan strategy campaign: rule readE (the Fight, src/L5R.AI/Read/Fight.cs) decides the bot's own Battle priorities from the Read's exchange (pass while ahead, kill rather than repel, the cheapest sufficient action, late Force after their pass, spend nothing in a lost battle), choosing its own targets; reOpen (formulation 2) reads the spend decisions against their open hand. Both screened negative against T2 on block 10100 and are shelved, opt-in, off by default. Also: Exchange.Run with a side not acting, FightTests, tools/bots/fight.py (family E measures from battle records), L5R_POS_READ=1 prints the Fight at Battle positions, docs and the experiment note.",
+  "validation": "bash tools/check.sh --skip-client: all stages passed (fight 8/8, rule-registry 4/4). Decision set family E: readE 13/18 vs T2 6/18, no other family flipped. Shadow seed 10000: 5, 8, 9 of 10 right over three rounds. Screen block 10100 (A/A 49.2%): readE 45.9% (+132/-181, net -49, p .007); readE,reOpen 47.4% (+131/-158, net -27). Battles won 44-45% vs 50%; the action decks lose.",
+  "remaining": "Family E done (two formulations shelved). Next: family C (home and the counter-attack), then B, F, G, I; refit Calibration; step 4 with the exchange as the playout's battle policy. Judge future shadows by playing the game on from the position, not by the projection.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
+  "branch": "claude/1206-conan-family-e",
+  "updated": "2026-11-14T12:37:37.434276+00:00"
+}

@@ -297,6 +297,7 @@ runner.Run("conan-positions", ConanPositions.Tests); // issue #1206: the decisio
 runner.Run("effect-descriptor", EffectDescriptorTests.Tests); // issue #1206: the card-agnostic effect descriptors (step 2 of the strategy brief)
 runner.Run("read", ReadTests.Tests); // issue #1206: the Read in shadow (ledger, belief, exchange)
 runner.Run("rule-registry", RuleRegistryTests.Tests); // issue #1206: every rule name declared once, the frozen T2 yardstick, the fire counters (step 0 and step 1 item 1)
+runner.Run("fight", FightTests.Tests); // issue #1206: family E, the Fight inside a battle (step 3)
 runner.Run("threat", ThreatTests.Tests); // issue #1206: threat(home), the Read's second question (section 4.5)
 runner.Run("questions", QuestionsTests.Tests); // issue #1206: opportunity, race and posture (section 4.5)
 runner.Run("defence", DefenceTests.Tests); // issue #1206: family D, the defence assignment read from the Read

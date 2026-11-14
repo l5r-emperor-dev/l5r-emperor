@@ -146,6 +146,16 @@ public sealed class BotContext
         string Shape(IReadOnlyDictionary<string, int> a) => a.Count == 0 ? "nobody" : string.Join(",", a.GroupBy(v => v.Value).OrderBy(g => g.Key).Select(g => $"P{g.Key + 1}<-{g.Count()}"));
         AttackLog.Add($"T{view.TurnNumber} assign {(same ? "same" : "DIFFERS")}: chose {Shape(mine)}, read {(best.IsHold ? "hold" : Shape(best.Assignment))} | {position} | {options}");
     }
+    /// <summary>Issue #1206 (family E): the Fight's plan for the current decision, by view version.</summary>
+    internal (long Version, FightPlan Plan)? ReadFightPlan { get; set; }
+    /// <summary>Family E in shadow: what the Fight would do at each Battle priority beside what the bot chose; a difference is logged.</summary>
+    public List<string> FightLog { get; } = [];
+    internal void NoteFight(MatchView view, FightPlan plan, string chose, string position)
+    {
+        if (FightLog.Count >= 2000) return;
+        var would = plan.Pick ?? "pass";
+        FightLog.Add($"T{view.TurnNumber} P{(view.BattleStep?.BattlefieldProvince ?? view.CurrentBattleProvince ?? -1) + 1} {(chose == would ? "same" : "DIFFERS")}: chose {chose}, read {would} ({plan.Why}) | {position} | {plan.Standing}; {plan.Reach} | {string.Join(" || ", plan.Log)}");
+    }
     /// <summary>Issue #1206 (family D): the Read's defence plan for the current decision, by view version.</summary>
     internal (long Version, DefencePlan Plan)? ReadDefencePlan { get; set; }
     /// <summary>Family D in shadow: what the Read's defence would assign beside what the bot chose; a difference is logged (the step 3 shadow run reads these).</summary>
@@ -217,12 +227,12 @@ public sealed class BotContext
     private bool NegFlag(string name, bool on) { if (on) return true; if (Rules.Contains(name)) { if (name == Masked) return true; Consulted?.Add(name); } return false; }
     /// <summary>What a re-decision may change and the real decision must keep: the plan and its history, the planned attack, the Read's per-version caches, the logs' lengths.</summary>
     internal readonly record struct Snapshot(TurnPlan? Plan, string? PlanKey, string? PlanGroup, int Plans, int PlanLines, int LookLines, int Thinks, (int Turn, Dictionary<string, int> Assignment, string Label)? PlannedAttack,
-        (long Version, Answers Answers)? AnswersCache, (long Version, DefencePlan Plan)? DefenceCache, int LookWork);
-    internal Snapshot Save() => new(Plan, PlanKey, PlanGroup, PlanHistory.Count, PlanLog.Count, LookLog.Count, ThinkMs.Count, PlannedAttack, ReadAnswersCache, ReadDefencePlan, LookWork);
+        (long Version, Answers Answers)? AnswersCache, (long Version, DefencePlan Plan)? DefenceCache, (long Version, FightPlan Plan)? FightCache, int LookWork);
+    internal Snapshot Save() => new(Plan, PlanKey, PlanGroup, PlanHistory.Count, PlanLog.Count, LookLog.Count, ThinkMs.Count, PlannedAttack, ReadAnswersCache, ReadDefencePlan, ReadFightPlan, LookWork);
     internal void Restore(Snapshot s)
     {
         Plan = s.Plan; PlanKey = s.PlanKey; PlanGroup = s.PlanGroup; Trim(PlanHistory, s.Plans); Trim(PlanLog, s.PlanLines); Trim(LookLog, s.LookLines); Trim(ThinkMs, s.Thinks);
-        PlannedAttack = s.PlannedAttack; ReadAnswersCache = s.AnswersCache; ReadDefencePlan = s.DefenceCache; LookWork = s.LookWork;
+        PlannedAttack = s.PlannedAttack; ReadAnswersCache = s.AnswersCache; ReadDefencePlan = s.DefenceCache; ReadFightPlan = s.FightCache; LookWork = s.LookWork;
     }
     /// <summary>Drops the current plan so the next decision plans afresh (a re-decision under a mask must not reuse the real plan).</summary>
     internal void ForgetPlan() { Plan = null; PlanKey = null; PlanGroup = null; }

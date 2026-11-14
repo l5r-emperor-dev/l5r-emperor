@@ -126,7 +126,8 @@ internal static class BotTournament
             File.WriteAllText(Path.Combine(logDir!, $"{who}-{name0}-vs-{name1}-{seed}-c{challengerSeat}.log".Replace(' ', '_').Replace('/', '_')),
                 $"# {name0} (seat 0, {(challengerSeat == 0 ? "challenger" : "champion")}) vs {name1} (seat 1, {(challengerSeat == 1 ? "challenger" : "champion")}); seed {seed}; winner {r.Winner} ({who}) by {r.Reason} on turn {r.Turn}; Honor {string.Join("/", r.Honor)} provinces {string.Join("/", r.ProvincesLeft)} personalities {string.Join("/", r.Personalities)}\n" + log + "\n## challenger plans\n" + string.Join("\n", memory[challengerSeat].PlanLog) + (memory[challengerSeat].LookLog is { Count: > 0 } looks ? "\n## challenger lookahead\n" + string.Join("\n", looks) : "")
                 + (memory[challengerSeat].ReadLog is { Count: > 0 } reads ? "\n## challenger read\n" + string.Join("\n", reads) : "") + (memory[challengerSeat].DefenceLog is { Count: > 0 } defences ? "\n## challenger defence (family D in shadow)\n" + string.Join("\n", defences) : "")
-                + (memory[challengerSeat].AttackLog is { Count: > 0 } attacks ? "\n## challenger attack (family A in shadow)\n" + string.Join("\n", attacks) : ""));
+                + (memory[challengerSeat].AttackLog is { Count: > 0 } attacks ? "\n## challenger attack (family A in shadow)\n" + string.Join("\n", attacks) : "")
+                + (memory[challengerSeat].FightLog is { Count: > 0 } fights ? "\n## challenger fight (family E in shadow)\n" + string.Join("\n", fights) : ""));
             return r;
         }
         for (var n = 0; n < 6000; n++)
