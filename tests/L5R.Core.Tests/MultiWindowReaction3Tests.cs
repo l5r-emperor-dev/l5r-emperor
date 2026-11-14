@@ -337,7 +337,10 @@ internal static partial class MultiWindowReaction3Tests
         Eq(Window(e), "beforeActionReaction");
         Check(!e.QueryActions(1).Any(o => o.Enabled && o.Command?.AbilityId is "armor-heavens-lose" or "armor-heavens-gain"), "not offered to the acting player");
         ToPlayer(e, 0);
-        var opt = Options(e, 0, "armor-heavens-lose", armor.Id).Single(o => o.Enabled && o.Command!.TargetPlayerId == 1);
+        // Issue #1240: the choices are labelled by who gains or loses ("Opponent Loses 2 Honor"), not by the printed text, so they are found by ability id.
+        ActionOption[] Armor(MatchEngine m, int p, string cardId) => m.QueryActions(p).Where(o => o.Type == "useAbility" && o.CardId == cardId && o.Command?.AbilityId == "armor-heavens-lose").ToArray();
+        var opt = Armor(e, 0, armor.Id).Single(o => o.Enabled && o.Command!.TargetPlayerId == 1);
+        Eq(opt.Label, "Opponent Loses 2 Honor", "the choice says who loses");
         Reject(e, opt.Command! with { PlayerId = 1, ExpectedVersion = e.Version });
         var honor = Honor(e, 1); var own = Honor(e, 0);
         Accept(e, opt.Command!);
@@ -347,7 +350,7 @@ internal static partial class MultiWindowReaction3Tests
         var w2 = Bf(own2, "training-crane-courtier", 0); var a2 = Attach(own2, Def("armor-heavens-lose"), w2); var src = Bf(own2, "training-penalty-source", 0); Bf(own2, "training-lion-samurai", 1);
         var eo = MatchEngine.FromTestState(own2);
         Accept(eo, Offer(eo, 0, "training-penalty-force-own", src.Id, w2.Id));
-        Check(eo.State.PendingChoice is null || !Listed(eo, 0, "armor-heavens-lose", a2.Id), "an action of its own controller's does not open the Reaction");
+        Check(eo.State.PendingChoice is null || !Armor(eo, 0, a2.Id).Any(o => o.Enabled), "an action of its own controller's does not open the Reaction");
         NotInPlainBattle(Build(out _, out var a3, out _), "armor-heavens-lose", a3.Id, opt.Command!);
     }
 

@@ -214,6 +214,14 @@ public sealed partial class MatchEngine
 
     // ---- reaction triggers ----
 
+    // Armor of the Heavens' four choices (issue #1240, Mendon): each option names only who gains or loses the Honor; the printed trigger text is already the card's.
+    private static string? PlayerChoiceOptionLabel(string abilityId, bool you) => abilityId switch
+    {
+        "armor-heavens-gain" => you ? "You Gain 2 Honor" : "Opponent Gains 2 Honor",
+        "armor-heavens-lose" => you ? "You Lose 2 Honor" : "Opponent Loses 2 Honor",
+        _ => null,
+    };
+
     // Armor of the Heavens (TargetedActionReactionApplies): another player's action targets the Personality this card is attached to.
     private bool ArmorOfTheHeavensApplies(CardInstance card, ReactionSubject subject, CardInstance affected) =>
         subject.Command.PlayerId != card.OwnerId && card.Zone == Zone.Attached && affected.Id == card.AttachedTo && Definition(affected).Type == CardType.Personality;

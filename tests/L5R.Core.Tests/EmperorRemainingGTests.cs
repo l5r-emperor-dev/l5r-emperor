@@ -342,6 +342,9 @@ internal static class EmperorRemainingGTests
         var offered = e.QueryActions(0).Where(o => o.Type == "useAbility" && o.Command?.AbilityId is "armor-heavens-gain" or "armor-heavens-lose").ToArray();
         Eq(offered.Length, 4, "gain or lose, for either player");
         Check(offered.All(o => o.Enabled), "all four are enabled");
+        // Issue #1240: each choice says only who gains or loses, without repeating the printed trigger, and the label matches the command it carries.
+        Eq(Choice(e, 0, "armor-heavens-gain", 0).Label, "You Gain 2 Honor", "your gain"); Eq(Choice(e, 0, "armor-heavens-lose", 0).Label, "You Lose 2 Honor", "your loss");
+        Eq(Choice(e, 0, "armor-heavens-gain", 1).Label, "Opponent Gains 2 Honor", "the opponent's gain"); Eq(Choice(e, 0, "armor-heavens-lose", 1).Label, "Opponent Loses 2 Honor", "the opponent's loss");
         var mine = Honor(e, 0); var theirs = Honor(e, 1);
         Accept(e, Choice(e, 0, "armor-heavens-lose", 1).Command!);
         Eq(Honor(e, 1), theirs - 2, "the chosen player lost 2 Honor"); Eq(Honor(e, 0), mine, "and only he");

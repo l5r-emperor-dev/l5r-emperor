@@ -61,6 +61,8 @@ internal static partial class MultiWindowReaction2Tests
     private static void Eq<T>(T actual, T expected, string message = "Values differ") => Check(EqualityComparer<T>.Default.Equals(actual, expected), $"{message}: expected {expected}; got {actual}");
     private static string Def(string ability) => CardCatalog.Cards.Values.Where(c => !c.CreatedOnly && (c.Abilities ?? []).Contains(ability)).OrderBy(c => c.Id, StringComparer.Ordinal).First().Id;
     private static bool On(MatchEngine e, int player, string ability, string? card = null) => CanUse(e, player, ability, card);
+    // Armor of the Heavens' choices are labelled by who gains or loses (issue #1240), not by the printed text CanUse matches, so they are found by ability id.
+    private static bool ArmorOn(MatchEngine e, int player, string card, string ability) => e.QueryActions(player).Any(o => o.Enabled && o.Type == "useAbility" && o.CardId == card && o.Command?.AbilityId == ability);
     private static void Settle(MatchEngine e) { for (var guard = 0; guard < 16 && e.State.PendingChoice is not null; guard++) Accept(e, new GameCommand("declineReaction", e.State.PriorityPlayerId, e.Version)); }
     private static CardInstance Mk(MatchState s, string def, int owner, Zone zone = Zone.Battlefield, int? province = 0, string? parent = null) => Add(s, def, owner, zone, province: zone is Zone.Battlefield or Zone.Attached ? province : null, parent: parent);
     private static void Kw(CardInstance c, params string[] keywords) { foreach (var k in keywords) c.GrantedKeywords.Add(new(k, "test-fixture", GrantDuration.Permanent)); }
@@ -287,18 +289,18 @@ internal static partial class MultiWindowReaction2Tests
         var armor = Add(s, def, 0, Zone.Attached, province: 0, parent: wearer.Id);
         var e = BowedBy(s, wearer);
         Eq(Window(e), "beforeActionReaction", "the window opens");
-        Check(!On(e, 1, "armor-heavens-gain", armor.Id), "not to the acting player");
+        Check(!ArmorOn(e, 1, armor.Id, "armor-heavens-gain"), "not to the acting player");
         var h = Honor(e, 0);
         Accept(e, e.QueryActions(0).Single(o => o.Enabled && o.Command?.AbilityId == "armor-heavens-gain" && o.Command.TargetPlayerId == 0).Command!);
         Eq(Honor(e, 0), h + 2, "the chosen player gained 2 Honor");
-        Check(!On(e, 0, "armor-heavens-lose", armor.Id), "gain or lose is one use");
+        Check(!ArmorOn(e, 0, armor.Id, "armor-heavens-lose"), "gain or lose is one use");
         Settle(e);
         // Another Personality targeted: no window for the armor.
         var t = Table(Phase.Battle, 1);
         var w2 = Add(t, "training-crane-samurai", 0, Zone.Battlefield, province: 0); var armor2 = Add(t, def, 0, Zone.Attached, province: 0, parent: w2.Id);
         var other = Add(t, "training-crane-veteran", 0, Zone.Battlefield, province: 0);
         var e2 = BowedBy(t, other);
-        Check(!On(e2, 0, "armor-heavens-gain", armor2.Id), "an action on another Personality does not open the armor's Reaction");
+        Check(!ArmorOn(e2, 0, armor2.Id, "armor-heavens-gain"), "an action on another Personality does not open the armor's Reaction");
         Quiet(def, "armor-heavens-gain", "armor-heavens-lose");
     }
 
