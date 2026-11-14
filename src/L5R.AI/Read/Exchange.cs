@@ -46,6 +46,10 @@ public static class Exchange
 
     /// <summary>Plays the battle out. <paramref name="attackHand"/> and <paramref name="defenceHand"/> are the hand answers each side is assumed to hold (its own exactly, the opponent's from the belief or nothing).</summary>
     public static ExchangeResult Run(LedgerSide attacker, LedgerUnit[] attackers, LedgerSide defender, LedgerUnit[] defenders, int strength, IEnumerable<Answer> attackHand, IEnumerable<Answer> defenceHand)
+        => Run(attacker, attackers, defender, defenders, strength, attackHand, defenceHand, true, true);
+
+    /// <summary>As above; a side with <paramref name="attackerActs"/> or <paramref name="defenderActs"/> false passes at every priority (family E reads the battle "as it stands": the viewer plays nothing more).</summary>
+    public static ExchangeResult Run(LedgerSide attacker, LedgerUnit[] attackers, LedgerSide defender, LedgerUnit[] defenders, int strength, IEnumerable<Answer> attackHand, IEnumerable<Answer> defenceHand, bool attackerActs, bool defenderActs)
     {
         var a = attackers.Select(u => new ExchangeUnit(u)).ToList(); var d = defenders.Select(u => new ExchangeUnit(u)).ToList();
         if (a.Count == 0) return new(false, false, false, false, 0, d.Sum(u => u.Contribution), [], [], [], []);
@@ -58,7 +62,7 @@ public static class Exchange
                 ? (d, a, dAnswers, dGold, dPlayed, (Func<bool>)(() => Force(a) <= Force(d) || d.All(u => !u.Present)))   // the defender wants its army kept, which keeps the Province (Mendon's tiers: keep the Province; better, lose no defender)
                 : (a, d, aAnswers, aGold, aPlayed, () => Force(a) > Force(d) + strength);                                            // the attacker wants it destroyed
             var hasPresence = mine.Any(u => u.Present);
-            if (want() || !hasPresence) { passes++; continue; }
+            if (want() || !hasPresence || !(defenderTurn ? defenderActs : attackerActs)) { passes++; continue; }
             var best = Best(mine, theirs, answers, gold, defenderTurn ? strength : -1, theirsAttack: defenderTurn);
             if (best is null) { passes++; continue; }
             passes = 0;

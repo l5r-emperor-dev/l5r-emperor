@@ -228,7 +228,9 @@ internal static class ConanPositions
         if (command.Type is "pass" or "passAllBattles" && view.Phase is Phase.DefenseAssignment or Phase.AttackDeclaration)
             return string.Join("; ", read.Ledger.Them.Units.Where(u => u.Province is not null).GroupBy(u => u.Province!.Value).Select(g => $"undefended P{g.Key + 1}: {read.Battle(g.Key, g.ToArray(), [], false)}")
                 .DefaultIfEmpty($"home: mine {read.Ledger.Me.UnbowedHomeForce}F unbowed, theirs {read.Ledger.Them.UnbowedHomeForce}F; belief {read.Belief}"));
-        return string.Join("; ", read.Battles().Select(b => b.ToString()).DefaultIfEmpty("no battlefield"));
+        var battles = string.Join("; ", read.Battles().Select(b => b.ToString()).DefaultIfEmpty("no battlefield"));
+        if (view.Phase == Phase.Battle && TrainingOpponent.DescribeFight(view, game.QueryActions(0), BotContext.Contender(rules: [.. BotContext.T2Rules, "read"])) is { } fight) return battles + "\n    " + fight;
+        return battles;
     }
 
     /// <summary>Family D's plan (Defence.Of) at a defence position, with its per-Province reading.</summary>

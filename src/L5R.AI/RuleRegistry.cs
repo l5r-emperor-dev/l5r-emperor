@@ -199,6 +199,8 @@ public static class RuleRegistry
         R("rdDefend", "defence", "with readD, a costly hold is not conceded while a Province is spare"),
         R("readA", "attack", "family A: the attack and its shape are read from the Read's opportunity (screened null on block 9800; off)"),
         R("raShape", "attack", "with readA, only the shape: the Contender decides attack or hold"),
+        R("readE", "battle", "family E: at the bot's own Battle priority the Fight decides from the Read's exchange: pass while the standing result is the one wanted, else the cheapest sufficient action"),
+        R("reOpen", "battle", "with readE, what an action reaches and whether anything can is read against their open hand (shown answers only); the pass test keeps their likely hand"),
     ];
 
     public static readonly IReadOnlyDictionary<string, Entry> ByName = Entries.ToDictionary(e => e.Name, StringComparer.Ordinal);

@@ -38,6 +38,9 @@ public static partial class TrainingOpponent
         // issue #1206 (family A in shadow): with read on and readA off, the opportunity's attack or hold and its shape beside what was chosen
         if (memory.Has("read") && !memory.Has("readA") && view.ActivePlayerId == view.ViewerId && (view.Phase == Phase.AttackDeclaration || view.Phase == Phase.InfantryDeclaration && chosen.Command.Type == "attack") && ReadAnswers(x) is { } shadowA)
             memory.NoteAttack(view, shadowA, chosen.Command);
+        // issue #1206 (family E in shadow): with read on and readE off, what the Fight would do at this Battle priority beside what was chosen
+        if (memory.Has("read") && !memory.Has("readE") && ReadFight(x) is { } shadowE)
+            memory.NoteFight(view, shadowE.Plan, FightKey(chosen.Command) is { } ck && shadowE.Options.FirstOrDefault(o => SameFightAction(o.Key, ck)) is { } same ? same.Key : chosen.Command.Type is "pass" or "passAllBattles" ? "pass" : "other:" + chosen.Command.Type + "/" + chosen.Command.AbilityId, shadowE.Position);
         // issue #1206 (family D in shadow): with read on and readD off, what the Read's defence would have assigned beside what was chosen
         if (memory.Has("read") && !memory.Has("readD") && view.Phase == Phase.DefenseAssignment && chosen.Command.Type is "assignDefense" or "pass" && candidates.FirstOrDefault(c => c.Action.Type == "assignDefense").Action is { } offer)
             memory.NoteDefence(view, ReadDefence(x, offer), chosen.Command);
@@ -73,7 +76,7 @@ public static partial class TrainingOpponent
         foreach (var rule in consulted)
         {
             if (memory.Deadline is { } cutoff && DateTime.UtcNow >= cutoff) { memory.FiresCut++; break; }
-            memory.Masked = rule; memory.Restore(snapshot); memory.ForgetPlan(); memory.ReadAnswersCache = null; memory.ReadDefencePlan = null;
+            memory.Masked = rule; memory.Restore(snapshot); memory.ForgetPlan(); memory.ReadAnswersCache = null; memory.ReadDefencePlan = null; memory.ReadFightPlan = null;
             try
             {
                 if (Decide(x) is not { } again || System.Text.Json.JsonSerializer.Serialize(again.Chosen.Command) != want) memory.Fires[rule] = memory.Fires.GetValueOrDefault(rule) + 1;
@@ -82,6 +85,83 @@ public static partial class TrainingOpponent
             finally { memory.Masked = null; }
         }
         memory.Restore(snapshot);
+    }
+
+    /// <summary>Issue #1206 (family E): the Fight's plan at the viewer's own Battle priority (no pending choice): the offered Battle actions it can read (an ability or Strategy with a Battle
+    /// descriptor, aimed at an enemy Personality here or adding Force), computed once per view version. Null outside such a priority, or when nothing offered can be read.</summary>
+    private static (FightPlan Plan, FightOption[] Options, string Position)? ReadFight(Ctx x)
+    {
+        var view = x.View;
+        if (view.Phase != Phase.Battle || view.PendingChoice is not null || x.Odds is not { } odds || view.BattleStep is not { } step || step.DecisionPlayerId != x.Self.Id || step.BattlefieldProvince is not { } province) return null;
+        if (x.Memory.ReadFightPlan is { } cached && cached.Version == view.Version) return (cached.Plan, FightOptions(x, province), FightPosition(x, odds));
+        var read = x.Memory.CurrentRead is { } current && current.Key == Read.KeyOf(view) ? current : Read.Of(view);
+        var options = FightOptions(x, province);
+        if (options.Length == 0) return null;
+        var viewerAttacks = odds.IsAttacker;
+        var deciding = viewerAttacks ? x.Opponent.Provinces.Count(p => !p.Destroyed) <= 1 : x.Self.Provinces.Count(p => !p.Destroyed) <= 1;
+        var plan = Fight.Of(read, province, viewerAttacks, step.ConsecutivePasses > 0, deciding, options, Rule(x, "reOpen"));
+        x.Memory.ReadFightPlan = (view.Version, plan);
+        return (plan, options, FightPosition(x, odds));
+    }
+
+    /// <summary>For the decision set (ConanPositions, L5R_POS_READ=1): the Fight's plan at this view with these offered actions, with every option's projection; null when the Fight does not act here.</summary>
+    public static string? DescribeFight(MatchView view, ActionOption[] actions, BotContext memory)
+    {
+        var self = view.Players.Single(p => p.Id == view.ViewerId); var opponent = view.Players.Single(p => p.Id != view.ViewerId);
+        var x = new Ctx(view, self, opponent, BotProfile.Assess(self, memory.DeckAveragePersonalHonor), memory, AllCards(view)) { Actions = actions, Odds = BattlePolicy.Assess(view) };
+        if (ReadFight(x) is not { } fight) return null;
+        return $"fight: {fight.Plan.Pick ?? "pass"} ({fight.Plan.Why}) | {fight.Position} | {fight.Plan.Standing}; {fight.Plan.Reach}\n    " + string.Join("\n    ", fight.Plan.Log)
+            + (actions.Where(a => a.Enabled && a.Type is "useAbility" or "playStrategy" && a.Command is not null && !fight.Options.Any(o => o.Key == FightKey(a.Command))).Select(a => $"{a.Type}/{a.Command!.AbilityId} card={a.Command.CardId} target={a.Command.TargetId}").ToArray() is { Length: > 0 } unread ? "\n    not read: " + string.Join("; ", unread) : "");
+    }
+
+    private static string FightPosition(Ctx x, BattlePolicy.Odds odds) => $"{(odds.IsAttacker ? "attacking" : "defending")} {odds.Own}v{odds.Enemy} s{odds.Strength} hand {x.Self.Hand.Count()}/{x.Opponent.HandCount} gold {Ready(x)}";
+
+    /// <summary>The offered Battle actions as Fight options. An action without a Battle descriptor, or aimed at something other than an enemy Personality at this battlefield, is not read (it keeps the Contender's score).</summary>
+    private static FightOption[] FightOptions(Ctx x, int province)
+    {
+        var list = new List<FightOption>();
+        foreach (var a in x.Actions.Where(a => a.Enabled && a.Type is "useAbility" or "playStrategy" && a.Command is not null))
+        {
+            var c = a.Command!;
+            var card = x.Card(c.CardId);
+            var d = a.Type == "useAbility" ? (c.AbilityId is { } id ? EffectDescriptors.Of(id) : null) : card is null ? null : EffectDescriptors.Of(card).FirstOrDefault(e => e.IsBattle);
+            if (d is null || !d.IsBattle || d.IsReaction || d.Class == EffectClass.Unknown) continue;
+            var fromHand = card is not null && x.Self.Hand.Any(h => h.Id == card.Id);
+            var performer = x.Card(c.PerformerId) ?? (fromHand ? null : card);
+            var source = c.AbilityId == "favor-battle" ? "Favor" : performer?.Definition?.Name ?? card?.Definition?.Name ?? c.CardId ?? c.AbilityId ?? "?";
+            // the Fight chooses the target itself (PM 3.5 "target", "discard for Focus the card ... whose value suffices"): one option per legal target the engine lists, the command's own when it has one
+            var targets = (a.TargetIds ?? []).Concat(c.TargetId is { } chosen ? [chosen] : []).Distinct(StringComparer.Ordinal).ToArray(); // every target the engine lists (the template's own may not be the completer's)
+            if (d.Neutralises)
+            {
+                foreach (var tid in targets)
+                {
+                    var t = x.Card(tid);
+                    if (t is null || t.OwnerId == x.Self.Id || t.Definition?.Type != CardType.Personality || t.ProvinceIndex != province || t.Zone != Zone.Battlefield) continue;
+                    list.Add(new(FightKey(c with { TargetId = tid })!, new Answer(d, source, fromHand, a.Gold?.Cost ?? d.GoldCost), tid));
+                }
+            }
+            else if (d.Class == EffectClass.ForceAdd && (d.MagnitudeVaries || d.Magnitude is null) && targets.Any(tid => x.Self.Hand.Any(h => h.Id == tid)))
+            {
+                // a Force add worth the discarded card's Focus (Tactical Advantage, "discard a card: +Force = its Focus Value"): one option per card, at that card's value
+                foreach (var tid in targets.Where(tid => x.Self.Hand.Any(h => h.Id == tid)))
+                    if (x.Card(tid) is { Definition: { } discarded }) list.Add(new(FightKey(c with { TargetId = tid })!, new Answer(d with { Magnitude = discarded.Focus, MagnitudeVaries = false }, source, fromHand, a.Gold?.Cost ?? d.GoldCost), null));
+            }
+            else if (d.Class == EffectClass.ForceAdd) list.Add(new(FightKey(c)!, new Answer(d, source, fromHand, a.Gold?.Cost ?? d.GoldCost), null));
+        }
+        return list.ToArray();
+    }
+
+    private static string? FightKey(GameCommand c) => c.Type is "useAbility" or "playStrategy" ? $"{c.Type}|{c.AbilityId}|{c.CardId}|{c.PerformerId}|{c.TargetId}" : null;
+
+    /// <summary>The same Battle action: equal keys, or keys that differ only in the card or performer slot where one side has none (the engine's template leaves them to the completer).</summary>
+    internal static bool SameFightAction(string? a, string? b)
+    {
+        if (a is null || b is null) return false;
+        if (a == b) return true;
+        var pa = a.Split('|'); var pb = b.Split('|');
+        if (pa.Length != 5 || pb.Length != 5) return false;
+        for (var i = 0; i < 5; i++) if (pa[i] != pb[i] && !(i is 2 or 3 && (pa[i].Length == 0 || pb[i].Length == 0))) return false; // the card and performer slots: the template may leave them to the completer
+        return true;
     }
 
     /// <summary>Issue #1206 (family A): the Read's three answers for this decision, computed once per view version (BotContext.CurrentAnswers holds the shadow's own, taken at the same moments).</summary>
@@ -328,7 +408,15 @@ public static partial class TrainingOpponent
             var withTarget = WithTarget(command, action, bowStrategy?.Id ?? ordered.ThenBy(c => c.Id, StringComparer.Ordinal).First().Id);
             return withTarget is null ? null : Complete(x, action, withTarget);
         }
-        return Complete(x, action, command);
+        return FightTarget(x, action, Complete(x, action, command));
+    }
+
+    /// <summary>Issue #1206 (readE): when the Fight picks this action with a target of its own choosing (the enemy to hit, the card to discard for Force), the prepared command takes that target.</summary>
+    private static GameCommand? FightTarget(Ctx x, ActionOption action, GameCommand? command)
+    {
+        if (command is null || !Rule(x, "readE") || action.Type is not ("useAbility" or "playStrategy") || x.View.Phase != Phase.Battle || ReadFight(x) is not { Plan.Pick: { } pick }) return command;
+        var target = pick.Split('|') is { Length: 5 } parts && SameFightAction(FightKey(command with { TargetId = parts[4] }), pick) ? parts[4] : "";
+        return target.Length > 0 && target != command.TargetId && (action.TargetIds?.Contains(target) ?? false) ? command with { TargetId = target } : command;
     }
 
     /// <summary>Retargets an offered command. When the cost depends on the target (issue #303), the engine's

@@ -26,6 +26,10 @@ public static partial class TrainingOpponent
     private static double Contender2Score(Ctx x, ActionOption action, GameCommand command, double score)
     {
         if (x.Memory.Rules.Count == 0) return score;
+        // issue #1206 (family E, readE): at the bot's own Battle priority the Fight decides: its pick scores 150, every other read action is barred (pass wins when it says pass); an action it
+        // cannot read (no Battle descriptor, an odd target) keeps its score, so a Reaction or an Honor play is still the Contender's.
+        if (Rule(x, "readE") && action.Type is "useAbility" or "playStrategy" && ReadFight(x) is { } fight && FightKey(command) is { } key && fight.Options.Any(o => SameFightAction(o.Key, key)))
+            return SameFightAction(fight.Plan.Pick, key) ? 150 : Math.Min(score, BarredScore);
         var scored = Contender2Rules(x, action, command, score);
         // keepup (Mendon's Crane game, 2026-11-09): an ability that bows its performer is performed by a unit that cannot straighten others while one that can is offered too; the
         // straightener stays up to straighten the performer and use the ability again (Nanae straightening Yasutora for Shinden Asahina). It only orders the performers.
