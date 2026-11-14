@@ -15,8 +15,21 @@ internal static class ReadTests
     private static LedgerSide Side(int id, int gold = 0, bool favor = false, Answer[]? hand = null) => new(id, [], [(0, 7)], gold, gold, 10, favor, 0, hand ?? [], favor ? [new(EffectDescriptors.Of("favor-battle"), "Favor", false, 0)] : []);
     private static string FirstAbility(Func<EffectDescriptor, bool> test) => AbilityCatalog.All.Keys.Where(k => !k.StartsWith("training-") && !k.StartsWith("belief-")).Select(EffectDescriptors.Of).Where(d => d.IsBattle && test(d)).OrderBy(d => d.Id, StringComparer.Ordinal).First().Id;
 
+    private static LedgerUnit K(string id, int owner, int force, string[]? abilities = null, string[]? keywords = null) =>
+        new(id, id, owner, force, force, false, false, null, (abilities ?? []).Select(EffectDescriptors.Of).ToArray(), [], 2, 0, false, false, abilities?.Length ?? 0, 0, 0, keywords);
+
     public static readonly (string, Action)[] Tests =
     [
+        ("the Phoenix table (block 9800, seed 99500072, turn 12): a Shugenja bowed for one Spell casts no second, a rescue of a defender is no answer against attackers, and 42 Force razes Strength 6 past 6", () =>
+        {
+            var spider = new[] { 8, 5, 5, 5, 4, 4, 4, 4, 3 }.Select((f, i) => L(Unit($"s{i}", 1, f), null)).ToArray();
+            var tomohiro = K("tomohiro", 0, 4, ["earths-hunger-destroy", "unnatural-flood-move", "peace-of-the-kami-negate"], ["Shugenja", "Earth"]); var tsunefusa = K("tsunefusa", 0, 2, ["tsunefusa-bow"]);
+            var table = new[] { "mountains-power-bow", "mountains-power-bow", "scouring-flood-move-home" }.Select(EffectDescriptors.Of).Where(d => d.IsBattle && d.Neutralises).Select(d => new Answer(d, d.Id, false, d.GoldCost)).ToArray();
+            var phoenix = new LedgerSide(0, [tomohiro, tsunefusa], [(2, 6)], 22, 22, 24, false, 1, [], table); var them = new LedgerSide(1, spider, [(0, 7)], 32, 32, 4, false, 3, [], []);
+            var r = Exchange.Run(them, spider, phoenix, [tomohiro, tsunefusa], 6, [], []);
+            Check(r.Falls, $"after a destroy, a bow and two Holding bows, 19 against 6 + 6 still razes: {r}");
+            Check(!r.DefenderPlayed.Any(p => p.StartsWith("SendHome@tomohiro")) && !r.DefenderPlayed.Any(p => p.Contains("scouring-flood")), $"the bowed Shugenja casts no second Spell and the defender's rescue targets no attacker: {string.Join(",", r.DefenderPlayed)}");
+        }),
         ("resolution by the rules: strictly more than defenders plus Strength razes; equal Force is a tie that destroys both armies and no Province; a bowed unit counts nothing and dies", () =>
         {
             var a = new[] { L(Unit("a1", 0, 8)) }; var d = new[] { L(Unit("d1", 1, 1)) };

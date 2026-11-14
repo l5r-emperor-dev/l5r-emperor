@@ -75,6 +75,7 @@ public static class Questions
 {
     private const double UnitWorth = .3, CardWorth = .1; // in Provinces
     private const int RaceHorizon = 6;                   // a race is a race only when the end is in sight
+    private const double RiskNothing = .1;               // in Provinces: what a lock or a drain may expose for an attack
 
     /// <summary>The value of taking one of <paramref name="theirs"/> Provinces when they have that many left: the last ends the game.</summary>
     public static double ProvinceWorth(int left) => left <= 1 ? 4 : left == 2 ? 2 : 1;
@@ -89,7 +90,11 @@ public static class Questions
         var (posture, why) = PostureOf(read, options, hold, threat, clocks);
         var w = Answers.Weight(posture);
         foreach (var o in options) o.Score = o.Gain - w * (o.ExposureCost - hold.ExposureCost);
-        var best = options.OrderByDescending(o => o.Score).ThenBy(o => o.IsHold ? 0 : 1).ThenBy(o => o.Assignment.Count).First();
+        // lock and drain (PLAYER_MODEL.md 3.1: "attack only when it costs nothing I need"): an attack that raises the exposure is not taken whatever its gain
+        var eligible = posture is Posture.Lock or Posture.Drain ? options.Where(o => o.IsHold || o.ExposureCost - hold.ExposureCost <= RiskNothing).ToList() : options;
+        var best = eligible.OrderByDescending(o => o.Score).ThenBy(o => o.IsHold ? 0 : 1).ThenBy(o => o.Assignment.Count).First();
+        // their last Province falls: the last turn of the game sends everything (PLAYER_MODEL.md 3.2); the exchange's cell cannot see the extra safety the rest of the army buys
+        if (!best.IsHold && read.Ledger.Them.Provinces.Length == 1 && options.FirstOrDefault(o => o.Label == "everything") is { } all && all.Cells == best.Cells) best = all;
         var gate = Gate(read, options);
         if (gate is { Length: > 0 } && gate.StartsWith("hold")) best = hold;
         return new(new(best, hold, options.ToArray(), gate ?? ""), threat, clocks, posture, why);
@@ -107,7 +112,8 @@ public static class Questions
         return null;
     }
 
-    private static LedgerUnit[] Army(Read read) => read.Ledger.Me.Home.Where(u => !u.Bowed && !u.ActionLocked && (u.UnitForce > 0 || u.Abilities.Any(a => a.IsBattle))).OrderByDescending(u => u.UnitForce).ThenBy(u => u.Id, StringComparer.Ordinal).ToArray();
+    /// <summary>The units an attack may use: unbowed, free to act, with 2 Force or more. A 0 to 1 Force utility Personality is a target, not security (PLAYER_MODEL.md 3.2); it stays home.</summary>
+    private static LedgerUnit[] Army(Read read) => read.Ledger.Me.Home.Where(u => !u.Bowed && !u.ActionLocked && u.UnitForce >= 2).OrderByDescending(u => u.UnitForce).ThenBy(u => u.Id, StringComparer.Ordinal).ToArray();
 
     /// <summary>Family A's candidates, each played against the defender's best reply.</summary>
     private static IEnumerable<AttackOption> Options(Read read)
@@ -220,6 +226,8 @@ public static class Questions
         var bestGain = options.Where(o => !o.IsHold).DefaultIfEmpty(hold).Max(o => o.Gain);
         var bestProvinces = options.Max(o => o.ExpectedProvinces);
         var holds = threat.Likely.ProvincesLost == 0;
+        // they win before my next turn: nothing to lose, unless it is my last Province that falls and holding still saves it more often than not (then the exposure keeps its full weight)
+        if (clocks.TheirFastest <= 1 && clocks.MyFastest > 1 && !(me.Provinces.Length == 1 && hold.ExposureCost < .85 * ProvinceWorth(1))) return (Posture.Race, "they win before my next turn unless this turn changes it: nothing to lose");
         if (them.Units.Length > 0 && !them.Home.Any(u => !u.Bowed)) return (Posture.Punish, "their Personalities are bowed");
         if (them.Provinces.Length == 1 && bestProvinces >= .5 * ProvinceWorth(1)) return (Posture.Press, "their last Province falls to my best attack");
         if (them.Provinces.Length == 1 && clocks.TheirFastest > 1) return (Posture.Wait, "their last Province; they cannot win before my next turn");

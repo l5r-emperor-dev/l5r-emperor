@@ -111,6 +111,32 @@ public sealed class BotContext
         }
     }
     private int _answersTurn = -1;
+    /// <summary>Issue #1206 (family A): the Read's answers for the current decision, by view version.</summary>
+    internal (long Version, Answers Answers)? ReadAnswersCache { get; set; }
+    /// <summary>Family A in shadow: the opportunity's attack or hold and its shape beside what the bot chose; a difference is logged.</summary>
+    public List<string> AttackLog { get; } = [];
+    internal void NoteAttack(MatchView view, Answers answers, GameCommand chosen)
+    {
+        if (AttackLog.Count >= 2000) return;
+        var best = answers.Opportunity.Best;
+        // the position in a line: my unbowed home Forces, theirs, each side's Provinces with Strength, the clocks; then the options by score
+        var me = view.Players.Single(p => p.Id == view.ViewerId); var them = view.Players.Single(p => p.Id != view.ViewerId);
+        string Forces(PlayerView p) => string.Join(",", p.Home.Where(c => c.Definition?.Type == CardType.Personality).OrderByDescending(c => c.UnitForce ?? c.Force).Select(c => (c.UnitForce ?? Math.Max(0, c.Force)) + (c.Bowed ? "*" : "")));
+        string Provs(PlayerView p) => string.Join(",", p.Provinces.Where(q => !q.Destroyed).Select(q => "s" + q.Strength));
+        var position = $"me [{Forces(me)}] P[{Provs(me)}] H{me.Honor} hand {me.HandCount} | them [{Forces(them)}] P[{Provs(them)}] H{them.Honor} hand {them.HandCount} | clocks {answers.Clocks}";
+        var options = string.Join(" || ", answers.Opportunity.Options.OrderByDescending(o => o.Score).Take(4).Select(o => o.ToString()));
+        if (view.Phase == Phase.AttackDeclaration)
+        {
+            var chose = chosen.Type == "declareAttack" ? "declare" : chosen.Type == "pass" ? "hold" : chosen.Type;
+            var would = best.IsHold ? "hold" : "declare";
+            if (chose is "declare" or "hold") AttackLog.Add($"T{view.TurnNumber} declare {(chose == would ? "same" : "DIFFERS")}: chose {chose}, read {would} ({answers.Opportunity.Gate}{(answers.Opportunity.Gate.Length > 0 ? "; " : "")}posture {answers.Posture}: {answers.Why}) | {position} | {options}");
+            return;
+        }
+        var mine = chosen.Assignments ?? [];
+        var same = !best.IsHold && mine.Count == best.Assignment.Count && mine.All(kv => best.Assignment.TryGetValue(kv.Key, out var p) && p == kv.Value);
+        string Shape(IReadOnlyDictionary<string, int> a) => a.Count == 0 ? "nobody" : string.Join(",", a.GroupBy(v => v.Value).OrderBy(g => g.Key).Select(g => $"P{g.Key + 1}<-{g.Count()}"));
+        AttackLog.Add($"T{view.TurnNumber} assign {(same ? "same" : "DIFFERS")}: chose {Shape(mine)}, read {(best.IsHold ? "hold" : Shape(best.Assignment))} | {position} | {options}");
+    }
     /// <summary>Issue #1206 (family D): the Read's defence plan for the current decision, by view version.</summary>
     internal (long Version, DefencePlan Plan)? ReadDefencePlan { get; set; }
     /// <summary>Family D in shadow: what the Read's defence would assign beside what the bot chose; a difference is logged (the step 3 shadow run reads these).</summary>

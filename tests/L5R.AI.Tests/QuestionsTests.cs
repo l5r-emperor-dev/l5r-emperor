@@ -78,5 +78,21 @@ internal static class QuestionsTests
             var build = Questions.Of(ReadOf(buildMe, buildThem));
             Check(build.Posture is Posture.Build or Posture.Hold && !build.Opportunity.Attacks, $"7 against 14 + 7: no attack; build or hold, not {build.Posture} ({build.Why}): {build.Opportunity}");
         }),
+        ("a 42 Force army razes a Strength 6 Province held by two units under every hand, and takes their last Province with everything", () =>
+        {
+            var me = Side(0, [U("m1", 0, 8), U("m2", 0, 5), U("m3", 0, 5), U("m4", 0, 5), U("m5", 0, 4), U("m6", 0, 4), U("m7", 0, 4), U("m8", 0, 4), U("m9", 0, 3)], [(0, 7), (1, 7), (2, 7), (3, 7)], honor: 4);
+            var them = Side(1, [U("t1", 1, 4), U("t2", 1, 2)], [(0, 6)], honor: 24, hand: 1);
+            var a = Questions.Of(ReadOf(me, them));
+            var everything = a.Opportunity.Options.Single(o => o.Label == "everything");
+            Check(everything.Cells == "111" && everything.ExpectedProvinces > 3, $"42 against 6 + 6 falls under every hand: {everything}");
+            Check(a.Opportunity.Attacks && a.Opportunity.Best.Assignment.Count == 9, $"their last Province falls: everything goes (PLAYER_MODEL.md 3.2): {a.Opportunity.Best}");
+        }),
+        ("they win next turn: the posture is race whatever my clock, and the attack is taken", () =>
+        {
+            var me = Side(0, [U("m1", 0, 12), U("m2", 0, 4), U("m3", 0, 4)], [(0, 5), (1, 7), (2, 7)], honor: 5); var them = Side(1, [U("t1", 1, 4), U("t2", 1, 4), U("t3", 1, 4)], [(0, 7), (1, 7), (2, 7)], honor: 45, hand: 3);
+            var a = Questions.Of(ReadOf(me, them));
+            Check(a.Posture == Posture.Race, $"their Honor is 45: they win at the start of their turn; nothing to lose: race, not {a.Posture} ({a.Why})");
+            Check(a.Opportunity.Attacks, $"the only chance is the attack: {a.Opportunity}");
+        }),
     ];
 }
