@@ -68,6 +68,41 @@ public partial class Main
         return new(engine, offered, target.Id, followup ? offered == ruya.Id ? second : ruya.Id : null);
     }
 
+    // Issue #1240: Armor of the Heavens' four choices, after another player's Tsuruchi Daikyu attack targets its wearer.
+    private static ReactionCaptureFixture ReactionCaptureArmor(int seat)
+    {
+        var state = ReactionCaptureTable(1 - seat);
+        var wearer = SupportFixtureCard(state, 3636, seat, Zone.Battlefield, 0);
+        var armor = SupportFixtureCard(state, 446, seat, Zone.Attached, 0); armor.AttachedTo = wearer.Id;
+        var archer = SupportFixtureCard(state, 2060, 1 - seat, Zone.Battlefield, 0);
+        var bow = SupportFixtureCard(state, 8823, 1 - seat, Zone.Attached, 0); bow.AttachedTo = archer.Id;
+        var engine = ReactionCaptureEngine(state);
+        var attack = engine.QueryActions(1 - seat).First(a => a.Enabled && a.CardId == bow.Id && a.Command?.AbilityId == "tsuruchi-daikyu-attack");
+        ReactionCaptureAccept(engine, attack.Command! with { TargetId = wearer.Id });
+        SupportRequire(engine.QueryActions(seat).Count(a => a.Enabled && a.CardId == armor.Id) == 4, "Armor of the Heavens did not offer its four choices");
+        return new(engine, armor.Id, wearer.Id);
+    }
+
+    private async Task CaptureArmorOfTheHeavens(int seat)
+    {
+        var fixture = ReactionCaptureArmor(seat); await PrepareReactionCapture(fixture, seat, input: false);
+        await SupportCapture("-offer");
+        string[] expected = ["You Gain 2 Honor", "Opponent Gains 2 Honor", "You Lose 2 Honor", "Opponent Loses 2 Honor"];
+        var buttons = StabilizationButtons(_inspector).Where(b => b.IsVisibleInTree() && b.HasMeta("reaction_card")).ToArray();
+        GD.Print("ARMOR_BUTTONS: " + string.Join(" | ", buttons.Select(b => b.Text)));
+        SupportRequire(expected.All(t => buttons.Count(b => b.Text == t) == 1), "Armor of the Heavens' buttons do not name the four outcomes");
+        var loses = buttons.Single(b => b.Text == "Opponent Loses 2 Honor");
+        for (Node? n = loses.GetParent(); n is not null; n = n.GetParent()) if (n is ScrollContainer sc) sc.EnsureControlVisible(loses);
+        await EventFrames(6); await SupportCapture("-buttons");
+        var honor = View.Players.Single(x => x.Id != seat).Honor;
+        await SupportClick(loses); await WaitReactionCapture(); await SupportCapture("-clicked");
+        if (_chosen is not null && StabilizationButtons(_decisionActions).FirstOrDefault(b => b.IsVisibleInTree() && !b.Disabled && b.Name == "CommitAction") is { } commit) { await SupportClick(commit); await WaitReactionCapture(); }
+        await SupportCapture("-resolved");
+        GD.Print($"ARMOR_RESULT: opponent Honor {honor} -> {View.Players.Single(x => x.Id != seat).Honor}");
+        SupportRequire(View.Players.Single(x => x.Id != seat).Honor == honor - 2, "Opponent Loses 2 Honor did not cost the opponent 2 Honor");
+        GD.Print("REACTION_FLOW_PASS: Armor of the Heavens lists its four outcomes by name and the chosen one resolves without a player picker; seat=" + seat); GetTree().Quit();
+    }
+
     private static ReactionCaptureFixture ReactionCaptureForest(int seat)
     {
         var state = ReactionCaptureTable(seat, Phase.BattleSelection);
@@ -305,6 +340,7 @@ public partial class Main
             _preferences.ReducedMotion = _captureMode.Contains("reduced"); _preferences.PausedAnimation = false; ApplyPreferences(false);
             var layout = _captureMode.Contains("layout");
             var forestReview = _captureMode.Contains("review") && _captureMode.Contains("forest");
+            if (_captureMode.Contains("armor")) { await CaptureArmorOfTheHeavens(seat); return; }
             var fixture = forestReview ? ReactionCaptureForest(seat) : ReactionCaptureBow(seat); await PrepareReactionCapture(fixture, seat, input: !layout);
             CheckReactionCaptureLayout(); await SupportCapture("-offer");
             if (layout)

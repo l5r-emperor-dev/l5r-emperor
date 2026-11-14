@@ -8,7 +8,7 @@ dotnet build src/L5R.Client/L5R.Client.csproj --nologo --disable-build-servers -
 "$GODOT" --headless --editor --path src/L5R.Client --import > artifacts/checks/reaction-flow/import.log 2>&1
 # Each seat performs the same published-card scenarios. The compact case checks
 # the supported 1280x800 viewport and the independent reduced-motion rendering.
-specs=('1920x1080 normal-seat0' '1920x1080 normal-seat1' '1280x800 reduced-seat0' '1280x800 reduced-seat1')
+specs=('1920x1080 normal-seat0' '1920x1080 normal-seat1' '1280x800 reduced-seat0' '1280x800 reduced-seat1' '1280x800 armor-seat1')
 if [ "$#" -gt 0 ]; then specs=("$@"); fi
 for spec in "${specs[@]}"; do
   read -r resolution mode <<< "$spec"
