@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Family I formulation 3 (riBoard): the hand-limit discard reads the board (threat/opportunity deltas, development, reserve shared across answers, Honor loss by distance to -20); descriptor fixes (before-resolution answers, one-or-two targets, without-attachments slots, targeted player's choice as the cheaper branch, 33 abilities audited). Screen on 11800 null (+20/-20); opt-in.",
+  "validation": "check.sh --skip-client passed; hand 19/19, effect-descriptor 11/11, descriptor-audit 1/1; T2 v T2 seed 11900 on main and branch: 364/364 games identical",
+  "remaining": "Family I closed. Step 4 (lkRead, lkFight) on block 11700 next.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
+  "branch": "claude/1206-conan-family-i3",
+  "updated": "2026-11-15T14:12:35.455521+00:00"
+}
