@@ -16,10 +16,14 @@ public static class Route
 {
     /// <param name="answers">the Read's answers at this declaration.</param>
     /// <param name="lethal">the Contender has a lethal attack: it is declared whatever the posture.</param>
-    public static RoutePlan Gate(Answers answers, bool lethal)
+    /// <param name="raceBehind">formulation 2 (rgRace): when their Honor win is within three turns and nothing of mine is faster, declare every turn (the only way the game is still won).</param>
+    public static RoutePlan Gate(Answers answers, bool lethal, bool raceBehind = false)
     {
         var p = answers.Posture;
         if (lethal) return new(true, p, "a lethal attack is declared whatever the route");
+        var viableNow = answers.Opportunity.Options.Any(o => !o.IsHold) && !answers.Opportunity.Gate.StartsWith("hold", StringComparison.Ordinal);
+        if (raceBehind && viableNow && answers.Clocks.TheirHonor <= 3 && answers.Clocks.TheirHonor < answers.Clocks.MyFastest && p is not (Posture.Lock or Posture.Drain))
+            return new(true, p, $"their Honor win is {answers.Clocks.TheirHonor:0} turn(s) away and nothing of mine is faster ({answers.Clocks}): race");
         // no attack is possible (no army, no group that exceeds Strength even undefended): a race or a punish has nothing to declare and the gate is silent (the Contender passes on its own)
         var viable = answers.Opportunity.Options.Any(o => !o.IsHold) && !(answers.Opportunity.Gate.StartsWith("hold", StringComparison.Ordinal));
         if (!viable && p is Posture.Race or Posture.Punish) return new(null, p, $"{Name(p)}, but no attack is possible ({answers.Opportunity.Gate}): the Contender decides");

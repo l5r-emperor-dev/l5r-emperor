@@ -585,7 +585,7 @@ public static partial class TrainingOpponent
                 if (Rule(x, "readA") && !Rule(x, "raShape") && LethalPlan(x, x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed).ToArray(), x.Opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Index).ToArray()) is null && ReadAnswers(x) is { } answersA)
                     return answersA.Opportunity.Attacks ? 150 : PassScore - 1;
                 // issue #1206 (readG, RULE_FAMILIES.md family G): the route gate: a lock, a drain or a wait passes unless the attack risks nothing, a race or a punish declares, the rest is the Contender's
-                if (Rule(x, "readG") && ReadAnswers(x) is { } answersG && Route.Gate(answersG, LethalPlan(x, x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed).ToArray(), x.Opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Index).ToArray()) is not null) is { Declare: { } gate })
+                if (Rule(x, "readG") && ReadAnswers(x) is { } answersG && Route.Gate(answersG, LethalPlan(x, x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed).ToArray(), x.Opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Index).ToArray()) is not null, Rule(x, "rgRace")) is { Declare: { } gate })
                     return gate ? Math.Max(150, DeclareScore(x)) : PassScore - 1;
                 return DeclareScore(x);
             case "attack":

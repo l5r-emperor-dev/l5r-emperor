@@ -62,5 +62,12 @@ internal static class RouteTests
             Check(answers.Clocks.MyDrain == 9 && answers.Clocks.MyMilitary < 9, $"drain 9, military shorter: {answers.Clocks}");
             Check(answers.Posture == Posture.Drain, $"posture Drain over the military race: {answers}");
         }),
+        ("formulation 2 (rgRace): with their Honor win two turns away and my fastest clock six, a hold posture declares; without the flag it is silent; under a lock it still passes", () =>
+        {
+            var behind = new Answers(new(Hold(), Hold(), [Hold(), Attack(.3, .9)], ""), ThreatRead.None, new(6, 99, 99, 9, 2, 99), Posture.Hold, "test");
+            Check(Route.Gate(behind, false, raceBehind: true).Declare == true, $"race behind: declare ({Route.Gate(behind, false, raceBehind: true).Why})");
+            Check(Route.Gate(behind, false).Silent, "without the flag: silent");
+            Check(Route.Gate(behind with { Posture = Posture.Lock }, false, raceBehind: true).Declare == false, "under a lock: pass");
+        }),
     ];
 }

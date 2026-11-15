@@ -81,3 +81,11 @@ The gate decides only declare or pass; the shape of a declared attack is the Con
 | 10 | Scottish Lion v Pinned Lion T9, P4v1, wait, no attack above the hold | declare | pass | right by the model |
 
 **9 right, 1 equivalent, 0 wrong.** The gate passes the shadow gate (4 of 10 with six gaps, then 9, then 10 of 10) and fires 0.38 times a game, inside the card's 0.3-1. The screen runs on block 11100.
+
+## Screen (block 11100, T2 + read + readG against T2, 1,456 games, fire counts on)
+
+A/A `ca111`: 51.3% (747 of 1,456). Arm `rG111`: **51.4%** (749 of 1,456); against the A/A **+32 gained, −30 lost, net +2, two-sided p .90**: null. `readG` is consulted 7.2 times a game (every attack declaration) and fires 0.57 times a game, in 411 games (28%). Per deck: Classic Lion +7 / −3, Crane preset +3 / −0, Crane Dominance +5 / −5, Lion Legacy +3 / −3, the rest within two games either way; Unicorn Maidens +1 / −3, Dragon +0 / −2. 
+
+**What moved** (`tools/bots/behaviour/q9_losses.py`): nothing. Honor losses are 24% of the lost games on both sides (350 of 1,456 seat-losses in the mirror, 173 of 707 for the arm), Dishonor 3%; after the opponent passed 30 Honor the arm attacked on 66% of its decisions against the mirror's 69%, all-in on 39% against 38%. The gate's 0.57 fires a game change 62 results and cancel out: a lock's pass saves a unit here and forgoes a Province there.
+
+**Formulation 2**, `rgRace`: the gate also declares every turn while their Honor win is within three turns and nothing of mine is faster (not under a lock or a drain). The mirror loses a fifth of its lost games to Honor and still attacks on only 68% of its decisions after the opponent passes 30 Honor (AB section 7, Q9e); the first formulation's postures touch the Honor race only from my side (lock) or when my military clock is already shorter (race). Screens next on the same block.
