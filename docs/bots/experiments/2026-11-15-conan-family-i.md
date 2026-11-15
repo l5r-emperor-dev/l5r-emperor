@@ -90,3 +90,9 @@ Hard is Conan-best (T2 + lkDef, lkVar, lkPlan + look); the arm is the `conan` ar
 | 1 + 2 | | | | 728 | 13 | 13 | −0.53 | continue |
 | 3 | 11602 | 70.0% (254/363) | 70.0% (254/363) | 363 | 8 | 8 | −0.33 (chunk alone) | continue |
 | 1 + 2 + 3 | | | | 1,091 | 21 | 21 | −0.86 | continue |
+| 4 | 11603 | 70.1% (255/364) | 68.7% (250/364) | 364 | 9 | 14 | −1.48 (chunk alone) | continue |
+| 1 to 4 | | | | 1,455 | 30 | 35 | −2.34 | **cap: no decision** |
+
+**Verdict: null under Hard.** The test reached the 1,456-game cap with 30 games gained and 35 lost (net −5, LLR −2.34, short of the −2.94 bound but leaning to no gain). The +11 at Contender speed does not carry over to Hard: whatever the live-use discard fixes, the Hard bot's own play already covers it or the discard is too rare to matter. `readI`/`riHand` stay opt-in and off by default; nothing changes on main's defaults.
+
+What follows: formulation 3 (branch `claude/1206-conan-family-i3`) replaces the live-use count with a value read from the board (defence and attack deltas from the Read, development in quiet turns, Honor for opponent-choice cards read as their cheaper branch, PLAYER_MODEL.md 3.7). It is screened on a fresh block before any sequential test.
