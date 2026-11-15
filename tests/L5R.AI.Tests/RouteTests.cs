@@ -13,7 +13,7 @@ internal static class RouteTests
     private static Read ReadOf(LedgerSide me, LedgerSide them) => new(new Ledger(me.Id, 8, Phase.AttackDeclaration, me, them), new Belief(them.HandCount, Belief.Prior, 0, []), "test", me.Id);
     private static AttackOption Hold() => new("hold", [], [], "-", "", 0, 0, 0, 0, 0, ThreatRead.None, 0);
     private static AttackOption Attack(double provinces, double exposure) => new("lone", [], [(0, 5, Array.Empty<LedgerUnit>())], "nobody", "111", provinces, 0, 0, 0, provinces, ThreatRead.None, exposure);
-    private static Answers With(Posture posture, bool attacks) => new(new(attacks ? Attack(.8, .05) : Hold(), Hold(), [Hold()], ""), ThreatRead.None, new(6, 99, 99, 9, 99, 99), posture, "test");
+    private static Answers With(Posture posture, bool attacks, bool viable = true) => new(new(attacks ? Attack(.8, .05) : Hold(), Hold(), viable ? [Hold(), Attack(.3, .9)] : [Hold()], viable ? "" : "hold: no army or no Province"), ThreatRead.None, new(6, 99, 99, 9, 99, 99), posture, "test");
 
     public static readonly (string, Action)[] Tests =
     [
@@ -28,6 +28,11 @@ internal static class RouteTests
         {
             Check(Route.Gate(With(Posture.Race, false), false).Declare == true, "race: declare");
             Check(Route.Gate(With(Posture.Punish, false), false).Declare == true, "punish: declare");
+        }),
+        ("a race or a punish with no possible attack (no army, or no group exceeds Strength even undefended) is silent", () =>
+        {
+            Check(Route.Gate(With(Posture.Race, false, viable: false), false).Silent, "race, no army: silent");
+            Check(Route.Gate(With(Posture.Punish, false, viable: false), false).Silent, "punish, no army: silent");
         }),
         ("press, build and hold are silent", () =>
         {

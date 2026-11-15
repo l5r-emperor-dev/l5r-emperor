@@ -20,6 +20,9 @@ public static class Route
     {
         var p = answers.Posture;
         if (lethal) return new(true, p, "a lethal attack is declared whatever the route");
+        // no attack is possible (no army, no group that exceeds Strength even undefended): a race or a punish has nothing to declare and the gate is silent (the Contender passes on its own)
+        var viable = answers.Opportunity.Options.Any(o => !o.IsHold) && !(answers.Opportunity.Gate.StartsWith("hold", StringComparison.Ordinal));
+        if (!viable && p is Posture.Race or Posture.Punish) return new(null, p, $"{Name(p)}, but no attack is possible ({answers.Opportunity.Gate}): the Contender decides");
         return p switch
         {
             Posture.Lock or Posture.Drain => !answers.Opportunity.Attacks
