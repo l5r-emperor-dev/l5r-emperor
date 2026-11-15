@@ -24,7 +24,17 @@ public static class Hand
             ? Exchange.Run(meWithout, mine, them, theirs, strength, me.HandAnswers, read.Belief.Answers(false))
             : Exchange.Run(them, theirs, meWithout, mine, strength, read.Belief.Answers(false), me.HandAnswers);
         if (viewerAttacks) return new(false, "attacking: the Favor is kept for a defence (it moves an attacker home, with presence)", without, null);
-        if (!without.Falls) return new(false, $"defending: the Province holds at likely without it ({without.DefenceForce} v {without.AttackForce})", without, null);
+        if (!without.Falls)
+        {
+            // a deciding battle (my last Province): the Favor goes when their worst hand would take it without the Favor and the attacker home saves it (PM 3.7: spent in the battle it decides)
+            if (deciding && target is not null)
+            {
+                var worst = Exchange.Run(them, theirs, meWithout, mine, strength, read.Belief.Answers(true), me.HandAnswers);
+                if (worst.Falls && !Exchange.Run(them, theirs.Where(u => u.Id != target.Id).ToArray(), meWithout, mine, strength, read.Belief.Answers(true), me.HandAnswers).Falls)
+                    return new(true, $"my last Province holds at likely but falls under their worst hand ({worst.DefenceForce} v {worst.AttackForce}); {target.Name} home saves it: spent", without, worst);
+            }
+            return new(false, $"defending: the Province holds at likely without it ({without.DefenceForce} v {without.AttackForce})", without, null);
+        }
         if (target is null) return new(false, "defending, the Province falls, but nothing to send home", without, null);
         var with = Exchange.Run(them, theirs.Where(u => u.Id != target.Id).ToArray(), meWithout, mine, strength, read.Belief.Answers(false), me.HandAnswers);
         if (!with.Falls) return new(true, $"defending: the Province falls at likely without it and holds with {target.Name} sent home ({with.DefenceForce} v {with.AttackForce})", without, with);

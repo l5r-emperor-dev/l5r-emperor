@@ -11,6 +11,7 @@ hand answers = the hand's cards with a Battle descriptor that neutralises (send 
 1  the Favor in a battle (favor-battle offered):
      IF the exchange at this battlefield without the Favor already wins for me at likely (the Province holds, or falls, as I want it)   -> keep it
      IF defending AND the exchange without it loses the Province at likely AND with it (one attacker home) holds                      -> spend it
+     IF defending my last Province AND it holds at likely but falls under their worst hand AND with it holds under that hand too       -> spend it
      IF attacking                                                                                                                       -> keep it (it moves an attacker home, with presence, on defence)
      never on the Favor's card cycle
 2  an Event that replaces the hand (a yes/no choice whose text discards the hand and draws):
@@ -31,3 +32,20 @@ hand answers = the hand's cards with a Battle descriptor that neutralises (send 
 ## Shadow (T2 with the Read against T2, seed 11200, 364 games)
 
 **Round 1** (`shI_112`, before the two fixes above; 5:46 wall, 8.5 s a game: the shadow runs the exchange at every Favor offer): the Favor was offered 204 times to the challenger; the Read differed at 161 (0.44 a game), all of them "the Contender spends, the Read keeps" (156 defending: the Province holds at likely without it; 5 attacking). The hand-limit discard was read 182 times and differed at 96 (0.26 a game), every difference a card with no live target against their units in play where the Contender discarded by its fixed card values. No hand-replacing Event is in the fourteen decks (0 decisions). Round 2 is the rerun with the fixes; ten of each kind are judged there.
+
+**Round 2** (`shI2_112`, with the two fixes): the Favor differs at 161 of 204 offers (0.44 a game), the discard at 84 of 182 (0.23 a game). Five of each drawn by seed 212:
+
+| # | Position | Contender | Read | Verdict |
+|---|---|---|---|---|
+| F1 | Scottish Lion v Scorpion T12, level, their 5 against an empty defence at Strength 5 | spend | keep: holds at likely (5 does not exceed 5) | right by the model, on a razor's edge |
+| F2 | Scorpion v Spider T10, P4v1, every attacker neutralised in the projection | spend | keep | right |
+| F3 | Phoenix v Crane T16, my Honor 49 | spend | keep | equivalent: the Honor win is at my next turn start |
+| F4 | Phoenix v Classic Lion T15, 15 against 12 | spend | keep | right |
+| F5 | Crane Dominance v Dragon T18, **my last Province**, holds at likely | spend | keep | unclear: PM 3.7 spends in the battle it decides; the Favor now goes at my last Province when their worst hand would take it |
+| D1 | Dragon v Classic Crane T4 | Superior Reach | Moving and Unmoving (no live target) | right by the policy |
+| D2 | Crab Control v Scottish Lion T8 | Sheathing the Sword | Dismissing the Cur (no target: every Lion outranks my performers in Honor) | right |
+| D3 | Crab Control v Scottish Lion T6 | Black Marketeering (a destroy with six targets) | Dismissing the Cur | right |
+| D4 | Classic Crane v Crab T5 | Pure Strike Blade | Block Supply Lines (no live target) | right |
+| D5 | Unicorn v Crane Dominance T6, two cards | My Enemy's Mercy, A Paragon's Strength | Pure Intent, Preserving Beauty (one use each) | unclear |
+
+**8 of 10 right or equivalent, 0 wrong, 2 unclear.** The gate is met; the Favor's deciding-battle line is added for F5 and round 3 is the rerun.

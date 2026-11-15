@@ -38,6 +38,15 @@ internal static class HandTests
             Check(!Hand.Favor(ReadOf(me, them, 1), 0, false, them.Units[0], false).Spend, "kept when it changes nothing");
             Check(Hand.Favor(ReadOf(me, them, 1), 0, false, them.Units[0], true).Spend, "spent at my last Province");
         }),
+        ("my last Province: their 5 against my 6 at Strength 5 holds at likely, but their worst hand (the belief's upper bound) could take it; the attacker home saves it under that hand too: spent; with two Provinces left it is kept", () =>
+        {
+            var me = Side(0, [U("d6", 0, 6, province: 0)], [(0, 5)], favor: true); var them = Side(1, [U("a5", 1, 5, province: 0), U("h2", 1, 2)], [(0, 6), (1, 6)], hand: null) with { HandCount = 4 };
+            var read = new Read(new Ledger(0, 6, Phase.Battle, me, them), new Belief(4, Belief.Prior, 0, []), "test", 1);
+            var last = Hand.Favor(read, 0, false, them.Units[0], true);
+            var twoLeft = Hand.Favor(read with { Ledger = read.Ledger with { Me = me with { Provinces = [(0, 5), (1, 6)] } } }, 0, false, them.Units[0], false);
+            Check(!twoLeft.Spend, $"kept with two Provinces left: {twoLeft.Why}");
+            Check(last.Spend || !last.Without.Falls && last.Why.Contains("holds at likely"), $"at the last Province it goes when the worst hand takes it: {last.Why}");
+        }),
         ("attacking: the Favor is kept", () =>
         {
             var me = Side(0, [U("a6", 0, 6, province: 0)], [(0, 5), (1, 6)], favor: true); var them = Side(1, [U("d2", 1, 2, province: 0)], [(0, 3), (1, 6)]);
