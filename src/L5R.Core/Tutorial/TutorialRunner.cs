@@ -7,10 +7,11 @@ namespace L5R.Core;
 /// <param name="AnimateOnly">When set, the only cards (by definition id) whose reveal and entering-play animations this step shows; the others reveal quietly (they are explained in a later step).</param>
 /// <param name="ProvincesOnTable">False while the opening notes are read: the provinces are laid out at the step that introduces them.</param>
 /// <param name="Emphasis">A printed part of every highlighted card to swell and shrink back over four seconds (see <see cref="TutorialEmphasis"/>).</param>
+/// <param name="ShowDeadOf">When set, the table opens this player's Dead pile gallery as the note appears (the Dishonor lesson shows the Dragon's dead).</param>
 /// <param name="NextLessonId">On a lesson's last note: the lesson the curriculum lists next, offered beside the button back to the menu (its title is <paramref name="NextTitle"/>).</param>
 public sealed record TutorialCoach(string StepId, string Title, string Body, string? Button, string[] HighlightCardIds, int Step, int Steps, bool Finished, string? Instruction = null,
     string[]? Glow = null, string? ShowDefinitionId = null, bool Slow = false, bool ProvincesOnTable = true, bool CanGoBack = false, string? ExitLabel = null, string[]? AnimateOnly = null,
-    string? Emphasis = null, string? NextLessonId = null, string? NextTitle = null);
+    string? Emphasis = null, string? NextLessonId = null, string? NextTitle = null, int? ShowDeadOf = null);
 
 /// <summary>Printed parts of a card a note can swell: the Gold Cost coin and the Honor Requirement box.</summary>
 public static class TutorialEmphasis
@@ -55,6 +56,8 @@ internal sealed class TutorialStep
     /// <summary>Definition ids of the only cards whose reveal animations play when this step shows (see <see cref="TutorialCoach.AnimateOnly"/>).</summary>
     public string[]? AnimateOnly { get; init; }
     public string? Emphasis { get; init; }
+    /// <summary>Open the opponent's Dead pile gallery when this note appears.</summary>
+    public bool ShowFoeDead { get; init; }
     public bool IsAction => Allow is not null;
 }
 
@@ -115,6 +118,21 @@ internal sealed class TutorialContext(TutorialRunner runner)
             ?? throw new InvalidOperationException("The lesson expected a battle to choose.");
         var result = Engine.Execute(option.Command!);
         if (!result.Accepted) throw new InvalidOperationException("The lesson's battle choice was refused: " + result.Error);
+    }
+    /// <summary>You hold the Imperial Favor from the start (set in a lesson's opening).</summary>
+    public void GiveFavor() => Engine.TutorialGiveFavor(TutorialRunner.Seat);
+    /// <summary>The opponent keeps the opportunity to act it has just been given instead of passing it back, until a step makes its move (<see cref="FoeOrderSeppuku"/>), so notes can be read in between.</summary>
+    public void FoeWaits() => runner.FoeWaiting = true;
+    /// <summary>The opponent orders its dishonorable Personality (by definition id) to commit Seppuku, the Open action every player has. A refusal is a mistake in the lesson, so it throws.</summary>
+    public void FoeOrderSeppuku(string definition)
+    {
+        runner.FoeWaiting = false;
+        var foe = 1 - TutorialRunner.Seat; var look = new TutorialLookup(Engine);
+        var cardId = look.Foe(definition, Zone.Home, Zone.Battlefield).FirstOrDefault() ?? throw new InvalidOperationException("The lesson expected the opponent's Personality to be in play.");
+        var option = Engine.QueryActions(foe).FirstOrDefault(a => a.Enabled && a.Command is { Type: "orderSeppuku" } c && c.CardId == cardId)
+            ?? throw new InvalidOperationException("The lesson expected the opponent to be able to order Seppuku: " + string.Join("; ", Engine.QueryActions(foe).Select(a => $"{(a.Enabled ? "" : "DISABLED: " + a.Reason + " ")}{a.Type}/{a.Label}")));
+        var result = Engine.Execute(option.Command!);
+        if (!result.Accepted) throw new InvalidOperationException("The opponent's Seppuku was refused: " + result.Error);
     }
     /// <summary>The opponent plays its script until <paramref name="stop"/> holds or a decision is yours.</summary>
     public void Foe(Func<MatchState, bool>? stop = null) => runner.PlayFoe(stop, scripted: true);
@@ -214,6 +232,8 @@ public sealed class TutorialRunner
     internal int? AttackedProvince => _attackedProvince;
     private int? _attackedProvince;
     private readonly HashSet<FoePurchase> _bought = [];
+    /// <summary>Set by <see cref="TutorialContext.FoeWaits"/>: the opponent does not pass its opportunity to act until a step's move clears it.</summary>
+    internal bool FoeWaiting { get; set; }
 
     private TutorialRunner(TutorialLesson lesson)
     {
@@ -243,7 +263,8 @@ public sealed class TutorialRunner
             if (Current is not { } step) return new("done", "Lesson complete", "", null, [], _steps.Length, _steps.Length, true);
             var next = _index == _steps.Length - 1 ? TutorialCurriculum.After(_lesson.Id) : null;
             return new(step.Id, step.Title, step.Body, step.Button, step.Highlight?.Invoke(_lookup).ToArray() ?? [], _index + 1, _steps.Length, false, step.Instruction,
-                step.Glow, step.ShowDefinitionId, step.Slow, _index >= _lesson.ProvincesStep, CanGoBack, AnimateOnly: step.AnimateOnly, Emphasis: step.Emphasis, NextLessonId: next?.Id, NextTitle: next?.Title);
+                step.Glow, step.ShowDefinitionId, step.Slow, _index >= _lesson.ProvincesStep, CanGoBack, AnimateOnly: step.AnimateOnly, Emphasis: step.Emphasis, NextLessonId: next?.Id, NextTitle: next?.Title,
+                ShowDeadOf: step.ShowFoeDead ? 1 - Seat : null);
         }
     }
 
@@ -333,6 +354,7 @@ public sealed class TutorialRunner
                 var onItsOwnTurn = _engine.TutorialState.ActivePlayerId != Seat;
                 var attacking = _engine.TutorialState.Phase != Phase.Action; // its own Attack and Dynasty phases are the lesson's to narrate
                 if (!scripted && (onItsOwnTurn && attacking || _engine.TutorialState.Phase == Phase.Battle)) return; // and so is the first action of a battle
+                if (!scripted && FoeWaiting) return; // a step will make its move (the Dishonor lesson's Seppuku)
                 pick = FoeChoice(options, scripted);
             }
             if (pick is null || !_engine.Execute(pick.Command!).Accepted) return;
