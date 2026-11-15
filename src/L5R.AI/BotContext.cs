@@ -179,7 +179,7 @@ public sealed class BotContext
         var me = view.Players.Single(p => p.Id == view.ViewerId); var them = view.Players.Single(p => p.Id != view.ViewerId);
         var chose = chosen.Type == "purchase" ? chosenName ?? chosen.CardId ?? "a card" : chosen.Type;
         var would = plan.Silent ? "(silent)" : plan.Choice!.Name;
-        var same = plan.Silent || chosen.Type == "purchase" && string.Equals(chosen.CardId, plan.Choice!.Id, StringComparison.Ordinal);
+        var same = plan.Silent || chosen.Type == "purchase" && (string.Equals(chosen.CardId, plan.Choice!.Id, StringComparison.Ordinal) || chosenName is not null && string.Equals(chosenName, plan.Choice.Name, StringComparison.Ordinal));
         PurchaseLog.Add($"T{view.TurnNumber} {view.Phase} {(same ? "same" : plan.Moot ? "MOOT" : "DIFFERS")}: chose {chose}, read {would} (line {plan.Line}: {plan.Why}) | P{me.Provinces.Count(p => !p.Destroyed)}v{them.Provinces.Count(p => !p.Destroyed)} H{me.Honor}/{them.Honor} | {string.Join(" || ", plan.Log)}");
     }
     /// <summary>Family B in shadow: what the fork would declare at each of the seat's declarations beside what the bot chose; a difference is logged.</summary>

@@ -76,6 +76,18 @@ internal static class PurchaseTests
             var plan = Purchase.Of(ReadOf(me, them), [Body("b6", 6, 6), Holding("farm", 2, 3)], Posture.Hold, 6);
             Check(plan.Moot, $"moot: {Log(plan)}");
         }),
+        ("line 6 buys Force for the Gold: with 7 Gold, two 3-Force bodies for 3 each (6 Force) come before one 4-Force body for 6; the first pick is one of the two 3s", () =>
+        {
+            var me = Side(0, [U("i4", 0, 4)], [(0, 7), (1, 7)], gold: 7); var them = Side(1, [U("t5", 1, 5)], [(0, 6), (1, 6)]);
+            var plan = Purchase.Of(ReadOf(me, them), [Body("kisho", 3, 3), Body("natsu", 3, 3), Body("sugo", 6, 4)], Posture.Hold, 6);
+            Check(plan.Choice?.Id is "kisho" or "natsu" && plan.Line == 6, $"a 3 of the pair, not the lone 4: {Log(plan)}");
+        }),
+        ("line 6 passes on utility bodies: a 1-Force for 2 and a 0-Force for 3 are targets, not security; a Holding producing 3 for 3 comes first", () =>
+        {
+            var me = Side(0, [], [(0, 7), (1, 7)], gold: 7); var them = Side(1, [U("t4", 1, 4)], [(0, 6), (1, 6)]);
+            var plan = Purchase.Of(ReadOf(me, them), [Body("kouki", 3, 0), Body("hachiro", 2, 1), Holding("village", 3, 3)], Posture.Hold, 6);
+            Check(plan.Choice?.Id == "village" && plan.Line == 6, $"the Holding over utility bodies: {Log(plan)}");
+        }),
         ("line 0: a free Holding is taken first whatever else the row offers", () =>
         {
             var me = Side(0, [U("i3", 0, 3)], [(0, 5), (1, 6)], gold: 6); var them = Side(1, [U("t11", 1, 11, bowed: true)], [(0, 6), (1, 6)]);

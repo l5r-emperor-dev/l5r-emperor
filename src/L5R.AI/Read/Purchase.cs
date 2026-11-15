@@ -73,13 +73,13 @@ public static class Purchase
             var without = Questions.Of(next).Opportunity.Best;
             var bar = .5 * Questions.ProvinceWorth(them.Provinces.Length);
             log.Add($"next turn without a purchase: {(without.IsHold ? "hold" : $"{without.Label} {without.ExpectedProvinces:0.00}")}");
-            if (without.IsHold || without.ExpectedProvinces < bar)
+            if (without.IsHold || without.ExpectedProvinces <= bar)
             {
                 foreach (var body in bodies.OrderBy(b => b.Cost).ThenByDescending(b => b.Force))
                 {
                     var with = Questions.Of(NextTurn(read, body.Unit)).Opportunity.Best;
                     log.Add($"next turn with {body}: {(with.IsHold ? "hold" : $"{with.Label} {with.ExpectedProvinces:0.00}")}");
-                    if (!with.IsHold && with.ExpectedProvinces >= bar) return Plan(body, 3, $"{body.Name} turns next turn's attack from fails to falls ({with.ExpectedProvinces:0.00} of {bar:0.00})", before);
+                    if (!with.IsHold && with.ExpectedProvinces > bar) return Plan(body, 3, $"{body.Name} turns next turn's attack from fails to falls ({with.ExpectedProvinces:0.00} of {bar:0.00})", before);
                 }
             }
         }
@@ -100,9 +100,26 @@ public static class Purchase
         if (before.Likely.ProvincesLost == 0 && me.Units.Length >= them.Units.Length && holdings.FirstOrDefault(h => h.Production * 2 >= h.Cost) is { } quick)
             return Plan(quick, 5, $"home holds and I am not behind on Personalities: {quick.Name} pays back within two turns", before);
 
-        // line 6: bodies, a Gold producer first
-        if (Body(bodies) is { } body5) return Plan(body5, 6, before.Likely.ProvincesLost > 0 ? $"home loses {before.Likely.ProvincesLost} at likely and no body alone holds it: a body" : "a body", before);
+        // line 6: bodies: the set of affordable bodies with the most Force the Gold pays for (two 3s for 6 before one 4 for 6), its biggest member first (a Gold producer first within 2 Force);
+        // when the best set is utility only (under 2 Force in all: a target, not security, PM 3.2) a paying Holding comes before it
+        var set = BestSet(bodies, me.GoldNow);
+        if (set.Length > 0 && set.Sum(b => b.Force) < 2 && paying.Length > 0) return Plan(paying[0], 6, $"only utility bodies ({string.Join(", ", set.Select(b => b.Name))}): {paying[0].Name} pays back in {turnsLeft} turns", before);
+        if (Body(set) is { } body6) return Plan(body6, 6, before.Likely.ProvincesLost > 0 ? $"home loses {before.Likely.ProvincesLost} at likely and no body alone holds it: a body ({set.Sum(b => b.Force)}F for {set.Sum(b => b.Cost)})" : $"a body ({set.Sum(b => b.Force)}F for {set.Sum(b => b.Cost)})", before);
         return Plan(null, 6, "no body affordable", before);
+    }
+
+    /// <summary>The affordable bodies that together give the most Force for the Gold (then the fewest Gold), by subset enumeration over at most eight cards.</summary>
+    private static PurchaseCandidate[] BestSet(PurchaseCandidate[] bodies, int gold)
+    {
+        var pool = bodies.Take(8).ToArray(); PurchaseCandidate[] best = []; int bestForce = -1, bestCost = int.MaxValue;
+        for (var mask = 1; mask < 1 << pool.Length; mask++)
+        {
+            var chosen = Enumerable.Range(0, pool.Length).Where(i => (mask & 1 << i) != 0).Select(i => pool[i]).ToArray();
+            var cost = chosen.Sum(c => c.Cost); if (cost > gold) continue;
+            var force = chosen.Sum(c => c.Force);
+            if (force > bestForce || force == bestForce && cost < bestCost) { best = chosen; bestForce = force; bestCost = cost; }
+        }
+        return best;
     }
 
     /// <summary>The body to buy when the class is bodies: one that produces Gold first (PM 3.6) unless it gives up more than 2 Force to the best, then the most Force, then the cheaper.</summary>

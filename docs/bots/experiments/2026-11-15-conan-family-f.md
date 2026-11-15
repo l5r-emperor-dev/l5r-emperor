@@ -16,11 +16,13 @@ paying   = the Holdings whose production x turns left (the shorter clock, 2 to 8
 2  ELSE IF they have no Personality AND paying is not empty:
         IF the Gold buys a body plus a paying Holding                                              -> the best body (the Holding follows with the leftover)
         ELSE                                                                                        -> the most efficient paying Holding
-3  ELSE IF some body turns O from fails to falls (O(c).Best takes at least half a Province's worth at likely where O0 does not) -> the cheapest such body
+3  ELSE IF some body turns O from fails to falls (O(c).Best takes more than half a Province's worth at likely where O0 does not) -> the cheapest such body
 4  ELSE IF posture is Press                                                                  -> the best body; a Holding costing 2 or less only when no body is affordable
 5  ELSE IF posture is Build (their shown answers beat my units) AND I have a unit AND T0.likely loses none AND paying is not empty -> the most efficient paying Holding
 5b ELSE IF T0.likely loses none AND I am not behind on Personalities AND a Holding pays back within two turns (proposed) -> that Holding
-6  ELSE                                                                                       -> the best body: a Gold producer first when within 2 Force of the best, then Force, then the cheaper
+6  ELSE the set of affordable bodies with the most Force the Gold pays for (then the fewest Gold):
+        IF that set is utility only (under 2 Force in all) AND paying is not empty                 -> the most efficient paying Holding
+        ELSE                                                                                        -> its biggest member (a Gold producer first when within 2 Force of it)
 silent when nothing applies (the Contender decides); within a class the Contender's own values order the cards
 ```
 
@@ -52,3 +54,20 @@ Lines 1 and 3 are the Read's; lines 2, 4, 5 and 6 are the player model's conditi
 | 10 | Crab v Crane T12, three Holdings, 21 Gold buys all | Prosperous Village +5 c6 | Iron Mine +2 c2 | equivalent |
 
 **8 of 10 right or equivalent**, one wrong, one unclear; six of the ten were moot (the Gold paid for the whole affordable row, so only the order differed). Three changes: the Gold-producer preference applies only within 2 Force of the best body (#1); a new line 5b, proposed, buys a Holding that pays back within two turns when home holds and the seat is not behind on Personalities (#4; AB Q7c keeps the body first when behind); and the plan marks a decision **moot** when the Gold pays for every affordable card, so the shadow log says MOOT rather than DIFFERS and the sample draws only decisions that matter. Round 2 is the rerun.
+
+**Round 2** (`shF2_108`): 1,082 decisions moot, 1,024 differing (2.8 a game), of which 295 are the turn-1 order (the Contender buys the Holding first, the body after) and 691 substantive (1.9 a game, inside the card's 2-4). Ten drawn by seed 208:
+
+| # | Position | Contender | Read | Verdict |
+|---|---|---|---|---|
+| 1 | Pinned Lion T3, two copies of Ikoma Shika | Shika | Shika (the other copy) | equivalent (same card; the log now counts a same-named copy as the same) |
+| 2 | Unicorn v Scottish Lion T6, nobody home, their 11 against Strength 7, 7 Gold | Stables +2 c2 (and Silk Works) | Liu-Xeung 4F c7 (does not hold the Province) | right by the model (behind on Personalities, a body; AB Q7c), arguable in practice |
+| 3 | Lion v Classic Crane T5, 7 Gold | Kisho 3F c3 (then Natsu 3F c3: 6 Force) | Sugo 4F c6 (4 Force, 1 Gold left) | **wrong**: two 3s for 6 beat one 4 for 6 |
+| 4 | Unicorn v Crane T8, 16 Gold | Lishan 4F c7 | Chikako 4F c6 | equivalent |
+| 5 | Scorpion v Crane T8, three 4F c6 bodies, 9 Gold | Nori | Waru | equivalent |
+| 6 | Crab v Scorpion T5, nobody home, 19 Gold | Prosperous Village +5 c6 (then Tsujiken) | Tsujiken 3F c9 (then Jekku) | right by the model (Personalities first once they have one; leftover on cheap Holdings only) |
+| 7 | Lion v Crab T5, 5 Gold | Kisho 3F c3 | Natsu 3F c3 | equivalent |
+| 8 | Pinned Lion v Crane T7, nobody home, 7 Gold | Remote Village +3 c3 | Hachiro 1F c2 (then Kouki 0F c3) | **wrong**: 1- and 0-Force utility bodies are targets, not security (PM 3.2); the Holding |
+| 9 | Lion Legacy v Crab T9, 12 Gold | Kamina 3F c5 (then Kamina) | Suoh 2F c3 (fails to falls at exactly the bar, 0.50 of 0.50) | unclear; two 3s look better than a borderline fails-to-falls |
+| 10 | Crane Dominance v Classic Crane T4, nobody home, 6 Gold | Prosperous Village +5 c6 | Shigeyuki 4F c6 | right by the model (behind on Personalities) |
+
+**7 of 10 right or equivalent**, two wrong, one unclear: the gate is met but the two faults are plain. Line 6 now buys the set of affordable bodies with the most Force for the Gold (two 3s for 6 before one 4 for 6) and passes to a paying Holding when the set is utility only (under 2 Force in all); fails-to-falls must clear the bar strictly. Round 3 is the rerun.
