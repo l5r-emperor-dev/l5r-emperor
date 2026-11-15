@@ -160,8 +160,11 @@ public static partial class TrainingOpponent
         }
         // The table changed since the plan (or there was none): the shapes are searched again from here.
         var options = new List<Option> { new(attack.Action, attack.Command, "contender") };
-        options.AddRange(AttackShapes(x).Select(s => Legal(attack.Action, s.Assignment)).Where(a => a.Count > 0 && !options.Any(o => SameAssignment(o.Command.Assignments, a)))
-            .Select(a => new Option(attack.Action, attack.Command with { Assignments = a }, "shape " + a.Count)));
+        foreach (var (label, shape) in AttackShapes(x))
+        {
+            var a = Legal(attack.Action, shape);
+            if (a.Count > 0 && !options.Any(o => SameAssignment(o.Command.Assignments, a))) options.Add(new(attack.Action, attack.Command with { Assignments = a }, $"{label} ({a.Count})")); // the shape's name in the search log (step 4 reads it)
+        }
         if (options.Count < 2) return null;
         if (Search(x, sampler, options, (int)Knob(x, "lkN", 4), Rule(x, "lkFar")) is not { } values) return null;
         var best = options[Enumerable.Range(0, options.Count).MaxBy(i => values[i])];
