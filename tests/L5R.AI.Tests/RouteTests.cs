@@ -12,7 +12,7 @@ internal static class RouteTests
     private static LedgerSide Side(int id, LedgerUnit[] units, (int, int)[] provinces, int honor = 20) => new(id, units, provinces, 4, 4, honor, false, 0, [], [], 0);
     private static Read ReadOf(LedgerSide me, LedgerSide them) => new(new Ledger(me.Id, 8, Phase.AttackDeclaration, me, them), new Belief(them.HandCount, Belief.Prior, 0, []), "test", me.Id);
     private static AttackOption Hold() => new("hold", [], [], "-", "", 0, 0, 0, 0, 0, ThreatRead.None, 0);
-    private static AttackOption Attack(double provinces, double exposure) => new("lone", [], [(0, 5, Array.Empty<LedgerUnit>())], "nobody", "111", provinces, 0, 0, 0, provinces, ThreatRead.None, exposure);
+    private static AttackOption Attack(double provinces, double exposure, int losses = 0, int cards = 0) => new("lone", [], [(0, 5, Array.Empty<LedgerUnit>())], "nobody", "111", provinces, 0, losses, cards, provinces, ThreatRead.None, exposure);
     private static Answers With(Posture posture, bool attacks, bool viable = true) => new(new(attacks ? Attack(.8, .05) : Hold(), Hold(), viable ? [Hold(), Attack(.3, .9)] : [Hold()], viable ? "" : "hold: no army or no Province"), ThreatRead.None, new(6, 99, 99, 9, 99, 99), posture, "test");
 
     public static readonly (string, Action)[] Tests =
@@ -21,6 +21,11 @@ internal static class RouteTests
         {
             Check(Route.Gate(With(Posture.Lock, false), false).Declare == false, "lock, no risk-free attack: pass");
             Check(Route.Gate(With(Posture.Lock, true), false).Declare == true, "lock, a risk-free attack: declare");
+        }),
+        ("a lock passes when the risk-free attack would lose a unit or spend a card: it is not nothing", () =>
+        {
+            var losing = new Answers(new(Attack(.1, .05, losses: 2), Hold(), [Hold(), Attack(.1, .05, losses: 2)], ""), ThreatRead.None, new(20, 2, 99, 17, 14, 99), Posture.Lock, "test");
+            Check(Route.Gate(losing, false).Declare == false, $"two losses under a lock: pass ({Route.Gate(losing, false).Why})");
         }),
         ("a drain passes when the best attack is the hold", () => Check(Route.Gate(With(Posture.Drain, false), false).Declare == false, "drain: pass")),
         ("a wait passes", () => Check(Route.Gate(With(Posture.Wait, false), false).Declare == false, "wait: pass")),

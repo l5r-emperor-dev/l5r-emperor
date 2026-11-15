@@ -10,7 +10,7 @@ Rule `readG`, opt-in, off by default: **the route gate**. Fires at the seat's ow
 posture, clocks = Questions.Of(read, trend)         (the Read's answers at this declaration)
 lethal          = the Contender's LethalPlan (every Province they have left falls)              -> declare, whatever the posture
 Lock, Drain     = my Honor (or their dishonor) wins before their fastest clock while home holds
-                  -> declare only when the opportunity's best attack is risk-free (exposure within .1 Province of the hold) and takes something, and (drain) uses no unit that runs the drain; else pass
+                  -> declare only when the opportunity's best attack is risk-free (exposure within .1 Province of the hold), loses no unit, spends no card, takes something, and (drain) uses no unit that runs the drain; else pass
 Wait            = their last Province, they cannot win before my next turn, my best attack does not take it    -> pass (preserve units and cards; finish next turn)
 Race            = my military clock is a turn shorter than their fastest, within six turns      -> declare (the Guard already lets a race stand)
 Punish          = their Personalities are bowed from attacking                                   -> declare
@@ -47,3 +47,20 @@ The gate decides only declare or pass; the shape of a declared attack is the Con
 | 10 | Pinned Lion v Phoenix T19, P1v1, wait (their last Province, no win for them before my next turn, my best attack does not take it) | declare | pass | right by the Read: attacking bows the defenders of my own last Province for nothing |
 
 **4 right, 0 wrong, 6 gaps of one kind**: a race or a punish declared with no possible attack (no army, or no group exceeding Strength even undefended); the Contender's pass was the only move. The gate now stays silent on a race or a punish when the opportunity has no attack option, so those six read "same". Round 2 is the rerun, with the posture change (a running engine is the route) and the drain condition (no engine unit in a risk-free attack) in.
+
+**Round 2** (`shG2_110`): the gate differed at 142 declarations (0.39 a game): pass on a lock 49, declare on a race 40, declare on a lock 20, pass on a wait 19, pass on a drain 10, declare on a drain 4; the six "no army" gaps of round 1 are gone. Ten drawn by seed 210:
+
+| # | Position | Contender | Read | Verdict |
+|---|---|---|---|---|
+| 1 | Classic Crane v Phoenix T13, H35/10, my Honor clock 1 | declare | pass (lock) | right: the Honor win is next turn |
+| 2 | Crab v Unicorn T8, a 33-turn drain as the shortest route, no group exceeds Strength | declare | pass (drain) | right (nothing to take) |
+| 3 | Scottish Lion v Phoenix T9, H25/9, Honor clock 2 | declare | pass (lock) | right (PM 3.1: three attacks in two Honor games) |
+| 4 | Lion Legacy v Dragon T13, H31/13, Honor clock 2 | pass | declare (lock: "everything" at −0.20 exposure, 0.10 Provinces, 2 kills for 2 losses) | **wrong**: two units are not nothing with the win two turns away |
+| 5 | Unicorn v Crane T10, H28/15, Honor clock 2 | declare | pass (lock) | right |
+| 6 | Scottish Lion v Crane T5, race (5 against 32) | pass | declare: a split expecting 0.89 | right by the Read (a "race" only in name: their clock is 32) |
+| 7 | Crane v Dragon T11, P4v1, wait | declare | pass: the best attack takes their last Province at 0.40 | right by the model (finish next turn) |
+| 8 | Classic Lion v Lion T15, H35/23, Honor clock 2 | declare | pass (lock) | right |
+| 9 | Lion Legacy v Phoenix T13, H26/17, Honor clock 3 against 8 | declare | pass (lock) | right |
+| 10 | Scottish Lion v Spider T9, race (6 against 7) | pass | declare: everything, 0.79 Provinces, home loses one at likely | right by the seed (a race accepts the loss) |
+
+**9 of 10 right**, one wrong: a lock's "risk-free" attack now also has to lose no unit and spend no card (#4). Round 3 is the rerun.

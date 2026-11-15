@@ -27,6 +27,8 @@ public static class Route
         {
             Posture.Lock or Posture.Drain => !answers.Opportunity.Attacks
                 ? new(false, p, $"{Name(p)}: no attack that costs nothing ({answers.Why})")
+                : answers.Opportunity.Best.ExpectedLosses > 0 || answers.Opportunity.Best.CardsSpent > 0
+                    ? new(false, p, $"{Name(p)}: the best attack ({answers.Opportunity.Best.Label}) costs {answers.Opportunity.Best.ExpectedLosses} unit(s) and {answers.Opportunity.Best.CardsSpent} card(s): not nothing")
                 : p == Posture.Drain && answers.Opportunity.Best.Groups.Any(g => g.Group.Any(u => u.Abilities.Any(a => a.IsOpen && a.Has(EffectClass.HonorTax) && a.Side != TargetSide.Own)))
                     ? new(false, p, $"drain: the risk-free attack ({answers.Opportunity.Best.Label}) would bow a unit that runs the drain")
                     : new(true, p, $"{Name(p)}: the best attack risks nothing ({answers.Opportunity.Best.Label}, exposure {answers.Opportunity.Best.ExposureCost - answers.Opportunity.Hold.ExposureCost:+0.00;-0.00} over the hold)"),
