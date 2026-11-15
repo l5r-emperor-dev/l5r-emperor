@@ -88,3 +88,25 @@ Lines 1 and 3 are the Read's; lines 2, 4, 5 and 6 are the player model's conditi
 | 10 | Phoenix v Lion T4, 11 Gold, behind on Personalities | Mystical Merchant +2 c3 | Megu 3F c5 | equivalent: both end with Megu and the Merchant |
 
 **9 of 10 right or equivalent**, one unclear (#5: whether "bodies when behind" should yield to a Holding that doubles production when the bodies on offer are weak; left as the model states it, for the screen to judge). Seven of the ten are order-only differences the moot mark cannot see (the whole row is not payable, but the cards the two orders buy are the same): the substantive rate is well under 1.7 a game. The fork passes the shadow gate (8, 7, 9 of 10) and the fire rate is inside the card's prediction; the screen runs on block 10900.
+
+## Screen (block 10900, T2 + read + readF against T2, 1,456 games, fire counts on)
+
+A/A `ca109`: 50.7% (738 of 1,456). Arm `rF109`: **43.9%** (639 of 1,456); against the A/A **+125 gained, −224 lost, net −99, two-sided p < .0001**. `readF` is consulted at 134 decisions a game (every decision, as the registry counts) and fires 4.64 times a game in 1,446 games; `econ` fires 2.86 (the mirror's own rate is higher: the Read's choice pre-empts it). Per deck: Lion preset **+6 / −26**, Lion Legacy +10 / −24, Classic Lion +9 / −22, Pinned Lion +11 / −21, Phoenix Talons +6 / −19, Crane Dominance +2 / −18, Scorpion Lethargy +10 / −17, Dragon Destruction +9 / −15, Classic Crane +5 / −14, Crane preset +4 / −8, Crab Control +8 / −7, Scottish Lion +13 / −12, Unicorn Maidens +16 / −14, Spider Conquer **+16 / −7**.
+
+**What moved** (`tools/bots/behaviour/q7_economy.py` on the two log sets; the arm's seat against the mirror's):
+
+| Measure | A/A (T2 mirror) | T2 + readF | Card said |
+|---|---|---|---|
+| First purchase a Personality when behind on Personalities (Q7c) | 41% | **63%** | higher (Mendon 9 of 9) |
+| Holdings bought on turn 1 | 2.20 | 1.77 | |
+| Personalities bought on turn 1 | 0.07 | 0.29 | |
+| Gold capacity at the start of turn 3 / 5 / 7 | 15.8 / 20.8 / 26.1 | 13.0 / 18.0 / 23.8 | held when not pressing |
+| Personalities in play at the start of turn 3 / 5 / 7 (Q7b) | 0.85 / 2.96 / 4.73 | 1.13 / **2.49** / **4.04** | |
+| Unbowed Force at the start of turn 3 / 5 / 7 | 2.5 / 13.6 / 18.3 | 3.5 / 11.9 / 16.4 | |
+| Holdings in play at the start of turn 5 / 7 | 7.22 / 9.27 | 6.26 / 8.40 | |
+| Holdings / Personalities bought per own turn 1-8 (Q7a) | 1.27 / 1.13 | 1.12 / 0.96 | |
+| Gold capacity left unproduced, turns 1-8 | 27.1% | 25.4% | lower (Mendon 12%) |
+
+The measure the card named moves the way Mendon plays, and the games are lost anyway: the arm buys a body on turn 1 and bodies from turn 2 (in the mirror both seats have a Personality by turn 2, so the "they have nobody: Holdings" line is over after turn 1), its economy runs three Gold behind from turn 3, and by turn 5 it has **fewer Personalities as well as fewer Holdings** than the mirror. The Lion Force decks, whose rows are all bodies, lose most; Spider gains. This is `bodyfirst`'s −41 again with better conditions: the player model's class lines (bodies once they have a Personality; bodies when behind) are right for Mendon's hand-built decks and tempo, and wrong for these fourteen decks at the Contender's level, where the early economy compounds.
+
+**Formulation 2**, `rfRead` (the Read decides only where it adds something the Contender lacks, CODE_MAP section 7 gap 6: line 1, a body that makes home hold under threat; line 3, a body that turns next turn's attack from fails to falls; silent otherwise, so `econ` and the slate keep the economy), screens next on the same block.

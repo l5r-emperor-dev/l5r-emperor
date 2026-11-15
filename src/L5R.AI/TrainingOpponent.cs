@@ -291,7 +291,7 @@ public static partial class TrainingOpponent
         }
         var next = Questions.Of(Purchase.NextTurn(read, null), x.Memory.TrendNow());
         var turnsLeft = (int)Math.Clamp(Math.Min(next.Clocks.MyFastest, next.Clocks.TheirFastest), 2, 8);
-        var plan = Purchase.Of(read, row.ToArray(), next.Posture, turnsLeft);
+        var plan = Purchase.Of(read, row.ToArray(), next.Posture, turnsLeft, Rule(x, "rfRead"));
         x.Memory.ReadPurchasePlan = (x.View.Version, plan);
         return plan;
     }

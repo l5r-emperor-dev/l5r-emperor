@@ -27,7 +27,8 @@ public static class Purchase
     /// <param name="row">the affordable face-up Dynasty cards (Personalities and Holdings); others are ignored.</param>
     /// <param name="posture">the Read's posture this turn (null: unknown).</param>
     /// <param name="turnsLeft">the turns the game is expected to run, for a Holding's pay-back (the shorter clock, 2 to 8).</param>
-    public static PurchasePlan Of(Read read, PurchaseCandidate[] row, Posture? posture, int turnsLeft)
+    /// <param name="readOnly">formulation 2: only the Read's own lines decide (1, a body that makes home hold; 3, a body that turns next turn's attack); otherwise the plan is silent and the Contender's economy stands.</param>
+    public static PurchasePlan Of(Read read, PurchaseCandidate[] row, Posture? posture, int turnsLeft, bool readOnly = false)
     {
         var me = read.Ledger.Me; var them = read.Ledger.Them;
         var log = new List<string>();
@@ -42,7 +43,7 @@ public static class Purchase
         if (bodies.Length == 0 && holdings.Length == 0) return Plan(null, 0, "nothing affordable in the row", before);
 
         // line 0: a free Holding costs nothing and changes nothing else
-        if (holdings.FirstOrDefault(h => h.Cost == 0) is { } free) return Plan(free, 0, "a free Holding", before);
+        if (!readOnly && holdings.FirstOrDefault(h => h.Cost == 0) is { } free) return Plan(free, 0, "a free Holding", before);
 
         // line 1: home loses a Province at likely and an affordable body makes it hold
         if (before.Likely.ProvincesLost > 0)
@@ -59,7 +60,7 @@ public static class Purchase
 
         // line 2: they have no Personality: economy that pays back (PM 3.6: Holdings while they have nobody), unless the Gold buys a body and a paying Holding both (then the body first, the Holding follows)
         var paying = holdings.Where(h => h.Production * turnsLeft > h.Cost).ToArray();
-        if (them.Units.Length == 0)
+        if (!readOnly && them.Units.Length == 0)
         {
             var both = paying.Length > 0 && bodies.Length > 0 && bodies.Min(b => b.Cost) + paying.Min(h => h.Cost) <= me.GoldNow;
             if (paying.Length > 0 && !both) return Plan(paying[0], 2, $"they have no Personality: {paying[0].Name} pays back in {turnsLeft} turns", before);
@@ -83,6 +84,8 @@ public static class Purchase
                 }
             }
         }
+
+        if (readOnly) return Plan(null, 0, "the Read has nothing to say: the Contender's economy", before);
 
         // line 4: pressing, bodies; a cheap Holding only with nothing else to buy
         if (posture == Posture.Press)

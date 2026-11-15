@@ -204,6 +204,7 @@ public static class RuleRegistry
         R("readB", "attack", "family B: the Cavalry fork; at the Infantry declaration the infantry option with the highest forced value over their replies and the Cavalry follow-ups, at the Cavalry declaration the follow-up against the defence as placed; groups at uncovered Provinces exceed Strength alone, the rest stays home"),
         R("rbCav", "attack", "with readB, the fork decides only the Cavalry declaration (the Contender's own infantry plan stands); formulation 2"),
         R("readF", "purchase", "family F: the Dynasty purchase read from the Read; a body that makes home hold, a paying Holding while they have nobody, a body that turns next turn's attack from fails to falls, bodies when pressing, a paying Holding when home holds, else a body (a Gold producer first)"),
+        R("rfRead", "purchase", "with readF, only the Read's own lines decide a purchase (a body that makes home hold; a body that turns next turn's attack from fails to falls); the Contender's economy otherwise; formulation 2"),
         R("reOpen", "battle", "with readE, what an action reaches and whether anything can is read against their open hand (shown answers only); the pass test keeps their likely hand"),
     ];
 

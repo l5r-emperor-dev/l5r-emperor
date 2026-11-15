@@ -88,6 +88,14 @@ internal static class PurchaseTests
             var plan = Purchase.Of(ReadOf(me, them), [Body("kouki", 3, 0), Body("hachiro", 2, 1), Holding("village", 3, 3)], Posture.Hold, 6);
             Check(plan.Choice?.Id == "village" && plan.Line == 6, $"the Holding over utility bodies: {Log(plan)}");
         }),
+        ("formulation 2 (readOnly): the threat line still buys the body that makes home hold, but with home holding and nobody across the table the plan is silent", () =>
+        {
+            var me = Side(0, [U("i3", 0, 3)], [(0, 5), (1, 6)], gold: 6); var them = Side(1, [U("t11", 1, 11, bowed: true)], [(0, 6), (1, 6)]);
+            var threat = Purchase.Of(ReadOf(me, them), [Holding("farm", 3, 3), Body("b4", 4, 4)], Posture.Hold, 6, readOnly: true);
+            Check(threat.Choice?.Id == "b4" && threat.Line == 1, $"the threat line decides: {Log(threat)}");
+            var quiet = Purchase.Of(ReadOf(me, Side(1, [], [(0, 6), (1, 6)])), [Holding("farm", 3, 3), Body("b4", 4, 4)], Posture.Hold, 6, readOnly: true);
+            Check(quiet.Silent, $"silent otherwise: {Log(quiet)}");
+        }),
         ("line 0: a free Holding is taken first whatever else the row offers", () =>
         {
             var me = Side(0, [U("i3", 0, 3)], [(0, 5), (1, 6)], gold: 6); var them = Side(1, [U("t11", 1, 11, bowed: true)], [(0, 6), (1, 6)]);
