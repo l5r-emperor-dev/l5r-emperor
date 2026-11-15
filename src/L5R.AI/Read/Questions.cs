@@ -234,6 +234,9 @@ public static class Questions
         // a non-military route that is certain before their clock and near enough to plan on (PLAYER_MODEL.md 3.1: "attack only when it costs nothing I need"); the posture's weight then prices every attack's exposure
         if (clocks.MyHonor <= RaceHorizon && clocks.MyHonor < clocks.TheirFastest && holds) return (Posture.Lock, $"my Honor clock {clocks.MyHonor:0} beats their fastest {clocks.TheirFastest:0} while home holds");
         if (clocks.MyDrain < Clocks.Never && (clocks.MyRoute == "drain" || clocks.MyDrain <= RaceHorizon && clocks.MyDrain < clocks.TheirFastest)) return (Posture.Drain, $"the drain wins in {clocks.MyDrain:0} turns{(clocks.MyRoute == "drain" ? ", my shortest route" : "")}");
+        // family G (PLAYER_MODEL.md 3.1, G5): a running drain engine on the table is the route while it wins before their fastest clock and home holds, even when the army could win sooner: the units that run it
+        // would be bowed by attacking, and the military clock counts them
+        if (clocks.MyDrain < Clocks.Never && clocks.MyDrain < clocks.TheirFastest && holds && Route.TableDrain(me.Units) > 0) return (Posture.Drain, $"the table drains {Route.TableDrain(me.Units):0.#} Honor a turn and wins in {clocks.MyDrain:0} before their fastest {clocks.TheirFastest:0} while home holds");
         if (clocks.TheirFastest < Clocks.Never && clocks.MyMilitary + 1 <= clocks.TheirFastest && clocks.MyMilitary <= RaceHorizon) return (Posture.Race, $"my military clock {clocks.MyMilitary:0} is a turn shorter than their fastest {clocks.TheirFastest:0}");
         if (bestGain >= .8 && bestProvinces >= .5) return (Posture.Press, $"my best attack expects {bestProvinces:0.0} Provinces");
         if (bestProvinces < .3 && holds) return (Posture.Build, "their answers beat my units and home holds");

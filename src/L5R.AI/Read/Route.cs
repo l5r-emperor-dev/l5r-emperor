@@ -22,9 +22,11 @@ public static class Route
         if (lethal) return new(true, p, "a lethal attack is declared whatever the route");
         return p switch
         {
-            Posture.Lock or Posture.Drain => answers.Opportunity.Attacks
-                ? new(true, p, $"{Name(p)}: the best attack risks nothing ({answers.Opportunity.Best.Label}, exposure {answers.Opportunity.Best.ExposureCost - answers.Opportunity.Hold.ExposureCost:+0.00;-0.00} over the hold)")
-                : new(false, p, $"{Name(p)}: no attack that costs nothing ({answers.Why})"),
+            Posture.Lock or Posture.Drain => !answers.Opportunity.Attacks
+                ? new(false, p, $"{Name(p)}: no attack that costs nothing ({answers.Why})")
+                : p == Posture.Drain && answers.Opportunity.Best.Groups.Any(g => g.Group.Any(u => u.Abilities.Any(a => a.IsOpen && a.Has(EffectClass.HonorTax) && a.Side != TargetSide.Own)))
+                    ? new(false, p, $"drain: the risk-free attack ({answers.Opportunity.Best.Label}) would bow a unit that runs the drain")
+                    : new(true, p, $"{Name(p)}: the best attack risks nothing ({answers.Opportunity.Best.Label}, exposure {answers.Opportunity.Best.ExposureCost - answers.Opportunity.Hold.ExposureCost:+0.00;-0.00} over the hold)"),
             Posture.Wait => new(false, p, $"wait: {answers.Why}; preserve units and cards, finish next turn"),
             Posture.Race => new(true, p, $"race: {answers.Why}"),
             Posture.Punish => new(true, p, $"punish: {answers.Why}"),

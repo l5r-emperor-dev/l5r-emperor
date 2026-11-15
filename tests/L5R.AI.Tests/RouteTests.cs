@@ -44,5 +44,13 @@ internal static class RouteTests
             Check(answers.Posture == Posture.Drain, $"posture Drain: {answers}");
             Check(Route.Gate(answers, false).Declare == false, $"the gate passes: {Route.Gate(answers, false).Why}");
         }),
+        ("the engine is the route: two Courtiers draining 2 each against an opponent at 16 Honor (9 turns, past the race horizon) with my 12-Force army able to raze a Strength 7 Province each turn (a 4-turn military clock): the posture is Drain, not Race, while home holds (the attackers would be the engine)", () =>
+        {
+            var me = Side(0, [U("c1", 0, 6, abilities: [Tax2]), U("c2", 0, 6, abilities: [Tax2])], [(0, 7), (1, 7), (2, 7)], honor: 20);
+            var them = Side(1, [U("t2", 1, 2)], [(0, 7), (1, 7), (2, 7), (3, 7)], honor: 16);
+            var answers = Questions.Of(ReadOf(me, them));
+            Check(answers.Clocks.MyDrain == 9 && answers.Clocks.MyMilitary < 9, $"drain 9, military shorter: {answers.Clocks}");
+            Check(answers.Posture == Posture.Drain, $"posture Drain over the military race: {answers}");
+        }),
     ];
 }
