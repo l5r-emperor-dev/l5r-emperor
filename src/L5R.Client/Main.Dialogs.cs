@@ -16,6 +16,16 @@ public partial class Main
         PresentDialog(dialog, width, height); return (dialog, body);
     }
 
+    /// <summary>
+    /// A dialog that supplies its own way out instead of the built-in Close button. Hiding only the button leaves its (invisible) button row over the bottom of the body, where it took every click:
+    /// the table menu's "Return to game" sat under it and did nothing. Hiding the row too gives the body the whole dialog.
+    /// </summary>
+    private static void HideDialogButtons(AcceptDialog dialog)
+    {
+        dialog.GetOkButton().Hide();
+        if (dialog.GetOkButton().GetParent() is Control row) row.Hide();
+    }
+
     private void PresentDialog(Window dialog, int width, int height)
     {
         var scale = GetViewport().GetVisibleRect().Size.Y / 1080f;
@@ -123,7 +133,7 @@ public partial class Main
         var (dialog, body) = Dialog("Pass the device", 530, 310);
         _seatHandoff = dialog;
         var switched = false;
-        dialog.GetOkButton().Hide();
+        HideDialogButtons(dialog);
         dialog.Canceled += dialog.QueueFree;
         dialog.TreeExiting += () =>
         {

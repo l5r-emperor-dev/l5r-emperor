@@ -107,7 +107,7 @@ public partial class Main
         // Closing this curtain keeps the original seat. Only the explicit ready button switches.
         _root.Hide();
         var (dialog, body) = Dialog("Pass the device", 530, 220);
-        dialog.GetOkButton().Hide();
+        HideDialogButtons(dialog);
         dialog.TreeExiting += () => { if (IsInstanceValid(_root)) { Render(); _root.Show(); } };
         body.AddChild(Palette.Wrapped("Hand the device to the deciding player before revealing their private hand.", 21));
         body.AddChild(SidebarSkin.Button("I'm ready · reveal my hand", () =>
