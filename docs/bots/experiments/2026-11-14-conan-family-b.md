@@ -90,4 +90,7 @@ Hard is Conan-best (`BotContext.Hard`: T2 + lkDef, lkVar, lkPlan + look); the ar
 | 1 | 10700 | 67.0% (244/364) | 67.8% (246/363) | 363 | 4 | 1 | +0.51 | continue |
 | 2 | 10701 | 69.5% (253/364) | 69.8% (254/364) | 364 | 3 | 2 | +0.10 (chunk alone) | continue |
 | 3 | 10702 | 71.2% (259/364) | 70.8% (257/363) | 363 | 3 | 4 | −0.35 (chunk alone) | continue |
-| 1 + 2 + 3 | | | | 1,090 | 10 | 7 | +0.26 | continue |
+| 4 | 10703 | 71.2% (259/364) | 69.8% (254/364) | 364 | 2 | 7 | −1.20 (chunk alone) | continue |
+| 1 + 2 + 3 + 4 | | | | 1,454 | 12 | 14 | −0.94 | cap reached: not promoted |
+
+**Verdict**: over the four chunks, 12 gained and 14 lost in 1,454 paired games, LLR −0.94, well inside the bounds when the cap of 1,456 stops the test; the brief's Tier 2 rule applies, no decision at the cap is no promotion. The fork changes the result of 26 games in 1,454 (1.8%), against 61 and 42 in 1,456 at Contender speed: under Hard the fork is consulted at the same declarations but `lkPlan` has already shaped the attack and the search then judges the fork's candidate by playing on, so it is overridden where it matters. The reading is family C's again: a rule that reads the board well adds to the rule-based bot (+15 and +14 in 1,456 at Contender speed, all of it the all-Cavalry deck's) and is absorbed by the search. `readB` and `rbCav` stay opt-in. For step 4 the fork's declarations are candidates for the search rather than a rule over it.
