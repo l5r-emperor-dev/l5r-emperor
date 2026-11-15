@@ -1,9 +1,9 @@
 {
   "lane": "shared",
-  "summary": "Family G (posture and route) in progress: Read/Route.cs (Route.Gate: a lock or a drain passes unless the Read's best attack risks nothing and, for a drain, bows no engine unit; a wait passes; a race or a punish declares; press, build, hold silent; lethal always declares; Route.TableDrain reads repeatable Open Honor-loss abilities), the drain clock and a running-engine Drain posture in Questions, the readG hook at the declareAttack score, shadow log, registry entry, RouteTests (8 cases), the rule card in docs/bots/experiments/2026-11-15-conan-family-g.md. Branch from family F's tip; rebase onto main after #1245 merges. Shadow round 1 on seed 11000 running; the posture and gate changes are not yet built.",
-  "validation": "RouteTests 7/7 and questions 8/8 on the build before the posture change; check.sh not yet run.",
-  "remaining": "Build and test the posture and gate changes; decision set (G positions); shadow rounds on seed 11000 judged by hand; screen on block 11100; README/CODE_MAP/ROADMAP; check.sh; PR.",
+  "summary": "Family G (posture and route), done and shelved: the route gate (Read/Route.cs, rules readG and rgRace, opt-in) lets the Read's posture decide the attack declaration (a lock, a drain or a wait passes unless the attack costs nothing; a race or a punish declares). Two posture refinements stay in the Read (the drain clock reads the table's repeatable Honor-loss abilities; a running engine is the route). Decision set: 3 of Mendon's 4 drain-game holds (T2 0 of 5). Shadow on seed 11000: 4/10 with six gaps (fixed), 9/10, 9 + 1 equivalent. Screens on block 11100 (A/A 51.3%): the gate null (+32/-30, net +2), with the race from behind null (the same +2). Note docs/bots/experiments/2026-11-15-conan-family-g.md; README/CODE_MAP/ROADMAP updated.",
+  "validation": "RouteTests 11/11 (--filter route), questions 8/8; bash tools/check.sh --skip-client all stages 0; check_format.py clean; arena blocks 11000 (three shadow rounds) and 11100 (A/A, two screens with fire counts); q9_losses.py for the measures.",
+  "remaining": "Family G shelved (two formulations). Family I (the Favor and the hand) is in its second screen on block 11300; the Calibration refit blocks 11400 and 11500 are running; then step 4.",
   "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
   "branch": "claude/1206-conan-family-g",
-  "updated": "2026-11-15T07:30:15.822768+00:00"
+  "updated": "2026-11-15T08:50:46.731141+00:00"
 }
