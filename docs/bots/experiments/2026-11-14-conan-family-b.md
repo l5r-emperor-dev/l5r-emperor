@@ -88,3 +88,5 @@ Hard is Conan-best (`BotContext.Hard`: T2 + lkDef, lkVar, lkPlan + look); the ar
 | Chunk | Seed | Hard v T2 | Hard + readB, rbCav v T2 | Paired | Gained | Lost | LLR | Verdict |
 |---|---|---|---|---|---|---|---|---|
 | 1 | 10700 | 67.0% (244/364) | 67.8% (246/363) | 363 | 4 | 1 | +0.51 | continue |
+| 2 | 10701 | 69.5% (253/364) | 69.8% (254/364) | 364 | 3 | 2 | +0.10 (chunk alone) | continue |
+| 1 + 2 | | | | 727 | 7 | 3 | +0.61 | continue |
