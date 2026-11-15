@@ -191,7 +191,7 @@ internal static class ConanPositions
                 var answer = HumanReplayCompare.Ask(game, 0, bot, roundTrip: true);
                 if (at is not null)
                 {
-                    if (Environment.GetEnvironmentVariable("L5R_POS_READ") == "1" && v0.Phase is Phase.InfantryDeclaration or Phase.CavalryDeclaration or Phase.DefenseAssignment or Phase.CavalryDefense or Phase.Battle or Phase.AttackDeclaration or Phase.Dynasty)
+                    if (Environment.GetEnvironmentVariable("L5R_POS_READ") == "1" && v0.Phase is Phase.InfantryDeclaration or Phase.CavalryDeclaration or Phase.DefenseAssignment or Phase.CavalryDefense or Phase.Battle or Phase.AttackDeclaration or Phase.Dynasty or Phase.Events or Phase.End)
                         notes.AppendLine($"  {at.Id} read: {ReadAt(game, command, BotContext.TrendOf(history))}");
                     var human = HumanReplayCompare.Describe(game, command); var described = answer is null ? null : HumanReplayCompare.Describe(game, answer);
                     var agree = answer is not null && Matches(at, command, answer, described!);
@@ -220,6 +220,7 @@ internal static class ConanPositions
                + ForkAt(read, view.Phase);
         if (view.Phase is Phase.AttackDeclaration && view.ActivePlayerId == 0) { var a = Questions.Of(read, trend); var g = Route.Gate(a, false); return $"answers: {a}\n    route: {(g.Declare is null ? "(silent)" : g.Declare.Value ? "declare" : "pass")} ({g.Why})"; }
         if (view.Phase == Phase.Dynasty && view.ActivePlayerId == 0) return PurchaseAt(read, view, trend);
+        if (command.Type is "eventChoice" or "discardHand") return HandAt(read, view, command);
         if (command.Type == "assignDefense" && command.Assignments is { Count: > 0 } def)
             return string.Join("; ", def.GroupBy(a => a.Value).Select(g =>
             {
@@ -242,6 +243,16 @@ internal static class ConanPositions
         if (plan is null) return "";
         var part = phase == Phase.InfantryDeclaration ? plan.Infantry : plan.Cavalry;
         return $"\n    fork: {(part.Count == 0 ? "nobody" : string.Join(",", part.Select(a => $"{read.Ledger.Me.Units.First(u => u.Id == a.Key).Name}>P{a.Value + 1}")))} ({plan.Why}) | {string.Join(" || ", plan.Log)}";
+    }
+
+    /// <summary>Family I's reading at a hand position: the hand's answers as the ledger counts them, and each card's live uses against their units (Hand.Discard's log).</summary>
+    private static string HandAt(Read read, MatchView view, GameCommand command)
+    {
+        var me = view.Players.Single(p => p.Id == 0);
+        var hand = me.Hand.Select(c => (c.Id, c.Definition?.Name ?? c.Id, EffectDescriptors.Of(c).ToArray(), 0.0)).ToList();
+        var plan = Hand.Discard(read, hand, command.CardIds?.Length ?? 1);
+        var descriptors = string.Join("; ", me.Hand.Select(c => $"{c.Definition?.Name}: {string.Join("/", EffectDescriptors.Of(c).Select(d => $"{d.Timing} {d.Class} {d.Side} {d.Target}{(d.Conditions.Length > 0 ? "[" + string.Join(",", d.Conditions.Select(k => k.Kind)) + "]" : "")}"))}"));
+        return $"hand: {read.Ledger.Me.HandAnswers.Length} answers of {me.Hand.Length} cards ({string.Join(", ", read.Ledger.Me.HandAnswers.Select(a => a.ToString()))}); discard by live uses: {plan.Why} | {string.Join(" || ", plan.Log)}\n    descriptors: {descriptors}";
     }
 
     /// <summary>Family F's plan (Purchase.Of) at a Dynasty position: the affordable face-up row as the bot would see it (a Clan Personality two Gold cheaper), the posture and the clocks read on next turn's board.</summary>

@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Family I (the Favor, the opponent's turn and the hand) in progress: Read/Hand.cs (Hand.Favor: kept while the exchange holds the Province without it or when attacking, spent when an attacker home turns the fall into a hold or at my last Province; Hand.ReplaceHand/ReplacesHand: an Event that replaces the hand is declined with three or more answers; Hand.Discard: the hand-limit discard by live uses against their units), the readI hooks (favor-battle, favor-cycle never, eventChoice, discardHand), shadow log, registry entry, HandTests (6 cases), the rule card in docs/bots/experiments/2026-11-15-conan-family-i.md, a hand printout in the decision set. Branch from family G's tip; rebase onto main after G's PR. Decision set: 1 of 7 (T2 0 of 7); the keep-hand and three discard positions still differ and are being read. Shadow round 1 on seed 11200 running.",
+  "validation": "HandTests 6/6 on the Release build; the decision-set printout change is not yet built; check.sh not yet run.",
+  "remaining": "Build and read the hand positions; fix the answer count or the live-use reading; shadow rounds on seed 11200 judged by hand; screen on block 11300; README/CODE_MAP/ROADMAP; check.sh; PR after family G's.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
+  "branch": "claude/1206-conan-family-i",
+  "updated": "2026-11-15T07:52:48.606175+00:00"
+}
