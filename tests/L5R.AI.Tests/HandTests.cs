@@ -75,5 +75,29 @@ internal static class HandTests
             var low = Hand.Discard(ReadOf(Side(0, [H("me1", 0, 4, 1)], [(0, 5), (1, 6)]), them, 0), [("c1", "humbler", [Humbler()], 6), ("c2", "boost", [Boost()], 8)], 1);
             Check(low.CardIds.SequenceEqual(["c1"]), $"no live use discards the humbler: {low.Why} | {string.Join(" || ", low.Log)}");
         }),
+        ("formulation 3, under threat: their 10 straightened against my 4 at home and Strength 5 takes a Province unless my hand's bow stops it; the bow is kept and the 3-Force Follower goes", () =>
+        {
+            var me = Side(0, [U("i4", 0, 4)], [(0, 5), (1, 6)], hand: [Bow]); var them = Side(1, [U("t10", 1, 10) with { Bowed = true }], [(0, 6), (1, 6)]);
+            var cards = new List<Hand.HandCard> { new("c1", "a bow", [Bow.Effect], false, 0, 6), new("c2", "follower", [], true, 3, 5) };
+            var plan = Hand.DiscardByRead(ReadOf(me, them, 0), cards, 1);
+            Check(plan.CardIds.SequenceEqual(["c2"]), $"the Follower goes: {plan.Why} | {string.Join(" || ", plan.Log)}");
+        }),
+        ("formulation 3, quiet: their 2 cannot threaten my 4 and Strength 5, and destroying it does not make my 4 take a Strength 6 Province; the destroy goes and the 3-Force Follower is kept", () =>
+        {
+            var destroy = new Answer(Small(9), "a destroy", true, 0);
+            var me = Side(0, [U("i4", 0, 4)], [(0, 5), (1, 6)], hand: [destroy]); var them = Side(1, [U("t2", 1, 2)], [(0, 6), (1, 6)]);
+            var cards = new List<Hand.HandCard> { new("c1", "a destroy", [Small(9)], false, 0, 6), new("c2", "follower", [], true, 3, 5) };
+            var plan = Hand.DiscardByRead(ReadOf(me, them, 0), cards, 1);
+            Check(plan.CardIds.SequenceEqual(["c1"]), $"the destroy goes: {plan.Why} | {string.Join(" || ", plan.Log)}");
+        }),
+        ("formulation 3, sequencing: a destroy for Force 2 or less has no target against their 5 alone, but the hand's Force cut of 3 makes it live", () =>
+        {
+            var cut = new EffectDescriptor("test-cut", "Battle", null, EffectClass.ForceCut, 3, false, TargetSide.Enemy, TargetKind.Personality, [], [], null, true, true, false, false, true, 0, 0, false, false, 1, false, null);
+            var me = Side(0, [U("i4", 0, 4)], [(0, 5), (1, 6)]); var them = Side(1, [U("t5", 1, 5)], [(0, 6), (1, 6)]);
+            var alone = Hand.DiscardByRead(ReadOf(me, them, 0), [new("c1", "small2", [Small(2)], false, 0, 6), new("c3", "boost", [Boost()], false, 0, 8)], 1);
+            Check(alone.Log.Any(l => l.StartsWith("small2:") && l.Contains("live 0")), $"no live target alone: {string.Join(" || ", alone.Log)}");
+            var paired = Hand.DiscardByRead(ReadOf(me, them, 0), [new("c1", "small2", [Small(2)], false, 0, 6), new("c2", "cut", [cut], false, 0, 6)], 1);
+            Check(paired.Log.Any(l => l.StartsWith("small2:") && l.Contains("live 1")), $"live after the cut: {string.Join(" || ", paired.Log)}");
+        }),
     ];
 }
