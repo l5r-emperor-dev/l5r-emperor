@@ -66,3 +66,9 @@ hand answers = the hand's cards with a Battle descriptor that neutralises (send 
 | D5 | Crane Dominance v Scottish Lion T8 | Reckless Duel | Of One Instant (one use) | unclear |
 
 **7 right, 2 equivalent, 1 unclear, 0 wrong.** The rule passes the shadow gate (8, then 9 of 10 counting equivalents) and fires 0.66 times a game, inside the card's prediction. One caveat the screen must judge: every Favor keep rests on the exchange's projection that my hand's answers neutralise the attackers ("0 v 0"); the Crab Control deck, whose hand is all answers, supplies most of them. The screen runs on block 11300.
+
+## Screen (block 11300, T2 + read + readI against T2, 1,456 games, fire counts on)
+
+A/A `ca113`: 48.7% (709 of 1,456). Arm `rI113`: **48.6%** (707 of 1,456); against the A/A **+48 gained, −50 lost, net −2, two-sided p .92**: null. `readI` is consulted at every decision and fires 3.41 times a game in 620 games (the Favor's cycle held, the Favor's Battle action held, the hand-limit discard's order). Per deck: Crab Control **+11 / −7** (the deck whose hand is all answers, where the Favor keeps concentrate), Phoenix Talons +5 / −0, Dragon Destruction +5 / −3, Spider Conquer +4 / −2; Scottish Lion **+4 / −9**, Classic Lion +1 / −5, Lion Legacy +4 / −6, Unicorn Maidens +1 / −3; the rest within one or two games.
+
+**Formulation 2**, `riHand`: the hand decides and the Favor stays the Contender's (its Battle action spent as the Contender spends it, 300 plus the target's Force when defending). The three parts of formulation 1 pull in different directions by deck (the Favor keeps help Crab Control and hurt the Lion decks whose attackers the Contender's Favor would have sent home), so the second formulation isolates the hand-limit discard by live uses and the hand-replacing Event, the two parts the shadow judged right at every draw. Screens next on the same block.
