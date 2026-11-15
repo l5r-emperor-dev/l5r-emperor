@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Practice setup's deck browser (Change deck) now has the Difficulty drop-down in its Your match box. Both drop-downs share PracticeSetupScreen.DifficultyDropDown and the one remembered Difficulty value (practice-selection cfg), so a change on either page shows on the other and persists; Main reads screen.Difficulty at Start as before.",
+  "validation": "tools/check-practice-setup.sh PASS with new probe checks (browser drop-down present in Your match, opens, Moderate chosen there stays on the browser, setup page shows it, setup change shows in browser, Hard remembered across sessions); bash tools/check.sh --client-only exit 0. Screenshots reviewed at 1672x941 and 1280x720. Not played by a human.",
+  "remaining": "None; ready for review.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1248",
+  "branch": "claude/1248-practice-difficulty-browser",
+  "updated": "2026-11-15T10:58:19.081501+00:00"
+}

@@ -25,6 +25,14 @@ public partial class PracticeSetupProbe : Node
             _screen.StartMatch = (a, b) => { session.StartCustomPractice(a, b); _started = true; };
             await Wait(2); await Capture("A-presets");
             Check(!_screen.StartButton.Disabled, "presets ready before start"); Click(Button("Change deck")); await Wait(1); await Capture("B-browser");
+            // Issue #1248: the deck browser's Your match box has the same Difficulty drop-down; a change there is the setup page's value too, and is remembered.
+            Check(_screen.Page == "browser" && _screen.DifficultyMenu.IsVisibleInTree() && _screen.DifficultyMenu.GetGlobalRect().Position.X > _screen.Canvas.Position.X + 1070 * _screen.Canvas.Scale.X, "the deck browser offers Difficulty in its Your match box");
+            Click(_screen.DifficultyMenu); await Wait(.5); await Capture("B-difficulty-open"); Check(_screen.DifficultyMenu.GetPopup().Visible, "the browser's drop-down opens its list");
+            _screen.DifficultyMenu.GetPopup().Hide(); _screen.DifficultyMenu.Select(1); _screen.DifficultyMenu.EmitSignal(OptionButton.SignalName.ItemSelected, 1); await Wait(.3);
+            Check(_screen.Difficulty == BotLevel.Moderate && _screen.Page == "browser" && _screen.DifficultyMenu.Selected == 1, "Moderate chosen in the browser, which stays open"); await Capture("B-moderate");
+            KeyPress(Key.Escape); await Wait(.4); Check(_screen.Page == "setup" && _screen.DifficultyMenu.Selected == 1, "the setup page shows the browser's choice");
+            _screen.DifficultyMenu.Select(0); _screen.DifficultyMenu.EmitSignal(OptionButton.SignalName.ItemSelected, 0); await Wait(.3);
+            Click(Button("Change deck")); await Wait(.5); Check(_screen.DifficultyMenu.Selected == 0 && _screen.Difficulty == BotLevel.Easy, "and the browser shows the setup page's choice");
             Click(Walk(_screen).OfType<Button>().First(b => b.AccessibilityName.ToString().StartsWith("Crane — Court and Steel ·"))); await Wait(.5);
             await Capture("B-selected"); Check(!_started && session.Snapshot is null, "browsing does not start or replace match"); KeyPress(Key.Escape); await Wait(.5); await Capture("A-saved-deck");
             Click(Walk(_screen).OfType<Button>().First(b => b.TooltipText.StartsWith("Inspect "))); await Wait(.3); Check(Walk(_screen).OfType<AcceptDialog>().Any(d => d.Visible), "Stronghold inspection opens full original face"); await Capture("stronghold-inspection"); KeyPress(Key.Escape); await Wait(.3);
