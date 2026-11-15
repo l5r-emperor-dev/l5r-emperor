@@ -35,16 +35,20 @@ public static class Hand
     /// <summary>An Event that replaces the hand (discard it, draw): false (keep the hand) while it holds three or more answers; null: the Contender decides.</summary>
     public static bool? ReplaceHand(LedgerSide me) => me.HandAnswers.Length >= 3 ? false : null;
 
+    /// <summary>Whether a pending choice's prompt is the hand-replacing one ("Choose whether to discard your hand.").</summary>
+    public static bool ReplacesHandPrompt(string? prompt) => prompt is not null && System.Text.RegularExpressions.Regex.IsMatch(prompt, @"discard\s+(your|their|his|her)\s+hand", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
     /// <summary>Whether an Event's text replaces the hand: it discards the hand and draws.</summary>
     public static bool ReplacesHand(string? effectText) =>
         effectText is not null && System.Text.RegularExpressions.Regex.IsMatch(effectText, @"discard\s+(your|their|his|her)\s+hand", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
         && System.Text.RegularExpressions.Regex.IsMatch(effectText, @"\bdraw", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
     /// <summary>The hand-limit discard: <paramref name="count"/> cards from <paramref name="hand"/> (id, name, descriptors, the Contender's own value for ties), the fewest live uses first.
-    /// A card's live uses: how many of their units in play (straightened) its targeting effects admit now; a card without a target has one use; a card with no Battle or Open effect has one.</summary>
+    /// A card's live uses: how many of their units in play (straightened) its targeting effects admit now, a condition against the performer judged with my best unit for it; a card without a target has one use; a card with no Battle or Open effect has one.</summary>
     public static DiscardPlan Discard(Read read, IReadOnlyList<(string Id, string Name, EffectDescriptor[] Effects, double Value)> hand, int count)
     {
         var theirs = Threat.Straightened(read.Ledger.Them.Units).Select(u => new ExchangeUnit(u)).ToArray();
+        var performers = Threat.Straightened(read.Ledger.Me.Units).Select(u => (ExchangeUnit?)new ExchangeUnit(u)).Append(null).ToArray(); // a condition against the performer is judged with my best unit for it
         var log = new List<string>();
         var scored = hand.Select(c =>
         {
@@ -54,7 +58,7 @@ public static class Hand
             else
             {
                 var targeting = effects.Where(e => e.Side != TargetSide.Own && e.Target is TargetKind.Personality or TargetKind.Unit or TargetKind.UnitCard).ToArray();
-                uses = targeting.Length == 0 ? 1 : targeting.Max(e => theirs.Count(t => Exchange.Legal(e, t, null)));
+                uses = targeting.Length == 0 ? 1 : targeting.Max(e => performers.Max(pf => theirs.Count(t => Exchange.Legal(e, t, pf))));
             }
             log.Add($"{c.Name}: {uses} live use(s), value {c.Value}");
             return (c.Id, c.Name, Uses: uses, c.Value);

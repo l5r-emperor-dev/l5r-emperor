@@ -14,6 +14,8 @@ internal static class HandTests
     private static Read ReadOf(LedgerSide me, LedgerSide them, int attacker) => new(new Ledger(me.Id, 6, Phase.Battle, me, them), new Belief(them.HandCount, Belief.Prior, 0, []), "test", attacker);
     private static EffectDescriptor Small(int forceAtMost) => new("test-small", "Battle", null, EffectClass.Destroy, null, false, TargetSide.Enemy, TargetKind.Personality, [new("force-at-most", forceAtMost)], [], null, true, true, false, false, true, 0, 0, false, false, 1, false, null);
     private static EffectDescriptor Naked() => new("test-naked", "Battle", null, EffectClass.SendHome, null, false, TargetSide.Enemy, TargetKind.Personality, [new("without-attachments")], [], null, true, true, false, false, true, 0, 0, false, false, 1, false, null);
+    private static EffectDescriptor Humbler() => new("test-humbler", "Battle", null, EffectClass.SendHome, null, false, TargetSide.Enemy, TargetKind.Personality, [new("honor-at-most-performer")], [], null, true, true, false, false, true, 0, 0, false, false, 1, false, null);
+    private static LedgerUnit H(string id, int owner, int force, int honor) => new(id, id, owner, force, force, false, false, null, [], [], 2, honor, false, false, 0, 0, 2, null);
     private static EffectDescriptor Boost() => new("test-boost", "Battle", null, EffectClass.ForceAdd, 3, false, TargetSide.Own, TargetKind.Personality, [], [], null, true, true, false, false, true, 0, 0, false, false, 1, false, null);
 
     public static readonly (string, Action)[] Tests =
@@ -55,6 +57,14 @@ internal static class HandTests
             Check(plan.CardIds.SequenceEqual(["c4"]), $"the card with no live use goes: {plan.Why} | {string.Join(" || ", plan.Log)}");
             var two = Hand.Discard(ReadOf(me, them, 0), hand, 2);
             Check(two.CardIds[0] == "c4" && two.CardIds[1] is "c1" or "c2", $"then a one-use card by the Contender's value: {two.Why}");
+        }),
+        ("a condition against the performer is judged with my best unit: a send-home for a target of Honor at most the performer's has two live uses with my Personal Honor 3 against their 2 and 3, and none with my 1", () =>
+        {
+            var them = Side(1, [H("t2", 1, 4, 2), H("t3", 1, 4, 3)], [(0, 6), (1, 6)]);
+            var high = Hand.Discard(ReadOf(Side(0, [H("me3", 0, 4, 3)], [(0, 5), (1, 6)]), them, 0), [("c1", "humbler", [Humbler()], 6), ("c2", "boost", [Boost()], 8)], 1);
+            Check(high.CardIds.SequenceEqual(["c2"]), $"two live uses keep the humbler: {high.Why} | {string.Join(" || ", high.Log)}");
+            var low = Hand.Discard(ReadOf(Side(0, [H("me1", 0, 4, 1)], [(0, 5), (1, 6)]), them, 0), [("c1", "humbler", [Humbler()], 6), ("c2", "boost", [Boost()], 8)], 1);
+            Check(low.CardIds.SequenceEqual(["c1"]), $"no live use discards the humbler: {low.Why} | {string.Join(" || ", low.Log)}");
         }),
     ];
 }

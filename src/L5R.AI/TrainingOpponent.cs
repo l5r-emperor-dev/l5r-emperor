@@ -55,7 +55,7 @@ public static partial class TrainingOpponent
                 var spent = chosen.Command.AbilityId == "favor-battle";
                 memory.NoteHand(view, "favor", spent == fp.Spend, spent ? "spend" : "keep", fp.Spend ? "spend" : "keep", fp.Why);
             }
-            if (chosen.Command.Type == "eventChoice" && chosen.Command.Choice is "yes" or "no" && Hand.ReplacesHand(x.Card(chosen.Command.CardId)?.Definition?.Effect) && Hand.ReplaceHand((memory.CurrentRead is { } cr && cr.Key == Read.KeyOf(view) ? cr : Read.Of(view)).Ledger.Me) is { } keep)
+            if (chosen.Command.Type == "eventChoice" && chosen.Command.Choice is "yes" or "no" && (Hand.ReplacesHand(x.Card(chosen.Command.CardId)?.Definition?.Effect) || Hand.ReplacesHandPrompt(view.PendingChoice?.Prompt)) && Hand.ReplaceHand((memory.CurrentRead is { } cr && cr.Key == Read.KeyOf(view) ? cr : Read.Of(view)).Ledger.Me) is { } keep)
                 memory.NoteHand(view, "event", (chosen.Command.Choice == "no") == !keep, chosen.Command.Choice!, keep ? "yes" : "no", "three or more answers in hand");
             if (chosen.Command.Type == "discardHand" && chosen.Command.CardIds is { Length: > 0 } dropped)
             {

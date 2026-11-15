@@ -34,7 +34,7 @@ public static partial class TrainingOpponent
         // the Favor never cycles a card; an Event that replaces the hand is declined with three or more answers in hand
         if (Rule(x, "readI") && action.Type == "useAbility" && command.AbilityId == "favor-battle" && ReadFavor(x, command.TargetId) is { Spend: false }) return Math.Min(score, PassScore - 1);
         if (Rule(x, "readI") && action.Type == "useAbility" && command.AbilityId == "favor-cycle") return Math.Min(score, PassScore - 1);
-        if (Rule(x, "readI") && action.Type == "eventChoice" && command.Choice is "yes" or "no" && Hand.ReplacesHand(x.Card(action.CardId)?.Definition?.Effect)
+        if (Rule(x, "readI") && action.Type == "eventChoice" && command.Choice is "yes" or "no" && (Hand.ReplacesHand(x.Card(command.CardId ?? action.CardId)?.Definition?.Effect) || Hand.ReplacesHandPrompt(x.View.PendingChoice?.Prompt))
             && Hand.ReplaceHand((x.Memory.CurrentRead is { } cr && cr.Key == Read.KeyOf(x.View) ? cr : Read.Of(x.View)).Ledger.Me) == false)
             return command.Choice == "no" ? 150 : PassScore - 1;
         // issue #1206 (family F, readF): at the bot's own Dynasty purchases the Read names the card to buy next; it scores above the planner's slate, every other purchase is held to an
