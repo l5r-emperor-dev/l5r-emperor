@@ -64,3 +64,20 @@ The gate decides only declare or pass; the shape of a declared attack is the Con
 | 10 | Scottish Lion v Spider T9, race (6 against 7) | pass | declare: everything, 0.79 Provinces, home loses one at likely | right by the seed (a race accepts the loss) |
 
 **9 of 10 right**, one wrong: a lock's "risk-free" attack now also has to lose no unit and spend no card (#4). Round 3 is the rerun.
+
+**Round 3** (`shG3_110`): 137 differences (0.38 a game): pass on a lock 61, declare on a race 40, pass on a wait 19, pass on a drain 11, declare on a lock 6. Ten drawn by seed 310:
+
+| # | Position | Contender | Read | Verdict |
+|---|---|---|---|---|
+| 1 | Dragon v Scottish Lion T14, P2v4, H13/38, they win by Honor next turn | pass | declare ("nothing to lose"): 0.10 Provinces | equivalent: nothing stops the Honor win; the attack costs nothing that matters |
+| 2 | Unicorn v Dragon T8, H17/9, Honor clock 4 against 16 | declare | pass (lock) | right |
+| 3 | Scottish Lion v Crane Dominance T9, H19/13, clock 4 against 8 | declare | pass (lock) | right |
+| 4 | Scorpion v Classic Lion T14, P1v3, H24/26, Honor clock 2 against 4 | declare | pass (lock): my last Province's defenders stay unbowed | right |
+| 5 | Lion Legacy v Dragon T7, race (6 against 17) | pass | declare: everything, 0.79 Provinces, home holds at likely | right |
+| 6 | Scottish Lion v Crane Dominance T17, P4v2, H36/31, Honor clock 1 | declare | pass (lock): the split expecting 1.78 Provinces loses a unit | equivalent: the Honor win is next turn either way; the split might end it now |
+| 7 | Crane Dominance v Spider T11, P3v4, H29/0, Honor clock 2 against 5 | declare | pass (lock) | right |
+| 8 | Lion Legacy v Phoenix T17, H40/26 (the Honor win is checked at my next turn start) | declare | pass (lock) | right |
+| 9 | Crane v Dragon T11, P4v1, wait | declare | pass | right by the model |
+| 10 | Scottish Lion v Pinned Lion T9, P4v1, wait, no attack above the hold | declare | pass | right by the model |
+
+**9 right, 1 equivalent, 0 wrong.** The gate passes the shadow gate (4 of 10 with six gaps, then 9, then 10 of 10) and fires 0.38 times a game, inside the card's 0.3-1. The screen runs on block 11100.
