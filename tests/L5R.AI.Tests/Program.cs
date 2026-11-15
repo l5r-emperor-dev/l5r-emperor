@@ -305,6 +305,7 @@ runner.Run("questions", QuestionsTests.Tests); // issue #1206: opportunity, race
 runner.Run("defence", DefenceTests.Tests); // issue #1206: family D, the defence assignment read from the Read
 runner.Run("read-a", ReadATests.Tests); // issue #1206: family A, the attack read from the Read's opportunity
 runner.Run("purchase", PurchaseTests.Tests); // issue #1206: family F, the Dynasty purchase read from the Read
+runner.Run("route", RouteTests.Tests); // issue #1206: family G, the route gate at the attack declaration
 runner.Run("descriptor-audit", DescriptorAudit.Tests); // issue #1206: opt-in coverage audit of the descriptors over the tournament and replay decks
 return runner.Finish();
 

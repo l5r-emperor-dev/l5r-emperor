@@ -47,6 +47,9 @@ public static partial class TrainingOpponent
         // issue #1206 (family B in shadow): with read on and readB off, what the Cavalry fork would declare at each of the seat's declarations beside what was chosen
         if (memory.Has("read") && !memory.Has("readB") && view.ActivePlayerId == view.ViewerId && view.Phase is Phase.InfantryDeclaration or Phase.CavalryDeclaration && candidates.Any(c => c.Action.Type == "attack") && ReadFork(x) is { } shadowB)
             memory.NoteFork(view, shadowB, chosen.Command);
+        // issue #1206 (family G in shadow): with read on and readG off, what the route gate would say at the attack declaration beside declare or pass
+        if (memory.Has("read") && !memory.Has("readG") && view.ActivePlayerId == view.ViewerId && view.Phase == Phase.AttackDeclaration && chosen.Command.Type is "declareAttack" or "pass" && ReadAnswers(x) is { } shadowG)
+            memory.NoteRoute(view, shadowG, Route.Gate(shadowG, LethalPlan(x, x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed).ToArray(), x.Opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Index).ToArray()) is not null), chosen.Command.Type);
         // issue #1206 (family F in shadow): with read on and readF off, what the Read would buy next beside what was bought
         if (memory.Has("read") && !memory.Has("readF") && view.ActivePlayerId == view.ViewerId && view.Phase == Phase.Dynasty && candidates.Any(c => c.Action.Type == "purchase") && ReadPurchase(x) is { } shadowF)
             memory.NotePurchase(view, shadowF, chosen.Command, chosen.Command.CardId is { } boughtId ? x.Card(boughtId)?.Definition?.Name : null);
@@ -581,6 +584,9 @@ public static partial class TrainingOpponent
                 // issue #1206 (readA, RULE_FAMILIES.md family A): the Read's opportunity decides attack or hold; a lethal attack is declared as before
                 if (Rule(x, "readA") && !Rule(x, "raShape") && LethalPlan(x, x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed).ToArray(), x.Opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Index).ToArray()) is null && ReadAnswers(x) is { } answersA)
                     return answersA.Opportunity.Attacks ? 150 : PassScore - 1;
+                // issue #1206 (readG, RULE_FAMILIES.md family G): the route gate: a lock, a drain or a wait passes unless the attack risks nothing, a race or a punish declares, the rest is the Contender's
+                if (Rule(x, "readG") && ReadAnswers(x) is { } answersG && Route.Gate(answersG, LethalPlan(x, x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed).ToArray(), x.Opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Index).ToArray()) is not null) is { Declare: { } gate })
+                    return gate ? Math.Max(150, DeclareScore(x)) : PassScore - 1;
                 return DeclareScore(x);
             case "attack":
                 if (command.Assignments is not { Count: > 0 }) return -100;

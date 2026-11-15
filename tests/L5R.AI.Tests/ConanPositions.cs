@@ -218,7 +218,7 @@ internal static class ConanPositions
                 return $"to P{g.Key + 1} vs all unbowed defenders: {read.Battle(g.Key, attackers, defenders, true)}";
             })) + (view.Phase == Phase.InfantryDeclaration && asg.All(a => read.Ledger.Me.Units.FirstOrDefault(u => u.Id == a.Key)?.Province is null) ? $"\n    answers: {Questions.Of(read, trend)}" : "")
                + ForkAt(read, view.Phase);
-        if (view.Phase is Phase.AttackDeclaration && view.ActivePlayerId == 0) return $"answers: {Questions.Of(read, trend)}";
+        if (view.Phase is Phase.AttackDeclaration && view.ActivePlayerId == 0) { var a = Questions.Of(read, trend); var g = Route.Gate(a, false); return $"answers: {a}\n    route: {(g.Declare is null ? "(silent)" : g.Declare.Value ? "declare" : "pass")} ({g.Why})"; }
         if (view.Phase == Phase.Dynasty && view.ActivePlayerId == 0) return PurchaseAt(read, view, trend);
         if (command.Type == "assignDefense" && command.Assignments is { Count: > 0 } def)
             return string.Join("; ", def.GroupBy(a => a.Value).Select(g =>

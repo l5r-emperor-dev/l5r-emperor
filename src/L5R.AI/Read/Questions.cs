@@ -213,10 +213,10 @@ public static class Questions
         return new(
             them.Provinces.Length == 0 ? 0 : Turns(them.Provinces.Length, myRate),
             me.Honor >= 40 ? 0 : Turns(40 - me.Honor, trend.MyHonorPerTurn),
-            them.Honor <= -20 ? 0 : Turns(them.Honor + 20, -trend.TheirHonorPerTurn),
+            them.Honor <= -20 ? 0 : Turns(them.Honor + 20, Math.Max(-trend.TheirHonorPerTurn, Route.TableDrain(me.Units))), // family G: the drain clock reads the table before the trend shows a loss
             me.Provinces.Length == 0 ? 0 : Turns(me.Provinces.Length, theirRate),
             them.Honor >= 40 ? 0 : Turns(40 - them.Honor, trend.TheirHonorPerTurn),
-            me.Honor <= -20 ? 0 : Turns(me.Honor + 20, -trend.MyHonorPerTurn));
+            me.Honor <= -20 ? 0 : Turns(me.Honor + 20, Math.Max(-trend.MyHonorPerTurn, Route.TableDrain(them.Units))));
     }
 
     /// <summary>RULE_FAMILIES.md family G's seed rule, in its order.</summary>
