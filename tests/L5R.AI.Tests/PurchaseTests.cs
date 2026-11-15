@@ -34,10 +34,10 @@ internal static class PurchaseTests
             var plan = Purchase.Of(ReadOf(me, them), [Body("b4", 4, 4), Holding("mine", 3, 2)], Posture.Build, 6);
             Check(plan.Choice?.Id == "mine" && plan.Line == 2, $"the Holding while they have nobody: {Log(plan)}");
         }),
-        ("line 6: home holds at likely (their 4 against my 6 and Strength 5) and they have a Personality: a body before a Holding that pays back (PM 3.6: once they have a Personality, Personalities first)", () =>
+        ("line 6: home holds at likely (their 4 against my 6 and Strength 5) and they have a Personality: a body before a Holding that pays back only over six turns (PM 3.6: once they have a Personality, Personalities first)", () =>
         {
             var me = Side(0, [U("i6", 0, 6)], [(0, 5), (1, 6)], gold: 6); var them = Side(1, [U("t4", 1, 4)], [(0, 6), (1, 6)]);
-            var plan = Purchase.Of(ReadOf(me, them), [Body("b3", 3, 3), Holding("farm", 2, 3)], Posture.Hold, 6);
+            var plan = Purchase.Of(ReadOf(me, them), [Body("b3", 3, 3), Holding("estate", 6, 2)], Posture.Hold, 6);
             Check(plan.Choice?.Id == "b3" && plan.Line == 6, $"a body once they have a Personality: {Log(plan)}");
         }),
         ("line 5: building (their answers beat my units) while home holds: the Holding that pays back comes before a body; one that does not pay back in 3 turns does not", () =>
@@ -54,11 +54,27 @@ internal static class PurchaseTests
             var plan = Purchase.Of(ReadOf(me, them), [Holding("farm", 2, 3), Body("b3", 3, 3)], Posture.Press, 6);
             Check(plan.Choice?.Id == "b3" && plan.Line == 4, $"pressing buys the body: {Log(plan)}");
         }),
-        ("line 6 prefers a Gold producer: against their 14 no body alone holds; of two bodies the 3 that produces 1 Gold comes before the 4 that produces none", () =>
+        ("line 6 prefers a Gold producer within 2 Force of the best: against their 14 no body alone holds; the 3 that produces 1 Gold comes before the 4 that produces none, but against their 16 a 0 that produces Gold does not come before a 6", () =>
         {
             var me = Side(0, [U("i3", 0, 3)], [(0, 5), (1, 6)], gold: 8); var them = Side(1, [U("t14", 1, 14, bowed: true)], [(0, 6), (1, 6)]);
             var plan = Purchase.Of(ReadOf(me, them), [Body("b4", 4, 4), Body("g3", 4, 3, production: 1)], Posture.Hold, 6);
-            Check(plan.Choice?.Id == "g3" && plan.Line == 6, $"the producer first when no body alone holds: {Log(plan)}");
+            Check(plan.Choice?.Id == "g3" && plan.Line == 6, $"the producer first when close in Force: {Log(plan)}");
+            var far = Purchase.Of(ReadOf(me, Side(1, [U("t16", 1, 16, bowed: true)], [(0, 6), (1, 6)])), [Body("b6", 6, 6), Body("g0", 4, 0, production: 1)], Posture.Hold, 6);
+            Check(far.Choice?.Id == "b6" && far.Line == 6, $"the 6 before a 0 that produces Gold: {Log(far)}");
+        }),
+        ("line 5b: home holds and I am level on Personalities: a Holding costing 2 producing 3 comes before a body; behind on Personalities the body comes first", () =>
+        {
+            var me = Side(0, [U("i6", 0, 6)], [(0, 5), (1, 6)], gold: 6); var them = Side(1, [U("t4", 1, 4)], [(0, 6), (1, 6)]);
+            var plan = Purchase.Of(ReadOf(me, them), [Body("b3", 3, 3), Holding("farm", 2, 3)], Posture.Hold, 6);
+            Check(plan.Choice?.Id == "farm" && plan.Line == 5, $"the quick Holding when level: {Log(plan)}");
+            var behind = Purchase.Of(ReadOf(me, Side(1, [U("t4", 1, 4), U("t1", 1, 1)], [(0, 6), (1, 6)])), [Body("b3", 3, 3), Holding("farm", 2, 3)], Posture.Hold, 6);
+            Check(behind.Choice?.Id == "b3" && behind.Line == 6, $"the body when behind: {Log(behind)}");
+        }),
+        ("moot: 12 Gold pays for the whole affordable row (a 6 body and a 2 Holding), so the plan says the order does not matter", () =>
+        {
+            var me = Side(0, [U("i6", 0, 6)], [(0, 5), (1, 6)], gold: 12); var them = Side(1, [U("t4", 1, 4)], [(0, 6), (1, 6)]);
+            var plan = Purchase.Of(ReadOf(me, them), [Body("b6", 6, 6), Holding("farm", 2, 3)], Posture.Hold, 6);
+            Check(plan.Moot, $"moot: {Log(plan)}");
         }),
         ("line 0: a free Holding is taken first whatever else the row offers", () =>
         {

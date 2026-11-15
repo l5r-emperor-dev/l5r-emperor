@@ -16,7 +16,8 @@ public sealed record PurchaseCandidate(string Id, string Name, CardType Type, in
 }
 
 /// <summary>What the Read would buy next: the card (null: nothing it insists on, the Contender decides), the line of the rule card that chose it, and why.</summary>
-public sealed record PurchasePlan(PurchaseCandidate? Choice, int Line, string Why, ThreatRead Before, string[] Log)
+/// <param name="Moot">the Gold pays for every affordable card in the row, so the Contender buys them all this turn and only the order differs.</param>
+public sealed record PurchasePlan(PurchaseCandidate? Choice, int Line, string Why, ThreatRead Before, string[] Log, bool Moot = false)
 {
     public bool Silent => Choice is null;
 }
@@ -32,13 +33,16 @@ public static class Purchase
         var log = new List<string>();
         var bodies = row.Where(c => c.Body && c.Cost <= me.GoldNow).OrderByDescending(c => c.Force).ThenBy(c => c.Cost).ThenBy(c => c.Id, StringComparer.Ordinal).ToArray();
         var holdings = row.Where(c => c.Holding && c.Cost <= me.GoldNow).OrderByDescending(c => c.Production - c.Cost).ThenBy(c => c.Cost).ThenBy(c => c.Id, StringComparer.Ordinal).ToArray();
+        var affordable = bodies.Concat(holdings).ToArray();
+        var moot = affordable.Length > 0 && affordable.Sum(c => c.Cost) <= me.GoldNow;
+        PurchasePlan Plan(PurchaseCandidate? choice, int line, string why, ThreatRead before) => new(choice, line, why, before, log.ToArray(), moot);
         var theirArmy = Threat.Straightened(them.Units);
         var before = Threat.Of(read, Threat.Defenders(me.Units), theirArmy);
         log.Add($"row: {string.Join(", ", row)}; gold {me.GoldNow}; home {before}");
-        if (bodies.Length == 0 && holdings.Length == 0) return new(null, 0, "nothing affordable in the row", before, log.ToArray());
+        if (bodies.Length == 0 && holdings.Length == 0) return Plan(null, 0, "nothing affordable in the row", before);
 
         // line 0: a free Holding costs nothing and changes nothing else
-        if (holdings.FirstOrDefault(h => h.Cost == 0) is { } free) return new(free, 0, "a free Holding", before, log.ToArray());
+        if (holdings.FirstOrDefault(h => h.Cost == 0) is { } free) return Plan(free, 0, "a free Holding", before);
 
         // line 1: home loses a Province at likely and an affordable body makes it hold
         if (before.Likely.ProvincesLost > 0)
@@ -50,7 +54,7 @@ public static class Purchase
                 log.Add($"with {body}: home {with}");
                 if (with.Likely.ProvincesLost == 0) { best = body; bestThreat = with; break; }
             }
-            if (best is not null) return new(best, 1, $"home loses {before.Likely.ProvincesLost} at likely; {best.Name} makes it hold ({bestThreat!.Cell})", before, log.ToArray());
+            if (best is not null) return Plan(best, 1, $"home loses {before.Likely.ProvincesLost} at likely; {best.Name} makes it hold ({bestThreat!.Cell})", before);
         }
 
         // line 2: they have no Personality: economy that pays back (PM 3.6: Holdings while they have nobody), unless the Gold buys a body and a paying Holding both (then the body first, the Holding follows)
@@ -58,8 +62,8 @@ public static class Purchase
         if (them.Units.Length == 0)
         {
             var both = paying.Length > 0 && bodies.Length > 0 && bodies.Min(b => b.Cost) + paying.Min(h => h.Cost) <= me.GoldNow;
-            if (paying.Length > 0 && !both) return new(paying[0], 2, $"they have no Personality: {paying[0].Name} pays back in {turnsLeft} turns", before, log.ToArray());
-            if (both && Body(bodies) is { } first) return new(first, 2, "they have no Personality and the Gold buys a body and a Holding: the body first, the Holding follows (PM 3.6 turn 1)", before, log.ToArray());
+            if (paying.Length > 0 && !both) return Plan(paying[0], 2, $"they have no Personality: {paying[0].Name} pays back in {turnsLeft} turns", before);
+            if (both && Body(bodies) is { } first) return Plan(first, 2, "they have no Personality and the Gold buys a body and a Holding: the body first, the Holding follows (PM 3.6 turn 1)", before);
         }
 
         // line 3: a body turns my best attack next turn from fails to falls
@@ -75,7 +79,7 @@ public static class Purchase
                 {
                     var with = Questions.Of(NextTurn(read, body.Unit)).Opportunity.Best;
                     log.Add($"next turn with {body}: {(with.IsHold ? "hold" : $"{with.Label} {with.ExpectedProvinces:0.00}")}");
-                    if (!with.IsHold && with.ExpectedProvinces >= bar) return new(body, 3, $"{body.Name} turns next turn's attack from fails to falls ({with.ExpectedProvinces:0.00} of {bar:0.00})", before, log.ToArray());
+                    if (!with.IsHold && with.ExpectedProvinces >= bar) return Plan(body, 3, $"{body.Name} turns next turn's attack from fails to falls ({with.ExpectedProvinces:0.00} of {bar:0.00})", before);
                 }
             }
         }
@@ -83,21 +87,31 @@ public static class Purchase
         // line 4: pressing, bodies; a cheap Holding only with nothing else to buy
         if (posture == Posture.Press)
         {
-            if (Body(bodies) is { } pressBody) return new(pressBody, 4, "pressing: a body", before, log.ToArray());
-            if (holdings.FirstOrDefault(h => h.Cost <= 2) is { } cheap) return new(cheap, 4, "pressing, no body affordable: a Holding costing 2 or less", before, log.ToArray());
-            return new(null, 4, "pressing, nothing to buy", before, log.ToArray());
+            if (Body(bodies) is { } pressBody) return Plan(pressBody, 4, "pressing: a body", before);
+            if (holdings.FirstOrDefault(h => h.Cost <= 2) is { } cheap) return Plan(cheap, 4, "pressing, no body affordable: a Holding costing 2 or less", before);
+            return Plan(null, 4, "pressing, nothing to buy", before);
         }
 
         // line 5: building (their shown answers beat my units: there must be units) while home holds: economy that pays back (PM 3.6: "build until I can field the unit their answers do not touch")
-        if (posture == Posture.Build && me.Units.Length > 0 && before.Likely.ProvincesLost == 0 && paying.Length > 0) return new(paying[0], 5, $"building while home holds at likely: {paying[0].Name} pays back in {turnsLeft} turns", before, log.ToArray());
+        if (posture == Posture.Build && me.Units.Length > 0 && before.Likely.ProvincesLost == 0 && paying.Length > 0) return Plan(paying[0], 5, $"building while home holds at likely: {paying[0].Name} pays back in {turnsLeft} turns", before);
+
+        // line 5b (proposed; PM 3.6 "cost 2 producing 3 is always attractive", "about one Gold more than it produces is a fair price"): home holds, I am not behind on Personalities, and a Holding pays
+        // back within two turns: it comes before a body. Behind on Personalities the body comes first whatever the Holding (AB Q7c: Mendon 9 of 9).
+        if (before.Likely.ProvincesLost == 0 && me.Units.Length >= them.Units.Length && holdings.FirstOrDefault(h => h.Production * 2 >= h.Cost) is { } quick)
+            return Plan(quick, 5, $"home holds and I am not behind on Personalities: {quick.Name} pays back within two turns", before);
 
         // line 6: bodies, a Gold producer first
-        if (Body(bodies) is { } body5) return new(body5, 6, before.Likely.ProvincesLost > 0 ? $"home loses {before.Likely.ProvincesLost} at likely and no body alone holds it: a body" : "a body", before, log.ToArray());
-        return new(null, 6, "no body affordable", before, log.ToArray());
+        if (Body(bodies) is { } body5) return Plan(body5, 6, before.Likely.ProvincesLost > 0 ? $"home loses {before.Likely.ProvincesLost} at likely and no body alone holds it: a body" : "a body", before);
+        return Plan(null, 6, "no body affordable", before);
     }
 
-    /// <summary>The body to buy when the class is bodies: one that produces Gold first (PM 3.6), then the most Force, then the cheaper.</summary>
-    private static PurchaseCandidate? Body(PurchaseCandidate[] bodies) => bodies.OrderByDescending(b => b.Production > 0 ? 1 : 0).ThenByDescending(b => b.Force).ThenBy(b => b.Cost).ThenBy(b => b.Id, StringComparer.Ordinal).FirstOrDefault();
+    /// <summary>The body to buy when the class is bodies: one that produces Gold first (PM 3.6) unless it gives up more than 2 Force to the best, then the most Force, then the cheaper.</summary>
+    private static PurchaseCandidate? Body(PurchaseCandidate[] bodies)
+    {
+        if (bodies.Length == 0) return null;
+        var best = bodies.Max(b => b.Force);
+        return bodies.OrderByDescending(b => b.Production > 0 && b.Force >= best - 2 ? 1 : 0).ThenByDescending(b => b.Force).ThenBy(b => b.Cost).ThenBy(b => b.Id, StringComparer.Ordinal).First();
+    }
 
     /// <summary>The board at my next attack: my units straightened (with the candidate at home), theirs straightened; the opponent's hand as believed now.</summary>
     public static Read NextTurn(Read read, LedgerUnit? bought)
