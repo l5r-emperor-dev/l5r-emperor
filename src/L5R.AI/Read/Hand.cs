@@ -102,6 +102,9 @@ public static class Hand
                 attack = attacksToWin ? Math.Max(0, opp - Opportunity(without)) : 0;
             }
             if (c.Attachment) development = Math.Max(0, c.ForceAdded) * DevelopmentPerForce * (1 - pLose);
+            // an Honor loss for them (Remember Your Ancestors' kind: what the opponent takes when the card offers a choice): worth little while they are far from -20, a game when it ends there
+            // (Mendon, 2026-11-15: "near the end game, it becomes more valuable because 3 honor loss is much more likely to produce a dishonor loss")
+            var honor = c.Effects.Where(e => e.IsBattle || e.IsOpen).Where(e => e.Class is EffectClass.HonorTax && e.Side != TargetSide.Own && e.Magnitude is > 0).Select(e => HonorWorth(them.Honor, e.Magnitude!.Value, !attacksToWin)).DefaultIfEmpty(0).Max();
             var live = Live(c);
             if (live == 0) { defence = 0; attack = 0; } // nothing it can touch, even after the hand's own cuts
             // a residual worth for what the card could do beyond next turn: its live targets, a card that can only touch attackers counted at the chance they attack at all (Mendon's "situational":
@@ -109,8 +112,8 @@ public static class Hand
             var attackersOnly = c.Effects.Where(e => e.IsBattle && e.Side != TargetSide.Own).ToArray() is { Length: > 0 } battle && battle.All(e => e.Conditions.Any(k => k.Kind == "attacking"));
             var reach = c.Effects.Where(e => e.IsBattle && e.Side != TargetSide.Own).Select(e => e.Targets).DefaultIfEmpty(1).Max(); // a card that stops two attackers (Rocky Terrain's kind) counts twice
             var residual = ResidualPerTarget * Math.Min(live, 3) * reach * (attackersOnly || !attacksToWin ? pAttack : 1); // a deck that never attacks uses every Battle card on defence
-            var total = defence + attack + development + residual;
-            log.Add($"{c.Name}: defence {defence:0.00}, attack {attack:0.00}, development {development:0.00}, residual {residual:0.00}{(attackersOnly ? " (attackers only)" : "")}, live {live}, value {c.Value}");
+            var total = defence + attack + development + residual + honor;
+            log.Add($"{c.Name}: defence {defence:0.00}, attack {attack:0.00}, development {development:0.00}, honor {honor:0.00}, residual {residual:0.00}{(attackersOnly ? " (attackers only)" : "")}, live {live}, value {c.Value}");
             return (c.Id, c.Name, Total: total, Live: live, c.Value);
         }).OrderBy(c => c.Total).ThenBy(c => c.Live).ThenBy(c => c.Value).ThenBy(c => c.Id, StringComparer.Ordinal).Take(Math.Max(0, count)).ToArray();
         return new(scored.Select(c => c.Id).ToArray(), scored.Length == 0 ? "nothing to discard" : $"the least worth on this board first: {string.Join(", ", scored.Select(c => $"{c.Name} ({c.Total:0.00})"))}", log.ToArray());
@@ -118,6 +121,14 @@ public static class Hand
 
     /// <summary>Provinces a point of attached Force is worth over the quiet turns ahead: a 3-Force Follower is about a sixth of a Province when home is safe.</summary>
     public const double DevelopmentPerForce = .05;
+    /// <summary>An Honor loss of <paramref name="loss"/> against an opponent at <paramref name="honor"/>: a game (4 Provinces) when it takes them to -20, otherwise the game's worth times the square of the
+    /// share of the way it goes, so three points matter little at 20 Honor and much at -12; a deck whose route is dishonor counts it fully, another deck half.</summary>
+    public static double HonorWorth(int honor, int loss, bool dishonorRoute)
+    {
+        var steps = Math.Max(1, honor + 20); var game = Questions.ProvinceWorth(1);
+        var worth = loss >= steps ? game : game * Math.Pow((double)loss / steps, 2);
+        return dishonorRoute ? worth : worth / 2;
+    }
     /// <summary>Provinces a live target is worth beyond next turn, up to three targets: small beside a card that turns next turn, enough to order the rest.</summary>
     public const double ResidualPerTarget = .02;
 

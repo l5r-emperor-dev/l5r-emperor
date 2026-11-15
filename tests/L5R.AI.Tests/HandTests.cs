@@ -129,5 +129,28 @@ internal static class HandTests
             var drain = Hand.DiscardByRead(ReadOf(me, them, 0), cards, 1, attacksToWin: false);
             Check(drain.CardIds.SequenceEqual(["c2"]), $"the send-home goes in a deck that never attacks: {drain.Why} | {string.Join(" || ", drain.Log)}");
         }),
+        ("an effect whose target's controller chooses (Remember Your Ancestors: may destroy him, else a random discard and 3 Honor) reads as the Honor loss, with the destroy secondary, and is no battle answer", () =>
+        {
+            var d = EffectDescriptors.Of("remember-ancestors-choose");
+            Check(d.Class == EffectClass.HonorTax && d.Magnitude == 3 && d.Secondary.Contains(EffectClass.Destroy) && !d.Neutralises, $"descriptor: {d}");
+        }),
+        ("formulation 3, the Honor loss's worth grows toward -20: at 20 Honor Remember Your Ancestors goes before a 3-Force Follower; at -15 (three points from dishonor in five) it is kept", () =>
+        {
+            var rya = EffectDescriptors.Of("remember-ancestors-choose");
+            var cards = new List<Hand.HandCard> { new("c1", "ancestors", [rya], false, 0, 6), new("c2", "follower", [], true, 3, 5) };
+            var me = Side(0, [U("i6", 0, 6)], [(0, 5), (1, 6)]);
+            var early = Hand.DiscardByRead(ReadOf(me, Side(1, [U("t4", 1, 4)], [(0, 6), (1, 6)]) with { Honor = 20 }, 0), cards, 1, attacksToWin: false);
+            Check(early.CardIds.SequenceEqual(["c1"]), $"far from -20 it goes: {early.Why} | {string.Join(" || ", early.Log)}");
+            var late = Hand.DiscardByRead(ReadOf(me, Side(1, [U("t4", 1, 4)], [(0, 6), (1, 6)]) with { Honor = -15 }, 0), cards, 1, attacksToWin: false);
+            Check(late.CardIds.SequenceEqual(["c2"]), $"near -20 it is kept: {late.Why} | {string.Join(" || ", late.Log)}");
+        }),
+        ("a choice given to the targeted player is read as the branch that costs him less (Mendon, 2026-11-15): pay 4 Gold over dishonor-and-home, dishonor over bow-and-no-straighten, must-pass over bow; none is then a battle answer", () =>
+        {
+            foreach (var (id, expect) in new[] { ("makoto-lock", EffectClass.HonorTax), ("rin-shame", EffectClass.Dishonor), ("unfortunate-hesitation", EffectClass.Other) })
+            {
+                var d = EffectDescriptors.Of(id);
+                Check(d.Class == expect && !d.Neutralises, $"{id}: {d}");
+            }
+        }),
     ];
 }
