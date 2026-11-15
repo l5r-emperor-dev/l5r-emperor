@@ -80,3 +80,11 @@ The fork's own measure moves: Cavalry arriving undefended takes the Province nin
 Arm `rB2_106`: **50.3%** (732 of 1,456); against the A/A **+28 gained, −14 lost, net +14, two-sided p .044** (one-sided .022). Fewer games change (42 against 61) for the same net: the Infantry-declaration "nothing" was where formulation 1 both gained and lost. `readB` is consulted 3.9 times a game and fires 0.35 times (in 225 games); `rbCav` fires 0.15 (it masks the fork at 127 games' Infantry declarations). Per deck: Unicorn Maidens **+17 / −5** again, Crane preset +4 / −2, Classic Lion +2 / −1, Pinned Lion +1 / −1, Lion preset +1 / −3, Phoenix Talons +1 / −2, the seven decks without Cavalry 0 / 0. Measures: Cavalry arriving undefended takes the Province 77% (A/A 68%); Unicorn Maidens attacks 51% of its turns against 81%, 0.89 Provinces an attack against 0.71, wins 73% against 63%; Cavalry Personalities held for the Cavalry segment 67%.
 
 **Family B screens positive in both formulations** (+15 and +14 in 1,456), the second cleaner. Its gain is one deck's: the all-Cavalry Unicorn Maidens, which the fork plays as a fork (attack half as often, take more). Per the brief it goes to the sequential test as Hard + `read,readB,rbCav` against Hard on block 10700, run as fair pairs (both arms together under the same load; see family C's note on `lkT`). Family C's test under Hard found no gain where the Contender-speed screen found +28, and the same may hold here: the lookahead already chooses among shapes by playing on.
+
+## Sequential test (Hard + read,readB,rbCav against Hard, both v T2, block 10700 upward)
+
+Hard is Conan-best (`BotContext.Hard`: T2 + lkDef, lkVar, lkPlan + look); the arm is the `conan` arm with `L5R_C2="t2,lkDef,lkVar,lkPlan,read,readB,rbCav"`. Chunks of one seed (364 games), both arms of a chunk run together under the same load (`lkT` is a wall-clock limit; see family C's note), 10-minute budget, no fire counting; analysed at chunk boundaries with `tools/bots/sprt.py` (p1 0.6, bounds ±2.94), hard cap 1,456 games (CONAN_CAMPAIGN_BRIEF.md section 4, Tier 2).
+
+| Chunk | Seed | Hard v T2 | Hard + readB, rbCav v T2 | Paired | Gained | Lost | LLR | Verdict |
+|---|---|---|---|---|---|---|---|---|
+| 1 | 10700 | 67.0% (244/364) | 67.8% (246/363) | 363 | 4 | 1 | +0.51 | continue |
