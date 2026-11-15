@@ -68,6 +68,11 @@ internal static class TutorialCards
     public const string LawOfDarknessDojo = "oracle-l5r-4676", DaidojiMarketplace = "oracle-l5r-10214", ReserveWeapon = "oracle-l5r-6269", AshigaruRecruits = "oracle-l5r-618";
     public const string SanctionedDuel = "oracle-l5r-6465", RecklessDuel = "oracle-l5r-6209", Retribution = "oracle-l5r-6290", CourtesyOfTheCrane = "oracle-l5r-7996", LoyaltyOfTheScorpion = "oracle-l5r-8207", CrushingStrength = "oracle-l5r-1589";
 
+    // The Dishonor lesson: Crab Control (you, Yasuki Palaces - exp) against Dragon Destruction (Monastery of New Thought).
+    public const string MonasteryOfNewThought = "oracle-l5r-10183";
+    public const string YasukiJekku = "oracle-l5r-9443", YasukiTono = "oracle-l5r-9467", KaiuIemasa = "oracle-l5r-4119", TogashiMeiyu = "oracle-l5r-8550", MirumotoGobashi = "oracle-l5r-5087";
+    public const string RememberYourAncestors = "oracle-l5r-6253", DismissingTheCur = "oracle-l5r-2027", TheHeirsWrath = "oracle-l5r-8127";
+
     /// <summary>A forty-card deck: the lesson's cards on top, then the rest of the side's deck in its own order. A card the deck does not hold displaces the last card.</summary>
     internal static string[] Deck(string[] top, TutorialSide side, bool dynasty)
     {

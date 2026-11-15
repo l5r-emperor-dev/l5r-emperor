@@ -83,6 +83,7 @@ public partial class Main
         }
         var coach = lesson.Coach;
         SyncTutorialGlow(coach.Glow ?? []); SyncTutorialShow(coach.ShowDefinitionId); SyncTutorialDeal(coach);
+        if (_coachPanel.StepId != coach.StepId && coach.ShowDeadOf is int deadOf) Callable.From(() => ShowFallenGallery(deadOf)).CallDeferred(); // the note talks about that player's dead
         if (_coachPanel.StepId != coach.StepId || !_coachPanel.Visible) _coachPanel.Present(coach);
         _coachPanel.Show(); LayoutTutorialCoach();
     }
@@ -379,6 +380,11 @@ public partial class Main
         ["soshi-bow"] = "select:Soshi House Guard;click:Natsumi;click:Use Soshi House Guard",
         ["towers-bow"] = "select:Bayushi Hurunayi;click:Isawa Tomohiro;click:Use Bayushi Hurunayi",
         ["blade-bow"] = "select:Nightingale Blade;click:Isawa Tomohiro;click:Use Nightingale Blade",
+        // Special Actions - Dishonor: Jekku paid with the Small Farm, Kaiu Iemasa's own ability, the Slanderer, and The Heir's Wrath discarding the Imperial Favor.
+        ["jekku"] = "select:Yasuki Jekku;click:Mirumoto Gobashi;selecthome:Small Farm;click:Use Yasuki Jekku",
+        ["iemasa"] = "select:Kaiu Iemasa;click:Use Kaiu Iemasa",
+        ["slanderer"] = "select:Slanderer;click:Togashi Meiyu;click:Use Slanderer",
+        ["heirs-wrath"] = "select:The Heir's Wrath;click:Togashi Meiyu;select:Yasuki Palaces;click:Play The Heir's Wrath",
     };
 
 
