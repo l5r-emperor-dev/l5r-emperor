@@ -114,5 +114,12 @@ internal static class HandTests
             var d = EffectDescriptors.Of("inexplicable-challenge-bow") is { Class: not EffectClass.Unknown } known ? known : AbilityCatalog.All.Keys.Where(k => k.StartsWith("inexplicable-challenge")).Select(EffectDescriptors.Of).First(e => e.Class == EffectClass.Bow);
             Check(d.Side == TargetSide.Enemy && d.Target == TargetKind.UnitCard && d.Conditions.Any(c => c.Kind == "without-attachments"), $"descriptor: {d}");
         }),
+        ("formulation 3, situational: against an opponent unlikely to attack (their 2 against my 6 and Strength 5), a destroy that needs an attacking target goes before a send-home with the same targets", () =>
+        {
+            var attackingOnly = new EffectDescriptor("test-ra", "Battle", null, EffectClass.Destroy, null, false, TargetSide.Enemy, TargetKind.Personality, [new("attacking")], [], null, true, true, false, false, true, 0, 0, false, false, 1, false, null);
+            var me = Side(0, [U("i6", 0, 6)], [(0, 5), (1, 6)]); var them = Side(1, [U("t2", 1, 2)], [(0, 6), (1, 6)]);
+            var plan = Hand.DiscardByRead(ReadOf(me, them, 0), [new("c1", "destroy attacker", [attackingOnly], false, 0, 6), new("c2", "send home", [Naked()], false, 0, 6)], 1);
+            Check(plan.CardIds.SequenceEqual(["c1"]), $"the attackers-only card goes: {plan.Why} | {string.Join(" || ", plan.Log)}");
+        }),
     ];
 }

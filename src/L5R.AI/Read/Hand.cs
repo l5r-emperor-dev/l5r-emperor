@@ -74,6 +74,8 @@ public static class Hand
             return read with { Ledger = read.Ledger with { Me = me with { HandAnswers = answers.ToArray(), HandCount = Math.Max(0, me.HandCount - 1) } } };
         }
         var pLose = PLose(read); var opp = Opportunity(read);
+        // the chance they attack at all next turn: about 1.7 times the chance they take a Province (threat records, blocks 11400-11500: attacked in 50% of turns, a Province lost in 29%)
+        var pAttack = Math.Clamp(1.7 * pLose, .05, 1);
         log.Add($"home: lose a Province next turn {pLose:0.00} (worth {worth}); my next attack {opp:0.00} Provinces");
         // sequencing: the largest Force cut the hand holds, applied to their units before a card's force-at-most targets are counted
         var cuts = hand.SelectMany(c => c.Effects.Where(e => e.Class == EffectClass.ForceCut && e.Side != TargetSide.Own && e.Magnitude is > 0).Select(e => (c.Id, Cut: e.Magnitude!.Value))).ToArray();
@@ -100,8 +102,13 @@ public static class Hand
             if (c.Attachment) development = Math.Max(0, c.ForceAdded) * DevelopmentPerForce * (1 - pLose);
             var live = Live(c);
             if (live == 0) { defence = 0; attack = 0; } // nothing it can touch, even after the hand's own cuts
-            var total = defence + attack + development;
-            log.Add($"{c.Name}: defence {defence:0.00}, attack {attack:0.00}, development {development:0.00}, live {live}, value {c.Value}");
+            // a residual worth for what the card could do beyond next turn: its live targets, a card that can only touch attackers counted at the chance they attack at all (Mendon's "situational":
+            // a destroy that needs an attacking target is dead against an opponent who does not attack)
+            var attackersOnly = c.Effects.Where(e => e.IsBattle && e.Side != TargetSide.Own).ToArray() is { Length: > 0 } battle && battle.All(e => e.Conditions.Any(k => k.Kind == "attacking"));
+            var reach = c.Effects.Where(e => e.IsBattle && e.Side != TargetSide.Own).Select(e => e.Targets).DefaultIfEmpty(1).Max(); // a card that stops two attackers (Rocky Terrain's kind) counts twice
+            var residual = ResidualPerTarget * Math.Min(live, 3) * reach * (attackersOnly ? pAttack : 1);
+            var total = defence + attack + development + residual;
+            log.Add($"{c.Name}: defence {defence:0.00}, attack {attack:0.00}, development {development:0.00}, residual {residual:0.00}{(attackersOnly ? " (attackers only)" : "")}, live {live}, value {c.Value}");
             return (c.Id, c.Name, Total: total, Live: live, c.Value);
         }).OrderBy(c => c.Total).ThenBy(c => c.Live).ThenBy(c => c.Value).ThenBy(c => c.Id, StringComparer.Ordinal).Take(Math.Max(0, count)).ToArray();
         return new(scored.Select(c => c.Id).ToArray(), scored.Length == 0 ? "nothing to discard" : $"the least worth on this board first: {string.Join(", ", scored.Select(c => $"{c.Name} ({c.Total:0.00})"))}", log.ToArray());
@@ -109,6 +116,8 @@ public static class Hand
 
     /// <summary>Provinces a point of attached Force is worth over the quiet turns ahead: a 3-Force Follower is about a sixth of a Province when home is safe.</summary>
     public const double DevelopmentPerForce = .05;
+    /// <summary>Provinces a live target is worth beyond next turn, up to three targets: small beside a card that turns next turn, enough to order the rest.</summary>
+    public const double ResidualPerTarget = .02;
 
     /// <summary>The hand-limit discard: <paramref name="count"/> cards from <paramref name="hand"/> (id, name, descriptors, the Contender's own value for ties), the fewest live uses first.
     /// A card's live uses: how many of their units in play (straightened) its targeting effects admit now, a condition against the performer judged with my best unit for it; a card without a target has one use; a card with no Battle or Open effect has one.</summary>
