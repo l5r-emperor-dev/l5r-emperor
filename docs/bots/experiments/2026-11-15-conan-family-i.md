@@ -78,3 +78,13 @@ A/A `ca113`: 48.7% (709 of 1,456). Arm `rI113`: **48.6%** (707 of 1,456); agains
 Arm `rI2_113`: **49.5%** (720 of 1,456); against the A/A **+23 gained, −12 lost, net +11, two-sided p .09** (one-sided .045). The hand-limit discard by live uses fires 0.25 times a game in 266 games; `riHand` is consulted at every decision and silences the Favor 0.91 times a game. Per deck: Crab Control +5 / −2, Dragon Destruction +5 / −2, Spider Conquer +4 / −2, Phoenix Talons +3 / −0, Unicorn Maidens +2 / −0, Crane Dominance +3 / −3, Lion Legacy +0 / −2; six decks unchanged (0 / 0). Against formulation 1's −2, the Favor's keeps cost about 13 games net: the exchange's "every attacker neutralised" projection is optimistic where the Contender's Favor would have sent the biggest attacker home for nothing.
 
 **Family I screens positive in its second formulation** (the hand only). Per the brief it goes to the sequential test as Hard + `read,readI,riHand` against Hard on block 11600, run as fair pairs (both arms together, 10-minute budget). Unlike families C and B, nothing in the lookahead touches the hand-limit discard (`lkBuy` is for purchases, the shapes for attacks), so the Contender-speed gain should carry over if it is real.
+
+## Sequential test (Hard + read,readI,riHand against Hard, both v T2, block 11600 upward)
+
+Hard is Conan-best (T2 + lkDef, lkVar, lkPlan + look); the arm is the `conan` arm with `L5R_C2="t2,lkDef,lkVar,lkPlan,read,readI,riHand"`. Chunks of one seed (364 games), both arms together under the same load, 10-minute budget, no fire counting, one build for every chunk; `tools/bots/sprt.py` (p1 0.6, bounds ±2.94), cap 1,456.
+
+| Chunk | Seed | Hard v T2 | Hard + hand v T2 | Paired | Gained | Lost | LLR | Verdict |
+|---|---|---|---|---|---|---|---|---|
+| 1 | 11600 | 73.6% (268/364) | 73.9% (269/364) | 364 | 8 | 7 | −0.10 | continue |
+| 2 | 11601 | 68.1% (248/364) | 67.9% (247/364) | 364 | 5 | 6 | −0.43 (chunk alone) | continue |
+| 1 + 2 | | | | 728 | 13 | 13 | −0.53 | continue |
