@@ -185,6 +185,8 @@ public static class RuleRegistry
         K("lkIw", "search", "lkIntent's weight (1.5)"),
         R("lkAct", "search", "an Action-phase move is searched too"),
         R("lkBuy", "search", "a Dynasty purchase is chosen by search (lkBK purchases on lkBN samples)"),
+        R("lkRead", "search", "step 4: the Read's opportunity options (lone unit, split, sufficient, everything) join lkPlan's candidate attack shapes"),
+        R("lkFight", "search", "step 4: the viewer's playout bot plays its battles by the Fight (readE) instead of the Contender's battle rules"),
         K("lkBK", "search", "lkBuy's purchases searched (3)"),
         K("lkBN", "search", "lkBuy's samples (3)"),
         K("lkG", "search", "a Holding's production worth in the search (3 under lkBuy, else 0)"),
