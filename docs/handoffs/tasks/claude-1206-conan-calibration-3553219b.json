@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "The Read's Calibration tables (Calibration.PFall, Calibration.PLose in src/L5R.AI/Read/Questions.cs) refitted on block 11400 and scored on 11500 (T2 mirrors with battle and threat records), because the exchange fix of 2026-11-14 post-dated their fit. PFall 000 .09, 001 .23, 011 .56, 111 .80 (old .10, .24, .45, .79); PLose rows refitted, every cell of 200+ turns within four points of the old. The step 2 gate holds: the Read's Brier 0.147 against the paper margin's 0.212 and EstimateAttack's 0.222; the threat's 0.109 against 0.121 and 0.126; no cell of 200+ off by more than 10 points. The defaults do not read the tables. Note docs/bots/experiments/2026-11-15-conan-calibration-refit.md; ROADMAP entry.",
+  "validation": "battles.py and threats.py --fit on the two blocks (tables in the note); questions 8/8, guard 6/6, fork 7/7, purchase 14/14, route 11/11, read-a 2/2, defence 7/7 on the new tables; bash tools/check.sh --skip-client all stages 0; check_format.py clean.",
+  "remaining": "None for the refit. Next: family I's sequential test (block 11600), then step 4 (rules alone; rules plus today's lookahead; rules plus a lookahead taking the Read's shapes as candidates and its exchange as the playout's battle policy).",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
+  "branch": "claude/1206-conan-calibration",
+  "updated": "2026-11-15T09:28:17.941512+00:00"
+}

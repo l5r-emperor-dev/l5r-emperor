@@ -17,15 +17,19 @@ public sealed record Trend(double MyHonorPerTurn, double TheirHonorPerTurn, doub
 public static class Calibration
 {
     /// <summary>P(the Province falls) by the exchange's cell at defence (open/likely/worst falls), "Read at defence, or undefended when nobody defended".</summary>
-    public static double PFall(string cell) => cell switch { "000" => .10, "001" => .24, "011" => .45, "111" => .79, "010" => .30, "100" => .50, "101" => .60, "110" => .70, _ => .5 };
+    // refitted 2026-11-15 on block 11400, scored on 11500 (docs/bots/experiments/2026-11-15-conan-calibration-refit.md): 000 9%, 001 23%, 011 56% (105 battlefields), 111 80%; the four cells the
+    // exchange almost never produces (010, 100, 101, 110: under ten battlefields each) keep their earlier values
+    public static double PFall(string cell) => cell switch { "000" => .09, "001" => .23, "011" => .56, "111" => .80, "010" => .30, "100" => .50, "101" => .60, "110" => .70, _ => .5 };
 
     // the eight gap buckets of threats.py: <= -10, -9..-5, -4..-1, 0..2, 3..5, 6..9, 10..14, > 14
     private static readonly Dictionary<string, double[]> Lose = new()
     {
-        ["000"] = [.03, .04, .23, .30, .37, .44, .50, .57],
-        ["001"] = [.05, .24, .42, .47, .58, .66, .67, .76],
-        ["011"] = [.05, .24, .52, .71, .80, .88, .88, .88],
-        ["111"] = [.05, .20, .49, .71, .82, .87, .91, .95],
+        // refitted 2026-11-15 on block 11400 (18,584 turns), scored on 11500 (Brier 0.109 against the paper margin's 0.121 and the guard ratio's 0.126; no cell of 200+ turns off by more than
+        // 10 points); the 011 row's last three buckets hold under 20 turns each and are capped at .95
+        ["000"] = [.02, .03, .19, .30, .35, .39, .38, .57],
+        ["001"] = [.05, .25, .44, .47, .57, .68, .66, .74],
+        ["011"] = [.08, .25, .59, .72, .76, .76, .88, .95],
+        ["111"] = [.05, .20, .47, .75, .83, .86, .91, .95],
     };
     /// <summary>P(I lose a Province on their next turn) by the threat's cell and its Force gap (their straightened army against my unbowed home and weakest Strength).</summary>
     public static double PLose(string cell, int gap)
