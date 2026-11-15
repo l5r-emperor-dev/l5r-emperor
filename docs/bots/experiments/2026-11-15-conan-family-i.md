@@ -49,3 +49,20 @@ hand answers = the hand's cards with a Battle descriptor that neutralises (send 
 | D5 | Unicorn v Crane Dominance T6, two cards | My Enemy's Mercy, A Paragon's Strength | Pure Intent, Preserving Beauty (one use each) | unclear |
 
 **8 of 10 right or equivalent, 0 wrong, 2 unclear.** The gate is met; the Favor's deciding-battle line is added for F5 and round 3 is the rerun.
+
+**Round 3** (`shI3_112`, with the deciding-battle line): the Favor differs at 157 of 204 offers (0.43 a game), the discard at 84 of 182 (0.23 a game); the deciding-battle line fired at no offer in the block (the last-Province offers it saw already held under their worst hand). Five of each drawn by seed 312:
+
+| # | Position | Contender | Read | Verdict |
+|---|---|---|---|---|
+| F1 | Crab Control v Crane Dominance T13, my last Province, every attacker neutralised in the projection (4 v 0) | spend | keep | right by the Read (holds under their worst hand too) |
+| F2 | Crab Control v Phoenix T17, 6 v 0 | spend | keep | right |
+| F3 | Crab Control v Dragon T11, 0 v 0 | spend | keep | right |
+| F4 | Crab Control v Scorpion T12, 2 v 0 | spend | keep | right |
+| F5 | Crab Control v Crane Dominance T11, P2v4, 4 v 0 | spend | keep | right |
+| D1 | Phoenix v Crab T5 | The Mountain's Power | The Earth's Strength (one use) | equivalent |
+| D2 | Dragon v Classic Crane T8 | Blade of Perfection | Engulfing Flames (no live target) | right by the policy |
+| D3 | Lion Legacy v Crane T3 | Focus | Creating Order (no live target) | right |
+| D4 | Crab Control v Scottish Lion T26, the opponent at −21 Honor | Rocky Terrain | Disgraceful Conduct (no target) | equivalent (the game is decided) |
+| D5 | Crane Dominance v Scottish Lion T8 | Reckless Duel | Of One Instant (one use) | unclear |
+
+**7 right, 2 equivalent, 1 unclear, 0 wrong.** The rule passes the shadow gate (8, then 9 of 10 counting equivalents) and fires 0.66 times a game, inside the card's prediction. One caveat the screen must judge: every Favor keep rests on the exchange's projection that my hand's answers neutralise the attackers ("0 v 0"); the Crab Control deck, whose hand is all answers, supplies most of them. The screen runs on block 11300.
