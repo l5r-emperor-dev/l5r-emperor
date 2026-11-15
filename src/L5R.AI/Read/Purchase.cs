@@ -100,7 +100,7 @@ public static class Purchase
     private static PurchaseCandidate? Body(PurchaseCandidate[] bodies) => bodies.OrderByDescending(b => b.Production > 0 ? 1 : 0).ThenByDescending(b => b.Force).ThenBy(b => b.Cost).ThenBy(b => b.Id, StringComparer.Ordinal).FirstOrDefault();
 
     /// <summary>The board at my next attack: my units straightened (with the candidate at home), theirs straightened; the opponent's hand as believed now.</summary>
-    private static Read NextTurn(Read read, LedgerUnit? bought)
+    public static Read NextTurn(Read read, LedgerUnit? bought)
     {
         var mine = Threat.Straightened(read.Ledger.Me.Units).ToList();
         if (bought is not null) mine.Add(bought with { Bowed = false, Spent = [], Province = null });

@@ -129,7 +129,8 @@ internal static class BotTournament
                 + (memory[challengerSeat].AttackLog is { Count: > 0 } attacks ? "\n## challenger attack (family A in shadow)\n" + string.Join("\n", attacks) : "")
                 + (memory[challengerSeat].FightLog is { Count: > 0 } fights ? "\n## challenger fight (family E in shadow)\n" + string.Join("\n", fights) : "")
                 + (memory[challengerSeat].GuardLog is { Count: > 0 } guards ? "\n## challenger guard (family C in shadow)\n" + string.Join("\n", guards) : "")
-                + (memory[challengerSeat].ForkLog is { Count: > 0 } forks ? "\n## challenger fork (family B in shadow)\n" + string.Join("\n", forks) : ""));
+                + (memory[challengerSeat].ForkLog is { Count: > 0 } forks ? "\n## challenger fork (family B in shadow)\n" + string.Join("\n", forks) : "")
+                + (memory[challengerSeat].PurchaseLog is { Count: > 0 } buys ? "\n## challenger purchase (family F in shadow)\n" + string.Join("\n", buys) : ""));
             return r;
         }
         for (var n = 0; n < 6000; n++)

@@ -47,6 +47,9 @@ public static partial class TrainingOpponent
         // issue #1206 (family B in shadow): with read on and readB off, what the Cavalry fork would declare at each of the seat's declarations beside what was chosen
         if (memory.Has("read") && !memory.Has("readB") && view.ActivePlayerId == view.ViewerId && view.Phase is Phase.InfantryDeclaration or Phase.CavalryDeclaration && candidates.Any(c => c.Action.Type == "attack") && ReadFork(x) is { } shadowB)
             memory.NoteFork(view, shadowB, chosen.Command);
+        // issue #1206 (family F in shadow): with read on and readF off, what the Read would buy next beside what was bought
+        if (memory.Has("read") && !memory.Has("readF") && view.ActivePlayerId == view.ViewerId && view.Phase == Phase.Dynasty && candidates.Any(c => c.Action.Type == "purchase") && ReadPurchase(x) is { } shadowF)
+            memory.NotePurchase(view, shadowF, chosen.Command, chosen.Command.CardId is { } boughtId ? x.Card(boughtId)?.Definition?.Name : null);
         // issue #1206 (family D in shadow): with read on and readD off, what the Read's defence would have assigned beside what was chosen
         if (memory.Has("read") && !memory.Has("readD") && view.Phase == Phase.DefenseAssignment && chosen.Command.Type is "assignDefense" or "pass" && candidates.FirstOrDefault(c => c.Action.Type == "assignDefense").Action is { } offer)
             memory.NoteDefence(view, ReadDefence(x, offer), chosen.Command);
@@ -82,7 +85,7 @@ public static partial class TrainingOpponent
         foreach (var rule in consulted)
         {
             if (memory.Deadline is { } cutoff && DateTime.UtcNow >= cutoff) { memory.FiresCut++; break; }
-            memory.Masked = rule; memory.Restore(snapshot); memory.ForgetPlan(); memory.ReadAnswersCache = null; memory.ReadDefencePlan = null; memory.ReadFightPlan = null; memory.ReadGuardPlan = null; memory.ReadForkPlan = null;
+            memory.Masked = rule; memory.Restore(snapshot); memory.ForgetPlan(); memory.ReadAnswersCache = null; memory.ReadDefencePlan = null; memory.ReadFightPlan = null; memory.ReadGuardPlan = null; memory.ReadForkPlan = null; memory.ReadPurchasePlan = null;
             try
             {
                 if (Decide(x) is not { } again || System.Text.Json.JsonSerializer.Serialize(again.Chosen.Command) != want) memory.Fires[rule] = memory.Fires.GetValueOrDefault(rule) + 1;
@@ -267,6 +270,30 @@ public static partial class TrainingOpponent
         if (command is { Assignments.Count: > 0 } && action.Type == "attack" && Rule(x, "readC") && x.View.Phase is Phase.InfantryDeclaration or Phase.CavalryDeclaration && ReadGuard(x, command.Assignments) is { } guardPlan && !guardPlan.Stands)
             return guardPlan.Nobody ? (x.Actions.Any(a => a.Enabled && a.Type is "pass" or "passAllBattles") ? null : command) : command with { Assignments = new Dictionary<string, int>(guardPlan.Assignments, StringComparer.Ordinal) };
         return command;
+    }
+
+    /// <summary>Issue #1206 (family F): the Purchase's reading of the affordable row at this Dynasty decision, once per view version. The posture and the clocks are read on the board as it
+    /// will stand next turn (my units straightened): at the Dynasty phase the army that attacked is bowed and the questions would read a hold.</summary>
+    private static PurchasePlan? ReadPurchase(Ctx x)
+    {
+        if (x.View.ActivePlayerId != x.Self.Id || x.View.Phase != Phase.Dynasty) return null;
+        if (x.Memory.ReadPurchasePlan is { } cached && cached.Version == x.View.Version) return cached.Plan;
+        var read = x.Memory.CurrentRead is { } current && current.Key == Read.KeyOf(x.View) ? current : Read.Of(x.View);
+        var row = new List<PurchaseCandidate>(); var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var offer in x.Actions.Where(a => a.Enabled && a.Type == "purchase" && a.CardId is not null))
+        {
+            if (!seen.Add(offer.CardId!) || x.Card(offer.CardId!) is not { Definition: { } def } card) continue;
+            var cost = EffectiveCost(x, card);
+            if (def.Type == CardType.Personality)
+                row.Add(new(card.Id, def.Name, def.Type, cost, Math.Max(0, def.Force), def.GoldProduction, new LedgerUnit(card.Id, def.Name, x.Self.Id, Math.Max(0, def.Force), Math.Max(0, def.Force), false,
+                    def.Keywords?.Contains("Cavalry") ?? false, null, EffectDescriptors.Of(card).ToArray(), [], def.Chi, def.PersonalHonor, false, false, 0, 0, def.GoldCost, def.Keywords)));
+            else if (def.Type == CardType.Holding) row.Add(new(card.Id, def.Name, def.Type, cost, 0, def.GoldProduction, null));
+        }
+        var next = Questions.Of(Purchase.NextTurn(read, null), x.Memory.TrendNow());
+        var turnsLeft = (int)Math.Clamp(Math.Min(next.Clocks.MyFastest, next.Clocks.TheirFastest), 2, 8);
+        var plan = Purchase.Of(read, row.ToArray(), next.Posture, turnsLeft);
+        x.Memory.ReadPurchasePlan = (x.View.Version, plan);
+        return plan;
     }
 
     /// <summary>Issue #1206 (family C): the Guard's reading of an attack assignment at this declaration, once per view version and assignment.</summary>

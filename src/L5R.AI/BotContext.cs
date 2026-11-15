@@ -169,6 +169,19 @@ public sealed class BotContext
     }
     /// <summary>Issue #1206 (family B): the Cavalry fork's plan for the current decision, by view version (null: the fork does not apply).</summary>
     internal (long Version, ForkPlan? Plan)? ReadForkPlan { get; set; }
+    /// <summary>Issue #1206 (family F): the Purchase's reading of the row at this Dynasty decision, by view version.</summary>
+    internal (long Version, PurchasePlan Plan)? ReadPurchasePlan { get; set; }
+    /// <summary>Family F in shadow: what the Read would buy next beside what the bot bought; a difference is logged.</summary>
+    public List<string> PurchaseLog { get; } = [];
+    internal void NotePurchase(MatchView view, PurchasePlan plan, GameCommand chosen, string? chosenName)
+    {
+        if (PurchaseLog.Count >= 2000) return;
+        var me = view.Players.Single(p => p.Id == view.ViewerId); var them = view.Players.Single(p => p.Id != view.ViewerId);
+        var chose = chosen.Type == "purchase" ? chosenName ?? chosen.CardId ?? "a card" : chosen.Type;
+        var would = plan.Silent ? "(silent)" : plan.Choice!.Name;
+        var same = plan.Silent || chosen.Type == "purchase" && string.Equals(chosen.CardId, plan.Choice!.Id, StringComparison.Ordinal);
+        PurchaseLog.Add($"T{view.TurnNumber} {view.Phase} {(same ? "same" : "DIFFERS")}: chose {chose}, read {would} (line {plan.Line}: {plan.Why}) | P{me.Provinces.Count(p => !p.Destroyed)}v{them.Provinces.Count(p => !p.Destroyed)} H{me.Honor}/{them.Honor} | {string.Join(" || ", plan.Log)}");
+    }
     /// <summary>Family B in shadow: what the fork would declare at each of the seat's declarations beside what the bot chose; a difference is logged.</summary>
     public List<string> ForkLog { get; } = [];
     internal void NoteFork(MatchView view, ForkPlan plan, GameCommand chosen)
@@ -250,12 +263,12 @@ public sealed class BotContext
     private bool NegFlag(string name, bool on) { if (on) return true; if (Rules.Contains(name)) { if (name == Masked) return true; Consulted?.Add(name); } return false; }
     /// <summary>What a re-decision may change and the real decision must keep: the plan and its history, the planned attack, the Read's per-version caches, the logs' lengths.</summary>
     internal readonly record struct Snapshot(TurnPlan? Plan, string? PlanKey, string? PlanGroup, int Plans, int PlanLines, int LookLines, int Thinks, (int Turn, Dictionary<string, int> Assignment, string Label)? PlannedAttack,
-        (long Version, Answers Answers)? AnswersCache, (long Version, DefencePlan Plan)? DefenceCache, (long Version, FightPlan Plan)? FightCache, (long Version, string Key, GuardPlan Plan)? GuardCache, (long Version, ForkPlan? Plan)? ForkCache, int LookWork);
-    internal Snapshot Save() => new(Plan, PlanKey, PlanGroup, PlanHistory.Count, PlanLog.Count, LookLog.Count, ThinkMs.Count, PlannedAttack, ReadAnswersCache, ReadDefencePlan, ReadFightPlan, ReadGuardPlan, ReadForkPlan, LookWork);
+        (long Version, Answers Answers)? AnswersCache, (long Version, DefencePlan Plan)? DefenceCache, (long Version, FightPlan Plan)? FightCache, (long Version, string Key, GuardPlan Plan)? GuardCache, (long Version, ForkPlan? Plan)? ForkCache, (long Version, PurchasePlan Plan)? PurchaseCache, int LookWork);
+    internal Snapshot Save() => new(Plan, PlanKey, PlanGroup, PlanHistory.Count, PlanLog.Count, LookLog.Count, ThinkMs.Count, PlannedAttack, ReadAnswersCache, ReadDefencePlan, ReadFightPlan, ReadGuardPlan, ReadForkPlan, ReadPurchasePlan, LookWork);
     internal void Restore(Snapshot s)
     {
         Plan = s.Plan; PlanKey = s.PlanKey; PlanGroup = s.PlanGroup; Trim(PlanHistory, s.Plans); Trim(PlanLog, s.PlanLines); Trim(LookLog, s.LookLines); Trim(ThinkMs, s.Thinks);
-        PlannedAttack = s.PlannedAttack; ReadAnswersCache = s.AnswersCache; ReadDefencePlan = s.DefenceCache; ReadFightPlan = s.FightCache; ReadGuardPlan = s.GuardCache; ReadForkPlan = s.ForkCache; LookWork = s.LookWork;
+        PlannedAttack = s.PlannedAttack; ReadAnswersCache = s.AnswersCache; ReadDefencePlan = s.DefenceCache; ReadFightPlan = s.FightCache; ReadGuardPlan = s.GuardCache; ReadForkPlan = s.ForkCache; ReadPurchasePlan = s.PurchaseCache; LookWork = s.LookWork;
     }
     /// <summary>Drops the current plan so the next decision plans afresh (a re-decision under a mask must not reuse the real plan).</summary>
     internal void ForgetPlan() { Plan = null; PlanKey = null; PlanGroup = null; }
