@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Native check repairs: SidebarScroll shows an empty-hidden zone as soon as content is added (a drafted action's Confirm is on screen the frame it is made, fixing published-board-target-confirm); Catalogue probe expects 2157 cards (Quelsa, 4631c598); gameplay-controls honor-reaction uses the reaction window's CommitAction button (GenericDecisionConfirm) instead of the old Confirm choice label. Check error messages now name the hidden ancestor / visible buttons.",
+  "validation": "check-ui-consolidation.sh UI_CONSOLIDATION_PASS (full run, incl. target-confirm twice and Catalogue); check.sh --client-only exit 0; reaction-flow, direct-play, table-click, variant-steps, table-menu checks exit 0; check-gameplay-controls reaches UI_SMOKE_PASS but still exits 1 on Godot exit-time leak reports from the honor-reaction scenario (pre-existing, tracked in https://github.com/l5r-emperor-dev/l5r-emperor/issues/1252). target-confirm and gameplay-controls failed identically on unchanged origin/main.",
+  "remaining": "Gameplay-controls exit-time leak: https://github.com/l5r-emperor-dev/l5r-emperor/issues/1252.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1253",
+  "branch": "claude/1253-native-check-repairs",
+  "updated": "2026-11-15T12:07:25.856764+00:00"
+}

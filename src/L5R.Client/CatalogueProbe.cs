@@ -16,7 +16,7 @@ public partial class CatalogueProbe : Node
             _screen = new CatalogueScreen(); AddChild(_screen); _screen.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
             await Wait(2); Check(_screen.Scans.PackAvailable, "complete local artwork pack present");
             Check(_screen.Data.Cards.SelectMany(c => c.Printings).All(_screen.Scans.HasArtwork), "every printing including pinned game faces has WebP artwork");
-            Check(_screen.Data.Cards.Length == 2156, "full reference catalogue");
+            Check(_screen.Data.Cards.Length == 2157, "full reference catalogue"); // 2157 since the library audit added Quelsa (4631c598)
             Check(_screen.Data.Cards.All(c => c.Printings.Length > 0), "every card has indexed scan variants");
             Check(_screen.Data.Filter(playable: true).All(c => c.Playable), "support comes from Core");
             Check(_screen.Data.Filter(clans: ["Crane"], types: ["Personality"]).All(c => c.Clans.Contains("Crane") && c.Types.Contains("Personality")), "combined clan and type filters");

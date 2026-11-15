@@ -17,7 +17,8 @@ public partial class Main
     }
     private static void DecisionRequire(bool ok, string message)
     { if (!ok) throw new InvalidOperationException("Decision review: " + message); }
-    private Button DecisionButton(string text) => StabilizationButtons(_root).Single(b => b.IsVisibleInTree() && b.Text == text);
+    private Button DecisionButton(string text) => StabilizationButtons(_root).SingleOrDefault(b => b.IsVisibleInTree() && b.Text == text)
+        ?? throw new InvalidOperationException($"No visible \"{text}\" button (pending: {View.PendingChoice?.Type}; visible: {string.Join(" | ", StabilizationButtons(_root).Where(b => b.IsVisibleInTree() && b.Text.Length > 0).Select(b => b.Text))})");
     private async Task PrepareDecisionReview(string kind, int? seat = null)
     {
         _decisionReviewCase = kind; ResetDecisionSelection();

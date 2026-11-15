@@ -57,7 +57,14 @@ public partial class Main
     private Button StabilizationButton(string text) => StabilizationButtons(this).FirstOrDefault(b => b.IsVisibleInTree() && !b.Disabled && b.Text.StartsWith(text, StringComparison.Ordinal))
         ?? throw new Exception("Missing enabled native button: " + text + " (visible: " + string.Join(" | ", StabilizationButtons(this).Where(b => b.IsVisibleInTree()).Select(b => (b.Disabled ? "[off] " : "") + b.Text)) + ")");
     private Button ReviewedCommitButton() => _paymentConfirm is { Disabled: false } button && button.IsVisibleInTree() && button.Name == "CommitAction"
-        ? button : throw new Exception($"Missing visible enabled reviewed action commit (button: {(_paymentConfirm is null ? "none" : $"name={_paymentConfirm.Name} text={_paymentConfirm.Text} disabled={_paymentConfirm.Disabled} visible={_paymentConfirm.IsVisibleInTree()}")}; chosen: {_chosen?.Type}; sources: {_sources.Count})");
+        ? button : throw new Exception($"Missing visible enabled reviewed action commit (button: {(_paymentConfirm is null ? "none" : $"name={_paymentConfirm.Name} text={_paymentConfirm.Text} disabled={_paymentConfirm.Disabled} visible={_paymentConfirm.IsVisibleInTree()} hidden under={HiddenAncestor(_paymentConfirm)}")}; chosen: {_chosen?.Type}; sources: {_sources.Count})");
+    // The nearest node that keeps a control from being drawn: names the panel to look at when a check finds its button hidden.
+    private static string HiddenAncestor(Node node)
+    {
+        for (Node? n = node; n is not null; n = n.GetParent())
+            if (n is CanvasItem { Visible: false } hidden) return hidden.GetPath();
+        return node.IsInsideTree() ? "none" : "not in the tree";
+    }
     private async Task StabilizationClick(Control target)
     {
         // Scroll the control fully into view first, as a player would: the centre of a partly clipped button can sit under the pinned footer (SupportClick does the same).
