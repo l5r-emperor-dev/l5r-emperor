@@ -1,9 +1,9 @@
 {
   "lane": "shared",
-  "summary": "Family B (the Cavalry fork, rule readB, src/L5R.AI/Read/Fork.cs): at the Infantry declaration the infantry option with the highest forced value over their replies and the Cavalry follow-ups; at the Cavalry declaration the follow-up against the defence as placed, sized to exceed Strength alone, the rest home. Built with ForkTests 6/6 and a shadow log; shadow block on seed 10500 running; A/A for block 10600 running.",
-  "validation": "ForkTests 6/6 (--filter fork); conan-positions unchanged (9/50); shadow and screen pending",
-  "remaining": "Judge the shadow sample (10 draws), screen t2,read,readB v t2 on block 10600 against the A/A, measures from q5_cavalry.py and profile.py, note, check.sh, PR.",
+  "summary": "Family B (the Cavalry fork, rules readB and rbCav, opt-in): at the Infantry declaration the infantry option whose worst case over their replies and the Cavalry follow-ups is best, at the Cavalry declaration the follow-up against the defence as placed; Cavalry groups at uncovered Provinces exceed Strength alone, the rest stays home. Shadow 9/10, 8/10, 9/10 on seed 10500; screen on block 10600 readB +38/-23 (net +15, p .072), readB+rbCav +28/-14 (net +14, p .044), all of it Unicorn Maidens'; sequential test Hard+read,readB,rbCav v Hard on 10700-10703 as fair pairs: 12/14 in 1,454, LLR -0.94 at the cap, no gain under the lookahead, not promoted. Note docs/bots/experiments/2026-11-14-conan-family-b.md; README/CODE_MAP/ROADMAP updated; rebased onto main after #1243.",
+  "validation": "ForkTests 7/7 (--filter fork); bash tools/check.sh --skip-client all stages 0, run before and after the rebase; arena blocks 10500 (shadow), 10600 (A/A 49.3%, two screens with battles and fires), 10700-10703 (SPRT, fair pairs, budget 10, no fire counting).",
+  "remaining": "readB/rbCav stay opt-in; promotion to any default is Mendon's decision. Next: families F, G, I; refit the Calibration tables on a fresh block (10800 upward); step 4 with the Read's shapes as search candidates.",
   "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
   "branch": "claude/1206-conan-family-b",
-  "updated": "2026-11-14T22:15:39.181111+00:00"
+  "updated": "2026-11-15T05:53:24.754510+00:00"
 }
