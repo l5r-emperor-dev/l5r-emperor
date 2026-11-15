@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Family F (Dynasty: economy against recruiting) in progress: Read/Purchase.cs (Purchase.Of: a body that makes home hold, a paying Holding while they have nobody, a body that turns next turn's attack from fails to falls, bodies when pressing, a paying Holding when home holds, else a body with a Gold producer first), PurchaseTests (9 cases) and the rule card in docs/bots/experiments/2026-11-15-conan-family-f.md. The readF hook, shadow log, registry entry, shadow run and screen are not yet done; the branch awaits a rebase onto main after family B's PR #1244 merges.",
+  "validation": "dotnet run --filter purchase: 9/9 passed on the Release build; check.sh not yet run.",
+  "remaining": "Hook readF in TrainingOpponent (purchase scoring), shadow log in BotContext, registry entry, BotTournament section; shadow on seed 10800 judged 10 by hand; screen on block 10900; then the sequential test, docs and PR.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
+  "branch": "claude/1206-conan-family-f",
+  "updated": "2026-11-15T06:07:15.805563+00:00"
+}
