@@ -91,6 +91,8 @@ public static class Hand
             var units = theirs.Select(u => new ExchangeUnit(cut > 0 ? u with { Force = Math.Max(0, u.Force - cut) } : u)).ToArray();
             return targeting.Max(e => performers.Max(pf => units.Count(t => Exchange.Legal(e, t, pf))));
         }
+        var others = me.HandAnswers.Count(a => a.FromHand); // every answer the hand holds; a card's own entries (one copy's share) are taken off below
+        int ownAnswers(HandCard c) { var n = me.HandAnswers.Count(a => a.FromHand && a.Source == c.Name); var copies = Math.Max(1, hand.Count(h => h.Name == c.Name)); return n / copies; }
         var scored = hand.Select(c =>
         {
             var answers = me.HandAnswers.Any(a => a.FromHand && a.Source == c.Name);
@@ -112,8 +114,12 @@ public static class Hand
             var attackersOnly = c.Effects.Where(e => e.IsBattle && e.Side != TargetSide.Own).ToArray() is { Length: > 0 } battle && battle.All(e => e.Conditions.Any(k => k.Kind == "attacking"));
             var reach = c.Effects.Where(e => e.IsBattle && e.Side != TargetSide.Own).Select(e => e.Targets).DefaultIfEmpty(1).Max(); // a card that stops two attackers (Rocky Terrain's kind) counts twice
             var residual = ResidualPerTarget * Math.Min(live, 3) * reach * (attackersOnly || !attacksToWin ? pAttack : 1); // a deck that never attacks uses every Battle card on defence
+            // a defensive answer held in reserve (Mendon, 2026-11-15: "you still need to defend provinces, so dismissing the cur might win if the hand is weak against attacks"): worth the chance
+            // they attack, shared with the hand's other answers, so a thin hand keeps its send-home over an Honor loss at -5 and a hand full of answers lets it go
+            var reserve = answers && live > 0 ? ReservePerAnswer * pAttack / (1 + others - Math.Min(others, ownAnswers(c))) : 0;
+            residual = Math.Max(residual, reserve);
             var total = defence + attack + development + residual + honor;
-            log.Add($"{c.Name}: defence {defence:0.00}, attack {attack:0.00}, development {development:0.00}, honor {honor:0.00}, residual {residual:0.00}{(attackersOnly ? " (attackers only)" : "")}, live {live}, value {c.Value}");
+            log.Add($"{c.Name}: defence {defence:0.00}, attack {attack:0.00}, development {development:0.00}, honor {honor:0.00}, residual {residual:0.00}{(reserve > 0 && reserve >= residual ? " (reserve)" : "")}{(attackersOnly ? " (attackers only)" : "")}, live {live}, value {c.Value}");
             return (c.Id, c.Name, Total: total, Live: live, c.Value);
         }).OrderBy(c => c.Total).ThenBy(c => c.Live).ThenBy(c => c.Value).ThenBy(c => c.Id, StringComparer.Ordinal).Take(Math.Max(0, count)).ToArray();
         return new(scored.Select(c => c.Id).ToArray(), scored.Length == 0 ? "nothing to discard" : $"the least worth on this board first: {string.Join(", ", scored.Select(c => $"{c.Name} ({c.Total:0.00})"))}", log.ToArray());
@@ -129,6 +135,9 @@ public static class Hand
         var worth = loss >= steps ? game : game * Math.Pow((double)loss / steps, 2);
         return dishonorRoute ? worth : worth / 2;
     }
+    /// <summary>Provinces a defensive answer is worth in reserve when they are sure to attack and it is the hand's only answer; divided by one more than the hand's other answers. Calibrated on
+    /// Mendon's threshold (2026-11-15): against an opponent at -5 Honor, Remember Your Ancestors (0.16) is kept over a send-home when the hand holds two or three other answers, not when it holds none.</summary>
+    public const double ReservePerAnswer = .6;
     /// <summary>Provinces a live target is worth beyond next turn, up to three targets: small beside a card that turns next turn, enough to order the rest.</summary>
     public const double ResidualPerTarget = .02;
 

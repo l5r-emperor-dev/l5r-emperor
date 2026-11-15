@@ -144,6 +144,21 @@ internal static class HandTests
             var late = Hand.DiscardByRead(ReadOf(me, Side(1, [U("t4", 1, 4)], [(0, 6), (1, 6)]) with { Honor = -15 }, 0), cards, 1, attacksToWin: false);
             Check(late.CardIds.SequenceEqual(["c2"]), $"near -20 it is kept: {late.Why} | {string.Join(" || ", late.Log)}");
         }),
+        ("formulation 3, Mendon's threshold (2026-11-15): against their 10 at -5 Honor, a hand with a send-home and three bows keeps Remember Your Ancestors and lets an answer go; with the send-home its only answer, the send-home is kept; at 15 Honor Remember Your Ancestors goes even from the full hand", () =>
+        {
+            var rya = EffectDescriptors.Of("remember-ancestors-choose");
+            var home = new Answer(Naked(), "send home", true, 0);
+            Answer B(int i) => Bow with { Source = $"bow{i}" };
+            var full = new List<Hand.HandCard> { new("c0", "ancestors", [rya], false, 0, 6), new("c1", "send home", [Naked()], false, 0, 6), new("c2", "bow1", [Bow.Effect], false, 0, 6), new("c3", "bow2", [Bow.Effect], false, 0, 6), new("c4", "bow3", [Bow.Effect], false, 0, 6) };
+            LedgerSide Them(int honor) => Side(1, [U("t10", 1, 10) with { Bowed = true }], [(0, 6), (1, 6)]) with { Honor = honor };
+            var meFull = Side(0, [U("i4", 0, 4)], [(0, 5), (1, 6)], hand: [home, B(1), B(2), B(3)]);
+            var kept = Hand.DiscardByRead(ReadOf(meFull, Them(-5), 0), full, 1, attacksToWin: false);
+            Check(!kept.CardIds.Contains("c0"), $"at -5 with answers to spare it is kept: {kept.Why} | {string.Join(" || ", kept.Log)}");
+            var thin = Hand.DiscardByRead(ReadOf(Side(0, [U("i4", 0, 4)], [(0, 5), (1, 6)], hand: [home]), Them(-5), 0), full.Take(2).ToList(), 1, attacksToWin: false);
+            Check(thin.CardIds.SequenceEqual(["c0"]), $"at -5 with the send-home its only answer, the send-home is kept: {thin.Why} | {string.Join(" || ", thin.Log)}");
+            var early = Hand.DiscardByRead(ReadOf(meFull, Them(15), 0), full, 1, attacksToWin: false);
+            Check(early.CardIds.SequenceEqual(["c0"]), $"at 15 it goes: {early.Why} | {string.Join(" || ", early.Log)}");
+        }),
         ("a choice given to the targeted player is read as the branch that costs him less (Mendon, 2026-11-15): pay 4 Gold over dishonor-and-home, dishonor over bow-and-no-straighten, must-pass over bow; none is then a battle answer", () =>
         {
             foreach (var (id, expect) in new[] { ("makoto-lock", EffectClass.HonorTax), ("rin-shame", EffectClass.Dishonor), ("unfortunate-hesitation", EffectClass.Other) })
