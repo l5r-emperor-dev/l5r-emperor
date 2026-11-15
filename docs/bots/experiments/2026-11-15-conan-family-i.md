@@ -88,3 +88,5 @@ Hard is Conan-best (T2 + lkDef, lkVar, lkPlan + look); the arm is the `conan` ar
 | 1 | 11600 | 73.6% (268/364) | 73.9% (269/364) | 364 | 8 | 7 | −0.10 | continue |
 | 2 | 11601 | 68.1% (248/364) | 67.9% (247/364) | 364 | 5 | 6 | −0.43 (chunk alone) | continue |
 | 1 + 2 | | | | 728 | 13 | 13 | −0.53 | continue |
+| 3 | 11602 | 70.0% (254/363) | 70.0% (254/363) | 363 | 8 | 8 | −0.33 (chunk alone) | continue |
+| 1 + 2 + 3 | | | | 1,091 | 21 | 21 | −0.86 | continue |
