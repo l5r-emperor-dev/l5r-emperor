@@ -31,9 +31,10 @@ public sealed record EffectDescriptor(
     TargetSide Side, TargetKind Target, EffectCondition[] Conditions, EffectClass[] Secondary,
     string? PerformerKeyword, bool PerformerUnbowed, bool PerformerAtBattlefield,
     bool BowsSource, bool DestroysSource, bool DiscardsCard, int GoldCost, int HonorCost, bool Absent, bool Repeatable, int UsesPerTurn,
-    bool Conditional, string? Why)
+    bool Conditional, string? Why, int Targets = 1)
 {
-    public bool IsBattle => Timing is "Battle" or "BattleOrOpen";
+    /// <summary>Usable inside a battle: Battle actions, and abilities that act before the battle resolves (Rocky Terrain's kind: after every other action, so nothing answers them).</summary>
+    public bool IsBattle => Timing is "Battle" or "BattleOrOpen" or "BeforeResolution";
     public bool IsOpen => Timing is "Open" or "BattleOrOpen";
     public bool IsReaction => Timing == "Reaction";
     /// <summary>Removes an enemy unit from the Force count or the battle: send home, bow, destroy, a Force cut, a lock or a duel it can win.</summary>
@@ -124,6 +125,16 @@ public static class EffectDescriptors
         var category = a.Target ?? "none";
         var (side, target, conditions) = ReadCategory(category, a);
         if (category is "none" or "hand" or "slots") foreach (var c in TextConditions(cost)) conditions.Add(c); // a Slots ability names its targets in the text
+        // an untargeted ability that names the attacking (or defending) Personalities it acts on, "bow one or two attacking Personalities at the current battlefield": an enemy Personality to the side that
+        // defends (or attacks), with the condition, and as many targets as it names
+        var named = category == "none" ? Regex.Match(effect, @"\b(?:(one or two|up to two|two|one or more|any number of)\s+)?(attacking|defending)\s+Personalit(?:y|ies)\b", I) : Match.Empty;
+        var namedTargets = 1;
+        if (named.Success)
+        {
+            side = TargetSide.Enemy; target = TargetKind.Personality;
+            if (conditions.All(c => c.Kind != named.Groups[2].Value.ToLowerInvariant())) conditions.Add(new(named.Groups[2].Value.ToLowerInvariant()));
+            namedTargets = named.Groups[1].Value.ToLowerInvariant() switch { "one or two" or "up to two" or "two" => 2, "one or more" or "any number of" => 3, _ => 1 };
+        }
         if (category == "slots") { if (Regex.IsMatch(cost, @"target (an? |one |two |three |up to \w+ )?enemy\b", I)) side = TargetSide.Enemy; else if (Regex.IsMatch(cost, @"target (your|one of your)\b", I)) side = TargetSide.Own; if (Regex.IsMatch(cost, @"\bPersonality\b", I)) target = TargetKind.Personality; else if (Regex.IsMatch(cost, @"\battachments?\b", I)) target = TargetKind.Attachment; }
         else foreach (var c in TextConditions(cost).Where(c => conditions.All(x => x.Kind != c.Kind))) conditions.Add(c);
         var performer = PerformerClause.Match(label);
@@ -201,7 +212,7 @@ public static class EffectDescriptors
         return new(id, a.Timing, a.Trigger, unknown ? EffectClass.Unknown : primary.Class, primary.Magnitude, primary.Varies || (primary.Magnitude is null && Varies.IsMatch(effect) && primary.Class is EffectClass.ForceAdd or EffectClass.ForceCut or EffectClass.Destroy),
             side, target, conditions.DistinctBy(c => c.ToString()).ToArray(), secondary,
             performer.Success ? performer.Groups[1].Value : a.RequiredKeywords?.FirstOrDefault(), Unbowed.IsMatch(cost) || (a.Performer?.Contains("unbowed") ?? false), AtBattle.IsMatch(cost) || (a.Performer?.Contains("at-battle") ?? false),
-            bowsSource, destroysSource, discards, gold, honor, a.Absent, a.UsesPerTurn == AbilityUseLimit.Unlimited || a.UsesPerTurn > 1, a.UsesPerTurn, conditional, unknown ? "no clause matched: " + effect.Trim() : null);
+            bowsSource, destroysSource, discards, gold, honor, a.Absent, a.UsesPerTurn == AbilityUseLimit.Unlimited || a.UsesPerTurn > 1, a.UsesPerTurn, conditional, unknown ? "no clause matched: " + effect.Trim() : null, namedTargets);
     }
 
     private static string Sentence(string text, int at) { var start = text.LastIndexOf('.', Math.Max(0, at - 1)) + 1; var end = text.IndexOf('.', at); return text[start..(end < 0 ? text.Length : end)]; }

@@ -99,5 +99,15 @@ internal static class HandTests
             var paired = Hand.DiscardByRead(ReadOf(me, them, 0), [new("c1", "small2", [Small(2)], false, 0, 6), new("c2", "cut", [cut], false, 0, 6)], 1);
             Check(paired.Log.Any(l => l.StartsWith("small2:") && l.Contains("live 1")), $"live after the cut: {string.Join(" || ", paired.Log)}");
         }),
+        ("a before-resolution bow of one or two attacking Personalities (Rocky Terrain's kind) is a battle answer against two attackers, and it holds a Province two attackers would take", () =>
+        {
+            var d = EffectDescriptors.Of("rocky-terrain-bow");
+            Check(d.IsBattle && d.Class == EffectClass.Bow && d.Side == TargetSide.Enemy && d.Target == TargetKind.Personality && d.Conditions.Any(c => c.Kind == "attacking") && d.Targets == 2, $"descriptor: {d}, targets {d.Targets}");
+            var terrain = new Answer(d, "Rocky Terrain", true, 0);
+            var me = Side(0, [U("d3", 0, 3, province: 0)], [(0, 5), (1, 6)], hand: [terrain, terrain]); var them = Side(1, [U("a6", 1, 6, province: 0), U("a5", 1, 5, province: 0)], [(0, 6), (1, 6)]);
+            var without = Exchange.Run(them, them.Units, me with { HandAnswers = [] }, me.Units, 5, [], []);
+            var with = Exchange.Run(them, them.Units, me, me.Units, 5, [], me.HandAnswers);
+            Check(without.Falls && !with.Falls, $"11 against 8 falls; with both attackers bowed it holds: without {without.AttackForce} v {without.DefenceForce}, with {with.AttackForce} v {with.DefenceForce}");
+        }),
     ];
 }
