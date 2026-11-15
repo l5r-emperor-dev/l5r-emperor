@@ -121,5 +121,13 @@ internal static class HandTests
             var plan = Hand.DiscardByRead(ReadOf(me, them, 0), [new("c1", "destroy attacker", [attackingOnly], false, 0, 6), new("c2", "send home", [Naked()], false, 0, 6)], 1);
             Check(plan.CardIds.SequenceEqual(["c1"]), $"the attackers-only card goes: {plan.Why} | {string.Join(" || ", plan.Log)}");
         }),
+        ("formulation 3, a deck that wins without attacking: a send-home usable anywhere is worth only what it does on defence, so against a rare attack Rocky Terrain's kind (two attackers) outranks it", () =>
+        {
+            var terrain = EffectDescriptors.Of("rocky-terrain-bow");
+            var me = Side(0, [U("i6", 0, 6)], [(0, 5), (1, 6)]); var them = Side(1, [U("t4", 1, 4), U("t3", 1, 3)], [(0, 6), (1, 6)]);
+            var cards = new List<Hand.HandCard> { new("c1", "terrain", [terrain], false, 0, 6), new("c2", "send home", [Naked()], false, 0, 6) };
+            var drain = Hand.DiscardByRead(ReadOf(me, them, 0), cards, 1, attacksToWin: false);
+            Check(drain.CardIds.SequenceEqual(["c2"]), $"the send-home goes in a deck that never attacks: {drain.Why} | {string.Join(" || ", drain.Log)}");
+        }),
     ];
 }

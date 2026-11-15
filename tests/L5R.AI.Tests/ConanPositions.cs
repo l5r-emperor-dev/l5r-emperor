@@ -168,6 +168,7 @@ internal static class ConanPositions
         var game = MatchEngine.Replay(replay with { ContentVersion = MatchEngine.ContentVersion, Commands = [] });
         var bot = make();
         if (replay.CustomDecks is { Length: 2 } decks) bot.Archetype = DeckArchetypeTests.Of(decks[0]);
+        if (Environment.GetEnvironmentVariable("L5R_POS_READ") == "1") notes.AppendLine($"  {replayName}: the human's deck reads as {bot.Archetype}");
         var searches = bot.Has("look");
         var found = new Dictionary<string, Verdict>();
         var counts = new Dictionary<(int, Phase), int>();
@@ -251,8 +252,9 @@ internal static class ConanPositions
         var me = view.Players.Single(p => p.Id == 0);
         var hand = me.Hand.Select(c => (c.Id, c.Definition?.Name ?? c.Id, EffectDescriptors.Of(c).ToArray(), 0.0)).ToList();
         var plan = Hand.Discard(read, hand, command.CardIds?.Length ?? 1);
+        var board = Hand.DiscardByRead(read, me.Hand.Select(c => new Hand.HandCard(c.Id, c.Definition?.Name ?? c.Id, EffectDescriptors.Of(c).ToArray(), c.Definition?.Type is CardType.Follower or CardType.Item, Math.Max(0, c.Definition?.Force ?? 0), 0)).ToList(), command.CardIds?.Length ?? 1, attacksToWin: false);
         var descriptors = string.Join("; ", me.Hand.Select(c => $"{c.Definition?.Name}: {string.Join("/", EffectDescriptors.Of(c).Select(d => $"{d.Timing} {d.Class} {d.Side} {d.Target}{(d.Conditions.Length > 0 ? "[" + string.Join(",", d.Conditions.Select(k => k.Kind)) + "]" : "")}"))}"));
-        return $"hand: {read.Ledger.Me.HandAnswers.Length} answers of {me.Hand.Length} cards ({string.Join(", ", read.Ledger.Me.HandAnswers.Select(a => a.ToString()))}); discard by live uses: {plan.Why} | {string.Join(" || ", plan.Log)}\n    descriptors: {descriptors}";
+        return $"hand: {read.Ledger.Me.HandAnswers.Length} answers of {me.Hand.Length} cards ({string.Join(", ", read.Ledger.Me.HandAnswers.Select(a => a.ToString()))}); discard by live uses: {plan.Why}\n    board read (a deck that never attacks): {board.Why} | {string.Join(" || ", board.Log)}\n    descriptors: {descriptors}";
     }
 
     /// <summary>Family F's plan (Purchase.Of) at a Dynasty position: the affordable face-up row as the bot would see it (a Clan Personality two Gold cheaper), the posture and the clocks read on next turn's board.</summary>

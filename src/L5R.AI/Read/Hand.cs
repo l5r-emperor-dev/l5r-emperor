@@ -61,7 +61,9 @@ public static class Hand
     /// attack = how much my next attack's expected Provinces fall without it (the opportunity on next turn's board, Questions.Of); development = a Follower's or Item's Force, worth more the quieter
     /// home is (DevelopmentPerForce a point, times the chance home holds). The hand's own Force cuts are applied before a card's targets are counted (a destroy for Force 2 or less is live when
     /// another card can cut a Personality to 2). The least worth goes first; the live count and the Contender's value break ties.</summary>
-    public static DiscardPlan DiscardByRead(Read read, IReadOnlyList<HandCard> hand, int count)
+    /// <param name="attacksToWin">false for a deck whose route is Honor or Dishonor and never destruction (Mendon, 2026-11-15: "This deck never really attacks, so keeping defensive only cards is fine.
+    /// It's based on the logic of the deck"): a card's attacking worth is nothing and every Battle card is worth only what it does when they attack.</param>
+    public static DiscardPlan DiscardByRead(Read read, IReadOnlyList<HandCard> hand, int count, bool attacksToWin = true)
     {
         var me = read.Ledger.Me; var them = read.Ledger.Them; var log = new List<string>();
         var worth = Questions.ProvinceWorth(me.Provinces.Length);
@@ -76,7 +78,7 @@ public static class Hand
         var pLose = PLose(read); var opp = Opportunity(read);
         // the chance they attack at all next turn: about 1.7 times the chance they take a Province (threat records, blocks 11400-11500: attacked in 50% of turns, a Province lost in 29%)
         var pAttack = Math.Clamp(1.7 * pLose, .05, 1);
-        log.Add($"home: lose a Province next turn {pLose:0.00} (worth {worth}); my next attack {opp:0.00} Provinces");
+        log.Add($"home: lose a Province next turn {pLose:0.00} (worth {worth}); my next attack {opp:0.00} Provinces{(attacksToWin ? "" : "; the deck wins without attacking")}");
         // sequencing: the largest Force cut the hand holds, applied to their units before a card's force-at-most targets are counted
         var cuts = hand.SelectMany(c => c.Effects.Where(e => e.Class == EffectClass.ForceCut && e.Side != TargetSide.Own && e.Magnitude is > 0).Select(e => (c.Id, Cut: e.Magnitude!.Value))).ToArray();
         var theirs = Threat.Straightened(them.Units).ToArray();
@@ -97,7 +99,7 @@ public static class Hand
             {
                 var without = Without(c);
                 defence = Math.Max(0, PLose(without) - pLose) * worth;
-                attack = Math.Max(0, opp - Opportunity(without));
+                attack = attacksToWin ? Math.Max(0, opp - Opportunity(without)) : 0;
             }
             if (c.Attachment) development = Math.Max(0, c.ForceAdded) * DevelopmentPerForce * (1 - pLose);
             var live = Live(c);
@@ -106,7 +108,7 @@ public static class Hand
             // a destroy that needs an attacking target is dead against an opponent who does not attack)
             var attackersOnly = c.Effects.Where(e => e.IsBattle && e.Side != TargetSide.Own).ToArray() is { Length: > 0 } battle && battle.All(e => e.Conditions.Any(k => k.Kind == "attacking"));
             var reach = c.Effects.Where(e => e.IsBattle && e.Side != TargetSide.Own).Select(e => e.Targets).DefaultIfEmpty(1).Max(); // a card that stops two attackers (Rocky Terrain's kind) counts twice
-            var residual = ResidualPerTarget * Math.Min(live, 3) * reach * (attackersOnly ? pAttack : 1);
+            var residual = ResidualPerTarget * Math.Min(live, 3) * reach * (attackersOnly || !attacksToWin ? pAttack : 1); // a deck that never attacks uses every Battle card on defence
             var total = defence + attack + development + residual;
             log.Add($"{c.Name}: defence {defence:0.00}, attack {attack:0.00}, development {development:0.00}, residual {residual:0.00}{(attackersOnly ? " (attackers only)" : "")}, live {live}, value {c.Value}");
             return (c.Id, c.Name, Total: total, Live: live, c.Value);

@@ -307,7 +307,8 @@ public static partial class TrainingOpponent
         var read = x.Memory.CurrentRead is { } current && current.Key == Read.KeyOf(x.View) ? current : Read.Of(x.View);
         if (Rule(x, "riBoard"))
             return Hand.DiscardByRead(read, x.Self.Hand.Select(c => new Hand.HandCard(c.Id, c.Definition?.Name ?? c.Id, EffectDescriptors.Of(c).ToArray(), c.Definition?.Type is CardType.Follower or CardType.Item,
-                Math.Max(0, c.Definition?.Force ?? 0), HandValue(c))).ToList(), count);
+                Math.Max(0, c.Definition?.Force ?? 0), HandValue(c))).ToList(), count,
+                attacksToWin: x.Memory.Archetype is not { Primary: WinRoute.Honor or WinRoute.Dishonor }); // the deck's primary route decides (G5: Dishonor first, Military second, "never really attacks")
         var hand = x.Self.Hand.Select(c => (c.Id, c.Definition?.Name ?? c.Id, EffectDescriptors.Of(c).ToArray(), (double)HandValue(c))).ToList();
         return Hand.Discard(read, hand, count);
     }
