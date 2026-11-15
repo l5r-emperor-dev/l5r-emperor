@@ -38,6 +38,9 @@ public static partial class TrainingOpponent
         // issue #1206 (family A in shadow): with read on and readA off, the opportunity's attack or hold and its shape beside what was chosen
         if (memory.Has("read") && !memory.Has("readA") && view.ActivePlayerId == view.ViewerId && (view.Phase == Phase.AttackDeclaration || view.Phase == Phase.InfantryDeclaration && chosen.Command.Type == "attack") && ReadAnswers(x) is { } shadowA)
             memory.NoteAttack(view, shadowA, chosen.Command);
+        // issue #1206 (family C in shadow): with read on and readC off, what the Guard would keep back from the attack chosen
+        if (memory.Has("read") && !memory.Has("readC") && view.ActivePlayerId == view.ViewerId && view.Phase is Phase.InfantryDeclaration or Phase.CavalryDeclaration && chosen.Command is { Type: "attack", Assignments: { Count: > 0 } chosenA } && ReadGuard(x, chosenA) is { } shadowC)
+            memory.NoteGuard(view, shadowC, chosenA);
         // issue #1206 (family E in shadow): with read on and readE off, what the Fight would do at this Battle priority beside what was chosen
         if (memory.Has("read") && !memory.Has("readE") && ReadFight(x) is { } shadowE)
             memory.NoteFight(view, shadowE.Plan, FightKey(chosen.Command) is { } ck && shadowE.Options.FirstOrDefault(o => SameFightAction(o.Key, ck)) is { } same ? same.Key : chosen.Command.Type is "pass" or "passAllBattles" ? "pass" : "other:" + chosen.Command.Type + "/" + chosen.Command.AbilityId, shadowE.Position);
@@ -76,7 +79,7 @@ public static partial class TrainingOpponent
         foreach (var rule in consulted)
         {
             if (memory.Deadline is { } cutoff && DateTime.UtcNow >= cutoff) { memory.FiresCut++; break; }
-            memory.Masked = rule; memory.Restore(snapshot); memory.ForgetPlan(); memory.ReadAnswersCache = null; memory.ReadDefencePlan = null; memory.ReadFightPlan = null;
+            memory.Masked = rule; memory.Restore(snapshot); memory.ForgetPlan(); memory.ReadAnswersCache = null; memory.ReadDefencePlan = null; memory.ReadFightPlan = null; memory.ReadGuardPlan = null;
             try
             {
                 if (Decide(x) is not { } again || System.Text.Json.JsonSerializer.Serialize(again.Chosen.Command) != want) memory.Fires[rule] = memory.Fires.GetValueOrDefault(rule) + 1;
@@ -235,7 +238,25 @@ public static partial class TrainingOpponent
                 && g.Sum(a => x.Card(a.Key) is { } c ? UnitForceOf(x, c) : 0) + x.Self.Army.Where(c => c.ProvinceIndex == g.Key && c.Definition?.Type == CardType.Personality).Sum(c => UnitForceOf(x, c)) > target.Strength + defenders;
             return command with { Assignments = rest.GroupBy(a => a.Value).Where(Beats).SelectMany(g => g).ToDictionary(a => a.Key, a => a.Value, StringComparer.Ordinal) };
         }
+        // Issue #1206 (readC, RULE_FAMILIES.md family C): the attack as prepared is read for the counter-attack it leaves home open to; units are kept back, or nobody goes, when that turns the threat.
+        if (command is { Assignments.Count: > 0 } && action.Type == "attack" && Rule(x, "readC") && x.View.Phase is Phase.InfantryDeclaration or Phase.CavalryDeclaration && ReadGuard(x, command.Assignments) is { } guardPlan && !guardPlan.Stands)
+            return guardPlan.Nobody ? (x.Actions.Any(a => a.Enabled && a.Type is "pass" or "passAllBattles") ? null : command) : command with { Assignments = new Dictionary<string, int>(guardPlan.Assignments, StringComparer.Ordinal) };
         return command;
+    }
+
+    /// <summary>Issue #1206 (family C): the Guard's reading of an attack assignment at this declaration, once per view version and assignment.</summary>
+    private static GuardPlan? ReadGuard(Ctx x, IReadOnlyDictionary<string, int> assignment)
+    {
+        if (x.View.ActivePlayerId != x.Self.Id || assignment.Count == 0) return null;
+        var key = string.Join(",", assignment.OrderBy(a => a.Key, StringComparer.Ordinal).Select(a => $"{a.Key}>{a.Value}"));
+        if (x.Memory.ReadGuardPlan is { } cached && cached.Version == x.View.Version && cached.Key == key) return cached.Plan;
+        var read = x.Memory.CurrentRead is { } current && current.Key == Read.KeyOf(x.View) ? current : Read.Of(x.View);
+        var units = x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed).ToArray();
+        var provinces = x.Opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Index).ToArray();
+        var lethal = LethalPlan(x, units, provinces) is not null || HonorRace(x);
+        var plan = L5R.AI.Guard.Of(read, assignment, ReadAnswers(x)?.Posture, lethal);
+        x.Memory.ReadGuardPlan = (x.View.Version, key, plan);
+        return plan;
     }
 
     private static GameCommand? PrepareCore(Ctx x, ActionOption action)
