@@ -169,6 +169,17 @@ public sealed class BotContext
     }
     /// <summary>Issue #1206 (family B): the Cavalry fork's plan for the current decision, by view version (null: the fork does not apply).</summary>
     internal (long Version, ForkPlan? Plan)? ReadForkPlan { get; set; }
+    /// <summary>Family G in shadow: what the route gate would say at the attack declaration beside what the bot did; a difference is logged.</summary>
+    public List<string> RouteLog { get; } = [];
+    internal void NoteRoute(MatchView view, Answers answers, RoutePlan plan, string chosenType)
+    {
+        if (RouteLog.Count >= 2000) return;
+        var me = view.Players.Single(p => p.Id == view.ViewerId); var them = view.Players.Single(p => p.Id != view.ViewerId);
+        var chose = chosenType == "declareAttack" ? "declare" : "pass";
+        var would = plan.Declare is null ? "(silent)" : plan.Declare.Value ? "declare" : "pass";
+        var same = plan.Silent || would == chose;
+        RouteLog.Add($"T{view.TurnNumber} {view.Phase} {(same ? "same" : "DIFFERS")}: chose {chose}, read {would} ({plan.Why}) | posture {answers.Posture}, clocks {answers.Clocks} | P{me.Provinces.Count(p => !p.Destroyed)}v{them.Provinces.Count(p => !p.Destroyed)} H{me.Honor}/{them.Honor} | {answers.Opportunity}");
+    }
     /// <summary>Issue #1206 (family F): the Purchase's reading of the row at this Dynasty decision, by view version.</summary>
     internal (long Version, PurchasePlan Plan)? ReadPurchasePlan { get; set; }
     /// <summary>Family F in shadow: what the Read would buy next beside what the bot bought; a difference is logged.</summary>
