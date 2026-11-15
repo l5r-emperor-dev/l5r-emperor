@@ -30,6 +30,10 @@ public static partial class TrainingOpponent
         // cannot read (no Battle descriptor, an odd target) keeps its score, so a Reaction or an Honor play is still the Contender's.
         if (Rule(x, "readE") && action.Type is "useAbility" or "playStrategy" && ReadFight(x) is { } fight && FightKey(command) is { } key && fight.Options.Any(o => SameFightAction(o.Key, key)))
             return SameFightAction(fight.Plan.Pick, key) ? 150 : Math.Min(score, BarredScore);
+        // issue #1206 (family F, readF): at the bot's own Dynasty purchases the Read names the card to buy next; it scores above the planner's slate, every other purchase is held to an
+        // off-plan score (the Contender buys it after, with the Gold left); the Contender's own score still orders a card's own variants (Proclaim). Silent: the Contender decides.
+        if (Rule(x, "readF") && action.Type == "purchase" && x.View.Phase == Phase.Dynasty && ReadPurchase(x) is { Choice: { } pick })
+            return string.Equals(command.CardId, pick.Id, StringComparison.Ordinal) ? SlateBonus + 300 + Math.Clamp(score, -1000, 1000) * 0.0001 : Math.Min(score, 60);
         var scored = Contender2Rules(x, action, command, score);
         // keepup (Mendon's Crane game, 2026-11-09): an ability that bows its performer is performed by a unit that cannot straighten others while one that can is offered too; the
         // straightener stays up to straighten the performer and use the ability again (Nanae straightening Yasutora for Shinden Asahina). It only orders the performers.

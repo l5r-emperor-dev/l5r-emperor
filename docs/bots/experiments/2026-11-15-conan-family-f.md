@@ -1,0 +1,122 @@
+# Conan strategy campaign, step 3: family F (Dynasty: economy against recruiting) reading the Read (issue #1206, from 2026-11-15)
+
+Branch `claude/1206-conan-family-f`, from `main` after family B's PR (#1244). Blocks: Mac range from 10800 (shadow on seed 10800; the screen and its A/A on 10900).
+
+## Rule card (above the line)
+
+Rule `readF`, opt-in, off by default. Fires at the seat's own Dynasty purchases: each purchase decision asks the Read which card to buy next; within a class the Contender's own values order the cards. It rests on PM 3.6 (Holdings while they have no Personality; Personalities first once they have one or once the Gold buys a body and a cheap Holding; a weak economy is acceptable while pressing; build until the unit their answers do not touch when they beat my units; "a Personality that produces Gold first") and AB section 7 (Q7c: when behind on Personalities with both affordable, the bots buy the Holding first 54-58% of the time, Mendon 9 of 9; Q7e: the late Holdings are bought whatever Gold went unused; Q7a: 24-29% of capacity unproduced against Mendon's 12%). RULE_FAMILIES.md F gives the seed; CODE_MAP section 7 gap 6 (purchases ignore the threat).
+
+```
+row      = the affordable face-up Dynasty cards (Personalities, Holdings), each with its printed Force, cost, production and descriptors
+T(c)     = threat(home with c as an unbowed defender, their army straightened)          (Threat.Of)       T0 = the threat without a purchase
+O(c)     = my best attack next turn with c in the straightened army (Questions.Of)                        O0 = without
+paying   = the Holdings whose production x turns left (the shorter clock, 2 to 8) exceeds their cost, the most efficient first
+0  IF a free Holding is in the row                                                            -> it
+1  IF T0.likely loses a Province AND some affordable body makes T(c).likely lose none        -> the cheapest such body
+2  ELSE IF they have no Personality AND paying is not empty:
+        IF the Gold buys a body plus a paying Holding                                              -> the best body (the Holding follows with the leftover)
+        ELSE                                                                                        -> the most efficient paying Holding
+3  ELSE IF some body turns O from fails to falls (O(c).Best takes more than half a Province's worth at likely where O0 does not) -> the cheapest such body
+4  ELSE IF posture is Press                                                                  -> the best body; a Holding costing 2 or less only when no body is affordable
+5  ELSE IF posture is Build (their shown answers beat my units) AND I have a unit AND T0.likely loses none AND paying is not empty -> the most efficient paying Holding
+5b ELSE IF T0.likely loses none AND I am not behind on Personalities AND a Holding pays back within two turns (proposed) -> that Holding
+6  ELSE the set of affordable bodies with the most Force the Gold pays for (then the fewest Gold):
+        IF that set is utility only (under 2 Force in all) AND paying is not empty                 -> the most efficient paying Holding
+        ELSE                                                                                        -> its biggest member (a Gold producer first when within 2 Force of it)
+silent when nothing applies (the Contender decides); within a class the Contender's own values order the cards
+```
+
+Lines 1 and 3 are the Read's; lines 2, 4, 5 and 6 are the player model's conditions (PM 3.6) on the Contender's own ordering. Against the seed in RULE_FAMILIES.md F two conditions changed. The "they have no Personality" condition moved ahead of "fails to falls": with nobody across the table every body makes an undefended Province fall, and Mendon builds Holdings there (G6 T1-T3, G4 T1, G1 T2) until the Gold buys both. And the seed's "T holds without a purchase -> Holding" became "building while T holds": at G1 T4 and T6 home held and Mendon bought the Personality (PM 3.6: once they have a Personality, Personalities first; Holdings only while building against answers that beat his units); with the seed's line the rule bought the Holding at both positions, as the Contender does. The rule names the class and the card to buy next at each purchase decision (the board is re-read after each purchase); the Contender's slate values order everything the rule is silent on. Attachments in the Action Phase, Proclaim and the Gold reserve are left to the Contender's rules in this formulation.
+
+**Should move** (RULE_FAMILIES.md F): Q7c, first purchase a Personality when behind on Personalities (T2 mirror 41%; up); Provinces lost on own turns 3 to 5 (down); Gold capacity at turn 6 when not pressing (held); win rate by deck (no deck collapses: `bodyfirst` lost 41 games forcing bodies unconditionally). **Predicted fire rate**: the Read is consulted at every first purchase of a turn (about 1 a turn, 15-20 a game); it differs from the Contender where line 1 or 2 names a body the slate did not put first, or line 4 names a Holding where the slate put a body: on the mirror's Q7c table a quarter to a third of the turns with both on offer, so about 2-4 fires a game.
+
+## Decision tests
+
+`PurchaseTests.cs` (`--filter purchase`, 11 cases, one or two per line of the card): a body that makes home hold, the cheapest such body, the turn-1 both-affordable case, the paying Holding while they have nobody, fails to falls, pressing, the Build line with and without a paying Holding, a body once they have a Personality, the Gold producer first, the free Holding, silence when nothing is affordable.
+
+**The decision set** (`L5R_POS_ARMS="t2;rf:+read,readF" L5R_POS_FAMILY=F`, with `L5R_POS_READ=1` printing `purchase:` at Dynasty positions): T2 buys the Holding at all three of Mendon's body positions (0 of 4 in family F). With `readF`: F-G2T1-body buys Daidoji Kenshi as Mendon did (judged DIFFER only because the replayed command carries the Clan discount flag and the bot's variant does not; the card is the same); F-G1T4-body and F-G1T6-body buy a Personality where T2 bought Prosperous Village (Utaku Chikako both times, where Mendon bought Tsukiko and Ryoko: the class is right, the card is the Contender's own order within the class). Two faults the positions found before this reading: with the seed's "T holds -> Holding" line the rule bought the Village at T4 and T6 (home held; Mendon bought bodies: once they have a Personality, Personalities first), and on turn 1 with the Gold for both the rule fell through to the Holding (PM 3.6 turn 1: buy both, the body first). Whole set: T2 9/50, `rf` 9/50 (the three F positions change from the Holding to a body; no other position moves).
+
+## Shadow (T2 with the Read against T2, seed 10800, 364 games)
+
+**Round 1** (`shF_108`, 3:21 wall): the Read was consulted at 4,961 purchase decisions (13.6 a game), differing from the Contender's next purchase at 1,958 (5.4 a game), far above the card's 2-4 prediction. Two kinds of difference are order only: a free Holding the Contender buys later in the turn (386), and the turn-1 "both affordable" case where the Contender buys the Holding first and the body after (384). The substantive 1,188 split: a body where the Contender buys a Holding (line 6: 412; after a threat no body alone holds: 154), a body that makes home hold (line 1: 322, mostly utility Personalities whose ability turns the exchange), a different body when pressing (46), a different Holding while building (81), and fails-to-falls (84). Ten substantive differences drawn by seed 108 (`sample_purchase.py`), judged on the position as read:
+
+| # | Position | Contender | Read | Verdict |
+|---|---|---|---|---|
+| 1 | Crane v Crab T23, pressing, their last Province, 31 Gold | Tsunehiko 6F | Soken 0F (a Gold producer first) | **wrong** as a preference (everything is bought anyway): 6 Force while pressing beats a 0-Force producer |
+| 2 | Scorpion v Spider T13, pressing | Utoro 4F c6 | Kasumi 4F c5 | equivalent (same Force, cheaper) |
+| 3 | Lion v Dragon T7, nobody home, their 9 against Strength 7 | Copper Mine | Ikoma Natsu 3F | right: once they have Personalities and home is threatened, a body |
+| 4 | Lion Legacy v Crane T7, home holds (11 v 11 + 9), 6 Gold | Merchant Atoll +5G c6 | Akodo Michitsu 2F c4 | unclear, leaning the Holding: it pays back in two turns and the Lion is not behind on Personalities |
+| 5 | Crane v Lion Legacy T4, nobody home, 12 Gold | Marketplace +2 c2 | Daidoji Tsunehiko 6F | right (PM 3.6: Personalities first; leftover on 2-Gold Holdings) |
+| 6 | Scorpion v Unicorn T10 | Waru 4F c6 | Tsuji 5F c6 | equivalent (more Force, same cost) |
+| 7 | Crane v Lion T4, nobody home, 13 Gold buys all three | Copper Mine | Doji Shunya 1F (makes home hold by his ability) | equivalent (everything is bought); the cheapest holding body over the 6-Force body is the seed's own preference |
+| 8 | Crab v Lion T6, 15 Gold buys all three | Yasuki Jekku 2F | Yasuki Baiko 0F (holds by ability) | equivalent |
+| 9 | Crane v Crab T15, 23 Gold buys all three | Doji Shunya | Daidoji Soken | equivalent |
+| 10 | Crab v Crane T12, three Holdings, 21 Gold buys all | Prosperous Village +5 c6 | Iron Mine +2 c2 | equivalent |
+
+**8 of 10 right or equivalent**, one wrong, one unclear; six of the ten were moot (the Gold paid for the whole affordable row, so only the order differed). Three changes: the Gold-producer preference applies only within 2 Force of the best body (#1); a new line 5b, proposed, buys a Holding that pays back within two turns when home holds and the seat is not behind on Personalities (#4; AB Q7c keeps the body first when behind); and the plan marks a decision **moot** when the Gold pays for every affordable card, so the shadow log says MOOT rather than DIFFERS and the sample draws only decisions that matter. Round 2 is the rerun.
+
+**Round 2** (`shF2_108`): 1,082 decisions moot, 1,024 differing (2.8 a game), of which 295 are the turn-1 order (the Contender buys the Holding first, the body after) and 691 substantive (1.9 a game, inside the card's 2-4). Ten drawn by seed 208:
+
+| # | Position | Contender | Read | Verdict |
+|---|---|---|---|---|
+| 1 | Pinned Lion T3, two copies of Ikoma Shika | Shika | Shika (the other copy) | equivalent (same card; the log now counts a same-named copy as the same) |
+| 2 | Unicorn v Scottish Lion T6, nobody home, their 11 against Strength 7, 7 Gold | Stables +2 c2 (and Silk Works) | Liu-Xeung 4F c7 (does not hold the Province) | right by the model (behind on Personalities, a body; AB Q7c), arguable in practice |
+| 3 | Lion v Classic Crane T5, 7 Gold | Kisho 3F c3 (then Natsu 3F c3: 6 Force) | Sugo 4F c6 (4 Force, 1 Gold left) | **wrong**: two 3s for 6 beat one 4 for 6 |
+| 4 | Unicorn v Crane T8, 16 Gold | Lishan 4F c7 | Chikako 4F c6 | equivalent |
+| 5 | Scorpion v Crane T8, three 4F c6 bodies, 9 Gold | Nori | Waru | equivalent |
+| 6 | Crab v Scorpion T5, nobody home, 19 Gold | Prosperous Village +5 c6 (then Tsujiken) | Tsujiken 3F c9 (then Jekku) | right by the model (Personalities first once they have one; leftover on cheap Holdings only) |
+| 7 | Lion v Crab T5, 5 Gold | Kisho 3F c3 | Natsu 3F c3 | equivalent |
+| 8 | Pinned Lion v Crane T7, nobody home, 7 Gold | Remote Village +3 c3 | Hachiro 1F c2 (then Kouki 0F c3) | **wrong**: 1- and 0-Force utility bodies are targets, not security (PM 3.2); the Holding |
+| 9 | Lion Legacy v Crab T9, 12 Gold | Kamina 3F c5 (then Kamina) | Suoh 2F c3 (fails to falls at exactly the bar, 0.50 of 0.50) | unclear; two 3s look better than a borderline fails-to-falls |
+| 10 | Crane Dominance v Classic Crane T4, nobody home, 6 Gold | Prosperous Village +5 c6 | Shigeyuki 4F c6 | right by the model (behind on Personalities) |
+
+**7 of 10 right or equivalent**, two wrong, one unclear: the gate is met but the two faults are plain. Line 6 now buys the set of affordable bodies with the most Force for the Gold (two 3s for 6 before one 4 for 6) and passes to a paying Holding when the set is utility only (under 2 Force in all); fails-to-falls must clear the bar strictly. Round 3 is the rerun.
+
+**Round 3** (`shF3_108`): 1,109 moot, 969 differing (2.7 a game), 636 substantive (1.7 a game). Ten drawn by seed 308:
+
+| # | Position | Contender | Read | Verdict |
+|---|---|---|---|---|
+| 1 | Crane v Unicorn T9, home loses 2 either way, 8 Gold | Soken 0F c4 | Marketplace +2 c2 (utility bodies pass) | right by the model (PM 3.2: a 0-Force utility is a target) |
+| 2 | Dragon v Lion Legacy T12, 21 Gold, home holds, level on Personalities | Korimi 6F c9 | Prosperous Village +5 c6 (pays back within two turns) | equivalent: both end the turn with Village, Korimi and Michi |
+| 3 | Spider v Lion T10, 10 Gold, home loses 1 | Yutaka 5F c5 | Shiraume 4F c4 (holds home by ability) | equivalent: both bodies are bought (9 of 10 Gold) |
+| 4 | Dragon v Phoenix T10, 11 Gold, home holds | Michi 4F c5 | Gold Mine +2 c2 | equivalent: both end with Mine, Michi and Meiyu |
+| 5 | Crab Control v Crane T4, 13 Gold, nobody home, behind on Personalities | Slanderer +5 c6 (then Village +5 c6) | Makoto 2F c5 (then Tanimura 2F c6: 4 Force for 11) | unclear: the model says bodies when behind (Q7c 9 of 9), but two 2-Force bodies against two +5 Holdings at turn 4 is a poor trade |
+| 6 | Scorpion v Dragon T8, 17 Gold, four 4F bodies | Waru c6 | Kasumi c5 | equivalent: 12 Force for 16 either way |
+| 7 | Unicorn v Scorpion T7, 23 Gold | Ryoko | Chikako | equivalent: the same three bodies |
+| 8 | Phoenix v Pinned Lion T6, 15 Gold, home loses 1 | Kojiro 5F c8 | Tomohiro 2F c4 (holds home by ability) | equivalent: both are bought (12 of 15) |
+| 9 | Scottish Lion v Crane T1, 5 Gold, they have nobody, both not affordable | Michitsu 2F c4 | Temple Fortress +2 c4 | right (PM 3.6 turn 1: Holdings unless both fit) |
+| 10 | Phoenix v Lion T4, 11 Gold, behind on Personalities | Mystical Merchant +2 c3 | Megu 3F c5 | equivalent: both end with Megu and the Merchant |
+
+**9 of 10 right or equivalent**, one unclear (#5: whether "bodies when behind" should yield to a Holding that doubles production when the bodies on offer are weak; left as the model states it, for the screen to judge). Seven of the ten are order-only differences the moot mark cannot see (the whole row is not payable, but the cards the two orders buy are the same): the substantive rate is well under 1.7 a game. The fork passes the shadow gate (8, 7, 9 of 10) and the fire rate is inside the card's prediction; the screen runs on block 10900.
+
+## Screen (block 10900, T2 + read + readF against T2, 1,456 games, fire counts on)
+
+A/A `ca109`: 50.7% (738 of 1,456). Arm `rF109`: **43.9%** (639 of 1,456); against the A/A **+125 gained, −224 lost, net −99, two-sided p < .0001**. `readF` is consulted at 134 decisions a game (every decision, as the registry counts) and fires 4.64 times a game in 1,446 games; `econ` fires 2.86 (the mirror's own rate is higher: the Read's choice pre-empts it). Per deck: Lion preset **+6 / −26**, Lion Legacy +10 / −24, Classic Lion +9 / −22, Pinned Lion +11 / −21, Phoenix Talons +6 / −19, Crane Dominance +2 / −18, Scorpion Lethargy +10 / −17, Dragon Destruction +9 / −15, Classic Crane +5 / −14, Crane preset +4 / −8, Crab Control +8 / −7, Scottish Lion +13 / −12, Unicorn Maidens +16 / −14, Spider Conquer **+16 / −7**.
+
+**What moved** (`tools/bots/behaviour/q7_economy.py` on the two log sets; the arm's seat against the mirror's):
+
+| Measure | A/A (T2 mirror) | T2 + readF | Card said |
+|---|---|---|---|
+| First purchase a Personality when behind on Personalities (Q7c) | 41% | **63%** | higher (Mendon 9 of 9) |
+| Holdings bought on turn 1 | 2.20 | 1.77 | |
+| Personalities bought on turn 1 | 0.07 | 0.29 | |
+| Gold capacity at the start of turn 3 / 5 / 7 | 15.8 / 20.8 / 26.1 | 13.0 / 18.0 / 23.8 | held when not pressing |
+| Personalities in play at the start of turn 3 / 5 / 7 (Q7b) | 0.85 / 2.96 / 4.73 | 1.13 / **2.49** / **4.04** | |
+| Unbowed Force at the start of turn 3 / 5 / 7 | 2.5 / 13.6 / 18.3 | 3.5 / 11.9 / 16.4 | |
+| Holdings in play at the start of turn 5 / 7 | 7.22 / 9.27 | 6.26 / 8.40 | |
+| Holdings / Personalities bought per own turn 1-8 (Q7a) | 1.27 / 1.13 | 1.12 / 0.96 | |
+| Gold capacity left unproduced, turns 1-8 | 27.1% | 25.4% | lower (Mendon 12%) |
+
+The measure the card named moves the way Mendon plays, and the games are lost anyway: the arm buys a body on turn 1 and bodies from turn 2 (in the mirror both seats have a Personality by turn 2, so the "they have nobody: Holdings" line is over after turn 1), its economy runs three Gold behind from turn 3, and by turn 5 it has **fewer Personalities as well as fewer Holdings** than the mirror. The Lion Force decks, whose rows are all bodies, lose most; Spider gains. This is `bodyfirst`'s −41 again with better conditions: the player model's class lines (bodies once they have a Personality; bodies when behind) are right for Mendon's hand-built decks and tempo, and wrong for these fourteen decks at the Contender's level, where the early economy compounds.
+
+**Formulation 2**, `rfRead` (the Read decides only where it adds something the Contender lacks, CODE_MAP section 7 gap 6: line 1, a body that makes home hold under threat; line 3, a body that turns next turn's attack from fails to falls; silent otherwise, so `econ` and the slate keep the economy), screens next on the same block.
+
+## Screen, formulation 2 (block 10900, T2 + read + readF + rfRead against T2, 1,456 games)
+
+Arm `rF2_109`: **49.8%** (725 of 1,456); against the A/A **+56 gained, −69 lost, net −13, two-sided p .28**. The Read decides a purchase 1.00 times a game (in 969 games): a body that makes home hold, or one that turns next turn's attack from fails to falls; `rfRead` is silent 4.75 times a game. Per deck: Lion Legacy +2 / −11, Phoenix Talons +1 / −7, Scorpion Lethargy +5 / −8, Lion preset +2 / −5, Crane Dominance +5 / −7, the rest within three games either way; Spider Conquer +7 / −4, Unicorn Maidens +6 / −3, Dragon Destruction +4 / −1.
+
+## Verdict: family F is done and shelved
+
+Two formulations, both tested on block 10900 against the same A/A: the player model's purchase order (formulation 1) loses **−99 in 1,456**, the Read's two lines alone (formulation 2) are **null (−13)**. Per the brief a family is done when two formulations have been tested and shelved with their evidence. `readF` and `rfRead` stay in the registry, opt-in, off by default, for the record and for step 4.
+
+**What was learned.** (1) The card's measure (a Personality first when behind on Personalities, 41% to 63%) moves exactly as Mendon plays and costs games: in the mirror both seats have a Personality by turn 2, so "Holdings while they have nobody" ends on turn 1 and the model's "Personalities first once they have one" starves the economy three Gold from turn 3; by turn 5 the arm has fewer bodies as well as fewer Holdings. Mendon's purchases presuppose his own tempo (a pressing attack from turn 3-4, G7) and his decks; the Contender's `econ` (fair Holdings for four turns) is the better opening for these fourteen decks at this level. The measure to move is not Q7c but production at turn 5 and Personalities at turn 7 together. (2) The Read's own purchase questions (does a body hold home; does a body make the attack fall) are rarely decisive at Contender speed (1 a game) and null when they fire: the exchange's one-turn projection of next turn's attack does not know what the opponent buys this turn, and a body bought for defence is bowed by the Contender's own attack rule as often as not. (3) Order-only differences dominate a purchase shadow: a plan that names the next card must be judged on the set of cards the turn ends with, not the first pick; the `Moot` mark catches only the whole-row case. For step 4 the purchase is a candidate for the search (`lkBuy` exists and is off), where the set and the tempo are judged by playing on, not by a line.

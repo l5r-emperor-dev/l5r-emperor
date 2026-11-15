@@ -304,6 +304,7 @@ runner.Run("threat", ThreatTests.Tests); // issue #1206: threat(home), the Read'
 runner.Run("questions", QuestionsTests.Tests); // issue #1206: opportunity, race and posture (section 4.5)
 runner.Run("defence", DefenceTests.Tests); // issue #1206: family D, the defence assignment read from the Read
 runner.Run("read-a", ReadATests.Tests); // issue #1206: family A, the attack read from the Read's opportunity
+runner.Run("purchase", PurchaseTests.Tests); // issue #1206: family F, the Dynasty purchase read from the Read
 runner.Run("descriptor-audit", DescriptorAudit.Tests); // issue #1206: opt-in coverage audit of the descriptors over the tournament and replay decks
 return runner.Finish();
 

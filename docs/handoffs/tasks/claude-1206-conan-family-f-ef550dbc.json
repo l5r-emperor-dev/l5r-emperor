@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Family F (Dynasty: economy against recruiting), done and shelved: the Purchase (Read/Purchase.cs, rules readF and rfRead, opt-in) reads the affordable row against the threat to home and next turn's attack, then the player model's class conditions. Decision set: the three Dynasty positions buy a body as Mendon did (T2 buys the Holding). Shadow 8/10, 7/10, 9/10 on seed 10800. Screens on block 10900 (A/A 50.7%): formulation 1 -99 in 1,456 (43.9%; the card's measure moves, bodies first when behind 41% to 63%, and the economy runs three Gold behind from turn 3 with fewer bodies by turn 5); formulation 2 (rfRead, the Read's two lines only) null, -13. Both rules stay opt-in. Note docs/bots/experiments/2026-11-15-conan-family-f.md; README/CODE_MAP/ROADMAP updated.",
+  "validation": "PurchaseTests 14/14 (--filter purchase); bash tools/check.sh --skip-client all stages 0; check_format.py clean; arena blocks 10800 (three shadow rounds) and 10900 (A/A, two screens with fire counts); q7_economy.py on both log sets for the measures.",
+  "remaining": "Family F shelved (two formulations). Next: family G (posture and route), family I (the Favor, their turn, the hand), the Calibration refit on a fresh block (11000 upward), step 4 (the purchase as a search candidate, lkBuy).",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
+  "branch": "claude/1206-conan-family-f",
+  "updated": "2026-11-15T07:23:27.815342+00:00"
+}

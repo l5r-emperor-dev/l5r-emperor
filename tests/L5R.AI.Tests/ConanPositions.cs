@@ -191,7 +191,7 @@ internal static class ConanPositions
                 var answer = HumanReplayCompare.Ask(game, 0, bot, roundTrip: true);
                 if (at is not null)
                 {
-                    if (Environment.GetEnvironmentVariable("L5R_POS_READ") == "1" && v0.Phase is Phase.InfantryDeclaration or Phase.CavalryDeclaration or Phase.DefenseAssignment or Phase.CavalryDefense or Phase.Battle or Phase.AttackDeclaration)
+                    if (Environment.GetEnvironmentVariable("L5R_POS_READ") == "1" && v0.Phase is Phase.InfantryDeclaration or Phase.CavalryDeclaration or Phase.DefenseAssignment or Phase.CavalryDefense or Phase.Battle or Phase.AttackDeclaration or Phase.Dynasty)
                         notes.AppendLine($"  {at.Id} read: {ReadAt(game, command, BotContext.TrendOf(history))}");
                     var human = HumanReplayCompare.Describe(game, command); var described = answer is null ? null : HumanReplayCompare.Describe(game, answer);
                     var agree = answer is not null && Matches(at, command, answer, described!);
@@ -219,6 +219,7 @@ internal static class ConanPositions
             })) + (view.Phase == Phase.InfantryDeclaration && asg.All(a => read.Ledger.Me.Units.FirstOrDefault(u => u.Id == a.Key)?.Province is null) ? $"\n    answers: {Questions.Of(read, trend)}" : "")
                + ForkAt(read, view.Phase);
         if (view.Phase is Phase.AttackDeclaration && view.ActivePlayerId == 0) return $"answers: {Questions.Of(read, trend)}";
+        if (view.Phase == Phase.Dynasty && view.ActivePlayerId == 0) return PurchaseAt(read, view, trend);
         if (command.Type == "assignDefense" && command.Assignments is { Count: > 0 } def)
             return string.Join("; ", def.GroupBy(a => a.Value).Select(g =>
             {
@@ -241,6 +242,22 @@ internal static class ConanPositions
         if (plan is null) return "";
         var part = phase == Phase.InfantryDeclaration ? plan.Infantry : plan.Cavalry;
         return $"\n    fork: {(part.Count == 0 ? "nobody" : string.Join(",", part.Select(a => $"{read.Ledger.Me.Units.First(u => u.Id == a.Key).Name}>P{a.Value + 1}")))} ({plan.Why}) | {string.Join(" || ", plan.Log)}";
+    }
+
+    /// <summary>Family F's plan (Purchase.Of) at a Dynasty position: the affordable face-up row as the bot would see it (a Clan Personality two Gold cheaper), the posture and the clocks read on next turn's board.</summary>
+    private static string PurchaseAt(Read read, MatchView view, Trend trend)
+    {
+        var me = view.Players.Single(p => p.Id == 0);
+        var row = me.Provinces.Where(p => !p.Destroyed).Select(p => p.Card).OfType<CardView>().Where(c => c.FaceUp && c.Definition is { Type: CardType.Personality or CardType.Holding }).Select(c =>
+        {
+            var def = c.Definition!; var cost = def.Type == CardType.Personality && (def.Clan == me.Clan || def.Clans?.Contains(me.Clan) == true) ? Math.Max(0, def.GoldCost - 2) : def.GoldCost;
+            var unit = def.Type == CardType.Personality ? new LedgerUnit(c.Id, def.Name, 0, Math.Max(0, def.Force), Math.Max(0, def.Force), false, def.Keywords?.Contains("Cavalry") ?? false, null, EffectDescriptors.Of(c).ToArray(), [], def.Chi, def.PersonalHonor, false, false, 0, 0, def.GoldCost, def.Keywords) : null;
+            return new PurchaseCandidate(c.Id, def.Name, def.Type, cost, Math.Max(0, def.Force), def.GoldProduction, unit);
+        }).ToArray();
+        var next = Questions.Of(Purchase.NextTurn(read, null), trend);
+        var turnsLeft = (int)Math.Clamp(Math.Min(next.Clocks.MyFastest, next.Clocks.TheirFastest), 2, 8);
+        var plan = Purchase.Of(read, row, next.Posture, turnsLeft);
+        return $"purchase: {plan.Choice?.Name ?? "(silent)"} line {plan.Line} ({plan.Why}); posture {next.Posture}, turns left {turnsLeft}, clocks {next.Clocks} | {string.Join(" || ", plan.Log)}";
     }
 
     /// <summary>Family D's plan (Defence.Of) at a defence position, with its per-Province reading.</summary>
