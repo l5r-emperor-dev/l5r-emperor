@@ -38,7 +38,7 @@ public partial class Main
     private void ShowRemovedGallery(int owner)
     {
         var (dialog, body) = Dialog("Removed from the Game", 1220, 880);
-        dialog.GetOkButton().Hide(); dialog.Borderless = true;
+        HideDialogButtons(dialog); dialog.Borderless = true;
         var header = new HBoxContainer(); body.AddChild(header);
         var heading = Palette.Text("Removed from the Game", 30, Palette.Paper, true); heading.HorizontalAlignment = HorizontalAlignment.Center; heading.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill; header.AddChild(heading);
         var close = SidebarSkin.Button("X", dialog.QueueFree);

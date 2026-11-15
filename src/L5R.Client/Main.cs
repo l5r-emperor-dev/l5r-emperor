@@ -216,6 +216,7 @@ public partial class Main : Node
         if (_capturePath is not null && _captureMode.StartsWith("published-action-lock", StringComparison.Ordinal)) { ProcessActionLockCapture(delta); return; }
         if (_capturePath is not null && _captureMode.StartsWith("published-direct-play", StringComparison.Ordinal)) { ProcessDirectPlayCapture(delta); return; }
         if (_capturePath is not null && _captureMode.StartsWith("published-variant-steps", StringComparison.Ordinal)) { ProcessVariantStepsCapture(delta); return; } // issue #1202
+        if (_capturePath is not null && _captureMode.StartsWith("published-table-menu", StringComparison.Ordinal)) { ProcessTableMenuCapture(delta); return; }
         if (_capturePath is not null && _captureMode.StartsWith("published-table-click", StringComparison.Ordinal)) { ProcessTableClickCapture(delta); return; }
         if (_capturePath is not null && _captureMode.StartsWith("published-drag", StringComparison.Ordinal)) { ProcessDragCapture(delta); return; } // issue #993
         if (_capturePath is not null && _captureMode.StartsWith("published-paused-animation", StringComparison.Ordinal)) { ProcessPausedAnimationCapture(delta); return; }
