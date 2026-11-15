@@ -44,6 +44,9 @@ public static partial class TrainingOpponent
         // issue #1206 (family E in shadow): with read on and readE off, what the Fight would do at this Battle priority beside what was chosen
         if (memory.Has("read") && !memory.Has("readE") && ReadFight(x) is { } shadowE)
             memory.NoteFight(view, shadowE.Plan, FightKey(chosen.Command) is { } ck && shadowE.Options.FirstOrDefault(o => SameFightAction(o.Key, ck)) is { } same ? same.Key : chosen.Command.Type is "pass" or "passAllBattles" ? "pass" : "other:" + chosen.Command.Type + "/" + chosen.Command.AbilityId, shadowE.Position);
+        // issue #1206 (family B in shadow): with read on and readB off, what the Cavalry fork would declare at each of the seat's declarations beside what was chosen
+        if (memory.Has("read") && !memory.Has("readB") && view.ActivePlayerId == view.ViewerId && view.Phase is Phase.InfantryDeclaration or Phase.CavalryDeclaration && candidates.Any(c => c.Action.Type == "attack") && ReadFork(x) is { } shadowB)
+            memory.NoteFork(view, shadowB, chosen.Command);
         // issue #1206 (family D in shadow): with read on and readD off, what the Read's defence would have assigned beside what was chosen
         if (memory.Has("read") && !memory.Has("readD") && view.Phase == Phase.DefenseAssignment && chosen.Command.Type is "assignDefense" or "pass" && candidates.FirstOrDefault(c => c.Action.Type == "assignDefense").Action is { } offer)
             memory.NoteDefence(view, ReadDefence(x, offer), chosen.Command);
@@ -79,7 +82,7 @@ public static partial class TrainingOpponent
         foreach (var rule in consulted)
         {
             if (memory.Deadline is { } cutoff && DateTime.UtcNow >= cutoff) { memory.FiresCut++; break; }
-            memory.Masked = rule; memory.Restore(snapshot); memory.ForgetPlan(); memory.ReadAnswersCache = null; memory.ReadDefencePlan = null; memory.ReadFightPlan = null; memory.ReadGuardPlan = null;
+            memory.Masked = rule; memory.Restore(snapshot); memory.ForgetPlan(); memory.ReadAnswersCache = null; memory.ReadDefencePlan = null; memory.ReadFightPlan = null; memory.ReadGuardPlan = null; memory.ReadForkPlan = null;
             try
             {
                 if (Decide(x) is not { } again || System.Text.Json.JsonSerializer.Serialize(again.Chosen.Command) != want) memory.Fires[rule] = memory.Fires.GetValueOrDefault(rule) + 1;
@@ -168,6 +171,28 @@ public static partial class TrainingOpponent
     }
 
     /// <summary>Issue #1206 (family A): the Read's three answers for this decision, computed once per view version (BotContext.CurrentAnswers holds the shadow's own, taken at the same moments).</summary>
+    /// <summary>Issue #1206 (family B): the Cavalry fork's plan at this declaration, once per view version (null: the seat has no Cavalry to fork with).</summary>
+    private static ForkPlan? ReadFork(Ctx x)
+    {
+        if (x.View.ActivePlayerId != x.Self.Id || x.View.Phase is not (Phase.InfantryDeclaration or Phase.CavalryDeclaration)) return null;
+        if (x.Memory.ReadForkPlan is { } cached && cached.Version == x.View.Version) return cached.Plan;
+        var read = x.Memory.CurrentRead is { } current && current.Key == Read.KeyOf(x.View) ? current : Read.Of(x.View);
+        var posture = ReadAnswers(x)?.Posture;
+        ForkPlan? plan = null;
+        if (x.View.Phase == Phase.InfantryDeclaration)
+        {
+            if (x.Actions.FirstOrDefault(a => a.Type == "attack") is { } attack)
+            {
+                var (units, provinces) = AttackInputs(x, attack);
+                var prepared = PlanAttack(x, units, provinces, AlreadyAssigned(x)) is { } whole ? HoldCavalry(x, OfferedOnly(whole, units)) : null;
+                plan = Fork.AtInfantry(read, prepared, posture);
+            }
+        }
+        else plan = Fork.AtCavalry(read, posture);
+        x.Memory.ReadForkPlan = (x.View.Version, plan);
+        return plan;
+    }
+
     private static Answers? ReadAnswers(Ctx x)
     {
         if (x.View.ActivePlayerId != x.Self.Id) return null;
@@ -307,6 +332,14 @@ public static partial class TrainingOpponent
                 // issue #1206 (readA): the opportunity's shape, restricted to what the engine offers; the Cavalry waits for its own segment. raShape (formulation 2): only the shape, the Contender decides attack or hold
                 var shape = OfferedOnly(answersA.Opportunity.Best.Assignment.Where(a => provinces.Contains(a.Value)).ToDictionary(a => a.Key, a => a.Value, StringComparer.Ordinal), units);
                 if (shape.Count > 0) return command with { Assignments = HoldCavalry(x, shape) };
+            }
+            if (action.Type == "attack" && Rule(x, "readB") && (x.View.Phase == Phase.CavalryDeclaration || x.View.Phase == Phase.InfantryDeclaration && !Rule(x, "rbCav")) && LethalPlan(x, units, provinces) is null && !HonorRace(x) && ReadFork(x) is { } fork)
+            {
+                // issue #1206 (readB, RULE_FAMILIES.md family B): the Cavalry fork. At the Infantry declaration the infantry option with the highest forced value (nothing: the Cavalry goes alone in its segment);
+                // at the Cavalry declaration the follow-up against the defence as placed, sized to exceed Strength alone, the Cavalry it does not need home.
+                var part = x.View.Phase == Phase.InfantryDeclaration ? fork.Infantry : fork.Cavalry;
+                var offered = OfferedOnly(new Dictionary<string, int>(part, StringComparer.Ordinal), units);
+                return offered.Count > 0 ? command with { Assignments = offered } : x.Actions.Any(a => a.Enabled && a.Type is "pass" or "passAllBattles") ? null : command;
             }
             if (action.Type == "attack")
             {
