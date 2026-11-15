@@ -169,6 +169,14 @@ public sealed class BotContext
     }
     /// <summary>Issue #1206 (family B): the Cavalry fork's plan for the current decision, by view version (null: the fork does not apply).</summary>
     internal (long Version, ForkPlan? Plan)? ReadForkPlan { get; set; }
+    /// <summary>Family I in shadow: the Favor, the hand-replacing Event and the hand-limit discard as the Read would decide them beside what the bot did.</summary>
+    public List<string> HandLog { get; } = [];
+    internal void NoteHand(MatchView view, string kind, bool same, string chose, string would, string why)
+    {
+        if (HandLog.Count >= 2000) return;
+        var me = view.Players.Single(p => p.Id == view.ViewerId); var them = view.Players.Single(p => p.Id != view.ViewerId);
+        HandLog.Add($"T{view.TurnNumber} {view.Phase} {kind} {(same ? "same" : "DIFFERS")}: chose {chose}, read {would} ({why}) | P{me.Provinces.Count(p => !p.Destroyed)}v{them.Provinces.Count(p => !p.Destroyed)} H{me.Honor}/{them.Honor}");
+    }
     /// <summary>Family G in shadow: what the route gate would say at the attack declaration beside what the bot did; a difference is logged.</summary>
     public List<string> RouteLog { get; } = [];
     internal void NoteRoute(MatchView view, Answers answers, RoutePlan plan, string chosenType)

@@ -207,6 +207,7 @@ public static class RuleRegistry
         R("rfRead", "purchase", "with readF, only the Read's own lines decide a purchase (a body that makes home hold; a body that turns next turn's attack from fails to falls); the Contender's economy otherwise; formulation 2"),
         R("readG", "attack", "family G: the route gate at the attack declaration; a lock, a drain or a wait passes unless the Read's best attack risks nothing, a race or a punish declares, press, build and hold leave the Contender's choice; a lethal attack always declares"),
         R("rgRace", "attack", "with readG, an attack is declared every turn while their Honor win is within three turns and nothing of mine is faster (not under a lock or a drain); formulation 2"),
+        R("readI", "favor", "family I: the Favor is kept while the exchange holds the Province without it and spent when an attacker home turns the fall into a hold (or at my last Province), never cycled; an Event that replaces the hand is declined with three or more answers in hand; the hand-limit discard goes by live uses against their units"),
         R("reOpen", "battle", "with readE, what an action reaches and whether anything can is read against their open hand (shown answers only); the pass test keeps their likely hand"),
     ];
 

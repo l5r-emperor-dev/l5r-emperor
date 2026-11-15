@@ -47,6 +47,22 @@ public static partial class TrainingOpponent
         // issue #1206 (family B in shadow): with read on and readB off, what the Cavalry fork would declare at each of the seat's declarations beside what was chosen
         if (memory.Has("read") && !memory.Has("readB") && view.ActivePlayerId == view.ViewerId && view.Phase is Phase.InfantryDeclaration or Phase.CavalryDeclaration && candidates.Any(c => c.Action.Type == "attack") && ReadFork(x) is { } shadowB)
             memory.NoteFork(view, shadowB, chosen.Command);
+        // issue #1206 (family I in shadow): with read on and readI off, the Favor, the hand-replacing Event and the hand-limit discard as the Read would decide them
+        if (memory.Has("read") && !memory.Has("readI"))
+        {
+            if (view.Phase == Phase.Battle && candidates.FirstOrDefault(c => c.Action.Type == "useAbility" && c.Command.AbilityId == "favor-battle") is { Command: { } favorOffer } && ReadFavor(x, favorOffer.TargetId) is { } fp)
+            {
+                var spent = chosen.Command.AbilityId == "favor-battle";
+                memory.NoteHand(view, "favor", spent == fp.Spend, spent ? "spend" : "keep", fp.Spend ? "spend" : "keep", fp.Why);
+            }
+            if (chosen.Command.Type == "eventChoice" && chosen.Command.Choice is "yes" or "no" && Hand.ReplacesHand(x.Card(chosen.Command.CardId)?.Definition?.Effect) && Hand.ReplaceHand((memory.CurrentRead is { } cr && cr.Key == Read.KeyOf(view) ? cr : Read.Of(view)).Ledger.Me) is { } keep)
+                memory.NoteHand(view, "event", (chosen.Command.Choice == "no") == !keep, chosen.Command.Choice!, keep ? "yes" : "no", "three or more answers in hand");
+            if (chosen.Command.Type == "discardHand" && chosen.Command.CardIds is { Length: > 0 } dropped)
+            {
+                var dp = ReadDiscard(x, dropped.Length);
+                memory.NoteHand(view, "discard", dropped.OrderBy(i => i, StringComparer.Ordinal).SequenceEqual(dp.CardIds.OrderBy(i => i, StringComparer.Ordinal)), string.Join(",", dropped.Select(i => x.Card(i)?.Definition?.Name ?? i)), string.Join(",", dp.CardIds.Select(i => x.Card(i)?.Definition?.Name ?? i)), dp.Why);
+            }
+        }
         // issue #1206 (family G in shadow): with read on and readG off, what the route gate would say at the attack declaration beside declare or pass
         if (memory.Has("read") && !memory.Has("readG") && view.ActivePlayerId == view.ViewerId && view.Phase == Phase.AttackDeclaration && chosen.Command.Type is "declareAttack" or "pass" && ReadAnswers(x) is { } shadowG)
             memory.NoteRoute(view, shadowG, Route.Gate(shadowG, LethalPlan(x, x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed).ToArray(), x.Opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Index).ToArray()) is not null), chosen.Command.Type);
@@ -275,6 +291,24 @@ public static partial class TrainingOpponent
         return command;
     }
 
+    /// <summary>Issue #1206 (family I): the Favor's reading at this battle, for the attacker the offer would send home.</summary>
+    private static FavorPlan? ReadFavor(Ctx x, string? targetId)
+    {
+        if (x.View.Phase != Phase.Battle || x.Odds is not { } odds || x.View.BattleStep?.BattlefieldProvince is not { } province) return null;
+        var read = x.Memory.CurrentRead is { } current && current.Key == Read.KeyOf(x.View) ? current : Read.Of(x.View);
+        var target = targetId is null ? null : read.Ledger.Them.Units.FirstOrDefault(u => u.Id == targetId);
+        var deciding = !odds.IsAttacker && x.Self.Provinces.Count(p => !p.Destroyed) <= 1;
+        return Hand.Favor(read, province, odds.IsAttacker, target, deciding);
+    }
+
+    /// <summary>Issue #1206 (family I): the hand-limit discard by live uses, the Contender's own value for ties.</summary>
+    private static DiscardPlan ReadDiscard(Ctx x, int count)
+    {
+        var read = x.Memory.CurrentRead is { } current && current.Key == Read.KeyOf(x.View) ? current : Read.Of(x.View);
+        var hand = x.Self.Hand.Select(c => (c.Id, c.Definition?.Name ?? c.Id, EffectDescriptors.Of(c).ToArray(), (double)HandValue(c))).ToList();
+        return Hand.Discard(read, hand, count);
+    }
+
     /// <summary>Issue #1206 (family F): the Purchase's reading of the affordable row at this Dynasty decision, once per view version. The posture and the clocks are read on the board as it
     /// will stand next turn (my units straightened): at the Dynasty phase the army that attacked is bowed and the questions would read a hold.</summary>
     private static PurchasePlan? ReadPurchase(Ctx x)
@@ -404,6 +438,7 @@ public static partial class TrainingOpponent
         {
             var count = self.HandCount - x.MaxHand;
             if (count <= 0 || self.Hand.Length != self.HandCount) return null;
+            if (Rule(x, "readI")) return command with { CardIds = ReadDiscard(x, count).CardIds }; // issue #1206 (family I): the fewest live uses first
             return command with { CardIds = self.Hand.OrderBy(HandValue).ThenBy(c => c.Id, StringComparer.Ordinal).Take(count).Select(c => c.Id).ToArray() };
         }
         if (action.Type == "useAbility")
