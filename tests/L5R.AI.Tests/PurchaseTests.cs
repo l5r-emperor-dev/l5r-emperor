@@ -34,17 +34,19 @@ internal static class PurchaseTests
             var plan = Purchase.Of(ReadOf(me, them), [Body("b4", 4, 4), Holding("mine", 3, 2)], Posture.Build, 6);
             Check(plan.Choice?.Id == "mine" && plan.Line == 2, $"the Holding while they have nobody: {Log(plan)}");
         }),
-        ("line 5 then 6: home holds at likely (their 4 against my 6 and Strength 5) but a Holding costing 5 producing 1 does not pay back in 3 turns: a body instead", () =>
+        ("line 6: home holds at likely (their 4 against my 6 and Strength 5) and they have a Personality: a body before a Holding that pays back (PM 3.6: once they have a Personality, Personalities first)", () =>
         {
             var me = Side(0, [U("i6", 0, 6)], [(0, 5), (1, 6)], gold: 6); var them = Side(1, [U("t4", 1, 4)], [(0, 6), (1, 6)]);
-            var plan = Purchase.Of(ReadOf(me, them), [Body("b3", 3, 3), Holding("shrine", 5, 1)], Posture.Hold, 3);
-            Check(plan.Choice?.Id == "b3" && plan.Line == 6, $"a body when the Holding does not pay back: {Log(plan)}");
+            var plan = Purchase.Of(ReadOf(me, them), [Body("b3", 3, 3), Holding("farm", 2, 3)], Posture.Hold, 6);
+            Check(plan.Choice?.Id == "b3" && plan.Line == 6, $"a body once they have a Personality: {Log(plan)}");
         }),
-        ("line 3: fails to falls: my 4 alone cannot take their Strength 6 Province held by their 2 at home; with a 5 for 5 Gold the 9 exceeds 2 + 6 at likely, so the 5 is bought before a Holding that pays back (home holds either way: their 2 against my 4 + Strength 5)", () =>
+        ("line 5: building (their answers beat my units) while home holds: the Holding that pays back comes before a body; one that does not pay back in 3 turns does not", () =>
         {
-            var me = Side(0, [U("i4", 0, 4)], [(0, 5), (1, 6), (2, 6)], gold: 6); var them = Side(1, [U("t2", 1, 2)], [(0, 6), (1, 6), (2, 6)]);
-            var plan = Purchase.Of(ReadOf(me, them), [Holding("farm", 2, 3), Body("b5", 5, 5)], Posture.Hold, 6);
-            Check(plan.Choice?.Id == "b5" && plan.Line == 3, $"the body that makes next turn's attack fall: {Log(plan)}");
+            var me = Side(0, [U("i6", 0, 6)], [(0, 5), (1, 6)], gold: 6); var them = Side(1, [U("t4", 1, 4)], [(0, 6), (1, 6)]);
+            var plan = Purchase.Of(ReadOf(me, them), [Body("b3", 3, 3), Holding("farm", 2, 3)], Posture.Build, 6);
+            Check(plan.Choice?.Id == "farm" && plan.Line == 5, $"the paying Holding while building: {Log(plan)}");
+            var poor = Purchase.Of(ReadOf(me, them), [Body("b3", 3, 3), Holding("shrine", 5, 1)], Posture.Build, 3);
+            Check(poor.Choice?.Id == "b3" && poor.Line == 6, $"a body when the Holding does not pay back: {Log(poor)}");
         }),
         ("line 4: pressing, a body is bought before a Holding that pays back", () =>
         {

@@ -59,7 +59,7 @@ public static class Purchase
         {
             var both = paying.Length > 0 && bodies.Length > 0 && bodies.Min(b => b.Cost) + paying.Min(h => h.Cost) <= me.GoldNow;
             if (paying.Length > 0 && !both) return new(paying[0], 2, $"they have no Personality: {paying[0].Name} pays back in {turnsLeft} turns", before, log.ToArray());
-            if (both) log.Add("they have no Personality but the Gold buys a body and a Holding: the body first");
+            if (both && Body(bodies) is { } first) return new(first, 2, "they have no Personality and the Gold buys a body and a Holding: the body first, the Holding follows (PM 3.6 turn 1)", before, log.ToArray());
         }
 
         // line 3: a body turns my best attack next turn from fails to falls
@@ -88,8 +88,8 @@ public static class Purchase
             return new(null, 4, "pressing, nothing to buy", before, log.ToArray());
         }
 
-        // line 5: home holds without a purchase: economy that pays back
-        if (before.Likely.ProvincesLost == 0 && paying.Length > 0) return new(paying[0], 5, $"home holds at likely: {paying[0].Name} pays back in {turnsLeft} turns", before, log.ToArray());
+        // line 5: building (their shown answers beat my units: there must be units) while home holds: economy that pays back (PM 3.6: "build until I can field the unit their answers do not touch")
+        if (posture == Posture.Build && me.Units.Length > 0 && before.Likely.ProvincesLost == 0 && paying.Length > 0) return new(paying[0], 5, $"building while home holds at likely: {paying[0].Name} pays back in {turnsLeft} turns", before, log.ToArray());
 
         // line 6: bodies, a Gold producer first
         if (Body(bodies) is { } body5) return new(body5, 6, before.Likely.ProvincesLost > 0 ? $"home loses {before.Likely.ProvincesLost} at likely and no body alone holds it: a body" : "a body", before, log.ToArray());
