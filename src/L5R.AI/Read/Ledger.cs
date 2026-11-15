@@ -62,7 +62,7 @@ public sealed record Ledger(int ViewerId, int Turn, Phase Phase, LedgerSide Me, 
         foreach (var card in p.Home.Where(h => h.Definition?.Type == CardType.Holding).Append(p.Stronghold).Where(c => !c.Bowed))
             foreach (var d in EffectDescriptors.Of(card).Where(d => d.IsBattle && d.Neutralises && !(card.SpentAbilityIds?.Contains(d.Id) ?? false))) table.Add(new(d, card.Definition?.Name ?? card.Id, false, d.GoldCost));
         if (view.FavorPlayerId == p.Id && AbilityCatalog.All.ContainsKey("favor-battle")) table.Add(new(EffectDescriptors.Of("favor-battle"), "Favor", false, 0));
-        var hand = own ? p.Hand.Where(c => c.Definition is not null).SelectMany(c => EffectDescriptors.Of(c).Where(d => d.IsBattle && (d.Neutralises || d.Class is EffectClass.ForceAdd or EffectClass.Negate)).Take(1).Select(d => new Answer(d, c.Definition!.Name, true, c.Definition.GoldCost))).ToArray() : [];
+        var hand = own ? p.Hand.Where(c => c.Definition is not null).SelectMany(c => EffectDescriptors.Of(c).Where(d => d.IsBattle && (d.Neutralises || d.Class is EffectClass.ForceAdd or EffectClass.Negate)).Take(1).SelectMany(d => Enumerable.Repeat(new Answer(d, c.Definition!.Name, true, c.Definition.GoldCost), Math.Max(1, d.Targets)))).ToArray() : [];
         var bestFocus = own ? p.Hand.Where(c => c.Definition is not null).Select(c => c.Definition!.Focus).DefaultIfEmpty(0).Max() : p.HandCount > 0 ? 3 : 0; // the opponent's best Focus Value is unseen: a typical card's
         return new(p.Id, units, provinces, goldNow, capacity, p.Honor, view.FavorPlayerId == p.Id, p.HandCount, hand, table.ToArray(), bestFocus);
     }

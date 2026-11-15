@@ -209,6 +209,7 @@ public static class RuleRegistry
         R("rgRace", "attack", "with readG, an attack is declared every turn while their Honor win is within three turns and nothing of mine is faster (not under a lock or a drain); formulation 2"),
         R("readI", "favor", "family I: the Favor is kept while the exchange holds the Province without it and spent when an attacker home turns the fall into a hold (or at my last Province), never cycled; an Event that replaces the hand is declined with three or more answers in hand; the hand-limit discard goes by live uses against their units"),
         R("riHand", "favor", "with readI, only the hand decides (the hand-limit discard by live uses, the hand-replacing Event declined); the Favor stays the Contender's; formulation 2"),
+        R("riBoard", "favor", "with readI, the hand-limit discard reads the board: each card's worth is how much the threat to home or my next attack changes without it, Followers and Items worth their Force in quiet turns, the hand's own Force cuts counted first; formulation 3 (Mendon, 2026-11-15)"),
         R("reOpen", "battle", "with readE, what an action reaches and whether anything can is read against their open hand (shown answers only); the pass test keeps their likely hand"),
     ];
 

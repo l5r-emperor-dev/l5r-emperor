@@ -31,9 +31,10 @@ public sealed record EffectDescriptor(
     TargetSide Side, TargetKind Target, EffectCondition[] Conditions, EffectClass[] Secondary,
     string? PerformerKeyword, bool PerformerUnbowed, bool PerformerAtBattlefield,
     bool BowsSource, bool DestroysSource, bool DiscardsCard, int GoldCost, int HonorCost, bool Absent, bool Repeatable, int UsesPerTurn,
-    bool Conditional, string? Why)
+    bool Conditional, string? Why, int Targets = 1)
 {
-    public bool IsBattle => Timing is "Battle" or "BattleOrOpen";
+    /// <summary>Usable inside a battle: Battle actions, and abilities that act before the battle resolves (Rocky Terrain's kind: after every other action, so nothing answers them).</summary>
+    public bool IsBattle => Timing is "Battle" or "BattleOrOpen" or "BeforeResolution";
     public bool IsOpen => Timing is "Open" or "BattleOrOpen";
     public bool IsReaction => Timing == "Reaction";
     /// <summary>Removes an enemy unit from the Force count or the battle: send home, bow, destroy, a Force cut, a lock or a duel it can win.</summary>
@@ -82,13 +83,43 @@ public static class EffectDescriptors
     private static readonly Regex MoveIn = new(@"\b(move|moves|bring)\b[^.;·]*?\b(to|into|at)\s+(the\s+|this\s+|that\s+)?(current\s+)?battlefield\b|\bmove\b[^.;·]*?\bthere\b", I);
     private static readonly Regex Province = new(@"(?:province|battlefield)[^.;·]*?\bstrength\b|\bstrength\b[^.;·]*?\bprovince\b|\bits strength\b", I);
     private static readonly Regex ProvinceAmount = new(@"([-−+]\s?\d+)\s+strength|strength\s+(?:by|bonus of|penalty of)\s+(\d+)|(?:increase|raise)[^.;·]*?\bby\s+(\d+)|strength\s+to\s+(0)", I);
-    private static readonly Regex HonorTax = new(@"(?:controller|he|she|they|player|opponent|who)\s+loses?\s+(?:(\d+)|X|\w+)\s*Honor|\bloses?\s+Honor\s+equal", I);
+    private static readonly Regex HonorTax = new(@"(?:controller|he|she|they|player|opponent|who|to)\s+loses?\s+(?:(\d+)|X|\w+)\s*Honor|\bloses?\s+Honor\s+equal", I);
     private static readonly Regex KeywordGrant = new(@"\b(give|gives|gains?)\b[^.;·]*?\b(Cavalry|Duelist|Tactician|Elite|Naval|Ninja|Kolat|Shadowlands|Scout|Paragon|Samurai|Courtier|Shugenja|Magistrate|Yojimbo|Kensai|Commander|Conqueror|Reconnaissance|Master token|[A-Z][a-z]+ token)\b|\bcop(?:y|ies)\b[^.;·]*\bkeyword|\bcopies\s+(Commander|Duelist|Kensai)|\bremove\s+[A-Z][a-z]+(\s+and\s+[A-Z][a-z]+)?\s+from\b", I);
     private static readonly Regex GoldGain = new(@"\bproduce\s+(\d+)\s+Gold\b|\bGold-producing\b", I);
     private static readonly Regex LookDeck = new(@"\blook at\b|\brefresh\b|\bsearch\b[^.;·]*\bdeck\b|\bname\s+\\""|\bturn\b[^.;·]*\bface-?down\b", I);
     private static readonly Regex OtherKnown = new(@"\bfocus effect\b|\badditional\s+(battle\s+)?action|\bfirst opportunity\b|\bReconnaissance\b|\btargets another of your cards instead\b|\bchoose a player\b|\bcopies?\s+one of its\b|\bput\b[^.;·]*\binto your hand\b|\bremove\b[^.;·]*\bfrom the game\b|\bstrength bonus\b|\bOffer bowing\b|\bdelay the effects\b|\bmay assign even if bowed\b|\bA lesson is taught\b", I);
     private static readonly Regex HonorGain = new(@"\bgains?\s+(\d+|X)\s+Honor", I);
     private static readonly Regex Dishonor = new(@"\bdishonor\b(?!able)", I);
+    private static readonly Regex GainsOrLoses = new(@"\bgains?\s+or\s+loses?\s+(\d+)\s*Honor\b", I);
+    // "His controller may A. [If he does, ...] If he did not (choose this), B." -- the target's controller, the chosen player or "the player" acting on another's action chooses between A and B
+    private static readonly Regex TargetChooses = new(@"\b(?:(?:his|her|its|their|the\s+Personality's)\s+controller|(?:the|that)\s+player|he|she)\s+may\s+(?:choose\s+to\s+)?(?<a>[^.]*\.(?:\s*If\s+(?:he|she|they)\s+(?:does|did|do),[^.]*\.)?)\s*(?:If\s+(?:he|she|they|it)\s+(?:did|does|do)\s+not(?:\s+choose\s+(?:this|to\s+[^,]*)|\s+pay[^,]*)?,?|Otherwise,?|If\s+not,?)\s*(?<b>[^.]*)", I);
+    private static readonly Regex ChoiceIntro = new(@"\bIf\s+(?:he|she|they|it)\s+(?:did|does|do)(?:\s+not)?(?:\s+choose\s+(?:this|to\s+[^,]*)|\s+pay[^,]*)?,|\bOtherwise,|\bIf\s+not,", I);
+
+    /// <summary>What a branch of a choice costs the player who chooses, in rough Provinces: losing a Personality most, then removing it from the battle, a dishonor, an Honor loss (a third of a point each),
+    /// Gold (a quarter a Gold), a random discard. The chooser is expected to take the cheaper branch.</summary>
+    private static double BranchCost(string t)
+    {
+        double cost = 0;
+        if (Regex.IsMatch(t, @"\b(destroy|shuffle|commits?\s+seppuku)\b", I)) cost += 6;
+        if (Regex.IsMatch(t, @"\b(send|move)s?\s+(him|her|it|them)\s+home\b|\bnegate\b", I)) cost += 3;
+        if (Regex.IsMatch(t, @"\bbow\b", I)) cost += 2.5;
+        if (Regex.IsMatch(t, @"\bdishonor\b(?!able)", I)) cost += 2;
+        if (Regex.IsMatch(t, @"\bmust\s+pass\b|\bmay\s+not\s+be\s+used\b", I)) cost += 1.5;
+        if (Regex.Match(t, @"\bloses?\s+(\d+)\s*Honor\b", I) is { Success: true } h) cost += int.Parse(h.Groups[1].Value) / 3.0;
+        if (Regex.Match(t, @"\bpay\s+(\d+)\s*Gold\b", I) is { Success: true } g) cost += int.Parse(g.Groups[1].Value) / 4.0;
+        if (Regex.IsMatch(t, @"\bdiscard\s+a\s+card\s+at\s+random\b", I)) cost += 1;
+        if (Regex.IsMatch(t, @"\bgains?\s+or\s+loses?\s+(\d+)\s*Honor\b", I) is true && Regex.Match(t, @"(\d+)\s*Honor", I) is { Success: true } go) cost += int.Parse(go.Groups[1].Value) / 3.0;
+        if (Regex.IsMatch(t, @"\b(search|bring|create)\b", I)) cost += 1.5; // the performer gains a card or a unit
+        return cost;
+    }
+
+    private static ((int Start, int End) A, (int Start, int End) B, bool CheaperIsA, double CostA, double CostB)? TargetChoice(string effect)
+    {
+        if (TargetChooses.Match(effect) is not { Success: true } m) return null;
+        var a = m.Groups["a"]; var b = m.Groups["b"];
+        var costA = BranchCost(a.Value); var costB = BranchCost(b.Value);
+        return ((a.Index, a.Index + a.Length), (b.Index, b.Index + b.Length), costA <= costB, costA, costB);
+    }
     private static readonly Regex Lock = new(@"may not (perform|take|use|be used|straighten|assign|move)|cannot (straighten|move|perform|be assigned)|abilities[^.;·]*?may not be used", I);
     private static readonly Regex Draw = new(@"\bdraws?\b", I);
     private static readonly Regex Create = new(@"\bcreates?\b", I);
@@ -124,7 +155,17 @@ public static class EffectDescriptors
         var category = a.Target ?? "none";
         var (side, target, conditions) = ReadCategory(category, a);
         if (category is "none" or "hand" or "slots") foreach (var c in TextConditions(cost)) conditions.Add(c); // a Slots ability names its targets in the text
-        if (category == "slots") { if (Regex.IsMatch(cost, @"target (an? |one |two |three |up to \w+ )?enemy\b", I)) side = TargetSide.Enemy; else if (Regex.IsMatch(cost, @"target (your|one of your)\b", I)) side = TargetSide.Own; if (Regex.IsMatch(cost, @"\bPersonality\b", I)) target = TargetKind.Personality; else if (Regex.IsMatch(cost, @"\battachments?\b", I)) target = TargetKind.Attachment; }
+        // an untargeted ability that names the attacking (or defending) Personalities it acts on, "bow one or two attacking Personalities at the current battlefield": an enemy Personality to the side that
+        // defends (or attacks), with the condition, and as many targets as it names
+        var named = category == "none" ? Regex.Match(effect, @"\b(?:(one or two|up to two|two|one or more|any number of)\s+)?(attacking|defending)\s+Personalit(?:y|ies)\b", I) : Match.Empty;
+        var namedTargets = 1;
+        if (named.Success)
+        {
+            side = TargetSide.Enemy; target = TargetKind.Personality;
+            if (conditions.All(c => c.Kind != named.Groups[2].Value.ToLowerInvariant())) conditions.Add(new(named.Groups[2].Value.ToLowerInvariant()));
+            namedTargets = named.Groups[1].Value.ToLowerInvariant() switch { "one or two" or "up to two" or "two" => 2, "one or more" or "any number of" => 3, _ => 1 };
+        }
+        if (category == "slots") { if (Regex.IsMatch(cost, @"target (an? |one |two |three |up to \w+ )?enemy\b", I)) side = TargetSide.Enemy; else if (Regex.IsMatch(cost, @"target (your|one of your)\b", I)) side = TargetSide.Own; if (Regex.IsMatch(cost, @"\bPersonality\b", I)) target = TargetKind.Personality; else if (Regex.IsMatch(cost, @"(?<!\bwith(?:out)?\s)\battachments?\b", I)) target = TargetKind.Attachment; else if (Regex.IsMatch(cost, @"\b(card|unit)\b", I)) target = TargetKind.UnitCard; } // "a card without attachments" names a condition, not an attachment target
         else foreach (var c in TextConditions(cost).Where(c => conditions.All(x => x.Kind != c.Kind))) conditions.Add(c);
         var performer = PerformerClause.Match(label);
         var classes = new List<(EffectClass Class, int Pos, int? Magnitude, bool Varies)>();
@@ -184,13 +225,24 @@ public static class EffectDescriptors
         if (OtherKnown.Match(effect) is { Success: true } ok) Add(EffectClass.Other, ok.Index);
         if (id is "lobby" or "favor-cycle" || label.Contains("Favor", StringComparison.Ordinal) && classes.Count == 0) Add(EffectClass.Other, 0);
 
-        // the primary class: the first neutraliser in printed order, else the first clause
+        // "gains or loses N Honor" (a player chosen by the performer): an Honor tax of N, the loss being the use the effect is played for
+        if (GainsOrLoses.Match(effect) is { Success: true } gl) { classes.RemoveAll(c => c.Class is EffectClass.HonorGain or EffectClass.HonorTax); Add(EffectClass.HonorTax, gl.Index, int.Parse(gl.Groups[1].Value)); }
+        // the target's controller chooses: "His controller may destroy him. If he did not choose this, ..." -- the opponent takes the cheaper outcome, so what the effect does is the alternative;
+        // the choice's own effect stays a secondary class (Mendon, 2026-11-15, on Remember Your Ancestors: "a card that MOSTLY produces an honor loss, not a destroyed personality")
+        // Mendon, 2026-11-15: "re-evaluate every card that offers a 'may' option to a targeted player that is different from the active player and evaluate value based on the most probable
+        // outcome": the chooser takes the branch that costs him less (BranchCost), so the effect is read as that branch and the dearer one is only a secondary class
+        var choice = TargetChoice(effect);
+        bool Chosen((EffectClass Class, int Pos, int? Magnitude, bool Varies) c) => choice is { } ch && (ch.CheaperIsA ? c.Pos >= ch.B.Start && c.Pos < ch.B.End : c.Pos >= ch.A.Start && c.Pos < ch.A.End);
+        // the primary class: the first neutraliser in printed order, else the first clause (a clause the target's controller may choose is never primary)
         var ordered = classes.OrderBy(c => c.Pos).ToArray();
-        var primary = ordered.FirstOrDefault(c => c.Class is EffectClass.SendHome or EffectClass.Bow or EffectClass.Destroy or EffectClass.ForceCut or EffectClass.Lock or EffectClass.Duel);
-        if (primary.Class == EffectClass.Unknown) primary = ordered.FirstOrDefault();
+        var primary = ordered.FirstOrDefault(c => !Chosen(c) && c.Class is EffectClass.SendHome or EffectClass.Bow or EffectClass.Destroy or EffectClass.ForceCut or EffectClass.Lock or EffectClass.Duel);
+        if (primary.Class == EffectClass.Unknown) primary = choice is not null ? ordered.Where(c => !Chosen(c)).OrderBy(c => c.Class is EffectClass.Other or EffectClass.Draw ? 1 : 0).FirstOrDefault() : ordered.FirstOrDefault(c => !Chosen(c));
+        if (primary.Class == EffectClass.Unknown) primary = choice is { } cb ? (EffectClass.Other, cb.CheaperIsA ? cb.A.Start : cb.B.Start, null, false) : ordered.FirstOrDefault(); // the cheaper branch names no class: never the dearer one
         var secondary = ordered.Where(c => c.Class != primary.Class).Select(c => c.Class).ToArray();
-        var conditional = IfClause.IsMatch(effect) || primary.Pos > 0 && Regex.IsMatch(effect[..primary.Pos], @"\b(if|unless)\b", I);
-        if (conditional) conditions.Add(new("if", Text: Regex.Match(effect, @"\b(if|unless)\b[^,:.]*", I).Value.Trim()));
+        // the "If he did not choose this" that follows a choice of the target's controller is not a condition on the effect: it is the effect
+        var unchosen = choice is { } chm ? ChoiceIntro.Replace(effect, m => new string(' ', m.Length)) : effect;
+        var conditional = IfClause.IsMatch(unchosen) || primary.Pos > 0 && Regex.IsMatch(unchosen[..Math.Min(primary.Pos, unchosen.Length)], @"\b(if|unless)\b", I);
+        if (conditional) conditions.Add(new("if", Text: Regex.Match(unchosen, @"\b(if|unless)\b[^,:.]*", I).Value.Trim()));
 
         var bowsSource = a.Costs?.Any(c => c.Verb == CostVerb.Bow) == true || BowCost.IsMatch(cost) || a.CostOptions?.Any(o => o.Verb == CostVerb.Bow) == true;
         var destroysSource = a.Costs?.Any(c => c.Verb == CostVerb.Destroy) == true || DestroyCost.IsMatch(cost) || a.CostOptions?.Any(o => o.Verb == CostVerb.Destroy) == true;
@@ -201,7 +253,7 @@ public static class EffectDescriptors
         return new(id, a.Timing, a.Trigger, unknown ? EffectClass.Unknown : primary.Class, primary.Magnitude, primary.Varies || (primary.Magnitude is null && Varies.IsMatch(effect) && primary.Class is EffectClass.ForceAdd or EffectClass.ForceCut or EffectClass.Destroy),
             side, target, conditions.DistinctBy(c => c.ToString()).ToArray(), secondary,
             performer.Success ? performer.Groups[1].Value : a.RequiredKeywords?.FirstOrDefault(), Unbowed.IsMatch(cost) || (a.Performer?.Contains("unbowed") ?? false), AtBattle.IsMatch(cost) || (a.Performer?.Contains("at-battle") ?? false),
-            bowsSource, destroysSource, discards, gold, honor, a.Absent, a.UsesPerTurn == AbilityUseLimit.Unlimited || a.UsesPerTurn > 1, a.UsesPerTurn, conditional, unknown ? "no clause matched: " + effect.Trim() : null);
+            bowsSource, destroysSource, discards, gold, honor, a.Absent, a.UsesPerTurn == AbilityUseLimit.Unlimited || a.UsesPerTurn > 1, a.UsesPerTurn, conditional, unknown ? "no clause matched: " + effect.Trim() : null, namedTargets);
     }
 
     private static string Sentence(string text, int at) { var start = text.LastIndexOf('.', Math.Max(0, at - 1)) + 1; var end = text.IndexOf('.', at); return text[start..(end < 0 ? text.Length : end)]; }
