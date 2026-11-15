@@ -135,7 +135,7 @@ public static class EffectDescriptors
             if (conditions.All(c => c.Kind != named.Groups[2].Value.ToLowerInvariant())) conditions.Add(new(named.Groups[2].Value.ToLowerInvariant()));
             namedTargets = named.Groups[1].Value.ToLowerInvariant() switch { "one or two" or "up to two" or "two" => 2, "one or more" or "any number of" => 3, _ => 1 };
         }
-        if (category == "slots") { if (Regex.IsMatch(cost, @"target (an? |one |two |three |up to \w+ )?enemy\b", I)) side = TargetSide.Enemy; else if (Regex.IsMatch(cost, @"target (your|one of your)\b", I)) side = TargetSide.Own; if (Regex.IsMatch(cost, @"\bPersonality\b", I)) target = TargetKind.Personality; else if (Regex.IsMatch(cost, @"\battachments?\b", I)) target = TargetKind.Attachment; }
+        if (category == "slots") { if (Regex.IsMatch(cost, @"target (an? |one |two |three |up to \w+ )?enemy\b", I)) side = TargetSide.Enemy; else if (Regex.IsMatch(cost, @"target (your|one of your)\b", I)) side = TargetSide.Own; if (Regex.IsMatch(cost, @"\bPersonality\b", I)) target = TargetKind.Personality; else if (Regex.IsMatch(cost, @"(?<!\bwith(?:out)?\s)\battachments?\b", I)) target = TargetKind.Attachment; else if (Regex.IsMatch(cost, @"\b(card|unit)\b", I)) target = TargetKind.UnitCard; } // "a card without attachments" names a condition, not an attachment target
         else foreach (var c in TextConditions(cost).Where(c => conditions.All(x => x.Kind != c.Kind))) conditions.Add(c);
         var performer = PerformerClause.Match(label);
         var classes = new List<(EffectClass Class, int Pos, int? Magnitude, bool Varies)>();

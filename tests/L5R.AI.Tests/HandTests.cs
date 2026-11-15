@@ -109,5 +109,10 @@ internal static class HandTests
             var with = Exchange.Run(them, them.Units, me, me.Units, 5, [], me.HandAnswers);
             Check(without.Falls && !with.Falls, $"11 against 8 falls; with both attackers bowed it holds: without {without.AttackForce} v {without.DefenceForce}, with {with.AttackForce} v {with.DefenceForce}");
         }),
+        ("a slot target \"an enemy card without attachments\" is an enemy unit card with the condition, not an attachment", () =>
+        {
+            var d = EffectDescriptors.Of("inexplicable-challenge-bow") is { Class: not EffectClass.Unknown } known ? known : AbilityCatalog.All.Keys.Where(k => k.StartsWith("inexplicable-challenge")).Select(EffectDescriptors.Of).First(e => e.Class == EffectClass.Bow);
+            Check(d.Side == TargetSide.Enemy && d.Target == TargetKind.UnitCard && d.Conditions.Any(c => c.Kind == "without-attachments"), $"descriptor: {d}");
+        }),
     ];
 }
