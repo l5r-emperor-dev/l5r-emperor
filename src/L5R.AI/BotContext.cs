@@ -56,18 +56,18 @@ public sealed class BotContext
         RuleRegistry.Check(rules); // issue #1206 (step 1 item 1): an unknown or misspelt name fails here instead of silently playing the baseline
         return new()
         {
-        Rules = rules,
-        UseSureReactions = rules.Contains("surereact"),
-        UseTradeAttacks = rules.Contains("trades"),
-        UseBattlePolicy = rules.Contains("battlepolicy"),
-        UsePlanner = !rules.Contains("noplanner"),
-        UsePlannerTriage = !rules.Contains("notriage"),
-        TriageTargets = !rules.Contains("notargets"),
-        TriagePrintedFirst = !rules.Contains("noprinted"),
-        PlannerAttack = attack || rules.Contains("pattack"),
-        PlannerDiscard = discard || rules.Contains("pdiscard"),
-        PlannerReserve = reserve || rules.Contains("reserve"),
-        TriageWonCap = wonCap
+            Rules = rules,
+            UseSureReactions = rules.Contains("surereact"),
+            UseTradeAttacks = rules.Contains("trades"),
+            UseBattlePolicy = rules.Contains("battlepolicy"),
+            UsePlanner = !rules.Contains("noplanner"),
+            UsePlannerTriage = !rules.Contains("notriage"),
+            TriageTargets = !rules.Contains("notargets"),
+            TriagePrintedFirst = !rules.Contains("noprinted"),
+            PlannerAttack = attack || rules.Contains("pattack"),
+            PlannerDiscard = discard || rules.Contains("pdiscard"),
+            PlannerReserve = reserve || rules.Contains("reserve"),
+            TriageWonCap = wonCap
         };
     }
     /// <summary>A rule list may name a set: <c>t2</c> stands for <see cref="T2Rules"/>, so an arm is written "t2,read,readA" instead of spelling the yardstick out.</summary>
