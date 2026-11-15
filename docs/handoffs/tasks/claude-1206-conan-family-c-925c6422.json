@@ -1,9 +1,9 @@
 {
   "lane": "shared",
-  "summary": "Family C (the Guard, rule readC, src/L5R.AI/Read/Guard.cs): the Contender's prepared attack read for the counter-attack it leaves home open to; units kept back or the whole army held when that turns the threat. Shadow on seed 10200 judged 8/10 then 10/10 (fault fixed: an attack razing their last Province is lethal by itself); a hang in remedy 2 at the Cavalry declaration fixed with a 20 s test. Screen on block 10300 (A/A 50.5%): 52.4%, +83/-55 vs the A/A, net +28, p .02; readC fires 0.68 a game. Sequential test Hard + readC v Hard on block 10400 in progress (chunk 1: 12/11, LLR -0.27).",
-  "validation": "GuardTests 6/6 (--filter guard); arena blocks 10200 (shadow), 10300 (screen, A/A), 10400-10402 (SPRT); check.sh pending",
-  "remaining": "Finish the sequential test (cap 1,456 games), record the verdict, run check.sh, PR. Promotion to a default needs Mendon's approval.",
+  "summary": "Family C (the Guard, rule readC, opt-in): reads the Contender's prepared attack for the counter-attack it leaves home open to and keeps units back when that turns the threat. Shadow 8/10 then 10/10 on seed 10200; screen on block 10300 +83/-55 (net +28, p .021) against T2; sequential test Hard+readC v Hard on 10400-10403 as fair pairs: 59/61 in 1,432, LLR -2.85 at the cap, no gain under the lookahead, not promoted. Note docs/bots/experiments/2026-11-14-conan-family-c.md; README/CODE_MAP/ROADMAP updated.",
+  "validation": "GuardTests 6/6 (--filter guard, incl. the hang regression); bash tools/check.sh --skip-client all stages 0, run before and after the rebase onto main; arena blocks 10200 (shadow), 10300 (screen, A/A 50.5%), 10400-10403 (SPRT, fair pairs, budget 10). Fire counts from the Contender-speed screen only.",
+  "remaining": "readC stays opt-in; promotion to any default is Mendon's decision. Family B's sequential test runs on block 10700; then families F, G, I; refit the Calibration tables; step 4.",
   "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
   "branch": "claude/1206-conan-family-c",
-  "updated": "2026-11-14T22:15:17.164841+00:00"
+  "updated": "2026-11-15T02:12:10.984847+00:00"
 }
