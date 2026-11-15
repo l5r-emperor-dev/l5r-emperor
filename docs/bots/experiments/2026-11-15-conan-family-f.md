@@ -71,3 +71,20 @@ Lines 1 and 3 are the Read's; lines 2, 4, 5 and 6 are the player model's conditi
 | 10 | Crane Dominance v Classic Crane T4, nobody home, 6 Gold | Prosperous Village +5 c6 | Shigeyuki 4F c6 | right by the model (behind on Personalities) |
 
 **7 of 10 right or equivalent**, two wrong, one unclear: the gate is met but the two faults are plain. Line 6 now buys the set of affordable bodies with the most Force for the Gold (two 3s for 6 before one 4 for 6) and passes to a paying Holding when the set is utility only (under 2 Force in all); fails-to-falls must clear the bar strictly. Round 3 is the rerun.
+
+**Round 3** (`shF3_108`): 1,109 moot, 969 differing (2.7 a game), 636 substantive (1.7 a game). Ten drawn by seed 308:
+
+| # | Position | Contender | Read | Verdict |
+|---|---|---|---|---|
+| 1 | Crane v Unicorn T9, home loses 2 either way, 8 Gold | Soken 0F c4 | Marketplace +2 c2 (utility bodies pass) | right by the model (PM 3.2: a 0-Force utility is a target) |
+| 2 | Dragon v Lion Legacy T12, 21 Gold, home holds, level on Personalities | Korimi 6F c9 | Prosperous Village +5 c6 (pays back within two turns) | equivalent: both end the turn with Village, Korimi and Michi |
+| 3 | Spider v Lion T10, 10 Gold, home loses 1 | Yutaka 5F c5 | Shiraume 4F c4 (holds home by ability) | equivalent: both bodies are bought (9 of 10 Gold) |
+| 4 | Dragon v Phoenix T10, 11 Gold, home holds | Michi 4F c5 | Gold Mine +2 c2 | equivalent: both end with Mine, Michi and Meiyu |
+| 5 | Crab Control v Crane T4, 13 Gold, nobody home, behind on Personalities | Slanderer +5 c6 (then Village +5 c6) | Makoto 2F c5 (then Tanimura 2F c6: 4 Force for 11) | unclear: the model says bodies when behind (Q7c 9 of 9), but two 2-Force bodies against two +5 Holdings at turn 4 is a poor trade |
+| 6 | Scorpion v Dragon T8, 17 Gold, four 4F bodies | Waru c6 | Kasumi c5 | equivalent: 12 Force for 16 either way |
+| 7 | Unicorn v Scorpion T7, 23 Gold | Ryoko | Chikako | equivalent: the same three bodies |
+| 8 | Phoenix v Pinned Lion T6, 15 Gold, home loses 1 | Kojiro 5F c8 | Tomohiro 2F c4 (holds home by ability) | equivalent: both are bought (12 of 15) |
+| 9 | Scottish Lion v Crane T1, 5 Gold, they have nobody, both not affordable | Michitsu 2F c4 | Temple Fortress +2 c4 | right (PM 3.6 turn 1: Holdings unless both fit) |
+| 10 | Phoenix v Lion T4, 11 Gold, behind on Personalities | Mystical Merchant +2 c3 | Megu 3F c5 | equivalent: both end with Megu and the Merchant |
+
+**9 of 10 right or equivalent**, one unclear (#5: whether "bodies when behind" should yield to a Holding that doubles production when the bodies on offer are weak; left as the model states it, for the screen to judge). Seven of the ten are order-only differences the moot mark cannot see (the whole row is not payable, but the cards the two orders buy are the same): the substantive rate is well under 1.7 a game. The fork passes the shadow gate (8, 7, 9 of 10) and the fire rate is inside the card's prediction; the screen runs on block 10900.
