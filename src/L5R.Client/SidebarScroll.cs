@@ -15,7 +15,14 @@ public partial class SidebarScroll : ScrollContainer
     {
         HorizontalScrollMode = ScrollMode.Disabled; VerticalScrollMode = ScrollMode.Auto;
         SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        ChildEnteredTree += node => { if (node is Control control) { control.MinimumSizeChanged += FitContent; control.VisibilityChanged += FitContent; FitContent(); } };
+        ChildEnteredTree += node =>
+        {
+            if (node is not Control control) return;
+            control.MinimumSizeChanged += FitContent; control.VisibilityChanged += FitContent; FitContent();
+            // Content added to an empty (hidden) zone shows at once, not a frame later from _Process: a button rendered this frame (a drafted action's Confirm) is on screen and pressable
+            // as soon as it exists. Emptying still hides the zone from _Process.
+            if (control is Container) control.ChildEnteredTree += _ => { if (!Visible) Visible = true; };
+        };
     }
 
     public override void _Ready()
