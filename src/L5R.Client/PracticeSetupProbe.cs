@@ -41,7 +41,7 @@ public partial class PracticeSetupProbe : Node
             Check(_screen.StartButton.Disabled, "incomplete draft cannot start"); await Capture("C-inline-draft");
             Click(Button("Edit deck")); await Wait(2); Check(Walk(GetTree().Root).OfType<DeckBuilderScreen>().Single().Page == "editor", "edit opens the selected draft in existing builder"); await Capture("edit-draft");
             var builder = Walk(GetTree().Root).OfType<DeckBuilderScreen>().Single(); builder.OpenPracticeDeck(crane, "Crane — Repaired deck"); builder.SaveDraft(); await Wait(.2); builder.ShowDecks(); await Wait(.2);
-            Click(Walk(builder).OfType<Button>().Single(b => b.Text == "Back to menu")); await Wait(.5); Check(!_screen.StartButton.Disabled && _screen.Choices[0].Name == "Crane — Repaired deck", "saved repair selected on return");
+            Click(Walk(builder).OfType<Button>().Single(b => b.AccessibilityName == "Back to menu" && b.IsVisibleInTree())); await Wait(.5); Check(!_screen.StartButton.Disabled && _screen.Choices[0].Name == "Crane — Repaired deck", "saved repair selected on return");
             GetWindow().Size = new Vector2I(1280, 720); await Wait(.5); await Capture("A-1280"); Click(Button("Change deck")); await Wait(.3); await Capture("B-1280");
             Search("nonesuch"); await Wait(.3); Check(Walk(_screen).OfType<Label>().Any(l => l.Text == "No matching decks."), "empty filtered list has feedback"); Search(""); await Wait(.3); KeyPress(Key.Escape); await Wait(.3);
             GetWindow().Size = new Vector2I(1672, 941); await Wait(.4);
