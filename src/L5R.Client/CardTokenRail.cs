@@ -38,7 +38,7 @@ public partial class CardTokenRail : Button
     {
         _groups = Groups(CardAnchor.Card);
         if (RestrictionRail.HasEffects(CardAnchor.Card)) { Restrictions = new RestrictionRail { Rail = this }; AddChild(Restrictions); }
-        if(CardChanges.HasSeal(CardAnchor.Card))
+        if (CardChanges.HasSeal(CardAnchor.Card))
         {
             GrantSeal = new PermanentGrantSeal { CardAnchor = CardAnchor }; AddChild(GrantSeal);
         }
@@ -97,10 +97,10 @@ public partial class CardTokenRail : Button
                 .TakeWhile(c => c != CardAnchor).Sum(c => WidthFor(c.Card) * Math.Max(12, c.FaceHeight) / 198f + 2);
             Position = new Vector2(left - width * .5f - before - 2, Position.Y);
         }
-        Body=_horizontal?new Rect2(0,-width*.5f,edge[0].DistanceTo(edge[1]),width):new Rect2(-width*.5f,0,width,edge[0].DistanceTo(edge[1]));
+        Body = _horizontal ? new Rect2(0, -width * .5f, edge[0].DistanceTo(edge[1]), width) : new Rect2(-width * .5f, 0, width, edge[0].DistanceTo(edge[1]));
         Restrictions?.Arrange(Body, _horizontal);
         Size = TotalBody.Size;
-        if(GrantSeal is not null)
+        if (GrantSeal is not null)
         {
             var thickness = _horizontal ? Body.Size.Y : Body.Size.X;
             GrantSeal.Position = Body.Position;
@@ -108,8 +108,8 @@ public partial class CardTokenRail : Button
         }
         QueueRedraw();
     }
-    public Vector2[] CornersOnViewport() => new[]{TotalBody.Position,new Vector2(TotalBody.End.X,TotalBody.Position.Y),TotalBody.End,new Vector2(TotalBody.Position.X,TotalBody.End.Y)}
-        .Select(p=>GetGlobalTransform()*p).Select(p=>CardAnchor.ProjectToScreen?.Invoke(p)??p).ToArray();
+    public Vector2[] CornersOnViewport() => new[] { TotalBody.Position, new Vector2(TotalBody.End.X, TotalBody.Position.Y), TotalBody.End, new Vector2(TotalBody.Position.X, TotalBody.End.Y) }
+        .Select(p => GetGlobalTransform() * p).Select(p => CardAnchor.ProjectToScreen?.Invoke(p) ?? p).ToArray();
     public override bool _HasPoint(Vector2 p) => Body.Grow(2).HasPoint(p);
     public override void _Draw()
     {

@@ -115,9 +115,11 @@ public partial class Main
         {
             _preferences.ReducedMotion = _captureMode.Contains("reduced"); ApplyPreferences(false);
             await PrepareLockReview(crowded: _captureMode.Contains("crowded"), bowed: _captureMode.Contains("bowed"));
-            if (_captureMode.Contains("review")) {
+            if (_captureMode.Contains("review"))
+            {
                 if (_captureMode.Contains("opponent")) { _session.SwitchPracticeSeat(); await EventFrames(20); DeselectCard(); SelectCard(FindCard(_lockHero)!); }
-                GD.Print("ACTION_LOCK_REVIEW_READY: Hotako has restricted Shizuka; inspect attachment or advance turn."); return; }
+                GD.Print("ACTION_LOCK_REVIEW_READY: Hotako has restricted Shizuka; inspect attachment or advance turn."); return;
+            }
             var hero = _tiles.Single(t => t.Card.Id == _lockHero); var version = View.Version;
             SupportRequire((hero.TokenRail?.Restrictions is not null || hero.RestrictionSeal is not null) && FindCard(_lockItem)!.ActionLocked, "Public lock not presented on Personality or attachment");
             await ClickLockSeal(hero);
