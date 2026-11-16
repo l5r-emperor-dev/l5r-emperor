@@ -6,19 +6,21 @@ namespace L5R.Client;
 public partial class TokenRailProbe : Control
 {
     private readonly List<CardTile> _cards = [];
+    private readonly List<(CardTile Card, Rect2 Body)> _attackBodies = [];
     private string _output = "/tmp/token-rails.png";
     private double _clock;
     private int _clicks, _stage;
+    private bool _restrictions;
     private bool _small, _perspective, _comparison, _bowedAttachments;
     private TableSurface? _surface;
     private Control? _host;
     public override void _Ready()
     {
-        foreach (var arg in OS.GetCmdlineUserArgs()) { if (arg.StartsWith("--output=")) _output = arg[9..]; _small |= arg == "--small"; _perspective |= arg == "--perspective"; _comparison |= arg == "--comparison"; _bowedAttachments |= arg == "--bowed-attachments"; }
+        foreach (var arg in OS.GetCmdlineUserArgs()) { if (arg.StartsWith("--output=")) _output = arg[9..]; _restrictions |= arg == "--restrictions"; _small |= arg == "--small"; _perspective |= arg == "--perspective"; _comparison |= arg == "--comparison"; _bowedAttachments |= arg == "--bowed-attachments"; }
         Theme = Palette.MakeTheme(); GetWindow().GrabFocus();
         var size = GetViewportRect().Size;
         AddChild(new TextureRect { Texture = GD.Load<Texture2D>("res://Art/navy-mat-v4.png"), Size = size, ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered, MouseFilter = MouseFilterEnum.Ignore });
-        var heading = Palette.Text("TOKEN RAILS · NATIVE REVIEW", 30, Palette.Gold, true); heading.Position = new Vector2(30, 18); AddChild(heading);
+        var heading = Palette.Text("TOKEN AND RESTRICTION RAILS · NATIVE REVIEW", 30, Palette.Gold, true); heading.Position = new Vector2(30, 18); AddChild(heading);
         var caption = Palette.Text("Public-view fixtures • 1 / 4 / 5 / 6 groups • original card faces • live counts", 18); caption.Position = new Vector2(30, 58); AddChild(caption);
         var defs = PublishedContent.Snapshot.Cards.Concat(PublishedContent.PersonalityWave2.Cards).ToArray();
         var personality = defs.First(d => d.Type == CardType.Personality && d.Name == "Togashi Torazu");
@@ -41,7 +43,7 @@ public partial class TokenRailProbe : Control
         var side = _small ? 150f : 260f; var column = size.X / 4;
         for (var i = 0; i < 4; i++)
         {
-            var card = new CardView($"p-{i}", personality, 0, Zone.Home, true, false, null, null, 12, 3, UnitForce: 12, Tokens: Tokens(new[] { 1, 4, 5, 6 }[i]));
+            var card = new CardView($"p-{i}", personality, 0, Zone.Home, true, _restrictions && i % 2 == 1, null, null, 12, 3, Dishonorable: _restrictions && i >= 2, UnitForce: 12, Tokens: Tokens(new[] { 1, 4, 5, 6 }[i]));
             Face(card, new Vector2(column * i + column * .25f, 100), side);
         }
         var y = _small ? 330 : 430;
@@ -51,7 +53,7 @@ public partial class TokenRailProbe : Control
         var holding = defs.First(d => d.Type == CardType.Holding);
         Face(new CardView("bow", personality, 1, Zone.Battlefield, true, true, 1, null, 12, 3, UnitForce: 0, Tokens: Tokens(6)), new Vector2(45, y), side);
         Face(new CardView("hold", holding, 0, Zone.Home, true, false, null, null, 0, Tokens: [new("w", "Wealth", "fixture-source", null, 0)]), new Vector2(column + 60, y), side);
-        Face(new CardView("fort", stronghold, 0, Zone.Stronghold, true, false, null, null, 0, Tokens: [new("fav", "Favor", "fixture-source"), new("fav2", "Favor", "fixture-source")]), new Vector2(column * 2 + 60, y), side);
+        Face(new CardView("fort", stronghold, 0, Zone.Stronghold, true, false, null, null, 0, Tokens: [new("fav", "Favor", "fixture-source"), new("fav2", "Favor", "fixture-source")], Restrictions: _restrictions ? [new("act", "Cannot perform actions", "Until turn ends")] : null), new Vector2(column * 2 + 60, y), side);
         var baseX = column * 3 + column * .20f;
         Face(new CardView("item", item, 0, Zone.Attached, true, _bowedAttachments, null, "stack", 0, Tokens: [new("i", "Training", "fixture-source")]), new Vector2(baseX, y), side, 72);
         Face(new CardView("follower", f, 0, Zone.Attached, true, _bowedAttachments, null, "stack", 5, Tokens: [new("f", "Fire", "fixture-source")]), new Vector2(baseX, y + 25), side, 36);
@@ -65,10 +67,37 @@ public partial class TokenRailProbe : Control
     }
     private CardTile Face(CardView card, Vector2 position, float side, float offset = 0)
     {
-        var tile = new CardTile(card, true, _ => _clicks++, _ => { }) { Position = position, Size = new Vector2(side * .95f, side), FaceHeight = side - 12, AlignUnitRightEdge = true, ReducedMotion = true, TokenRailOffset = offset * (side - 12) / 198, TokenSourceName = _ => "Source card" };
+        if (_restrictions && card.Definition?.Type == CardType.Personality)
+            card = card with
+            {
+                Tokens = Enumerable.Range(0, 6).Select(i => new CardToken("stress-" + i, new[] { "Fire", "Poison", "Sake", "Training", "Blood", "Madness" }[i], "fixture")).ToArray(),
+                CreatedCopy = true,
+                GrantedKeywords = [new("Berserker", "fixture", "Permanent")],
+                Restrictions = [new("move", "Cannot move", "Until turn ends", "Layout fixture"), new("straighten", "Cannot straighten", "Until turn ends", "Layout fixture"), new("protect", "Protected from destruction", "Until battle ends", "Layout fixture", Protective: true)]
+            };
+        var tile = new CardTile(card, true, _ => _clicks++, _ => { }) { Position = position, Size = new Vector2(side * .95f, side), FaceHeight = side - 12, AlignUnitRightEdge = true, ChosenTarget = _restrictions, ReducedMotion = true, TokenRailOffset = offset * (side - 12) / 198, TokenSourceName = _ => "Source card" };
         tile.ProjectToScreen = _surface is null ? null : _surface.ProjectCanvas;
         ((Node?)_host ?? this).AddChild(tile); _cards.Add(tile);
-        if (card.UnitForce.HasValue) ((Node?)_host ?? this).AddChild(new UnitStandard { CardAnchor = tile, Card = card, Projection = _surface is null ? null : _surface.ProjectCanvas, Explanation = UnitStandard.ExplainUnit(card) });
+        if (card.UnitForce.HasValue)
+        {
+            var standard = new UnitStandard { CardAnchor = tile, Card = card, Projection = _surface is null ? null : _surface.ProjectCanvas, Unprojection = _surface is null ? p => p : _surface.ScreenToCanvas, Explanation = UnitStandard.ExplainUnit(card) };
+            ((Node?)_host ?? this).AddChild(standard);
+            if (_restrictions)
+            {
+                var tab = new AttackSourceTab { ReducedMotion = true, Desired = new AttackCueView("Ranged", card.Id) };
+                tab.Placement = _ =>
+                {
+                    var corners = tile.FaceCornersOnViewport();
+                    var edge = Enumerable.Range(0, 4).MaxBy(i => (corners[i].X + corners[(i + 1) % 4].X) / 2);
+                    var ends = new[] { corners[edge], corners[(edge + 1) % 4] }.OrderBy(v => v.Y).ToArray();
+                    var width = Math.Clamp((corners.Max(v => v.X) - corners.Min(v => v.X)) * .24f, 32, 52);
+                    var body = new Rect2(ends[0].Lerp(ends[1], .07f), new Vector2(width, width * 396 / 562));
+                    _attackBodies.RemoveAll(b => b.Card == tile); _attackBodies.Add((tile, body)); return body;
+                };
+                tab.Arrange = (_, body, progress) => standard.ReserveAttackSpace(new Rect2(body.Position, body.Size + new Vector2(0, 5)), progress);
+                AddChild(tab);
+            }
+        }
         return tile;
     }
     private Vector2[] VisibleFace(CardTile face)
@@ -96,9 +125,11 @@ public partial class TokenRailProbe : Control
                 if (!GetViewportRect().Encloses(new Rect2(rail.CornersOnViewport()[0], Vector2.Zero).Expand(rail.CornersOnViewport()[2]))) throw new Exception($"Token rail clipped: {rail.CardAnchor.Card.Id}");
                 foreach (var other in rails.Where(other => other != rail))
                     if (OverlapArea(rail.CornersOnViewport(), other.CornersOnViewport()) > .25f) throw new Exception($"Rails overlap: {rail.CardAnchor.Card.Id}, {other.CardAnchor.Card.Id}");
+                foreach (var attack in _attackBodies)
+                    if (OverlapArea(rail.CornersOnViewport(), new[] { attack.Body.Position, new Vector2(attack.Body.End.X, attack.Body.Position.Y), attack.Body.End, new Vector2(attack.Body.Position.X, attack.Body.End.Y) }) > .25f) throw new Exception("Rail covers attack tab");
                 foreach (var face in _cards)
                     if (OverlapArea(rail.CornersOnViewport(), VisibleFace(face)) > .25f) throw new Exception($"Rail {rail.CardAnchor.Card.Id} covers {face.Card.Id}");
-                if (rail.CardAnchor.Card.Id is "p-0" or "p-1" && rail.ContentScale < .99f) throw new Exception("Uncrowded rail unexpectedly shrunk");
+                if (!_restrictions && (rail.CardAnchor.Card.Id is "p-0" or "p-1") && rail.ContentScale < .99f) throw new Exception("Uncrowded rail unexpectedly shrunk");
                 if (rail.CardAnchor.Card.Id is "p-2" or "p-3" && rail.ContentScale >= 1) throw new Exception("Crowded tokens failed to compact");
             }
             var first = rails[0]; var point = first.GetGlobalTransform() * first.Body.GetCenter(); if (_surface is not null) point = _surface.ProjectCanvas(point);

@@ -105,6 +105,7 @@ public partial class Main
             var details = new VBoxContainer(); details.AddThemeConstantOverride("separation", 12); panel.AddChild(details); _inspector.AddChild(panel);
             AddInspectionCaption("Card details", details);
             var name = Palette.Wrapped(def.Name, 24); name.AddThemeFontOverride("font", SidebarSkin.Bold); details.AddChild(name);
+            if (RestrictionRail.HasEffects(_selected)) details.AddChild(Palette.Wrapped(RestrictionRail.Describe(_selected), 17, Palette.Paper));
             if (CreatedCopyStatus.VisibleOn(_selected)) details.AddChild(CreatedCopyStatus.Explanation(_selected));
             if (CardChanges.Entries(_selected).Length > 0)
                 details.AddChild(CardChangePanel.Create(_selected, id => FindCard(id)?.Definition?.Name, compact: true,

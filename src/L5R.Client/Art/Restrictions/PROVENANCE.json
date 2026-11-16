@@ -1,0 +1,29 @@
+{
+  "issue": 1200,
+  "design": "User-approved concept A: two-track shared rail, 2026-11-11",
+  "generator": "OpenAI image_gen; raster derivative of approved seals, no generated gameplay logic",
+  "source_result": "exec-db6757f9-3f82-48b1-b02d-2ce43f2825cb.png",
+  "approved_concept_result": "exec-c38f55ed-a121-44b6-b63f-7bc7875d9c18.png",
+  "sha256": "166c54bf3d80703b8841d11d9cb73738092af924972ee0c97e8130fee706d9f6",
+  "regions": {
+    "move": [
+      143,
+      115,
+      468,
+      480
+    ],
+    "straighten": [
+      842,
+      117,
+      472,
+      478
+    ],
+    "protect": [
+      1550,
+      118,
+      468,
+      476
+    ]
+  },
+  "other_restrictions": "Reuse existing ActionLockStatus seal; exact engine sentences on hover/inspection."
+}

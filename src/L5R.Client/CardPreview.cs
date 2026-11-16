@@ -47,7 +47,8 @@ public static class CardPreview
         var body = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; row.AddChild(body);
         body.AddChild(Palette.Wrapped(def.Name, 22, Palette.Paper));
         if (CreatedCopyStatus.VisibleOn(card)) body.AddChild(CreatedCopyStatus.Explanation(card));
-        if (card.ActionLocked)
+        if (RestrictionRail.HasEffects(card)) body.AddChild(Palette.Wrapped(RestrictionRail.Describe(card), 16, Palette.Paper));
+        if (card.ActionLocked && !RestrictionRail.HasEffects(card))
         {
             var status = new HBoxContainer(); status.AddThemeConstantOverride("separation", 10); body.AddChild(status);
             status.AddChild(ActionLockStatus.Icon(38));

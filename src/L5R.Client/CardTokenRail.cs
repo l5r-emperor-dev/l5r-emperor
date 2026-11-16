@@ -11,8 +11,11 @@ public partial class CardTokenRail : Button
     public float Offset { get; set; }
     public CardTile[] Companions { get; set; } = [];
     public Rect2 Body { get; private set; }
+    public RestrictionRail? Restrictions { get; private set; }
+    public Rect2 TotalBody => Restrictions is null ? Body : Body.Merge(Restrictions.Body);
+    public static float WidthFor(CardView card) => Width * (RestrictionRail.HasEffects(card) ? 2 : 1) + (RestrictionRail.HasEffects(card) ? 2 : 0);
     public PermanentGrantSeal? GrantSeal { get; private set; }
-    public static bool HasRail(CardView card) => HasTokens(card) || CardChanges.HasSeal(card);
+    public static bool HasRail(CardView card) => HasTokens(card) || CardChanges.HasSeal(card) || RestrictionRail.HasEffects(card);
     public float ContentScale { get; private set; } = 1;
     public record Group(string Type, string? Stat, int Amount, CardToken[] Instances);
     public static bool HasTokens(CardView card) => card.FaceUp && card.Definition is not null && card.Zone is Zone.Home or Zone.Battlefield or Zone.Attached or Zone.Stronghold && card.Tokens is { Length: > 0 };
@@ -34,6 +37,7 @@ public partial class CardTokenRail : Button
     public override void _Ready()
     {
         _groups = Groups(CardAnchor.Card);
+        if (RestrictionRail.HasEffects(CardAnchor.Card)) { Restrictions = new RestrictionRail { Rail = this }; AddChild(Restrictions); }
         if (CardChanges.HasSeal(CardAnchor.Card))
         {
             GrantSeal = new PermanentGrantSeal { CardAnchor = CardAnchor }; AddChild(GrantSeal);
@@ -75,14 +79,27 @@ public partial class CardTokenRail : Button
         // A separately bowed attachment cannot put its near-edge rail through the
         // Personality. Collect its rail below the complete folded stack, in its
         // own band; the tooltip/click still belongs to that attachment.
-        if (_horizontal && Offset > 0 && Companions.Length > 0)
+        if (_horizontal && Companions.Length > 0)
         {
-            var bottom = Companions.Where(IsInstanceValid).SelectMany(c => c.FaceCornersInCanvas()).Select(p => inverse * p).Max(p => p.Y);
-            var rootRail = Companions.Any(c => c.Card.AttachedTo is null && c.Card.Bowed && HasRail(c.Card)) ? width : 0;
-            Position = new Vector2(Position.X, bottom + width * .5f + Math.Max(0, Offset - width) * 1.01f + rootRail + .06f);
+            var peers = Companions.Where(IsInstanceValid).ToArray();
+            var bottom = peers.SelectMany(c => c.FaceCornersInCanvas()).Select(p => inverse * p).Max(p => p.Y);
+            var before = peers.Where(c => c.Card.Bowed && HasRail(c.Card))
+                .OrderBy(c => c.Card.AttachedTo is null ? 0 : 1).ThenBy(c => c.Card.Id, StringComparer.Ordinal)
+                .TakeWhile(c => c != CardAnchor).Sum(c => WidthFor(c.Card) * Math.Max(12, c.FaceHeight) / 198f + 2);
+            Position = new Vector2(Position.X, bottom + width * .5f + before + 2);
+        }
+        if (!_horizontal && Companions.Length > 0)
+        {
+            var peers = Companions.Where(IsInstanceValid).ToArray();
+            var left = peers.SelectMany(c => c.FaceCornersInCanvas()).Select(p => inverse * p).Min(p => p.X);
+            var before = peers.Where(c => HasRail(c.Card) && !c.Card.Bowed)
+                .OrderBy(c => c.Card.AttachedTo is null ? 0 : 1).ThenBy(c => c.Card.Id, StringComparer.Ordinal)
+                .TakeWhile(c => c != CardAnchor).Sum(c => WidthFor(c.Card) * Math.Max(12, c.FaceHeight) / 198f + 2);
+            Position = new Vector2(left - width * .5f - before - 2, Position.Y);
         }
         Body = _horizontal ? new Rect2(0, -width * .5f, edge[0].DistanceTo(edge[1]), width) : new Rect2(-width * .5f, 0, width, edge[0].DistanceTo(edge[1]));
-        Size = Body.Size;
+        Restrictions?.Arrange(Body, _horizontal);
+        Size = TotalBody.Size;
         if (GrantSeal is not null)
         {
             var thickness = _horizontal ? Body.Size.Y : Body.Size.X;
@@ -91,7 +108,7 @@ public partial class CardTokenRail : Button
         }
         QueueRedraw();
     }
-    public Vector2[] CornersOnViewport() => new[] { Body.Position, new Vector2(Body.End.X, Body.Position.Y), Body.End, new Vector2(Body.Position.X, Body.End.Y) }
+    public Vector2[] CornersOnViewport() => new[] { TotalBody.Position, new Vector2(TotalBody.End.X, TotalBody.Position.Y), TotalBody.End, new Vector2(TotalBody.Position.X, TotalBody.End.Y) }
         .Select(p => GetGlobalTransform() * p).Select(p => CardAnchor.ProjectToScreen?.Invoke(p) ?? p).ToArray();
     public override bool _HasPoint(Vector2 p) => Body.Grow(2).HasPoint(p);
     public override void _Draw()

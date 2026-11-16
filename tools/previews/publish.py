@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stage a private validation candidate, then announce it after Windows checks."""
+"""Stage a validation candidate, then announce it after Windows checks."""
 import argparse
 import json
 import os
@@ -81,7 +81,7 @@ The game opens directly to the prepared table. It includes the runtime and artwo
 no Godot, .NET SDK, Git checkout or build is needed. Keep all extracted files together.
 For a multipart download, Start Review verifies and prepares the complete game on its first launch.
 Settings and decks are separate from your normal game. Windows may show a first-run warning
-because this is a private unsigned development build.
+because this is an unsigned development preview.
 
 ### What to review
 
@@ -112,7 +112,7 @@ These checks are not Mendon's graphical playtest or rules acceptance.
 '''
 
 
-def stage(spec, receipt, archive):
+def stage(spec, receipt, archive, *, allow_public_repository=False):
     if receipt["repository"] != REPO or receipt["source_commit"] != spec["source_commit"]:
         raise ValueError("Receipt and specification do not match")
     if archive.name != receipt["asset"] or archive.stat().st_size != receipt["bytes"] or digest(archive) != receipt["sha256"]:
@@ -127,8 +127,8 @@ def stage(spec, receipt, archive):
         if path.stat().st_size != part["bytes"] or digest(path) != part["sha256"]:
             raise ValueError("Companion archive no longer matches the receipt")
         archives.append(path)
-    if not api(f"repos/{REPO}")["private"]:
-        raise ValueError("Preview publication requires the private repository")
+    if not api(f"repos/{REPO}")["private"] and not allow_public_repository:
+        raise ValueError("Public Releases are world-readable; owner authorization and --allow-public-repository are required")
     existing = release_for(receipt)
     if existing is None:
         notes = (f"Windows preview of **{spec['title']}** from PR #{spec['source_pr']}.\n\n"
@@ -150,10 +150,10 @@ def stage(spec, receipt, archive):
     verify_asset(receipt, release)
     if release["draft"]:
         # Read-only CI tokens cannot see draft releases. Keep CI read-only and
-        # publish a private prerelease explicitly marked as unvalidated instead.
+        # publish a prerelease explicitly marked as unvalidated instead.
         gh("release", "edit", receipt["tag"], "--repo", REPO, "--draft=false",
            "--prerelease", "--latest=false", "--title", "Validation pending: " + spec["title"] + " (Windows)")
-    print("Private candidate upload verified; Windows validation required before review notification.")
+    print("Candidate upload verified; Windows validation required before review notification.")
 
 
 def deliver(spec, receipt, validation_commit):
@@ -198,12 +198,14 @@ if __name__ == "__main__":
     parser.add_argument("--receipt", required=True, type=Path)
     parser.add_argument("--archive", type=Path)
     parser.add_argument("--validation-commit")
+    parser.add_argument("--allow-public-repository", action="store_true",
+                        help="Owner-authorized publication: Releases and all package assets will be public")
     args = parser.parse_args()
     spec = read_spec(args.spec)
     receipt = json.loads(args.receipt.read_text(encoding="utf-8"))
     if args.action == "stage":
         if args.archive is None: parser.error("stage requires --archive")
-        stage(spec, receipt, args.archive)
+        stage(spec, receipt, args.archive, allow_public_repository=args.allow_public_repository)
     else:
         if not args.validation_commit: parser.error("deliver requires --validation-commit")
         deliver(spec, receipt, args.validation_commit)
