@@ -47,6 +47,7 @@ public partial class PrintedActionStrip : Button
         Size = new(Math.Max(80, face.Max(p => p.X) - face.Min(p => p.X)), Rows(CardAnchor.Card) * Math.Max(19, CardAnchor.FaceHeight * .10f));
         QueueRedraw();
     }
+    public override bool _HasPoint(Vector2 point) => new Rect2(Vector2.Zero, Size).HasPoint(point);
     public Vector2[] CornersOnViewport() => new[] { Vector2.Zero, new Vector2(Size.X, 0), Size, new Vector2(0, Size.Y) }.Select(p => GetGlobalTransform() * p).Select(p => CardAnchor.ProjectToScreen?.Invoke(p) ?? p).ToArray();
     public override Control _MakeCustomTooltip(string text) => ReadingTooltip.Create(this, text);
     public override void _Draw()

@@ -25,7 +25,7 @@ public partial class Main
         var item = SupportFixtureCard(state, 10118, 0, Zone.Attached); item.AttachedTo = hero.Id; _lockItem = item.Id;
         if (crowded)
         {
-            hero.Dishonorable = true;
+            hero.Dishonorable = !_captureMode.Contains("spent") || bowed;
             var follower = CardCatalog.Cards.Values.First(d => !d.ScenarioOnly && d.Type == CardType.Follower);
             SupportFixtureCard(state, follower.Id, 0, Zone.Attached, bowed: true).AttachedTo = hero.Id;
             for (var i = 0; i < 6; i++) SupportFixtureCard(state, _captureMode.Contains("spent") ? 8590 : 1645, i % 2, Zone.Home, bowed: i % 3 == 0);
@@ -118,13 +118,26 @@ public partial class Main
         foreach (var strip in strips)
         {
             var polygon = strip.CornersOnViewport();
-            foreach (var tile in _tiles.Where(t => !t.UprightPreview))
+            // Expanded units are on an opaque, flat inspection panel. Do not compare
+            // their screen polygons with the table visible behind that panel.
+            var flat = strip.CardAnchor.ProjectToScreen is null;
+            foreach (var tile in _tiles.Where(t => !t.UprightPreview && (t.ProjectToScreen is null) == flat && (!flat || t.GetParent() == strip.CardAnchor.GetParent())))
             {
-                SupportRequire(Overlap(polygon, tile.FaceCornersOnViewport()) < .25f, "Action strip covers card face");
+                SupportRequire(Overlap(polygon, tile.FaceCornersOnViewport()) < .25f, $"Action strip {strip.CardAnchor.Card.Id} covers card face {tile.Card.Id}");
                 if (tile.TokenRail is { } rail) SupportRequire(Overlap(polygon, rail.CornersOnViewport()) < .25f, "Action strip covers token/restriction rail");
             }
-            foreach (var other in strips.Where(s => s != strip)) SupportRequire(Overlap(polygon, other.CornersOnViewport()) < .25f, "Action strips overlap each other");
+            foreach (var standard in Standards(_board).Where(s => s.IsVisibleInTree() && (s.CardAnchor.ProjectToScreen is null) == flat && (!flat || s.CardAnchor.GetParent() == strip.CardAnchor.GetParent())))
+                SupportRequire(Overlap(polygon, standard.BodyCornersOnViewport()) < .25f, "Action strip covers Unit Force standard");
+            foreach (var other in strips.Where(s => s != strip && (s.CardAnchor.ProjectToScreen is null) == flat && (!flat || s.CardAnchor.GetParent() == strip.CardAnchor.GetParent()))) SupportRequire(Overlap(polygon, other.CornersOnViewport()) < .25f, "Action strips overlap each other");
         }
+    }
+    private async Task CapturePrintedUnitCloseup(string suffix)
+    {
+        var peers = _tiles.Where(t => t.Card.Id == _lockHero || t.Card.AttachedTo == _lockHero).ToArray();
+        var points = peers.SelectMany(t => t.FaceCornersOnViewport().Concat(t.TokenRail?.CornersOnViewport() ?? []).Concat(t.ActionStrip?.CornersOnViewport() ?? [])).Select(ScreenToWorld).ToArray();
+        var bounds = new Rect2(new Vector2(points.Min(p => p.X), points.Min(p => p.Y)), new Vector2(points.Max(p => p.X) - points.Min(p => p.X), points.Max(p => p.Y) - points.Min(p => p.Y))).Grow(65);
+        _cameraFitted = false; _cameraCenter = bounds.GetCenter(); _cameraZoom = Math.Min(2, FitRegion(bounds) * .8f); ApplyTableCamera();
+        await EventFrames(20); await SupportCapture(suffix); ResetTableCamera(); await EventFrames(12);
     }
     private async Task ClickLockSeal(CardTile tile)
     {
@@ -165,10 +178,12 @@ public partial class Main
             await ClickLockSeal(hero);
             if (_captureMode.Contains("spent"))
             {
-                DeselectCard(); await EventFrames(10);
+                DeselectCard(); GetWindow().GrabFocus(); await EventFrames(10);
                 var strip = _tiles.Single(t => t.Card.Id == _lockHero).ActionStrip!;
                 var at = strip.CornersOnViewport().Aggregate(Vector2.Zero, (sum, p) => sum + p) / 4;
                 PushCaptureMouse(new InputEventMouseMotion { Position = at, GlobalPosition = at }); await EventFrames(12);
+                at = strip.CornersOnViewport().Aggregate(Vector2.Zero, (sum, p) => sum + p) / 4;
+                GD.Print($"PRINTED_STRIP_INPUT: {at}, hover={TableHovered?.GetType().Name}, rect={strip.GetGlobalRect()}, size={strip.Size}, filter={strip.MouseFilter}, blocked={CameraBlocked}, focus={GetWindow().HasFocus()}, expanded={_expandedUnits.Count}, windows={GetChildren().OfType<Window>().Count(w => w.Visible)}");
                 PushCaptureMouse(new InputEventMouseButton { Position = at, GlobalPosition = at, ButtonIndex = MouseButton.Left, Pressed = true });
                 PushCaptureMouse(new InputEventMouseButton { Position = at, GlobalPosition = at, ButtonIndex = MouseButton.Left, Pressed = false }); await EventFrames(12);
                 SupportRequire(_selected?.Id == _lockHero && View.Version == version && StabilizationText(_inspector).Contains("PRINTED ACTIONS"), $"Action strip input must only inspect its owner: selected={_selected?.Id}, version={version}->{View.Version}, hover={TableHovered?.GetType().Name}");
@@ -181,7 +196,8 @@ public partial class Main
             // The engine refusal and the restriction explanation remain independently checked.
             if (_captureMode.Contains("spent")) AssertPrintedActionCrowding();
             await SupportCapture("-table");
-            ClearCardPlays(); CloseCardShow(); DeselectCard(); hero = _tiles.Single(t => t.Card.Id == _lockHero); var pointer = _tableSurface.ProjectCanvas(hero.FaceCornersInCanvas().Aggregate(Vector2.Zero, (sum, p) => sum + p) / 4); PushCaptureMouse(new InputEventMouseMotion { Position = pointer, GlobalPosition = pointer }); await EventFrames(45);
+            ClearCardPlays(); CloseCardShow(); DeselectCard(); hero = _tiles.Single(t => t.Card.Id == _lockHero); var pointer = _tableSurface.ProjectCanvas(hero.FaceCornersInCanvas().Aggregate(Vector2.Zero, (sum, p) => sum + p) / 4); PushCaptureMouse(new InputEventMouseMotion { Position = pointer, GlobalPosition = pointer });
+            for (var frame = 0; frame < 240 && _tableTooltip is null; frame += 6) await EventFrames(6);
             SupportRequire(_tableTooltip is not null && StabilizationText(_tableTooltip).Contains("perform actions"), $"Full-card hover did not explain the restriction: hovered={TableHovered?.GetType().Name}, candidate={_tableHover?.GetType().Name}, blocked={CameraBlocked}, focus={GetWindow().HasFocus()}, pointer={pointer}, last={_lastTableMouse}, time={_tableHoverTime}, tooltip={(_tableTooltip is null ? "none" : StabilizationText(_tableTooltip))}");
             if (_captureMode.Contains("spent"))
             {
@@ -209,8 +225,8 @@ public partial class Main
             _expandedUnits.Clear(); RenderBoard(); await AdvanceLockTurn(); await EventFrames(20);
             SupportRequire(!FindCard(_lockHero)!.ActionLocked && !FindCard(_lockItem)!.ActionLocked && _tiles.Single(t => t.Card.Id == _lockHero).RestrictionSeal is null && !StabilizationText(_inspector).Contains("perform actions"), "Expired restriction remained visible"); if (_captureMode.Contains("spent")) SupportRequire(FindCard(_lockHero)!.PrintedActions!.All(a => !a.Spent), "Turn expiry left the used strip behind");
             await SupportCapture("-expired");
-            await PrepareLockReview(crowded: true); AssertRestrictionCrowding(); if (_captureMode.Contains("spent")) AssertPrintedActionCrowding(); await SupportCapture("-crowded-upright");
-            await PrepareLockReview(crowded: true, bowed: true); AssertRestrictionCrowding(); if (_captureMode.Contains("spent")) AssertPrintedActionCrowding(); await SupportCapture("-crowded-bowed");
+            await PrepareLockReview(crowded: true); AssertRestrictionCrowding(); if (_captureMode.Contains("spent")) AssertPrintedActionCrowding(); await SupportCapture("-crowded-upright"); if (_captureMode.Contains("spent")) await CapturePrintedUnitCloseup("-upright-closeup");
+            await PrepareLockReview(crowded: true, bowed: true); AssertRestrictionCrowding(); if (_captureMode.Contains("spent")) AssertPrintedActionCrowding(); await SupportCapture("-crowded-bowed"); if (_captureMode.Contains("spent")) await CapturePrintedUnitCloseup("-bowed-closeup");
             _expandedUnits.Add(_lockHero); RenderBoard(); await EventFrames(15);
             if (_captureMode.Contains("spent")) AssertPrintedActionCrowding();
             await SupportCapture("-bowed-detail");
