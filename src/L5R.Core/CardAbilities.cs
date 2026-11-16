@@ -11737,7 +11737,9 @@ public sealed partial class MatchEngine
                                             Gold: firstQuote, TargetGold: targetQuotes,
                                             // An Attack may always be taken with no target (or on the province where the ability allows it): the client must be able to say so.
                                             NoTarget: ability.Target == "attack" && legal.Any(c => c.TargetId is null && c.Province is null),
-                                            AlternativeCost: costOption is null ? null : new(id, performer, costOption.Id, costOption.Label + (costOption.Verb == CostVerbs.Discard && shownChoice is not null ? ": " + Definition(Card(shownChoice)).Name : ""), ability.Label),
+                                            // Issue #1275: beside a Favor token (Kyuden Otomo - exp), the plain Imperial Favor discard is the other way to pay, so the player is asked which; its command still names no option.
+                                            AlternativeCost: (costOption ?? (costOptions.Contains(FavorTokenOption) && ability.CostOptions is null ? ImperialFavorOption : null)) is not { } shownCost ? null
+                                                : new(id, performer, shownCost.Id, shownCost.Label + (shownCost.Verb == CostVerbs.Discard && shownChoice is not null ? ": " + Definition(Card(shownChoice)).Name : ""), ability.Label),
                                             Movement: MovementPreview(id, ability, source, performer), MoveTo: ability.Move?.Destination,
                                             Attack: legal.Count > 0 ? AttackCue(legal[0]) : null, ChoiceLabel: clanMode.Label);
                                     }

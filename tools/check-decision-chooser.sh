@@ -7,7 +7,7 @@ cd "$L5R_PROJECT_ROOT"
 mkdir -p artifacts/checks/decisions
 dotnet build src/L5R.Client/L5R.Client.csproj --nologo > artifacts/checks/decisions/build.log
 "$GODOT" --headless --editor --path src/L5R.Client --import > artifacts/checks/decisions/import.log 2>&1
-specs=('1920x1080 yumaru' '1920x1080 yumaru-self-only' '1280x800 yumaru-target-only' '1920x1080 fukui' '1280x800 fukui-pay-bow' '1280x800 fukui-bowed' '1280x800 waiting' '1280x800 generic' '1280x800 review-check' '1280x800 kamina' '1280x800 p25')
+specs=('1920x1080 yumaru' '1920x1080 yumaru-self-only' '1280x800 yumaru-target-only' '1920x1080 fukui' '1280x800 fukui-pay-bow' '1280x800 fukui-bowed' '1280x800 waiting' '1280x800 generic' '1280x800 review-check' '1280x800 kamina' '1280x800 p25' '1280x800 otomo' '1280x800 otomo-favor')
 if [ "$#" -gt 0 ]; then specs=("$@"); fi
 for spec in "${specs[@]}"; do
   read -r resolution mode <<< "$spec"

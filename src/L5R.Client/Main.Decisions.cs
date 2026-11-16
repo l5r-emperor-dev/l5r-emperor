@@ -139,7 +139,8 @@ public partial class Main
                 _decisionSelection = option;
                 if (contextualDecline) confirm.Text = CommitButtonLabel(option);
                 if (pending is not null) { _chosen = null; _sources.Clear(); }
-                if (QuoteFor(option) is not null) { _chosen = option; ResuggestSources(); RenderInspector(); return; }
+                // A priced way to pay keeps the draft's target (the engine lists one command per way, not per target) and its chosen amount (issue #1275).
+                if (QuoteFor(option) is not null) { _chosen = pending is null ? Reviewed(option, _chosen) : option; ResuggestSources(); RenderInspector(); return; }
                 foreach (var row in rows)
                 {
                     var selected = ReferenceEquals(row.Option, option);
@@ -156,9 +157,9 @@ public partial class Main
         }
         if (_decisionSelection is not null && !options.Contains(_decisionSelection)) _decisionSelection = null;
         confirm.Disabled = _decisionSelection is null || !DecisionCanSubmit;
-        if (_decisionSelection is { } selectedPayment && QuoteFor(selectedPayment) is not null)
+        if (_decisionSelection is { } selectedPayment && QuoteFor(pending is null ? Reviewed(selectedPayment, _chosen) : selectedPayment) is not null)
         {
-            var (_, ready) = RenderGoldPanel(selectedPayment);
+            var (_, ready) = RenderGoldPanel(pending is null ? Reviewed(selectedPayment, _chosen) : selectedPayment);
             confirm.Disabled |= !ready;
         }
         _decisionActions.AddChild(confirm);
@@ -180,6 +181,10 @@ public partial class Main
         var seenDisabled = new HashSet<string>();
         return options.Where(a => a.Enabled || !enabledKeys.Contains(Key(a)) && seenDisabled.Add(Key(a))).ToArray();
     }
+
+    /// <summary>A way to pay as the draft asks it: the engine-listed option with the draft's target and chosen Gold amount.</summary>
+    private static ActionOption Reviewed(ActionOption option, ActionOption? draft) => draft?.Command is not { } asked || option.Command is not { } command ? option
+        : option with { Command = command with { TargetId = asked.TargetId ?? command.TargetId, GoldAmount = asked.GoldAmount ?? command.GoldAmount } };
 
     /// <summary>Back from the cost question to the most recent answer: the target, else the performer. Nothing to go back to when the draft asked for neither.</summary>
     private void AddCostBack()
@@ -238,9 +243,15 @@ public partial class Main
                 ResuggestSources(); RenderInspector(); Highlight(); return;
             }
             if (draft.TargetId is { } target && selected.TargetIds?.Contains(target) != true) return;
-            var reviewed = selected with { Command = command with { TargetId = draft.TargetId } };
-            // Gold still goes through the existing engine-quoted panel when the ability has both kinds of cost.
-            if (QuoteFor(reviewed) is not null) { _reviewingAlternativeCost = false; Choose(reviewed, keepTarget: true); _alternativeCostConfirmed = true; RenderInspector(); return; }
+            var reviewed = Reviewed(selected, _chosen);
+            // Issue #1275: the Gold of a priced way to pay is chosen in this review (its panel gates Confirm), so the action is sent now. Re-choosing it here reset the
+            // draft, cleared the chosen Gold and reopened this question, so Confirm never played the card.
+            if (QuoteFor(reviewed) is { } quote)
+            {
+                var amount = AmountFor(reviewed, quote);
+                if (!PaymentSelectionReady(amount, quote)) return;
+                _ = Submit(reviewed.Command! with { SourceIds = amount > 0 ? _sources.ToArray() : [] }); return;
+            }
             _ = Submit(reviewed.Command!);
         }
     }
