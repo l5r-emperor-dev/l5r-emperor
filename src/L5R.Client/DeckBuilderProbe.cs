@@ -23,9 +23,15 @@ public partial class DeckBuilderProbe : Node
             Button("New deck").GrabFocus(); await Wait(.2); await Capture("landing-focus"); Click(Button("New deck")); await Wait(3); await Capture("setup");
             Check(_screen.Draft.Count("Border Keep") == 1 && _screen.Draft.Count("Bamboo Harvesters") == 1, "default setup chosen outside deck totals");
             Check(_screen.Draft.Review().Dynasty == 0 && _screen.Draft.Review().Fate == 0, "setup excluded from counts");
-            var select = Walk(_screen).OfType<Button>().First(b => b.Text == "Select" && b.IsVisibleInTree()); Click(select); await Wait(.5); Check(_screen.Draft.Cards.Count(c => c.SetupSlot == "Stronghold") == 1, "native single stronghold selection"); await Capture("setup-selected");
-            Click(Walk(_screen).OfType<Button>().Single(b => b.AccessibilityName == "Choose Border Keep" && b.IsVisibleInTree())); await Wait(.4); var alternatives = Walk(_screen).OfType<Button>().Where(b => b.Text == "Select" && b.IsVisibleInTree()).ToArray();
-            if (alternatives.Length > 0) { Click(alternatives[0]); await Wait(.3); Check(_screen.Draft.Cards.Count(c => c.SetupSlot == "Border Keep") == 1, "setup variant replaces previous starting card"); }
+            DeckFace[] Choices() => Walk(_screen).OfType<DeckFace>().Where(f => f.IsVisibleInTree() && f.AccessibilityName.StartsWith("Select ", StringComparison.Ordinal)).ToArray();
+            Check(!Walk(_screen).OfType<Button>().Any(b => b.Text is "Select" or "Selected" && b.IsVisibleInTree()), "setup picker has no radio Select buttons (#1268)");
+            var strongholds = Choices(); var first = strongholds[0].Card.Id; Click(strongholds[0]); await Wait(.5);
+            Check(_screen.Draft.Cards.Count(c => c.SetupSlot == "Stronghold") == 1 && _screen.Draft.Count(first) == 1, "clicking a stronghold card selects it (#1268)"); await Capture("setup-selected");
+            Check(!Walk(_screen).OfType<Label>().Any(l => l.Text == "Card inspection" && l.IsVisibleInTree()), "clicking a setup card selects it instead of opening the inspection");
+            var second = Choices().FirstOrDefault(f => f.Card.Id != first);
+            if (second is not null) { var id = second.Card.Id; Click(second); await Wait(.5); Check(_screen.Draft.Count(id) == 1 && _screen.Draft.Count(first) == 0 && _screen.Draft.Cards.Count(c => c.SetupSlot == "Stronghold") == 1, "clicking another stronghold switches to it (#1268)"); }
+            Click(Walk(_screen).OfType<Button>().Single(b => b.AccessibilityName == "Choose Border Keep" && b.IsVisibleInTree())); await Wait(.4); var alternatives = Choices();
+            if (alternatives.Length > 0) { Click(alternatives[0]); await Wait(.3); Check(_screen.Draft.Cards.Count(c => c.SetupSlot == "Border Keep") == 1 && _screen.Draft.Count(alternatives[0].Card.Id) == 1, "setup variant replaces previous starting card"); }
             Check(!Walk(_screen).OfType<OptionButton>().Any(o => o.GetItemText(0).StartsWith("Emperor Edition")), "no redundant printing dropdown");
             var source = PublishedContent.Snapshot.Decks.First(d => d.Clan == "Crane");
             var all = new[] { source.StrongholdId, "oracle-l5r-1106", "oracle-l5r-679" }.Concat(source.Dynasty).Concat(source.Fate);
