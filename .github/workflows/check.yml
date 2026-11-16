@@ -4,10 +4,10 @@ on:
   push:
     branches: [main]
     # Issue #905: a change that touches only documentation (docs/, which includes the per-task handoffs, and the top-level notes) reads no test, so it does not occupy the Mac runner
-    # for ~20 minutes. A change that also touches code, a workflow, a skill or AGENTS.md/CLAUDE.md still runs everything.
-    paths-ignore: ['docs/**', 'README.md', 'CONTRIBUTING.md', 'PRODUCT.md', 'DESIGN.md', 'AI_HANDOFF.md']
+    # for ~20 minutes; nor does a change to the practice replays alone (replays/, issue #1262: replays.yml checks those). A change that also touches code, a workflow, a skill or AGENTS.md/CLAUDE.md still runs everything.
+    paths-ignore: ['docs/**', 'replays/**', 'README.md', 'CONTRIBUTING.md', 'PRODUCT.md', 'DESIGN.md', 'AI_HANDOFF.md']
   pull_request:
-    paths-ignore: ['docs/**', 'README.md', 'CONTRIBUTING.md', 'PRODUCT.md', 'DESIGN.md', 'AI_HANDOFF.md']
+    paths-ignore: ['docs/**', 'replays/**', 'README.md', 'CONTRIBUTING.md', 'PRODUCT.md', 'DESIGN.md', 'AI_HANDOFF.md']
   workflow_dispatch:
 
 permissions:

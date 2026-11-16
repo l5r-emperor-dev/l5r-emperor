@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Replay corpus: every practice replay in replays/games with replays/index.json (SHA-256, engine-verified facts, notes, retired list). Stage 1 tools/replays/check_replays.py proves plain exports without building; stage 2 tools/ReplayCheck rebuilds each game in the engine and executes every command. New workflow replays.yml (replays, checker and Core changes); check.yml skips replay-only changes. Two games retired: the current rules refuse them (#1196, #1233). Decision set reads replays/games (49 positions).",
+  "validation": "check_replays.py: 16 plain exports; unittest 7/7; ReplayCheck: 16 rebuilt, every move legal; zizmor pedantic and check_policy clean; quality check_format clean; bash tools/check.sh --skip-client passed; conan-positions 49 reached",
+  "remaining": "Suggested: export the deck names, the bot level and a final-state checksum (exact divergence detection). Making replays.yml a required check is a ruleset setting for the owner.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1262",
+  "branch": "claude/1262-replay-corpus",
+  "updated": "2026-11-16T11:37:48.144311+00:00"
+}

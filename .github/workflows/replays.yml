@@ -1,0 +1,71 @@
+name: Replay checks
+
+# Issue #1262: practice replays (replays/games) get their own fast checks instead of the desktop matrix. Stage 1 proves each file a plain export without building
+# anything; stage 2 rebuilds every game in the engine and executes every logged command. Engine changes run stage 2 too, so a rules change that makes a recorded
+# real game illegal is seen (mark the game stale in replays/index.json with the reason when the change is right).
+on:
+  pull_request:
+    paths: ['replays/**', 'tools/replays/**', 'tools/ReplayCheck/**', 'src/L5R.Core/**', 'global.json', 'Directory.Build.*', '.github/workflows/replays.yml']
+  push:
+    branches: [main]
+    paths: ['replays/**', 'tools/replays/**', 'tools/ReplayCheck/**', 'src/L5R.Core/**', 'global.json', 'Directory.Build.*', '.github/workflows/replays.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: replays-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  shape:
+    name: Replay files are plain exports
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            replays
+            tools/replays
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Prove the shape checks
+        run: python -m unittest discover -s tools/replays -p 'test_*.py' -v
+      - name: Check every replay file and the index
+        run: python tools/replays/check_replays.py
+
+  legality:
+    name: Every card and move legal
+    needs: shape
+    runs-on: windows-2022
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/docs/
+            !/assets/
+            !/src/L5R.Client/
+            !*.import
+            !*.uid
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Install pinned SDK only
+        run: python tools/bootstrap.py --install --dotnet-only
+      - name: Rebuild every game and execute every command
+        run: |
+          $env:DOTNET_ROOT = "$pwd/.tools/dotnet"
+          $env:PATH = "$env:DOTNET_ROOT;$env:PATH"
+          $env:DOTNET_CLI_HOME = "$pwd/.cache/dotnet"
+          dotnet run -c Release --project tools/ReplayCheck
