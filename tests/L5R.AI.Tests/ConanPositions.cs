@@ -3,7 +3,7 @@ using L5R.AI;
 using L5R.Core;
 
 // Issue #1206 (docs/bots/CONAN_STRATEGY_BRIEF.md, step 1 item 4): the decision test set. Each position is one of Mendon's decisions in an exported practice replay
-// (docs/bots/replays/), chosen because the bot's move there cost most (docs/bots/strategy/PLAYER_MODEL.md section 7, CONAN_CAMPAIGN_BRIEF.md section 6.4) or because his
+// (replays/games/; G2, practice-20261109-141352, retired 2026-11-16: the current rules refuse its command 45, so its three positions went with it), chosen because the bot's move there cost most (docs/bots/strategy/PLAYER_MODEL.md section 7, CONAN_CAMPAIGN_BRIEF.md section 6.4) or because his
 // own move was a mistake (PLAYER_MODEL.md section 6: those positions carry the correct move, never his). Any rule set is replayed over all of them in seconds, as
 // human-compare replays a whole game: the match is rebuilt from the replay and stepped command by command; before each seat-0 decision the bot is asked (same
 // JSON-round-tripped view and actions, one memory per replay), and at a listed position its answer is judged against the expected move. A search bot gets its Sampler only
@@ -22,7 +22,7 @@ internal static class ConanPositions
 
     public static readonly string[] Conan = ["look", "lkDef", "lkVar", "lkPlan", "lkB=600", "lkT=60"]; // Conan-best, the brief's section 3
 
-    private const string G1 = "practice-20261109-133956", G2 = "practice-20261109-141352", G3 = "practice-20261109-172814", G4 = "practice-20261109-184403",
+    private const string G1 = "practice-20261109-133956", G3 = "practice-20261109-172814", G4 = "practice-20261109-184403",
         G5 = "practice-20261109-195056", G6 = "practice-20261109-201243", G7 = "practice-20261110-173816", GT = "2026-11-11-lion-vs-mantis-tomaru-missed-ranged-kill";
 
     // Families as RULE_FAMILIES.md: A attack and shape, B Cavalry, C home, D defence, E inside a battle, F Dynasty, G posture, I the Favor and the hand.
@@ -52,8 +52,6 @@ internal static class ConanPositions
         new("G-G5T22-hold", "G", G5, 22, Phase.AttackDeclaration, 1, null, "PM7r10", "Drain route, no attack"),
         new("G-G5T24-hold", "G", G5, 24, Phase.AttackDeclaration, 1, null, "PM7r10", "Drain route, no attack"),
         // D: defend to kill with every unit of 2F or more (PM 7 row 4; brief 6.4 item 5)
-        new("D-G2T10-kill", "D", G2, 10, Phase.DefenseAssignment, 1, null, "PM7r4", "Three bodies against two attackers; destroys a Personality. The Contender sent one 0F body"),
-        new("D-G2T12-kill", "D", G2, 12, Phase.DefenseAssignment, 1, null, "PM7r4", "Six bodies against four attackers; destroys three"),
         new("D-G1T9-kill", "D", G1, 9, Phase.DefenseAssignment, 1, null, "PM7r4", "Ryoko and Chikako; the Contender's lone weak body forfeited 12 Honor"),
         // D: the fewest bodies that punish targeting (PM 7 row 5; brief 6.4 item 8)
         new("D-G5T13-minimum", "D", G5, 13, Phase.DefenseAssignment, 1, null, "PM7r5", "Two reaction bodies at a 0-Strength Province; the Contender wanted seven"),
@@ -79,7 +77,6 @@ internal static class ConanPositions
         new("F-G7T5-equip", "F", G7, 5, Phase.Action, 1, null, "6.4i7", "The Follower on the body without a Sword"),
         new("F-G1T4-body", "F", G1, 4, Phase.Dynasty, 1, null, "PM7r12", "Personality first, then Holdings; the Contender bought the Holding"),
         new("F-G1T6-body", "F", G1, 6, Phase.Dynasty, 1, null, "PM7r12", "Personality first"),
-        new("F-G2T1-body", "F", G2, 1, Phase.Dynasty, 1, null, "PM7r12", "Kenshi before the Large Farm on turn 1"),
         // I: keep the hand (PM 7 row 11), the discard (brief 6.4 item 8)
         new("I-G3T5-keephand", "I", G3, 5, Phase.Events, 1, null, "PM7r11", "A Dangerous Game: keep the hand (the Contender discards and draws four)"),
         new("I-G7T7-keephand", "I", G7, 7, Phase.Events, 1, null, "PM7r11", "A Dangerous Game: keep the hand"),
@@ -163,7 +160,7 @@ internal static class ConanPositions
     /// <summary>Replays one game, asking the bot before every seat-0 decision, and judges it at the listed positions.</summary>
     private static IEnumerable<Verdict> Decide(string replayName, Position[] positions, Func<BotContext> make, bool log, StringBuilder notes)
     {
-        var path = Path.Combine("docs", "bots", "replays", replayName + ".json");
+        var path = Path.Combine("replays", "games", replayName + ".json"); // issue #1262: the replay corpus, every game legal under the current rules
         var replay = System.Text.Json.JsonSerializer.Deserialize<ReplayRecord>(File.ReadAllText(path), new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)) ?? throw new Exception("not a replay: " + path);
         var game = MatchEngine.Replay(replay with { ContentVersion = MatchEngine.ContentVersion, Commands = [] });
         var bot = make();

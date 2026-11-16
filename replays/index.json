@@ -1,0 +1,152 @@
+{
+  "version": 1,
+  "games": [
+    {
+      "file": "2026-11-11-lion-vs-mantis-tomaru-missed-ranged-kill.json",
+      "sha256": "75313251f2912d1c7aff1cdcf44126ef15299acb8f52a56bd95c36c74d5a74e4",
+      "commands": 109,
+      "turns": 7,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Eternal Victory Dojo",
+          "cards": 83,
+          "fingerprint": "413945d8cc48"
+        },
+        {
+          "stronghold": "Koshin Keep",
+          "cards": 96,
+          "fingerprint": "1127513f3267"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "file": "practice-20261109-133956.json",
+      "sha256": "98d0f6437768a9c5808589d55792f363bc00ca033a0ac87ff5722ee4364a1d72",
+      "commands": 169,
+      "turns": 12,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Plains of the Maiden",
+          "cards": 84,
+          "fingerprint": "ff5b7c806a38"
+        },
+        {
+          "stronghold": "Halls of Memory",
+          "cards": 83,
+          "fingerprint": "29787b731e5e"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "file": "practice-20261109-172814.json",
+      "sha256": "d845ea12c6d14d86ae784baa66d99833bf46d36016cef306b6ad9279739bab66",
+      "commands": 172,
+      "turns": 11,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Eternal Victory Dojo",
+          "cards": 83,
+          "fingerprint": "413945d8cc48"
+        },
+        {
+          "stronghold": "Steel Soul Dojo",
+          "cards": 83,
+          "fingerprint": "d6c23492dc06"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "file": "practice-20261109-184403.json",
+      "sha256": "9d834322ca3c9b8fd7ee039ecb3f6e37719484979f8f60a43dce91270c67c7f6",
+      "commands": 163,
+      "turns": 11,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Library of Rebirth",
+          "cards": 89,
+          "fingerprint": "9a3d48342f91"
+        },
+        {
+          "stronghold": "Yasuki Palaces",
+          "cards": 84,
+          "fingerprint": "f9315058903e"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "file": "practice-20261109-195056.json",
+      "sha256": "3f690e2e8c3246849035ba40147b761541e3d89249350a63a9efe9b1b024b2a8",
+      "commands": 439,
+      "turns": 29,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Yasuki Palaces",
+          "cards": 84,
+          "fingerprint": "f9315058903e"
+        },
+        {
+          "stronghold": "Eternal Victory Dojo",
+          "cards": 86,
+          "fingerprint": "3569b1c95f56"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "file": "practice-20261109-201243.json",
+      "sha256": "967e85404d456e92f725e77c689d179d5296576c0bc243fe70f74230c116249f",
+      "commands": 189,
+      "turns": 13,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Shamate Keep",
+          "cards": 84,
+          "fingerprint": "fff03f9d737e"
+        },
+        {
+          "stronghold": "The Aerie",
+          "cards": 85,
+          "fingerprint": "b6b8d1478ef6"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "file": "practice-20261110-173816.json",
+      "sha256": "a238bcce1331b2e9fd6428076116f88f63ae3da6c3dfc707e5d250a55362e414",
+      "commands": 144,
+      "turns": 11,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Eternal Victory Dojo",
+          "cards": 83,
+          "fingerprint": "413945d8cc48"
+        },
+        {
+          "stronghold": "Monastery of New Thought",
+          "cards": 88,
+          "fingerprint": "d30c76bab139"
+        }
+      ],
+      "note": ""
+    }
+  ],
+  "retired": [
+    {
+      "file": "practice-20261109-141352.json",
+      "sha256": "824da5f7dcc89ab97a2fff363d63deba4ddf3430a7c5eb828aec2d5b6253ae29",
+      "reason": "command 45: the bot used a Battle action with a performer at home, illegal since #1196 (Battle action performers must be at the current battlefield), merged the day this game was played; retired 2026-11-16 (#1262)"
+    }
+  ]
+}
