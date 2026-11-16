@@ -460,7 +460,7 @@ internal static class EmperorStrongholdBatch1Tests
             Accept(e, pass);
         }
         Check(e.State.ActivePlayerId == 0 && e.State.Phase == Phase.Action, "reached the Otomo player's next Action Phase");
-        Check(e.QueryActions(0).Any(o => o.Type == "useAbility" && o.Enabled && o.Command?.AbilityId == "lobby" ), "next turn, with a Favor token on Otomo, Lobby is offered again");
+        Check(e.QueryActions(0).Any(o => o.Type == "useAbility" && o.Enabled && o.Command?.AbilityId == "lobby"), "next turn, with a Favor token on Otomo, Lobby is offered again");
         Check(!LobbyOffered(0, 0), "holding the Imperial Favor: no Lobby");
         Check(!LobbyOffered(0, 2), "holding the Imperial Favor and tokens: no Lobby");
     }
