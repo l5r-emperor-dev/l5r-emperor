@@ -1,9 +1,9 @@
 {
   "lane": "shared",
   "summary": "Step 4 (lookahead's place) measured on block 11700: rules alone 50.5%, Hard 71.4% (three runs), +lkRead -8, +lkFight -21, both -29 (p .049). Hard kept unchanged; lkRead/lkFight opt-in flags.",
-  "validation": "Arena runs recorded in docs/bots/experiments/2026-11-15-conan-step4.md; registry 4/4, build clean; check.sh pending",
-  "remaining": "Step 5 (confirmation) and step 6 (human bar) per CONAN_STRATEGY_BRIEF.md; Mendon to choose whether step 5 is run on an unchanged Hard.",
+  "validation": "bash tools/check.sh --skip-client passed; registry 4/4; arena runs in docs/bots/experiments/2026-11-15-conan-step4.md",
+  "remaining": "Step 5 (confirmation) and step 6 (human bar) per CONAN_STRATEGY_BRIEF.md.",
   "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
   "branch": "claude/1206-conan-step4",
-  "updated": "2026-11-16T03:04:58.297042+00:00"
+  "updated": "2026-11-16T03:08:25.407954+00:00"
 }
