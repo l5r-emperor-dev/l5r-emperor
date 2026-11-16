@@ -250,6 +250,13 @@ Honor as a cost before the colon (audited).
 - **Date:** 2026-09-25
 - **Source:** [Emperor Edition rulings pass](../decisions/2026-09-25-emperor-edition-rulings-pass.md) (R4)
 
+### R-097 — Only holding the Imperial Favor bars Lobby; Favor tokens never do
+"The only time they will be barred from lobbying for the favor is if they are currently holding the imperial favor "card" instead of the imperial favor tokens on Kyuden Otomo." A player who controls the Imperial Favor may not Lobby; Favor tokens on Kyuden Otomo - exp are not the Favor and never stop Lobby.
+
+- **Cards/primitives:** Lobby (`lobby`, `dainagon-lobby`), Kyuden Otomo - exp (oracle-l5r-4646); `ValidateAbility`'s Lobby conditions.
+- **Date:** 2026-11-16
+- **Source:** Mendon, issue #1272 — [decision](../decisions/2026-11-16-otomo-favor-tokens-and-lobby.md).
+
 ## Reaction scope and triggers
 
 ### R-020 — Cherry Blossom Festival bars Reactions, Proclaim included, not every trait-modelled ability

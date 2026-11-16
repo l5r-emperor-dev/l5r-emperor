@@ -5824,6 +5824,9 @@ public sealed partial class MatchEngine
         if (id == "improved-defenses-strength") { if (!(player.FateDeck.Count >= 1)) return "Discarding a Fate card is a required cost."; }
         // Midday Shadow Court (Stronghold pass, issue #486 batch 1): "When a Lobby action checks Family Honor, your Honor is treated as 20 points higher."
         if (id is "lobby" or "dainagon-lobby") { if (!(player.Honor + LobbyHonorBonus(player) > Player(1 - player.Id).Honor)) return "Lobby requires strictly higher Family Honor than your opponent."; }
+        // Lobby takes the Favor "whether it is controlled by another player or by no player" (CR, The Imperial Favor): a player holding the Imperial Favor may not lobby for it. Favor tokens
+        // (Kyuden Otomo - exp) are not the Favor and never bar it (Mendon, issue #1272).
+        if (id is "lobby" or "dainagon-lobby") { if (_state.FavorPlayerId == player.Id) return "You already hold the Imperial Favor."; }
         // Saibankan's Justice: "Other players may not lobby."
         if (id is "lobby" or "dainagon-lobby") { if (!(!_state.Cards.Values.Any(c => c.OwnerId != player.Id && InPlay(c) && Definition(c).Effect == "saibankan-no-lobby"))) return "Another player's Saibankan's Justice forbids you to lobby."; }
         if (id == "dainagon-lobby") { if (!(CardPersonalHonor(source!) >= 1)) return "Lobby needs a Personality with at least 1 Personal Honor."; }
