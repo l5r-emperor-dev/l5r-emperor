@@ -297,6 +297,13 @@ static async Task DemoSession()
     Check(copy.View.LastDuel!.Reveals[0].Cards.Length == 2, "Reveal survives immediate resolution");
     var replay = System.Text.Json.JsonSerializer.Deserialize<ReplayRecord>(demo.ExportPracticeReplay()!, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web))!;
     Check(MatchEngine.Replay(replay).GetView(0).LastDuel!.Result!.ChallengerTotal == 8, "Export replays");
+    Check(replay.Practice is null && replay.FinalDigest == MatchEngine.Replay(replay).Digest(), "A demo export carries its final digest and no practice labels (issue #1266)");
+    using var custom = new MatchSession();
+    custom.StartCustomPractice(CustomPractice.Preset("Lion"), CustomPractice.Preset("Crane"), new("C:\\Users\\me\\decks/My Lion #2.txt", "Mendon's Crane", "Hard"));
+    var labelled = System.Text.Json.JsonSerializer.Deserialize<ReplayRecord>(custom.ExportPracticeReplay()!, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web))!;
+    Check(labelled.Practice == new PracticeLabels("C Users me decks My Lion 2 txt", "Mendon's Crane", "Hard"), $"Labels are plain names, never paths: {labelled.Practice}");
+    Check(MatchEngine.Replay(labelled).Digest() == labelled.FinalDigest, "A custom practice export replays to its recorded state");
+    custom.StartTutorial(); Check(System.Text.Json.JsonSerializer.Deserialize<ReplayRecord>(custom.ExportPracticeReplay() ?? "{}", new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web))?.Practice is null, "A later match exports no stale labels");
     demo.StartDuelDemo("steel", 205, 0); Check(demo.Snapshot!.View.Version == 0, "Restart returns prepared position");
     Check(practice.ExportPracticeReplay() == saved, "Separate practice never advances or resets");
 }

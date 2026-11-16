@@ -90,17 +90,38 @@ public sealed partial class MatchEngine
     public ReplayRecord ExportReplay() => new(ContentVersion, _scenario, _seed, _commands.Select(Copy).ToArray(), _customDecks?.Select(CustomPractice.CopyDeck).ToArray(), _state.IdleBattlePasses);
     public static MatchEngine Replay(ReplayRecord replay)
     {
-        if (replay.ContentVersion != ContentVersion) throw new ArgumentException("Replay content version is not supported.");
-        var engine = replay.Scenario == CustomPractice.Scenario
-            ? replay.CustomDecks is { Length: 2 } decks ? CreateCustomMatch(replay.Seed, decks[0], decks[1]) : throw new ArgumentException("Custom replay is missing its two deck snapshots.")
-            : Create(replay.Seed, replay.Scenario);
-        if (replay.IdleBattlePasses) engine.AllowIdleBattlePasses(); // match setup, before the first command (issue #894)
+        var engine = Setup(replay);
         foreach (var command in replay.Commands)
         {
             var result = engine.Execute(command);
             if (!result.Accepted) throw new ArgumentException($"Invalid replay command: {result.Error}");
         }
+        if (replay.FinalDigest is { } digest && digest != engine.Digest()) throw new ArgumentException("Replay ends in a different state than the one recorded.");
         return engine;
+    }
+
+    /// <summary>The match a replay records, set up and before its first command (its seed, scenario or two deck snapshots, idle battle passes); for tools that step through
+    /// the commands themselves. Replay is Setup and every command.</summary>
+    public static MatchEngine Setup(ReplayRecord replay)
+    {
+        if (replay.ContentVersion != ContentVersion) throw new ArgumentException("Replay content version is not supported.");
+        var engine = replay.Scenario == CustomPractice.Scenario
+            ? replay.CustomDecks is { Length: 2 } decks ? CreateCustomMatch(replay.Seed, decks[0], decks[1]) : throw new ArgumentException("Custom replay is missing its two deck snapshots.")
+            : Create(replay.Seed, replay.Scenario);
+        if (replay.IdleBattlePasses) engine.AllowIdleBattlePasses(); // match setup, before the first command (issue #894)
+        return engine;
+    }
+
+    /// <summary>A short digest of the match's lasting facts (issue #1266): the version, turn, phase and winner, each player's Honor, and every card's definition, owner, zone,
+    /// province, face and bow, in card id order. Built from these facts rather than the whole state, so a new state field does not change it; two replays that reach it
+    /// played the same match. "d1:" names this definition.</summary>
+    public string Digest()
+    {
+        var text = new System.Text.StringBuilder($"v{_state.Version} t{_state.TurnNumber} p{_state.Phase} w{_state.WinnerId}\n");
+        foreach (var player in _state.Players.OrderBy(p => p.Id)) text.Append($"h{player.Id}:{player.Honor}\n");
+        foreach (var card in _state.Cards.Values.OrderBy(c => c.Id, StringComparer.Ordinal))
+            text.Append($"{card.Id} {card.DefinitionId} o{card.OwnerId} {card.Zone} {card.ProvinceIndex} {(card.FaceUp ? "u" : "d")}{(card.Bowed ? "b" : "s")}\n");
+        return "d1:" + Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(text.ToString())))[..32];
     }
 
     private static MatchEngine Create(ulong seed, string scenario)

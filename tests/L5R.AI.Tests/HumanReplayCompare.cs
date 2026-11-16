@@ -77,7 +77,7 @@ internal static class HumanReplayCompare
         var replay = JsonSerializer.Deserialize<ReplayRecord>(File.ReadAllText(replayPath), Web) ?? throw new Exception("not a replay");
         var notes = new List<string>();
         if (replay.ContentVersion != MatchEngine.ContentVersion) notes.Add($"replay content {replay.ContentVersion}, engine {MatchEngine.ContentVersion}: rebuilt anyway, stops at the first refused command");
-        var game = MatchEngine.Replay(replay with { ContentVersion = MatchEngine.ContentVersion, Commands = [] }); // the match exactly as MatchEngine.Replay sets it up (custom decks, idle battle passes)
+        var game = MatchEngine.Setup(replay with { ContentVersion = MatchEngine.ContentVersion }); // the match exactly as MatchEngine.Replay sets it up (custom decks, idle battle passes)
         var bot = maker(); var champion = new BotContext();
         if (replay.CustomDecks is { Length: 2 } decks) bot.Archetype = DeckArchetypeTests.Of(decks[0]);
 

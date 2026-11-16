@@ -1644,4 +1644,9 @@ public sealed record MatchView(string ContentVersion, string Scenario, long Vers
 public sealed record ProvinceSight(int ViewerId, int OwnerId, int Province, string CardId, string DefinitionId, int Turn);
 /// <summary>PRIVATE to the looking player: what the face-down card in a province is (its owner's province Province).</summary>
 public sealed record ProvinceSightView(int OwnerId, int Province, string DefinitionId, CardDefinition Definition);
-public sealed record ReplayRecord(string ContentVersion, string Scenario, ulong Seed, GameCommand[] Commands, Deck[]? CustomDecks = null, bool IdleBattlePasses = false);
+/// <param name="Practice">issue #1266: what the player called the two decks and the bot level, for people reading the replay; never read by the engine.</param>
+/// <param name="FinalDigest">issue #1266: MatchEngine.Digest() of the match when it was exported; Replay refuses a replay whose commands no longer reach it.</param>
+public sealed record ReplayRecord(string ContentVersion, string Scenario, ulong Seed, GameCommand[] Commands, Deck[]? CustomDecks = null, bool IdleBattlePasses = false,
+    PracticeLabels? Practice = null, string? FinalDigest = null);
+/// <summary>Labels a practice export carries for its readers (issue #1266): the deck names as the player chose them and the bot level. Names only, never paths.</summary>
+public sealed record PracticeLabels(string? YourDeck, string? OpponentDeck, string? BotLevel);
