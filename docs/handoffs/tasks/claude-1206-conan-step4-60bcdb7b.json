@@ -1,9 +1,9 @@
 {
   "lane": "shared",
-  "summary": "Step 4 (the lookahead's place) started: two opt-in search flags, lkRead (the Read's opportunity options join lkPlan's candidate attack shapes, de-duplicated against the Contender's) and lkFight (the viewer's playout bot plays its battles by the Fight, readE), in TrainingOpponent.Lookahead.cs and the registry; the pre-registered arms and arena protocol in docs/bots/experiments/2026-11-15-conan-step4.md. No arena run yet (the Mac is on family I's sequential test).",
-  "validation": "rule-registry 4/4 and ai 99/99 (the lookahead's deterministic-replay cases) on the Release build; a decision-set run with lkRead at family A's positions is in progress; check.sh not yet run.",
-  "remaining": "Confirm lkRead's candidates appear in the search log; run the step 4 arms on block 11700 in batches of two with hard as the paired baseline, with thinking times; the table and the choice; check.sh; PR.",
+  "summary": "Step 4 (lookahead's place) measured on block 11700: rules alone 50.5%, Hard 71.4% (three runs), +lkRead -8, +lkFight -21, both -29 (p .049). Hard kept unchanged; lkRead/lkFight opt-in flags.",
+  "validation": "Arena runs recorded in docs/bots/experiments/2026-11-15-conan-step4.md; registry 4/4, build clean; check.sh pending",
+  "remaining": "Step 5 (confirmation) and step 6 (human bar) per CONAN_STRATEGY_BRIEF.md; Mendon to choose whether step 5 is run on an unchanged Hard.",
   "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
   "branch": "claude/1206-conan-step4",
-  "updated": "2026-11-15T09:32:36.048614+00:00"
+  "updated": "2026-11-16T03:04:58.297042+00:00"
 }
