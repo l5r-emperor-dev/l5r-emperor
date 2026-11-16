@@ -50,7 +50,7 @@ The separate project board was retired at Alfredo's request on 2026-10-17. Use G
 
 ## Repository skills
 
-Use the relevant recipe under `.claude/skills/` (Claude) or `.agents/skills/` (Codex): `wire-card-wave`, `art-pack-release`, `card-pass-report`, `ruling-interview`, `governance-lite`, and `upload-replays`. See [docs/REPO_SKILLS.md](docs/REPO_SKILLS.md) for invocation and maintenance. Skills support the task; they do not replace this policy, create new approval requirements, or turn proposed readings into confirmed rulings.
+Use the relevant recipe under `.claude/skills/` (Claude) or `.agents/skills/` (Codex): `wire-card-wave`, `art-pack-release`, `card-pass-report`, `ruling-interview`, and `governance-lite`. See [docs/REPO_SKILLS.md](docs/REPO_SKILLS.md) for invocation and maintenance. Skills support the task; they do not replace this policy, create new approval requirements, or turn proposed readings into confirmed rulings.
 
 ## Code Review Rules
 
