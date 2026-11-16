@@ -162,7 +162,7 @@ internal static class ConanPositions
     {
         var path = Path.Combine("replays", "games", replayName + ".json"); // issue #1262: the replay corpus, every game legal under the current rules
         var replay = System.Text.Json.JsonSerializer.Deserialize<ReplayRecord>(File.ReadAllText(path), new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)) ?? throw new Exception("not a replay: " + path);
-        var game = MatchEngine.Replay(replay with { ContentVersion = MatchEngine.ContentVersion, Commands = [] });
+        var game = MatchEngine.Setup(replay with { ContentVersion = MatchEngine.ContentVersion });
         var bot = make();
         if (replay.CustomDecks is { Length: 2 } decks) bot.Archetype = DeckArchetypeTests.Of(decks[0]);
         if (Environment.GetEnvironmentVariable("L5R_POS_READ") == "1") notes.AppendLine($"  {replayName}: the human's deck reads as {bot.Archetype}");

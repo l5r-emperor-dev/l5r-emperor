@@ -49,6 +49,15 @@ class ReplayShape(unittest.TestCase):
                 findings = check_replays.check_replay(replay(**change))
                 self.assertTrue(findings and expected in findings[0], findings)
 
+    def test_practice_labels_and_final_digest(self):
+        labelled = replay(practice={'yourDeck': "Scottish Lion", 'opponentDeck': "Mendon's Crane", 'botLevel': 'Hard'}, finalDigest='d1:' + 'a' * 32)
+        self.assertEqual(check_replays.check_replay(labelled), [])
+        for change, expected in [({'practice': {'yourDeck': 'C:\\decks\\lion.txt'}}, 'outside the allowed form'), ({'practice': {'deckPath': 'x'}}, 'unexpected field'),
+                                 ({'finalDigest': 'abc'}, 'finalDigest')]:
+            with self.subTest(expected=expected):
+                findings = check_replays.check_replay(replay(**change))
+                self.assertTrue(findings and expected in findings[0], findings)
+
     def test_no_paths_addresses_or_links_in_strings(self):
         for value in ['C:\\Users\\me\\deck.txt', '/Users/me/x', 'me@example.org', 'https://example.org', 'www.example.org', 'run.exe']:
             with self.subTest(value=value):

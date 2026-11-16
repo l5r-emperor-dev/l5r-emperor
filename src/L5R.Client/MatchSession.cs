@@ -41,6 +41,7 @@ public sealed partial class MatchSession : IDisposable
 
     public void StartPractice(bool economy, bool published = false, int seat = 0)
     {
+        _practiceLabels = null; // issue #1266: labels belong to the custom practice they were given with
         Generation++; Disconnect();
         // A fixed seed shuffled every deck identically, game after game — Practice looked unshuffled
         // even though the shuffle itself was correct. Match the server's per-match randomness (RoomManager.cs).
@@ -58,6 +59,7 @@ public sealed partial class MatchSession : IDisposable
     /// <summary>Demo hosts own their own MatchSession; this never replaces the main practice session.</summary>
     public void StartDuelDemo(string scenario, ulong seed, int seat = 0)
     {
+        _practiceLabels = null; // issue #1266: labels belong to the custom practice they were given with
         if (seat is < 0 or > 1) throw new ArgumentOutOfRangeException(nameof(seat));
         Generation++; Disconnect();
         _engine = MatchEngine.CreateDuelDemo(scenario, seed);
@@ -86,6 +88,7 @@ public sealed partial class MatchSession : IDisposable
     /// on screen. Reached only through the --capture-mode=gold-* harness, never from a menu or a room.</summary>
     public void StartShowcase(string kind)
     {
+        _practiceLabels = null; // issue #1266: labels belong to the custom practice they were given with
         Generation++; Disconnect();
         _engine = MatchEngine.CreateGoldPaymentShowcase(kind);
         _preparedReview = false;
@@ -102,6 +105,7 @@ public sealed partial class MatchSession : IDisposable
 
     public void StartTutorial(string? lessonId = null)
     {
+        _practiceLabels = null; // issue #1266: labels belong to the custom practice they were given with
         Generation++; Disconnect();
         _tutorial = lessonId is null ? TutorialRunner.Start() : TutorialRunner.Start(lessonId); _engine = _tutorial.Engine; _preparedReview = true;
         MatchKey = Guid.NewGuid().ToString("N"); _localSeat = _practiceNameSeat = TutorialRunner.Seat;
@@ -150,13 +154,26 @@ public sealed partial class MatchSession : IDisposable
     /// <summary>The practice opponent is the bot, so nobody can read anything from the engine passing in an empty battle for a player with nothing to play (issue #894).</summary>
     public void AllowIdleBattlePasses() => _engine?.AllowIdleBattlePasses();
 
-    public void StartCustomPractice(Deck yourDeck, Deck opponentDeck)
+    /// <param name="labels">issue #1266: the deck names and bot level the export carries for its readers (sanitised to a plain name; never a path).</param>
+    public void StartCustomPractice(Deck yourDeck, Deck opponentDeck, PracticeLabels? labels = null)
     {
         // Construct and validate before disconnecting/replacing a running session.
         var seed = BitConverter.ToUInt64(RandomNumberGenerator.GetBytes(sizeof(ulong)));
         var engine = MatchEngine.CreateCustomMatch(seed, yourDeck, opponentDeck);
         // A new match: the table drops what it queued or kept (an unfinished duel) for the last one (issue #1103).
-        Generation++; Disconnect(); _engine = engine; _preparedReview = false; MatchKey = Guid.NewGuid().ToString("N"); _localSeat = 0; _practiceNameSeat = 0; RefreshLocal();
+        Generation++; Disconnect(); _engine = engine; _preparedReview = false; MatchKey = Guid.NewGuid().ToString("N"); _localSeat = 0; _practiceNameSeat = 0;
+        _practiceLabels = labels is null ? null : new(PlainLabel(labels.YourDeck), PlainLabel(labels.OpponentDeck), PlainLabel(labels.BotLevel)); RefreshLocal();
+    }
+
+    private PracticeLabels? _practiceLabels;
+    /// <summary>A label as the export may carry it (issue #1266): letters, digits, spaces and ! &amp; ' ( ) , - _ only, at most 60 characters; null when nothing is left.</summary>
+    internal static string? PlainLabel(string? label)
+    {
+        if (label is null) return null;
+        var kept = new string(label.Select(c => char.IsLetterOrDigit(c) || " !&'(),-_".Contains(c) ? c : ' ').ToArray());
+        kept = System.Text.RegularExpressions.Regex.Replace(kept, " {2,}", " ").Trim();
+        if (kept.Length > 60) kept = kept[..60].TrimEnd();
+        return kept.Length == 0 ? null : kept;
     }
 
     public void FollowPracticePriority()
@@ -176,7 +193,8 @@ public sealed partial class MatchSession : IDisposable
     }
 
     public bool CanExportPracticeReplay => _engine is not null && !Online && !_preparedReview && !BattleValuesReview;
-    public string? ExportPracticeReplay() => !CanExportPracticeReplay ? null : JsonSerializer.Serialize(_engine!.ExportReplay(), new JsonSerializerOptions(Json) { WriteIndented = true });
+    // issue #1266: the export names the decks and the bot level (custom practice only) and carries the final state's digest, which Replay checks.
+    public string? ExportPracticeReplay() => !CanExportPracticeReplay ? null : JsonSerializer.Serialize(_engine!.ExportReplay() with { Practice = _practiceLabels, FinalDigest = _engine.Digest() }, new JsonSerializerOptions(Json) { WriteIndented = true });
 
     /// <summary>One move of the practice opponent. Issue #642: like a player whose action is refused, it chooses again: each refusal is reported to <paramref name="refused"/> (the
     /// bot remembers it) and the opponent is asked once more at the same position, up to a dozen tries. Without a callback a refusal is shown as a notice, as before.</summary>

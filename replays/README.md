@@ -2,7 +2,7 @@
 
 Every practice game kept for study (the Conan bot work, issue #1206, and its decision test set) lives here, in one place (issue #1262).
 
-- `games/` holds the raw exports, exactly as the client's **Menu → Export practice replay** writes them. Each export carries everything the game needs: the content version, the seed, both players' full deck lists (`customDecks`) and every command in order. Editing or deleting a deck file never changes a replay, because the engine rebuilds the game from the lists inside the replay.
+- `games/` holds the raw exports, exactly as the client's **Menu → Export practice replay** writes them. Each export carries everything the game needs: the content version, the seed, both players' full deck lists (`customDecks`) and every command in order. Editing or deleting a deck file never changes a replay, because the engine rebuilds the game from the lists inside the replay. Exports from #1266 on also carry `practice` (the deck names as chosen in the practice setup and the bot level, plain names only, never read by the engine) and `finalDigest` (the end state's digest: a replay must reach it, so a game that drifts under later rules is caught even when every command is still accepted).
 - `index.json` lists every game with its SHA-256 and the facts the engine reaches when it replays it (commands, turns, winner, each deck's stronghold, size and a fingerprint of its list). `note` is free text for the player ("experimenting with X", "misplayed turn 8", the bot level); notes are kept when the facts are refreshed. `retired` lists games taken out because the current rules refuse them, with the reason.
 
 ## Adding games

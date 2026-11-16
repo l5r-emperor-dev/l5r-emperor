@@ -36,7 +36,7 @@ public partial class Main
                 try
                 {
                     // Core validates before the active session is disconnected.
-                    _session.StartCustomPractice(your, opponent); _session.AllowIdleBattlePasses(); _botLevel = screen.Difficulty; _botMemory = null;
+                    _session.StartCustomPractice(your, opponent, new(screen.Choices[0].Name, screen.Choices[1].Name, screen.Difficulty.ToString())); _session.AllowIdleBattlePasses(); _botLevel = screen.Difficulty; _botMemory = null;
                     ResetMatchPresentation(); _autoOpponent = true; ClosePracticeSetup(); EnterTable();
                 }
                 catch (ArgumentException e) { var (dialog, body) = Dialog("Deck needs attention", 660, 380); body.AddChild(Palette.Wrapped(e.Message, 22)); }

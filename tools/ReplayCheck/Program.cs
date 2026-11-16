@@ -26,7 +26,7 @@ var findings = new List<string>();
 
 // The stage 1 schema must name exactly the engine's fields, so neither stage can drift from the export format.
 var stage1 = File.ReadAllText(Path.Combine(root, "tools", "replays", "check_replays.py"));
-SchemaMatches("COMMAND", typeof(GameCommand)); SchemaMatches("SELECTION", typeof(SlotSelection)); SchemaMatches("TOP", typeof(ReplayRecord));
+SchemaMatches("COMMAND", typeof(GameCommand)); SchemaMatches("SELECTION", typeof(SlotSelection)); SchemaMatches("TOP", typeof(ReplayRecord)); SchemaMatches("PRACTICE", typeof(PracticeLabels));
 
 var strict = new JsonSerializerOptions(JsonSerializerDefaults.Web) { UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow };
 var index = File.Exists(indexPath) ? JsonSerializer.Deserialize<ReplayIndex>(File.ReadAllText(indexPath), strict) ?? new ReplayIndex(1, [], []) : new ReplayIndex(1, [], []);
@@ -39,7 +39,7 @@ foreach (var path in Directory.GetFiles(games, "*.json").OrderBy(p => p, StringC
     var facts = Check(name, bytes, out var problem);
     if (problem is not null) findings.Add($"{name}: {problem} (a game the current rules refuse is retired: move it out of replays/games and add it to the index's retired list with the reason)");
     var row = new IndexEntry(name, Convert.ToHexStringLower(SHA256.HashData(bytes)), facts?.Commands ?? entry?.Commands ?? 0, facts?.Turns ?? entry?.Turns ?? 0, facts is null ? entry?.Winner : facts.Winner,
-        facts?.Decks ?? entry?.Decks ?? [], entry?.Note ?? "");
+        facts?.Decks ?? entry?.Decks ?? [], entry?.Note ?? "", facts?.Practice ?? entry?.Practice, facts?.Digest ?? entry?.Digest ?? false);
     if (entry is null && !write) findings.Add($"{name}: not in replays/index.json (run with --write-index)");
     else if (entry is not null && !write && facts is not null && !Same(entry, row)) findings.Add($"{name}: the index's facts differ from the engine's ({Facts(entry)} listed, {Facts(row)} replayed); run with --write-index");
     rows.Add(row);
@@ -65,7 +65,7 @@ ReplayFacts? Check(string name, byte[] bytes, out string? problem)
     catch (JsonException e) { problem = $"not a replay record: {e.Message}"; return null; }
     if (replay.ContentVersion != MatchEngine.ContentVersion) { problem = $"recorded with content {replay.ContentVersion}; this engine is {MatchEngine.ContentVersion}"; return null; }
     MatchEngine game;
-    try { game = MatchEngine.Replay(replay with { Commands = [] }); } // the match exactly as recorded: seed, both decks reviewed as practice reviews them, idle battle passes
+    try { game = MatchEngine.Setup(replay); } // the match exactly as recorded: seed, both decks reviewed as practice reviews them, idle battle passes
     catch (ArgumentException e) { problem = $"the match cannot be set up: {e.Message}"; return null; }
     for (var i = 0; i < replay.Commands.Length; i++)
     {
@@ -73,8 +73,10 @@ ReplayFacts? Check(string name, byte[] bytes, out string? problem)
         var result = game.Execute(c);
         if (!result.Accepted) { problem = $"command {i} ({c.Type}, seat {c.PlayerId}, version {c.ExpectedVersion}) refused: {result.Error}"; break; } // the facts then describe the game as far as it replays
     }
+    // issue #1266: an export that carries its final state's digest must reach it, so a game that diverges under today's rules while every command is still accepted is caught
+    if (problem is null && replay.FinalDigest is { } digest && digest != game.Digest()) problem = $"every command is accepted but the game ends in a different state than recorded ({digest} recorded, {game.Digest()} replayed)";
     var decks = (replay.CustomDecks ?? []).Select((d, seat) => Deck(d, game, seat)).ToArray();
-    return new ReplayFacts(replay.Commands.Length, game.TurnNumber, problem is null ? game.WinnerId : null, decks);
+    return new ReplayFacts(replay.Commands.Length, game.TurnNumber, problem is null ? game.WinnerId : null, decks, replay.Practice, replay.FinalDigest is not null);
 }
 
 // a deck's stronghold as the engine set it up (the printing the deck names, experienced or not), its size and a fingerprint of its list
@@ -86,8 +88,8 @@ DeckFacts Deck(Deck deck, MatchEngine game, int seat)
     return new DeckFacts(stronghold, deck.Entries.Sum(e => e.Count), print);
 }
 
-bool Same(IndexEntry a, IndexEntry b) => a.Sha256 == b.Sha256 && a.Commands == b.Commands && a.Turns == b.Turns && a.Winner == b.Winner && a.Decks.SequenceEqual(b.Decks);
-string Facts(IndexEntry e) => $"{e.Commands} commands, turn {e.Turns}, {(e.Winner is { } w ? $"seat {w} won" : "unfinished")}, {string.Join(" v ", e.Decks.Select(d => $"{d.Stronghold} ({d.Cards}, {d.Fingerprint})"))}";
+bool Same(IndexEntry a, IndexEntry b) => a.Sha256 == b.Sha256 && a.Commands == b.Commands && a.Turns == b.Turns && a.Winner == b.Winner && a.Decks.SequenceEqual(b.Decks) && a.Practice == b.Practice && a.Digest == b.Digest;
+string Facts(IndexEntry e) => $"{(e.Practice is { } p ? $"{p.YourDeck} v {p.OpponentDeck} ({p.BotLevel}), " : "")}{(e.Digest ? "final state verified, " : "")}{e.Commands} commands, turn {e.Turns}, {(e.Winner is { } w ? $"seat {w} won" : "unfinished")}, {string.Join(" v ", e.Decks.Select(d => $"{d.Stronghold} ({d.Cards}, {d.Fingerprint})"))}";
 
 void SchemaMatches(string table, Type type)
 {
@@ -99,8 +101,8 @@ void SchemaMatches(string table, Type type)
 }
 
 record DeckFacts(string Stronghold, int Cards, string Fingerprint);
-record ReplayFacts(int Commands, int Turns, int? Winner, DeckFacts[] Decks);
-record IndexEntry(string File, string Sha256, int Commands, int Turns, int? Winner, DeckFacts[] Decks, string Note);
+record ReplayFacts(int Commands, int Turns, int? Winner, DeckFacts[] Decks, PracticeLabels? Practice, bool Digest);
+record IndexEntry(string File, string Sha256, int Commands, int Turns, int? Winner, DeckFacts[] Decks, string Note, PracticeLabels? Practice = null, bool Digest = false);
 /// <summary>A game taken out of replays/games because the current rules refuse it: the file's last commit keeps it; the reason says which change.</summary>
 record RetiredEntry(string File, string Sha256, string Reason);
 record ReplayIndex(int Version, IndexEntry[] Games, RetiredEntry[] Retired);

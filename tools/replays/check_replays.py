@@ -25,7 +25,8 @@ IDENT = re.compile(r'[A-Za-z0-9][A-Za-z0-9_.:#\-]{0,63}')
 COMMAND_TYPE = re.compile(r'[a-z][A-Za-z0-9]{0,47}')
 LINK = re.compile(r'https?|www\.|\.com\b|\.exe\b', re.IGNORECASE)
 
-TOP = {'contentVersion': str, 'scenario': str, 'seed': int, 'commands': list, 'customDecks': (list, type(None)), 'idleBattlePasses': bool}
+TOP = {'contentVersion': str, 'scenario': str, 'seed': int, 'commands': list, 'customDecks': (list, type(None)), 'idleBattlePasses': bool,
+       'practice': (dict, type(None)), 'finalDigest': (str, type(None))}
 REQUIRED_TOP = {'contentVersion', 'scenario', 'seed', 'commands'}
 # GameCommand (src/L5R.Core/Models.cs): field -> kind; tools/ReplayCheck checks this list against the record itself
 COMMAND = {
@@ -36,6 +37,9 @@ COMMAND = {
 }
 REQUIRED_COMMAND = {'type', 'playerId', 'expectedVersion'}
 SELECTION = {'slot': 'text', 'cardIds': 'ids?', 'playerId': 'seat?', 'provinceOwner': 'seat?', 'province': 'small?'}
+# PracticeLabels (issue #1266): names the player gave the decks and the bot level; never read by the engine
+PRACTICE = {'yourDeck': 'text?', 'opponentDeck': 'text?', 'botLevel': 'text?'}
+DIGEST = re.compile(r'd[0-9]+:[0-9a-f]{32}')
 
 
 class Finding(Exception):
@@ -168,6 +172,10 @@ def check_replay(raw):
             if command['expectedVersion'] < last:
                 raise Finding(f'commands[{i}]: expectedVersion goes backwards')
             last = command['expectedVersion']
+        if data.get('practice') is not None:
+            record(data['practice'], PRACTICE, set(), 'practice')
+        if data.get('finalDigest') is not None:
+            text(data['finalDigest'], 'finalDigest', DIGEST, 40)
         decks = data.get('customDecks')
         if decks is not None:
             if len(decks) != 2:
