@@ -9,6 +9,7 @@ Rung 5 of [the PR ladder](PR_LADDER.md), tracked in [#509](https://github.com/l5
 | card-pass-report | `/card-pass-report` | `$card-pass-report` | Reconciled coverage/blockers, confirmed readings, client contracts and evidence |
 | ruling-interview | `/ruling-interview` | `$ruling-interview` | Focused questions and counterexamples leading to a recorded owner ruling |
 | governance-lite | `/governance-lite` | `$governance-lite` | Four focused review roles and a diff-based client-contract ledger; see [governance guide](GOVERNANCE_LITE.md) |
+| upload-replays | `/upload-replays` | `$upload-replays` | Mendon's practice replay exports into `replays/games`: indexed, replayed by the engine, refused games retired, merged after the replay checks ([replays/README.md](../replays/README.md), #1264) |
 
 Edit canonical files in `.claude/skills/<name>/SKILL.md` and their linked resources. Run `python tools/skills/sync_skills.py` to refresh byte-identical copies in `.agents/skills`; Windows checkouts need no symlink setup. Run `python tools/skills/sync_skills.py --check` for a read-only check. The normal tools/hooks test discovery validates names/references and rejects drift, so existing CI checks cover both discovery paths without a new job or dependency.
 
