@@ -160,8 +160,11 @@ public static partial class TrainingOpponent
         }
         // The table changed since the plan (or there was none): the shapes are searched again from here.
         var options = new List<Option> { new(attack.Action, attack.Command, "contender") };
-        options.AddRange(AttackShapes(x).Select(s => Legal(attack.Action, s.Assignment)).Where(a => a.Count > 0 && !options.Any(o => SameAssignment(o.Command.Assignments, a)))
-            .Select(a => new Option(attack.Action, attack.Command with { Assignments = a }, "shape " + a.Count)));
+        foreach (var (label, shape) in AttackShapes(x))
+        {
+            var a = Legal(attack.Action, shape);
+            if (a.Count > 0 && !options.Any(o => SameAssignment(o.Command.Assignments, a))) options.Add(new(attack.Action, attack.Command with { Assignments = a }, $"{label} ({a.Count})")); // the shape's name in the search log (step 4 reads it)
+        }
         if (options.Count < 2) return null;
         if (Search(x, sampler, options, (int)Knob(x, "lkN", 4), Rule(x, "lkFar")) is not { } values) return null;
         var best = options[Enumerable.Range(0, options.Count).MaxBy(i => values[i])];
@@ -175,7 +178,15 @@ public static partial class TrainingOpponent
 
     /// <summary>Attacks worth comparing, whatever the cards: everyone at the weakest Province; the strongest units until they beat the weakest Province and every
     /// unbowed enemy defender (the rest kept home); the strongest units spread so each Province they reach is beaten on Force; and the single strongest unit (a probe).</summary>
+    /// <summary>The attack shapes lkPlan compares: the Contender's own (below), then, under lkRead, the Read's opportunity options that repeat none of them.</summary>
     private static IEnumerable<(string Label, Dictionary<string, int> Assignment)> AttackShapes(Ctx x)
+    {
+        var listed = BaseShapes(x).ToList();
+        foreach (var shape in listed) yield return shape;
+        foreach (var shape in ReadShapes(x, listed)) yield return shape;
+    }
+
+    private static IEnumerable<(string Label, Dictionary<string, int> Assignment)> BaseShapes(Ctx x)
     {
         var units = x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed && UnitForce(x, c) > 0)
             .OrderByDescending(c => UnitForce(x, c)).ThenBy(c => c.Id, StringComparer.Ordinal).ToList();
@@ -203,6 +214,21 @@ public static partial class TrainingOpponent
         if (split.Values.Distinct().Count() > 1) yield return ("split", split);
         // and the strongest two units together at the weakest Province, the rest home (a raze that keeps defenders back).
         if (units.Count > 2) yield return ("pair", new(StringComparer.Ordinal) { [units[0].Id] = weakest.Index, [units[1].Id] = weakest.Index });
+    }
+
+    /// <summary>lkRead (step 4): the Read's opportunity options (the lone unit, the split, the sufficient group, everything; Questions.Of) as further candidate assignments for lkPlan, each labelled
+    /// "read:" plus the option's label, restricted to the units the declaration offers and left out when it repeats a shape already listed.</summary>
+    private static IEnumerable<(string Label, Dictionary<string, int> Assignment)> ReadShapes(Ctx x, List<(string Label, Dictionary<string, int> Assignment)> listed)
+    {
+        if (!Rule(x, "lkRead") || ReadAnswers(x) is not { } answers) yield break;
+        var offered = x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed).Select(c => c.Id).ToHashSet(StringComparer.Ordinal);
+        foreach (var option in answers.Opportunity.Options.Where(o => !o.IsHold))
+        {
+            var assignment = option.Assignment.Where(a => offered.Contains(a.Key)).ToDictionary(a => a.Key, a => a.Value, StringComparer.Ordinal);
+            if (assignment.Count == 0 || listed.Any(l => SameAssignment(l.Assignment, assignment))) continue;
+            listed.Add(("read:" + option.Label, assignment));
+            yield return ("read:" + option.Label, assignment);
+        }
     }
 
     // ---- defence shapes (lkVar) ---------------------------------------------------------------------------------------------------------------------------------------
@@ -249,7 +275,8 @@ public static partial class TrainingOpponent
         var before = Material(x, x.View); // a sample shows its viewer exactly this view (HiddenSampleTests)
         if (!game.Execute(option.Command).Accepted) return double.MinValue / 4;
         var bots = new BotContext[2];
-        for (var seat = 0; seat < 2; seat++) bots[seat] = seat != me && Rule(x, "lkOpp") ? new BotContext() : BotContext.Contender(rules: x.Memory.Rules.Where(r => r != "look"));
+        // lkFight (step 4): the viewer's playout bot plays its battles by the Fight (family E's exchange policy, readE) instead of the Contender's battle rules
+        for (var seat = 0; seat < 2; seat++) bots[seat] = seat != me && Rule(x, "lkOpp") ? new BotContext() : BotContext.Contender(rules: x.Memory.Rules.Where(r => r != "look").Concat(seat == me && Rule(x, "lkFight") && !x.Memory.Has("readE") ? ["readE"] : []));
         bots[me].Archetype = x.Memory.Archetype;
         bots[0].Deadline = bots[1].Deadline = deadline; // a playout bot stuck in one decision is stopped too
         var fromAction = x.View.Phase == Phase.Action; // lkAct: an Action-phase move is played out through the end of this turn's attack
