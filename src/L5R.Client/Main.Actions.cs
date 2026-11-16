@@ -106,6 +106,7 @@ public partial class Main
             AddInspectionCaption("Card details", details);
             var name = Palette.Wrapped(def.Name, 24); name.AddThemeFontOverride("font", SidebarSkin.Bold); details.AddChild(name);
             if (RestrictionRail.HasEffects(_selected)) details.AddChild(Palette.Wrapped(RestrictionRail.Describe(_selected), 17, Palette.Paper));
+            if (PrintedActionStrip.VisibleOn(_selected)) details.AddChild(PrintedActionStrip.Explanation(_selected));
             if (CreatedCopyStatus.VisibleOn(_selected)) details.AddChild(CreatedCopyStatus.Explanation(_selected));
             if (CardChanges.Entries(_selected).Length > 0)
                 details.AddChild(CardChangePanel.Create(_selected, id => FindCard(id)?.Definition?.Name, compact: true,

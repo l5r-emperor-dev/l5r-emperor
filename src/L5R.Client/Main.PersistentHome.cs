@@ -18,7 +18,7 @@ public partial class Main
     private static CardView[] PersistentCards(PlayerView player) => (player.Celestials ?? []).Concat(player.Home.Where(IsPersistentHomeCard)).ToArray();
     private static CardView[] EffectReminders(PlayerView player) => (player.EventsInPlay ?? []).Where(c => c.Definition is not null).ToArray();
     private float PersistentCardWidth(CardView card) => CardFootprint(card, CardHeight) + (card.Zone == Zone.Celestial ? 34 : 0);
-    private static float PersistentRowHeight(CardView[] cards) => CardHeight + PersistentGap + (cards.Any(c => c.Zone == Zone.Celestial) ? 28 : 0);
+    private static float PersistentRowHeight(CardView[] cards) => CardHeight + cards.Select(c => PrintedActionStrip.ReservedHeight(c, CardHeight)).DefaultIfEmpty(0).Max() + PersistentGap + (cards.Any(c => c.Zone == Zone.Celestial) ? 28 : 0);
     private bool HasPersistentHome(PlayerView player) => View.FavorPlayerId == player.Id || PersistentCards(player).Length > 0 || EffectReminders(player).Length > 0;
 
     private void MeasurePersistentHome()

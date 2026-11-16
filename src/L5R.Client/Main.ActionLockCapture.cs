@@ -28,7 +28,7 @@ public partial class Main
             hero.Dishonorable = true;
             var follower = CardCatalog.Cards.Values.First(d => !d.ScenarioOnly && d.Type == CardType.Follower);
             SupportFixtureCard(state, follower.Id, 0, Zone.Attached, bowed: true).AttachedTo = hero.Id;
-            for (var i = 0; i < 6; i++) SupportFixtureCard(state, 1645, i % 2, Zone.Home, bowed: i % 3 == 0);
+            for (var i = 0; i < 6; i++) SupportFixtureCard(state, _captureMode.Contains("spent") ? 8590 : 1645, i % 2, Zone.Home, bowed: i % 3 == 0);
         }
         if (_captureMode.Contains("restriction"))
         {
@@ -42,9 +42,19 @@ public partial class Main
                 unit.GrantedKeywords.Add(new("Berserker", "layout-fixture", "Permanent"));
             }
         }
+        if (_captureMode.Contains("spent"))
+        {
+            var region = CardCatalog.Cards.Values.First(d => d.Type == CardType.Region && d.Abilities is { Length: > 0 } ids && ids.Any(id => AbilityCatalog.All.ContainsKey(id) && !TraitReactions.Is(id)));
+            SupportFixtureCard(state, region.Id, 0, Zone.Region, 0);
+            foreach (var unit in state.Cards.Values.Where(c => c.Zone is Zone.Home or Zone.Attached))
+                if (CardCatalog.Cards[unit.DefinitionId].Abilities is { Length: > 0 } ids && AbilityCatalog.All.TryGetValue(ids[0], out var used))
+                    unit.AbilityUses[used.UsageKey ?? ids[0]] = state.TurnNumber;
+            // Keep Hotako usable: his real action below establishes the restriction and spends his use.
+            hotako.AbilityUses.Clear();
+        }
         _lockFixture = (MatchEngine)typeof(MatchEngine).GetMethod("FromTestState", BindingFlags.NonPublic | BindingFlags.Static)!.Invoke(null, [state])!;
         await LoadSupportFixture(_lockFixture, 0);
-        if (!bowed) SupportRequire(Actions.Any(a => a.CardId == _lockHero && a.Enabled && a.Command?.AbilityId == "shizuka-search"), "Published action missing before lock");
+        if (!bowed && !_captureMode.Contains("spent")) SupportRequire(Actions.Any(a => a.CardId == _lockHero && a.Enabled && a.Command?.AbilityId == "shizuka-search"), "Published action missing before lock");
         await _session.Submit(Actions.Single(a => a.Enabled && a.Type == "pass").Command!); await WaitDecisionPresentation();
         var ability = _lockFixture.QueryActions(1).Single(a => a.Enabled && a.Command?.AbilityId == "hotako-fear-lock" && a.CardId == hotako.Id);
         await _session.Submit(ability.Command! with { TargetId = hero.Id }); await WaitDecisionPresentation();
@@ -63,7 +73,8 @@ public partial class Main
         });
         var end = SidebarSkin.Button("Advance turn", () => _ = RunLockReview(AdvanceLockTurn));
         var restart = SidebarSkin.Button("Restart demo", () => _ = RunLockReview(() => PrepareLockReview(crowded: _captureMode.Contains("crowded"), bowed: _captureMode.Contains("bowed"))));
-        _lockReviewButtons = [inspect, end, restart];
+        var restore = SidebarSkin.Button("Restore action use", () => _ = RunLockReview(RestorePrintedUse));
+        _lockReviewButtons = _captureMode.Contains("spent") ? [inspect, restore, end, restart] : [inspect, end, restart];
         foreach (var button in _lockReviewButtons) { button.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill; button.CustomMinimumSize = new(0, 44); row.AddChild(button); }
         Place(_root, row, 350, 114, 830, 50);
     }
@@ -87,9 +98,38 @@ public partial class Main
         SupportRequire(_lockFixture.State.TurnNumber > turn, "Demo did not advance the turn");
         SelectCard(FindCard(_lockHero)!); SetNotice("A new turn has begun. The action restriction has expired.");
     }
+    private async Task RestorePrintedUse()
+    {
+        // Labelled review fixture: apply the existing engine additional-use mark; no client legality.
+        var state = _lockFixture.State;
+        state.Cards[_lockHero].AbilityUses["fires-of-war:second-use"] = state.TurnNumber;
+        _lockFixture = (MatchEngine)typeof(MatchEngine).GetMethod("FromTestState", BindingFlags.NonPublic | BindingFlags.Static)!.Invoke(null, [state])!;
+        await LoadSupportFixture(_lockFixture, View.ViewerId);
+        SelectCard(FindCard(_lockHero)!);
+        if (_captureMode.Contains("review")) BuildLockReviewControls();
+        SetNotice("Fixture: an extra use is granted this turn. UNUSED does not bypass the action restriction.");
+        await EventFrames(15);
+    }
+    private void AssertPrintedActionCrowding()
+    {
+        static float Overlap(Vector2[] a, Vector2[] b) => Geometry2D.IntersectPolygons(a, b).Sum(p => Math.Abs(Enumerable.Range(0, p.Length).Sum(i => p[i].Cross(p[(i + 1) % p.Length]))) / 2);
+        var strips = _tiles.Where(t => !t.UprightPreview && t.ActionStrip is not null).Select(t => t.ActionStrip!).ToArray();
+        SupportRequire(strips.Length > 0 && strips.Any(s => s.CardAnchor.Card.PrintedActions!.Any(a => a.Spent)), "Used action strips missing from native table");
+        foreach (var strip in strips)
+        {
+            var polygon = strip.CornersOnViewport();
+            foreach (var tile in _tiles.Where(t => !t.UprightPreview))
+            {
+                SupportRequire(Overlap(polygon, tile.FaceCornersOnViewport()) < .25f, "Action strip covers card face");
+                if (tile.TokenRail is { } rail) SupportRequire(Overlap(polygon, rail.CornersOnViewport()) < .25f, "Action strip covers token/restriction rail");
+            }
+            foreach (var other in strips.Where(s => s != strip)) SupportRequire(Overlap(polygon, other.CornersOnViewport()) < .25f, "Action strips overlap each other");
+        }
+    }
     private async Task ClickLockSeal(CardTile tile)
     {
-        DeselectCard();
+        var id = tile.Card.Id; DeselectCard(); await EventFrames(10);
+        tile = _tiles.Single(t => t.Card.Id == id);
         var point = tile.TokenRail?.Restrictions is { } track ? (tile.ProjectToScreen?.Invoke(track.GetGlobalTransform() * track.Body.GetCenter()) ?? track.GetGlobalTransform() * track.Body.GetCenter()) : tile.RestrictionSeal!.CenterOnViewport(); PushCaptureMouse(new InputEventMouseMotion { Position = point, GlobalPosition = point }); await EventFrames(8);
         PushCaptureMouse(new InputEventMouseButton { Position = point, GlobalPosition = point, ButtonIndex = MouseButton.Left, Pressed = true });
         PushCaptureMouse(new InputEventMouseButton { Position = point, GlobalPosition = point, ButtonIndex = MouseButton.Left, Pressed = false }); await EventFrames(12);
@@ -123,15 +163,31 @@ public partial class Main
             var hero = _tiles.Single(t => t.Card.Id == _lockHero); var version = View.Version;
             SupportRequire((hero.TokenRail?.Restrictions is not null || hero.RestrictionSeal is not null) && FindCard(_lockItem)!.ActionLocked, "Public lock not presented on Personality or attachment");
             await ClickLockSeal(hero);
-            SupportRequire(_selected?.Id == _lockHero && View.Version == version, "Seal click must only inspect the locked card");
+            if (_captureMode.Contains("spent"))
+            {
+                DeselectCard(); await EventFrames(10);
+                var strip = _tiles.Single(t => t.Card.Id == _lockHero).ActionStrip!;
+                var at = strip.CornersOnViewport().Aggregate(Vector2.Zero, (sum, p) => sum + p) / 4;
+                PushCaptureMouse(new InputEventMouseMotion { Position = at, GlobalPosition = at }); await EventFrames(12);
+                PushCaptureMouse(new InputEventMouseButton { Position = at, GlobalPosition = at, ButtonIndex = MouseButton.Left, Pressed = true });
+                PushCaptureMouse(new InputEventMouseButton { Position = at, GlobalPosition = at, ButtonIndex = MouseButton.Left, Pressed = false }); await EventFrames(12);
+                SupportRequire(_selected?.Id == _lockHero && View.Version == version && StabilizationText(_inspector).Contains("PRINTED ACTIONS"), $"Action strip input must only inspect its owner: selected={_selected?.Id}, version={version}->{View.Version}, hover={TableHovered?.GetType().Name}");
+            }
+            SupportRequire(_selected?.Id == _lockHero && View.Version == version, $"Seal click must only inspect the locked card: selected={_selected?.Id}, expected={_lockHero}, version={version}->{View.Version}, hovered={TableHovered?.GetType().Name}");
             SupportRequire(StabilizationText(_inspector).Contains("perform actions"), "Inspector restriction missing");
             var blocked = Actions.Single(a => a.CardId == _lockHero && a.Type == "useAbility");
-            SupportRequire(!blocked.Enabled && blocked.Reason!.Contains("may not perform actions"), "Engine must keep the action disabled");
+            SupportRequire(!blocked.Enabled && (blocked.Reason!.Contains("may not perform actions") || _captureMode.Contains("spent") && blocked.Reason.Contains("used within its limit")), "Engine must keep the action disabled");
             // Current main deliberately hides disabled ability buttons (Listable, #1202).
             // The engine refusal and the restriction explanation remain independently checked.
+            if (_captureMode.Contains("spent")) AssertPrintedActionCrowding();
             await SupportCapture("-table");
             ClearCardPlays(); CloseCardShow(); DeselectCard(); hero = _tiles.Single(t => t.Card.Id == _lockHero); var pointer = _tableSurface.ProjectCanvas(hero.FaceCornersInCanvas().Aggregate(Vector2.Zero, (sum, p) => sum + p) / 4); PushCaptureMouse(new InputEventMouseMotion { Position = pointer, GlobalPosition = pointer }); await EventFrames(45);
             SupportRequire(_tableTooltip is not null && StabilizationText(_tableTooltip).Contains("perform actions"), $"Full-card hover did not explain the restriction: hovered={TableHovered?.GetType().Name}, candidate={_tableHover?.GetType().Name}, blocked={CameraBlocked}, focus={GetWindow().HasFocus()}, pointer={pointer}, last={_lastTableMouse}, time={_tableHoverTime}, tooltip={(_tableTooltip is null ? "none" : StabilizationText(_tableTooltip))}");
+            if (_captureMode.Contains("spent"))
+            {
+                var previews = _tableTooltip!.FindChildren("*", "", true, false).OfType<CardTile>().Where(t => t.ActionStrip is not null).ToArray();
+                SupportRequire(previews.Length > 0 && previews.All(t => _tableTooltip.GetGlobalRect().Encloses(t.ActionStrip!.GetGlobalRect())), "Action strip escapes enlarged preview");
+            }
             SupportRequire(GetViewport().GetVisibleRect().Encloses(_tableTooltip!.GetGlobalRect()), "Restricted-card hover leaves the window"); await SaveShownCapture("-hover"); HideTableTooltip();
             await ClickLockSeal(hero);
             _expandedUnits.Add(_lockHero); RenderBoard(); await EventFrames(15);
@@ -143,11 +199,21 @@ public partial class Main
             hero = _tiles.Single(t => t.Card.Id == _lockHero); SupportRequire((hero.TokenRail?.Restrictions is not null || hero.RestrictionSeal is not null) && hero.Card.ActionLocked, "Other seat lost public seal");
             await ClickLockSeal(hero); SupportRequire(_selected?.Id == _lockHero, "Other seat cannot inspect restriction"); await SupportCapture("-opponent");
             _session.SwitchPracticeSeat(); await EventFrames(12);
+            if (_captureMode.Contains("spent"))
+            {
+                var sameTurn = _lockFixture.State.TurnNumber;
+                await RestorePrintedUse();
+                SupportRequire(_lockFixture.State.TurnNumber == sameTurn && FindCard(_lockHero)!.PrintedActions!.All(a => !a.Spent) && FindCard(_lockHero)!.ActionLocked, "Same-turn extra use must clear USED while retaining the action restriction");
+                await SupportCapture("-restored-use");
+            }
             _expandedUnits.Clear(); RenderBoard(); await AdvanceLockTurn(); await EventFrames(20);
-            SupportRequire(!FindCard(_lockHero)!.ActionLocked && !FindCard(_lockItem)!.ActionLocked && _tiles.Single(t => t.Card.Id == _lockHero).RestrictionSeal is null && !StabilizationText(_inspector).Contains("perform actions"), "Expired restriction remained visible"); await SupportCapture("-expired");
-            await PrepareLockReview(crowded: true); AssertRestrictionCrowding(); await SupportCapture("-crowded-upright");
-            await PrepareLockReview(crowded: true, bowed: true); AssertRestrictionCrowding(); await SupportCapture("-crowded-bowed");
-            _expandedUnits.Add(_lockHero); RenderBoard(); await EventFrames(15); await SupportCapture("-bowed-detail");
+            SupportRequire(!FindCard(_lockHero)!.ActionLocked && !FindCard(_lockItem)!.ActionLocked && _tiles.Single(t => t.Card.Id == _lockHero).RestrictionSeal is null && !StabilizationText(_inspector).Contains("perform actions"), "Expired restriction remained visible"); if (_captureMode.Contains("spent")) SupportRequire(FindCard(_lockHero)!.PrintedActions!.All(a => !a.Spent), "Turn expiry left the used strip behind");
+            await SupportCapture("-expired");
+            await PrepareLockReview(crowded: true); AssertRestrictionCrowding(); if (_captureMode.Contains("spent")) AssertPrintedActionCrowding(); await SupportCapture("-crowded-upright");
+            await PrepareLockReview(crowded: true, bowed: true); AssertRestrictionCrowding(); if (_captureMode.Contains("spent")) AssertPrintedActionCrowding(); await SupportCapture("-crowded-bowed");
+            _expandedUnits.Add(_lockHero); RenderBoard(); await EventFrames(15);
+            if (_captureMode.Contains("spent")) AssertPrintedActionCrowding();
+            await SupportCapture("-bowed-detail");
             SupportRequire(_tiles.Where(t => ActionLockStatus.VisibleOn(t.Card) && !t.UprightPreview).All(t => t.TokenRail?.Restrictions is not null || t.RestrictionSeal is not null), "Bowed or crowded Personality lost its marker");
             GD.Print("ACTION_LOCK_PASS: real Hotako lock, native seal input, disabled action, both seats, attachments, expiry, bowed/dishonorable crowded rendering"); GetTree().Quit();
         }

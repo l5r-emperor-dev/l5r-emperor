@@ -1473,7 +1473,10 @@ public sealed record CardView(string Id, CardDefinition? Definition, int OwnerId
     // P21 (issue #697): the card a Zone.Underneath card sits under (null for the cards under the Stronghold and for any other card). A face-down under-card is redacted for the other seat.
     string? UnderHostId = null,
     // The card's printed abilities that have used up their uses this turn (public: both players watched them being used); null when none. A bot reads it to see which Battle actions a card still has.
-    string[]? SpentAbilityIds = null, CardRestrictionView[]? Restrictions = null);
+    string[]? SpentAbilityIds = null, CardRestrictionView[]? Restrictions = null,
+    // Public printed-action order and authoritative use-limit status. Unspent is not a legality promise.
+    PrintedActionView[]? PrintedActions = null);
+public sealed record PrintedActionView(string[] AbilityIds, string Label, string Timing, bool Spent);
 /// <summary>What Dark Experiments does to the province it marks (permanent) and to each Holding that enters play from it; the board marker shows these values.</summary>
 public static class DarkExperimentsMark
 {
