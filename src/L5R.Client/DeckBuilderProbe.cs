@@ -126,7 +126,10 @@ public partial class DeckBuilderProbe : Node
             _screen.SaveDraft();
             File.AppendAllText(path, "\n"); _screen.Adjust(card, 1); _screen.SaveDraft(); await Wait(.3); Check(Walk(_screen).OfType<ConfirmationDialog>().Any(d => d.Visible), "external edit requires overwrite decision"); KeyPress(Key.Escape); await Wait(.3); Check(_screen.Dirty, "overwrite cancel preserves dirty draft");
             _screen.SaveDraft(); await Wait(.3); KeyPress(Key.Enter); await Wait(.3); Check(!_screen.Dirty, "confirmed overwrite saves draft");
-            Click(Button("‹ My decks")); await Wait(2); Check(!_screen.ViewStrip.IsVisibleInTree(), "deck views are hidden on the My decks page"); await Capture("saved-decks"); Click(Button("Open in builder")); await Wait(.5);
+            Click(Button("‹ My decks")); await Wait(2); Check(!_screen.ViewStrip.IsVisibleInTree(), "deck views are hidden on the My decks page"); await Capture("saved-decks");
+            var deckBack = Walk(_screen).OfType<Button>().Single(b => b.Text == "‹  Back" && b.IsVisibleInTree()); var stored = Walk(_screen).OfType<Label>().Single(l => l.Text.StartsWith("Saved on this device", StringComparison.Ordinal) && l.IsVisibleInTree());
+            Check(deckBack.GlobalPosition.Y < _screen.Size.Y * .2f && stored.GlobalPosition.Y > _screen.Size.Y * .85f && !Walk(_screen).OfType<Button>().Any(b => b.Text == "Back to menu" && b.IsVisibleInTree()), "My decks: Back near the top, device caption at the bottom (#1270)");
+            Click(Button("Open in builder")); await Wait(.5);
             var slider = _screen.Browser.CardSize; var unchanged = _screen.Collection.Cards.Select(c => c.Id).ToArray();
             await DragSlider(slider, .9f); await Wait(.4); await Capture("slider-large");
             Check(slider.Value > 260 && _screen.Collection.CardWidth == (float)slider.Value, "native builder slider drag enlarges collection faces");
