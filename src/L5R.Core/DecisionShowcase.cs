@@ -7,6 +7,7 @@ public sealed partial class MatchEngine
     {
         if (kind is "preserving" or "rin" or "conqueror" or "straighten" or "discard") return CreateGenericDecisionShowcase(kind);
         if (kind == "kamina") return CreateKaminaShowcase();
+        if (kind.StartsWith("otomo", StringComparison.Ordinal)) return CreateOtomoTokenShowcase(kind == "otomo-favor"); // issue #1275: a Favor token paid in place of the Imperial Favor
         if (kind.StartsWith("p25-", StringComparison.Ordinal)) return CreateDecisionInfraShowcase(kind); // P25 (DecisionInfraShowcase.cs)
         if (kind is not ("yumaru" or "fukui" or "fukui-bowed")) throw new ArgumentException("Unknown decision showcase.", nameof(kind));
         var state = CreatePublishedTestMatch(42).State;
@@ -44,6 +45,25 @@ public sealed partial class MatchEngine
         }
         Put("oracle-l5r-224", 0, Zone.Home); Put("training-crane-samurai", 0, Zone.Home);
         Put("oracle-l5r-1450", 0, Zone.Hand); Put("oracle-l5r-5523", 0, Zone.Hand);
+        return FromTestState(state);
+    }
+    // Kyuden Otomo - exp (issue #1275): one Favor token on the Stronghold, Doji Shunya at home (Limited: discard the Imperial Favor) and a card in hand for the Favor's own Limited action;
+    // the Imperial Favor held or not.
+    private static MatchEngine CreateOtomoTokenShowcase(bool holdsFavor)
+    {
+        var state = CreatePublishedTestMatch(42).State;
+        state.Phase = Phase.Action; state.ActivePlayerId = state.PriorityPlayerId = 0; state.PendingChoice = null;
+        state.FavorPlayerId = holdsFavor ? 0 : null;
+        var otomo = state.Cards[state.Players[0].StrongholdId];
+        otomo.DefinitionId = "oracle-l5r-4646";
+        otomo.Tokens.Add(new CardToken("otomo-review-token", "Favor", "otomo-review", null, 0));
+        foreach (var id in state.Players[0].Hand.Skip(1).ToArray()) { state.Cards.Remove(id); state.Players[0].Hand.Remove(id); }
+        var shunya = new CardInstance { Id = "otomo-review-shunya", DefinitionId = "oracle-l5r-2158", OwnerId = 0, Zone = Zone.Home, FaceUp = true };
+        state.Cards.Add(shunya.Id, shunya);
+        var wrath = new CardInstance { Id = "otomo-review-wrath", DefinitionId = "oracle-l5r-8127", OwnerId = 0, Zone = Zone.Hand };
+        state.Cards.Add(wrath.Id, wrath); state.Players[0].Hand.Add(wrath.Id);
+        var enemy = new CardInstance { Id = "otomo-review-enemy", DefinitionId = "training-crane-samurai", OwnerId = 1, Zone = Zone.Home, FaceUp = true };
+        state.Cards.Add(enemy.Id, enemy);
         return FromTestState(state);
     }
     private static MatchEngine CreateGenericDecisionShowcase(string kind)

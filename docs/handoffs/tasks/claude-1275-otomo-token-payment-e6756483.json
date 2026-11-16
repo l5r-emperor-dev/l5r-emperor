@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Kyuden Otomo Favor token as payment: Confirm on 'How do you pay?' now plays the card. Client: a way to pay that also has a Gold cost (e.g. The Heir's Wrath) is submitted from the review with the Gold chosen there instead of re-starting the draft (which cleared the selection and reopened the question); a priced row keeps the draft's target. Engine: beside a Favor token the plain Imperial Favor discard is labelled as a way to pay ('Discard the Imperial Favor', view only, command unchanged) so holding the Favor and a token asks which to use. Bot: dropped a no-op fill of CostOption from the view id.",
+  "validation": "bash tools/check.sh --skip-client: All requested checks passed. New native probe (check-decision-chooser otomo, otomo-favor): Doji Shunya, The Heir's Wrath (target + Gold) and the Favor's own Limited action each paid with a token, with and without the Favor held, plus paying with the Favor while a token is present: each plays exactly once, token/Favor as expected. check-gold-payment, check-multi-targets-ui, check-reaction-flow-ui pass; check-decision-chooser all specs pass except review-check, which fails identically on main (issue filed).",
+  "remaining": "Reaction-window Favor discards (Kakita Kae, Solid Defense) share the engine listing but were not driven natively. Not yet tried by hand.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1275",
+  "branch": "claude/1275-otomo-token-payment",
+  "updated": "2026-11-16T17:29:03.553818+00:00"
+}

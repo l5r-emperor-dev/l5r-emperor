@@ -410,6 +410,10 @@ internal static class EmperorStrongholdBatch1Tests
             var tokenOption = shunyaOptions.Single(o => o.Command?.CostOption == "favor-token" || o.Label.Contains("Favor token"));
             Check(tokenOption.Enabled, "the token option is offered enabled");
             Eq(shunyaOptions.Any(o => o.Enabled && o.Command?.CostOption is null), holdsFavor, "the ordinary option needs the Imperial Favor");
+            // Issue #1275: beside the token the Imperial Favor discard is the other way to pay -- labelled so the client asks one "How do you pay?" question -- while its command names no option.
+            var favorOption = shunyaOptions.Single(o => o.Command?.CostOption is null);
+            Eq(favorOption.AlternativeCost?.Label, "Discard the Imperial Favor", "the Favor discard is listed as a way to pay beside the token");
+            Eq(favorOption.AlternativeCost?.AbilityId, tokenOption.AlternativeCost?.AbilityId, "and grouped with the token option");
             var honor = es.State.Players[0].Honor;
             Accept(es, tokenOption.Command!);
             Eq(es.State.Players[0].Honor, honor + 2, "the action resolved");
@@ -420,6 +424,8 @@ internal static class EmperorStrongholdBatch1Tests
         var sn = Table(Phase.Action, 0); sn.PriorityPlayerId = 0; StrongholdOf(sn, 0, KyudenOtomo); Add(sn, Shunya, 0, Zone.Home);
         var en = MatchEngine.FromTestState(sn);
         Check(Options(en, 0, "shunya-honor").All(o => !o.Enabled), "no Favor and no token: unavailable");
+        var sf = Table(Phase.Action, 0); sf.PriorityPlayerId = 0; sf.FavorPlayerId = 0; StrongholdOf(sf, 0, KyudenOtomo); Add(sf, Shunya, 0, Zone.Home);
+        Check(Options(MatchEngine.FromTestState(sf), 0, "shunya-honor").Single().AlternativeCost is null, "with no token there is one way to pay and no cost question");
         // The token is the Stronghold's alone: another player's Otomo token does not pay for this player's action.
         var sx = Table(Phase.Action, 0); sx.PriorityPlayerId = 0; StrongholdOf(sx, 1, KyudenOtomo).Tokens.Add(new CardToken("tok-2", "Favor", "test-fixture", null, 0)); Add(sx, Shunya, 0, Zone.Home);
         var ex = MatchEngine.FromTestState(sx);
