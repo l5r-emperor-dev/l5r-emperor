@@ -7,6 +7,8 @@ Every practice game kept for study (the Conan bot work, issue #1206, and its dec
 
 ## Adding games
 
+Agents follow the repository skill `upload-replays` (`.claude/skills/upload-replays/SKILL.md`). By hand:
+
 1. Copy the exports into `games/`. Names are lower-case letters, digits and hyphens (`practice-20261113-183409.json` as exported).
 2. From the repository root: `bash -c 'source tools/env.sh && dotnet run -c Release --project tools/ReplayCheck -- --write-index'` adds them to the index and replays them.
 3. Optionally add a `note` to each new entry, then commit `games/` and `index.json` together.
