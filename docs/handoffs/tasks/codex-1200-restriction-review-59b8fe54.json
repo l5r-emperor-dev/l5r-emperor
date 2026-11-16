@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Publish approved #1200 restriction rail on current main, with prepared Windows review and explicit public-release opt-in.",
+  "validation": "Pinned 10.0.400 client build passed before final label fixes; 13 preview-tooling tests pass. Four fresh governance reviewers ran and confirmed defects were corrected. Focused, full and native reruns plus Windows packaging/CI are in progress; not yet ready for review notification.",
+  "remaining": "Finish fresh checks, publish draft PR and immutable Windows validation candidate, wait for exact package CI, then deliver and notify Mendon. Initial restriction coverage remains bounded; no merge or human acceptance claimed.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1200",
+  "branch": "codex/1200-restriction-review",
+  "updated": "2026-11-16T15:59:24.867662+00:00"
+}

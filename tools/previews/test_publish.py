@@ -35,6 +35,27 @@ class PublishTests(unittest.TestCase):
                 self.assertEqual(sum(c.args[:2] == ("release", "upload") for c in gh.call_args_list), 1)
                 self.assertFalse(any("POST" in c.args for c in gh.call_args_list))
 
+    def test_public_release_requires_explicit_owner_authorized_opt_in(self):
+        with tempfile.TemporaryDirectory() as temp:
+            archive = Path(temp) / "review.zip"
+            archive.write_bytes(b"owner-authorized game preview")
+            spec = {"source_commit": "a" * 40, "source_pr": 1200, "title": "Restrictions"}
+            receipt = {"repository": REPO, "source_commit": spec["source_commit"],
+                       "asset": archive.name, "bytes": archive.stat().st_size,
+                       "sha256": digest(archive), "tag": "preview-fixture"}
+            with patch("publish.api", return_value={"private": False}), patch("publish.gh") as gh:
+                with self.assertRaisesRegex(ValueError, "world-readable"):
+                    stage(spec, receipt, archive)
+                gh.assert_not_called()
+            draft = {"draft": True, "assets": []}
+            uploaded = {"draft": True, "assets": [{"name": archive.name,
+                "size": receipt["bytes"], "digest": "sha256:" + receipt["sha256"]}]}
+            with patch("publish.api", return_value={"private": False}), patch("publish.gh") as gh, \
+                 patch("publish.release_for", side_effect=[None, draft, uploaded]):
+                stage(spec, receipt, archive, allow_public_repository=True)
+                self.assertEqual(sum(c.args[:2] == ("release", "upload") for c in gh.call_args_list), 1)
+                self.assertFalse(any("POST" in c.args for c in gh.call_args_list))
+
     def test_corrupt_or_incomplete_upload_is_rejected(self):
         receipt = {"asset": "review.zip", "bytes": 12, "sha256": "a" * 64}
         for assets in [[], [{"name": "review.zip", "size": 11, "digest": "sha256:" + "a" * 64}],
