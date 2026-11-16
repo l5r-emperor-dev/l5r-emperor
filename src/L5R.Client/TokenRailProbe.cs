@@ -51,7 +51,7 @@ public partial class TokenRailProbe : Control
         var holding=defs.First(d=>d.Type==CardType.Holding);
         Face(new CardView("bow",personality,1,Zone.Battlefield,true,true,1,null,12,3,UnitForce:0,Tokens:Tokens(6)),new Vector2(45,y),side);
         Face(new CardView("hold",holding,0,Zone.Home,true,false,null,null,0,Tokens:[new("w","Wealth","fixture-source",null,0)]),new Vector2(column+60,y),side);
-        Face(new CardView("fort",stronghold,0,Zone.Home,true,false,null,null,0,Tokens:[new("fav","Favor","fixture-source")]),new Vector2(column*2+60,y),side);
+        Face(new CardView("fort",stronghold,0,Zone.Stronghold,true,false,null,null,0,Tokens:[new("fav","Favor","fixture-source"),new("fav2","Favor","fixture-source")]),new Vector2(column*2+60,y),side);
         var baseX=column*3+column*.20f;
         Face(new CardView("item",item,0,Zone.Attached,true,_bowedAttachments,null,"stack",0,Tokens:[new("i","Training","fixture-source")]),new Vector2(baseX,y),side,72);
         Face(new CardView("follower",f,0,Zone.Attached,true,_bowedAttachments,null,"stack",5,Tokens:[new("f","Fire","fixture-source")]),new Vector2(baseX,y+25),side,36);

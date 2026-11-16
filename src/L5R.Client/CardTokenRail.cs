@@ -15,7 +15,7 @@ public partial class CardTokenRail : Button
     public static bool HasRail(CardView card) => HasTokens(card) || CardChanges.HasSeal(card);
     public float ContentScale { get; private set; } = 1;
     public record Group(string Type, string? Stat, int Amount, CardToken[] Instances);
-    public static bool HasTokens(CardView card) => card.FaceUp && card.Definition is not null && card.Zone is Zone.Home or Zone.Battlefield or Zone.Attached && card.Tokens is { Length: > 0 };
+    public static bool HasTokens(CardView card) => card.FaceUp && card.Definition is not null && card.Zone is Zone.Home or Zone.Battlefield or Zone.Attached or Zone.Stronghold && card.Tokens is { Length: > 0 };
     public static Group[] Groups(CardView card) => !HasTokens(card) ? [] : card.Tokens!
         .GroupBy(t => (t.Type, t.Stat, t.Amount)).Select(g => new Group(g.Key.Type, g.Key.Stat, g.Key.Amount, g.ToArray()))
         .OrderBy(g => g.Type, StringComparer.Ordinal).ThenBy(g => g.Stat, StringComparer.Ordinal).ThenBy(g => g.Amount).ToArray();

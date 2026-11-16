@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Kyuden Otomo (#1272): the token rail now shows for Stronghold-zone cards, so Otomo's Favor tokens appear on the table (fan icon from the existing token art). Lobby is refused while the acting player holds the Imperial Favor (Mendon's ruling R-097, consistent with the CR); Favor tokens on Otomo never bar it. Decision doc and RULINGS entry added.",
+  "validation": "bash tools/check.sh --skip-client: All requested checks passed (core, AI matches, replays). emperor-stronghold-batch1 13/13 incl. new KyudenOtomoLobby (tokens with Favor unheld or opponent's: Lobby offered; holding the Favor with or without tokens: refused; Lobby -> token -> next turn Lobby again). bash tools/check-token-rails.sh passed; the probe's stronghold fixture now sits in Zone.Stronghold with two Favor tokens and shows the rail (docs/screenshots/token-rails normal/small/perspective/bowed-attachments refreshed).",
+  "remaining": "Mendon to try it by hand: the rail on Otomo in a real match was checked only through the probe and the shared layout code.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1272",
+  "branch": "claude/1272-otomo-favor-rail",
+  "updated": "2026-11-16T14:32:28.037604+00:00"
+}
