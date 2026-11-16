@@ -23,10 +23,30 @@ All roles read the skill/profile, ledger and relevant Core/view/version/fixture 
 
 Pinned SDK 10.0.400 full required `tools/check.sh --skip-client` passes: 4,702 Core cases, 316 AI cases plus Python/server/transport/collection stages. Four focused usage-view cases pass, covering both seats, JSON roundtrip, hidden/out-of-play suppression, public-zone coverage, once-per-game, Repeatable, same-turn extra uses, Unsafe Passage, traits and aliases. Client compiles with zero warnings/errors; changed-file C# formatting passes.
 
-The final native check passes at 1920×1080 normal motion and 1280×800 reduced motion: crowded upright/bowed/dishonored units, mixed-bow attachments, six token types, restriction seals, Region/host clearance, strip/face/rail/Unit Force non-overlap, native strip/rail input, both seats, enlarged-preview enclosure, real turn expiry and same-turn use restoration. Expanded-unit checks compare the opaque inspection assembly separately from the background table/hand. Native captures were visually inspected and are linked below. Versioned Windows package delivery remains in progress at this source snapshot. Prepared positions include six token types, mixed-bow attachments, restriction seals, grants, copies, Unit Force and crowded neighboring units. Layout/usage stresses are labelled fixtures; Hotako's restriction/use and command-driven turn expiry are real engine behavior. Restore action use applies the existing extra-use mark as a labelled review fixture while retaining the action restriction.
+The final native check passes at 1920×1080 normal motion and 1280×800 reduced motion: crowded upright/bowed/dishonored units, mixed-bow attachments, six token types, restriction seals, Region/host clearance, strip/face/rail/Unit Force non-overlap, native strip/rail input, both seats, enlarged-preview enclosure, real turn expiry and same-turn use restoration. Expanded-unit checks compare the opaque inspection assembly separately from the background table/hand. Native captures were visually inspected and are linked below. A versioned Windows ZIP was built successfully from game source d75bf47c7b5b27a3d1e04fb961f4bcdae676604f and passed local managed-library/runtime/resource/source-omission checks. It remains local: Alfredo's AGENTS.md instructions in this chat require private Releases, but the repository and Releases are public. Public upload requires an explicit owner exception or a private delivery destination. No public opt-in was used, no asset was uploaded and no ready-for-play notification was sent. Windows receipt CI and human Windows graphical review have not run for this ZIP. Prepared positions include six token types, mixed-bow attachments, restriction seals, grants, copies, Unit Force and crowded neighboring units. Layout/usage stresses are labelled fixtures; Hotako's restriction/use and command-driven turn expiry are real engine behavior. Restore action use applies the existing extra-use mark as a labelled review fixture while retaining the action restriction.
 
 The native probe now waits for the actual hover preview rather than assuming a fixed frame count is long enough. Explicit `L5R_PROBE_NO_OS_MOUSE=1` tagged non-review capture modes can receive viewport input without desktop focus; normal play/review retains focus gating. This avoids concurrent Mac CI windows invalidating native input evidence.
 
 [Native evidence](../screenshots/printed-actions/README.md).
 
 Human Windows graphical/rules acceptance remains pending. Publication and automated checks never accept or merge the change.
+
+Local prepared package receipt (not a publication receipt):
+
+```json
+{
+  "schema_version": 1,
+  "repository": "l5r-emperor-dev/l5r-emperor",
+  "source_pr": 1278,
+  "source_commit": "d75bf47c7b5b27a3d1e04fb961f4bcdae676604f",
+  "title": "Printed Action Use Strips",
+  "slug": "printed-actions",
+  "tag": "preview-pr1278-d75bf47c7b-r1-windows",
+  "asset": "L5R-Review-pr1278-d75bf47c7b-r1-Windows.zip",
+  "bytes": 1011045236,
+  "sha256": "73ce692e71d6c9113f45786020b1acf3caca65c9eac42e782ea1cb55dec0eb11",
+  "folder": "L5R-Review-pr1278-d75bf47c7b-r1",
+  "launcher": "Start Review.cmd",
+  "reviewer": "mdornbrook"
+}
+```

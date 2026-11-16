@@ -1,9 +1,9 @@
 {
   "lane": "shared",
-  "summary": "Implemented #1201 approved numbered printed-action strips; draft PR #1278, native spacing and input validated.",
-  "validation": "Pinned SDK10.0.400 full suite PASS: 4702 Core,316 AI plus Python/server/transport/collection. Four focused usage-view cases PASS. Zero-warning client build; changed-file formatting PASS. Native normal1920x1080 and reduced1280x800 PASS: crowded upright/bowed/dishonored units, attachments,six tokens,seals,Regionhost,preview bounds,strip/rail input,bothseats,expiry,same-turn extra-use refresh. Screenshots visually inspected. Four independent governance lenses reconciled.",
-  "remaining": "Publish immutable Windows preview, verify exact-receipt CI, mark PR ready and notify Mendon. Human Windows graphical/rules acceptance pending; no merge.",
+  "summary": "Completed #1201 concept A implementation and actual-game spacing validation; PR #1278 ready for code review. Windows ZIP built locally.",
+  "validation": "Game source d75bf47c: pinned SDK10.0.400 full required suite PASS (4702 Core,316 AI plus Python/server/transport/collection); four focused regressions PASS; zero-warning client build and formatting PASS; native 1920x1080 normal/1280x800 reduced PASS incl crowded upright/bowed attachments,six tokens,seals,input,preview,Regionhost,both seats,expiry,extra-use refresh; screenshots inspected. Upright/bowed interactive review launchers reached ready. Game-source CI all green. Windows export integrity and 204-entry ZIP/5 launchers/source omission checks PASS; no native Windows playtest.",
+  "remaining": "Binary stays local: user AGENTS.md instructions require private Releases but repository is public. Need explicit public exception or private destination before upload; exact-receipt Windows CI and ready-for-play notification not performed. Mendon code/rules and human graphical review pending; no merge.",
   "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1201",
   "branch": "codex/1201-action-strip",
-  "updated": "2026-11-16T22:47:33.779223+00:00"
+  "updated": "2026-11-16T23:45:17.339136+00:00"
 }
