@@ -18,9 +18,11 @@ public partial class RestrictionRail : Button
         Pressed += () => Rail.CardAnchor.EmitSignal(BaseButton.SignalName.Pressed);
         MouseEntered += QueueRedraw; MouseExited += QueueRedraw; FocusEntered += QueueRedraw; FocusExited += QueueRedraw;
     }
-    public void Arrange(Rect2 tokenBody, bool horizontal)
+    // inner (#1279): with no tokens the status track takes the token track's place next to the card, after any permanent-change seal at its head.
+    public void Arrange(Rect2 tokenBody, bool horizontal, bool inner = false, float head = 0)
     {
-        Body = horizontal ? new Rect2(tokenBody.Position + new Vector2(0, tokenBody.Size.Y + 2), tokenBody.Size) : new Rect2(tokenBody.Position - new Vector2(tokenBody.Size.X + 2, 0), tokenBody.Size);
+        Body = inner ? (horizontal ? new Rect2(tokenBody.Position + new Vector2(head, 0), tokenBody.Size - new Vector2(head, 0)) : new Rect2(tokenBody.Position + new Vector2(0, head), tokenBody.Size - new Vector2(0, head)))
+            : horizontal ? new Rect2(tokenBody.Position + new Vector2(0, tokenBody.Size.Y + 2), tokenBody.Size) : new Rect2(tokenBody.Position - new Vector2(tokenBody.Size.X + 2, 0), tokenBody.Size);
         Size = Body.Size;
         QueueRedraw();
     }
