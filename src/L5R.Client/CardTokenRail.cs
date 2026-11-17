@@ -13,7 +13,11 @@ public partial class CardTokenRail : Button
     public Rect2 Body { get; private set; }
     public RestrictionRail? Restrictions { get; private set; }
     public Rect2 TotalBody => Restrictions is null ? Body : Body.Merge(Restrictions.Body);
-    public static float WidthFor(CardView card) => Width * (RestrictionRail.HasEffects(card) ? 2 : 1) + (RestrictionRail.HasEffects(card) ? 2 : 0);
+    // #1279 (Mendon): the token track appears only when the card carries tokens. A status alone takes the inner
+    // position by itself; a permanent-change seal alone keeps one track's room with no empty hardware behind it.
+    public static int Tracks(CardView card) => Math.Max(1, (HasTokens(card) ? 1 : 0) + (RestrictionRail.HasEffects(card) ? 1 : 0));
+    public static float WidthFor(CardView card) => Width * Tracks(card) + (Tracks(card) - 1) * 2;
+    public bool TokenTrackVisible => HasTokens(CardAnchor.Card);
     public PermanentGrantSeal? GrantSeal { get; private set; }
     public static bool HasRail(CardView card) => HasTokens(card) || CardChanges.HasSeal(card) || RestrictionRail.HasEffects(card);
     public float ContentScale { get; private set; } = 1;
@@ -43,6 +47,7 @@ public partial class CardTokenRail : Button
             GrantSeal = new PermanentGrantSeal { CardAnchor = CardAnchor }; AddChild(GrantSeal);
         }
         Pressed += () => CardAnchor.EmitSignal(BaseButton.SignalName.Pressed);
+        if (!TokenTrackVisible) FocusMode = FocusModeEnum.None; // nothing of its own to read; the status track and seal take focus
         var lines = new List<string> { CardAnchor.Card.Definition?.Name ?? "Card", "Tokens", "" };
         foreach (var group in _groups)
         {
@@ -98,7 +103,7 @@ public partial class CardTokenRail : Button
             Position = new Vector2(left - width * .5f - before - 2, Position.Y);
         }
         Body = _horizontal ? new Rect2(0, -width * .5f, edge[0].DistanceTo(edge[1]), width) : new Rect2(-width * .5f, 0, width, edge[0].DistanceTo(edge[1]));
-        Restrictions?.Arrange(Body, _horizontal);
+        Restrictions?.Arrange(Body, _horizontal, inner: !TokenTrackVisible, head: GrantSeal is null ? 0 : (_horizontal ? Body.Size.Y : Body.Size.X) * 1.02f);
         Size = TotalBody.Size;
         if (GrantSeal is not null)
         {
@@ -110,10 +115,10 @@ public partial class CardTokenRail : Button
     }
     public Vector2[] CornersOnViewport() => new[] { TotalBody.Position, new Vector2(TotalBody.End.X, TotalBody.Position.Y), TotalBody.End, new Vector2(TotalBody.Position.X, TotalBody.End.Y) }
         .Select(p => GetGlobalTransform() * p).Select(p => CardAnchor.ProjectToScreen?.Invoke(p) ?? p).ToArray();
-    public override bool _HasPoint(Vector2 p) => Body.Grow(2).HasPoint(p);
+    public override bool _HasPoint(Vector2 p) => TokenTrackVisible && Body.Grow(2).HasPoint(p);
     public override void _Draw()
     {
-        if (!HasRail(CardAnchor.Card)) return;
+        if (!TokenTrackVisible) return;
         _hardware ??= GD.Load<Texture2D>("res://Art/card-token-hardware.png");
         _icons ??= GD.Load<Texture2D>("res://Art/card-token-source.png");
         // Sample only the opaque rail; the generator's checkerboard never enters the mesh.
