@@ -83,8 +83,11 @@ public partial class StatusRailProbe : Control
                 Restrictions: combo.Statuses.Length > 0 ? combo.Statuses : null);
             var tile = new CardTile(card, true, _ => _clicks++, _ => { })
             {
-                Position = new Vector2(30 + column * (i % perRow) + 70, 90 + (i / perRow) * (side + 120)), Size = new Vector2(side * .95f, side), FaceHeight = side - 12,
-                ReducedMotion = true, TokenSourceName = _ => "Fixture source"
+                Position = new Vector2(30 + column * (i % perRow) + 70, 90 + (i / perRow) * (side + 120)),
+                Size = new Vector2(side * .95f, side),
+                FaceHeight = side - 12,
+                ReducedMotion = true,
+                TokenSourceName = _ => "Fixture source"
             };
             _board.AddChild(tile); _tiles.Add(tile);
         }
