@@ -81,7 +81,7 @@ public static partial class TrainingOpponent
         var memory = x.Memory; var view = x.View;
         if (memory.UsePlanner) x = x with { Plan = PlanFor(x) }; // issue #1185: the turn plan, rebuilt when the table changes
         var offered = x.Actions.Where(a => a.Enabled && a.Type is not ("concede" or "wait")).ToArray();
-        if (GameDecidedBeforeNextTurn(x) && offered.Any(a => a.Type != "purchase")) offered = offered.Where(a => a.Type != "purchase").ToArray();
+        if (GameDecidedBeforeNextTurn(x) && offered.Any(a => !SettledGameSkips.Contains(a.Type))) offered = offered.Where(a => !SettledGameSkips.Contains(a.Type)).ToArray();
         var candidates = offered
             .Select(a => (Action: a, Command: Prepare(x, a)))
             .Where(p => p.Command is not null && !memory.IsRejected(view.Version, p.Command))
@@ -94,9 +94,12 @@ public static partial class TrainingOpponent
         return (x, candidates, chosen);
     }
 
-    /// <summary>Issue #1283 (Mendon): in its own Dynasty Phase the bot buys nothing once the game is settled before anything bought could act: the opponent wins by Honor or Enlightenment
+    /// <summary>Issue #1283: the province actions a settled game skips -- buying, overlaying an Experienced Personality from a province, and discarding a province card.</summary>
+    private static readonly HashSet<string> SettledGameSkips = new(StringComparer.Ordinal) { "purchase", "overlay", "discardProvince" };
+
+    /// <summary>Issue #1283 (Mendon): in its own Dynasty Phase the bot buys, overlays and discards nothing once the game is settled before any of it could matter: the opponent wins by Honor or Enlightenment
     /// when their next turn begins, or the bot (at -20 or lower Honor) loses at the start of its End Phase, which follows. Not when the Dynasty Phase comes before the Attack Phase this turn
-    /// (The Deciding Moment, Nocturnal Attack), since a purchase can still attack then. Passing the purchases speeds the end of the game.</summary>
+    /// (The Deciding Moment, Nocturnal Attack), since a purchase can still attack then. Skipping straight to the end of the phase speeds the end of the game for the player.</summary>
     private static bool GameDecidedBeforeNextTurn(Ctx x) =>
         x.View.Phase == Phase.Dynasty && x.View.ActivePlayerId == x.View.ViewerId && x.View.PhaseOrder is null
         && (x.Opponent.WinsWhenTurnBegins || x.Self.Honor <= -20 || x.Self.DishonorLossPending);
