@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Cost and Effect tutorial (cost-effect, 22 steps): Scorpion (Towers of the Yogo, 2 Honor) against Dragon (8). Mysterious Deaths (6 Gold its only cost, three effects), The Merchant's District (condition and bow cost), At Any Cost (requirements are not costs; the Samurai's Gold Cost is the cost of bringing him into play), Khalimpeh-jiak and Unparalleled Sword destroying Koshiba, Revenge (no costs), the Towers ability, At Any Cost bringing Koshiba back. Text quotes the Emperor printings. TutorialContext.Use for narrated moves. Script corrections agreed with Mendon are in docs/TUTORIAL.md.",
+  "validation": "TutorialCostEffectTests 6/6 (play-through checking every quoted number, opening table, refusals, instructions, Back, curriculum); bash tools/check.sh --skip-client; dotnet format whitespace on Core/Client/tests; tools/check-tutorial.sh; the lab played every step through the real table to ce-done with captures.",
+  "remaining": "Mendon's playtest. Engine note: at-any-cost-recruit's text says 'target'; the Emperor printing chooses a performer and does not target.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1288",
+  "branch": "claude/1288-cost-effect-tutorial",
+  "updated": "2026-11-18T19:38:20.219501+00:00"
+}

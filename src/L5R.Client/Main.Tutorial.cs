@@ -407,6 +407,16 @@ public partial class Main
         ["rx-resolve-naval"] = "click:Use ability · Yoritomo Nakoshi;click:Use ability",
         ["rx-strike"] = "select:Strategic Strike;select:Utaku Ryoko;click:Confirm attack",
         ["rx-pass"] = "click:Pass battle action",
+        // Cost and Effect: Mysterious Deaths paid without the Merchant's District, the District's draw, the attack, Revenge, Kasumi's Towers ability and At Any Cost with the Clan Discount.
+        ["ce-deaths-play"] = "select:Mysterious Deaths;selecthome:Prosperous Village;selecthome:Border Keep;click:Play Mysterious Deaths",
+        ["ce-district"] = "select:The Merchant's District;click:Use The Merchant's District",
+        ["ce-declare"] = "click:Declare an attack",
+        ["ce-assign"] = "select:Shosuro Koshiba;selectprovince:1/0;select:Bayushi Kasumi;selectprovince:1/0;click:Confirm assignments",
+        ["ce-engage"] = "click:Fight at province 1",
+        ["ce-revenge"] = "select:Revenge;select:Unparalleled Sword;click:Play Revenge",
+        ["ce-towers"] = "select:Bayushi Kasumi;click:Mirumoto Gobashi;click:Use Bayushi Kasumi",
+        ["ce-any-cost-play"] = "select:At Any Cost;click:Shosuro Koshiba;click:Clan discount: 2 less Gold;selecthome:Geisha House;click:Play At Any Cost",
+        ["ce-resolve"] = "click:Pass battle action",
         // Imperial Favor: Lobby, the Favor's two abilities (one paid with the Favor, one with a Kyuden Otomo token), Dazzling Attire, Sosuke twice, Dainagon's Open Lobby and Kyuden Otomo's Reaction.
         ["lobby-nara"] = "select:Kakita Nara;click:Lobby · bow a Personality;click:Kakita Nara ·;click:Use ability",
         ["favor-cycle"] = "select:The Empress' Address;click:Discard Favor and a card;click:The Empress' Address;click:Discard the Imperial Favor;click:Confirm choice",
