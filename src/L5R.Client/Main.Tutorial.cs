@@ -207,6 +207,12 @@ public partial class Main
             if (tile is null) { GD.Print("TUTORIAL_UI no tile in play for " + arg); return; }
             SelectCard(tile.Card);
         }
+        else if (verb == "selectlast") // the last of your cards with this name, when two copies are in play and the first was already used (the Imperial Favor lesson's second Daidoji Sosuke)
+        {
+            var tile = _tiles.LastOrDefault(t => IsInstanceValid(t) && t.Card.Definition?.Name == arg && t.Card.OwnerId == View.ViewerId && t.Card.Zone is Zone.Home or Zone.Battlefield);
+            if (tile is null) { GD.Print("TUTORIAL_UI no tile in play for " + arg); return; }
+            SelectCard(tile.Card);
+        }
         else if (verb == "hover") // the pointer moves over one of the table's cards (hover:Bayushi Waru)
         {
             var tile = _tiles.FirstOrDefault(t => IsInstanceValid(t) && t.Card.Definition?.Name == arg) ?? throw new InvalidOperationException("no tile to hover for " + arg);
@@ -385,6 +391,18 @@ public partial class Main
         ["iemasa"] = "select:Kaiu Iemasa;click:Use Kaiu Iemasa",
         ["slanderer"] = "select:Slanderer;click:Togashi Meiyu;click:Use Slanderer",
         ["heirs-wrath"] = "select:The Heir's Wrath;click:Togashi Meiyu;select:Yasuki Palaces;click:Play The Heir's Wrath",
+        // Imperial Favor: Lobby, the Favor's two abilities (one paid with the Favor, one with a Kyuden Otomo token), Dazzling Attire, Sosuke twice, Dainagon's Open Lobby and Kyuden Otomo's Reaction.
+        ["lobby-nara"] = "select:Kakita Nara;click:Lobby · bow a Personality;click:Kakita Nara ·;click:Use ability",
+        ["favor-cycle"] = "select:The Empress' Address;click:Discard Favor and a card;click:The Empress' Address;click:Discard the Imperial Favor;click:Confirm choice",
+        ["dazzling-attire"] = "select:Dazzling Attire;click:Use Dazzling Attire",
+        ["sosuke-sword"] = "select:Daidoji Sosuke;click:Mirumoto Yumaru;click:Discard the Imperial Favor;click:Confirm choice",
+        ["dainagon-lobby"] = "select:Doji Dainagon;click:Use Doji Dainagon",
+        ["otomo-token"] = "click:Use Kyuden Otomo;click:Play Reaction",
+        ["sosuke-hiroto"] = "selectlast:Daidoji Sosuke;click:Togashi Hiroto;click:Discard a Favor token instead;click:Confirm choice",
+        ["pass-dragon"] = "click:Pass action",
+        ["favor-defend"] = "select:Daidoji Sosuke;selectprovince:0/0;click:Confirm assignments",
+        ["favor-home"] = "click:Discard Favor · move an enemy attacker home;click:Mirumoto Gobashi;click:Discard a Favor token instead;click:Confirm choice",
+        ["favor-resolve"] = "click:Pass battle action",
     };
 
 

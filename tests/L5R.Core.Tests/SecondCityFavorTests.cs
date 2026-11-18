@@ -136,14 +136,22 @@ internal static partial class SecondCityBattleTests
         Check(refused.Length > 0 && refused.All(o => !o.Enabled) && refused.Any(o => o.Reason!.Contains("Family Honor")), "an equal Family Honor is not enough: " + string.Join("; ", refused.Select(o => o.Reason)));
         var bowed = Table(Phase.Action, 0); bowed.Players[0].Honor = 10; Add(bowed, Dainagon, 0, Zone.Home, bowed: true);
         Check(!CanUse(MatchEngine.FromTestState(bowed), 0, "dainagon-lobby"), "a bowed Dainagon cannot lobby");
-        // It is not the Limited Lobby: the ordinary Lobby (a Limited action bowing any Personality) is still there afterwards.
+        // R-098 (Mendon, 2026-11-18): "Dainagon may Lobby as an Open action" is the player's one Lobby taken at another time, so the two share Lobby's once-per-turn use, in either order.
         var both = Table(Phase.Action, 0); both.Players[0].Honor = 10; both.Players[1].Honor = 5;
         both.Cards[both.Players[0].StrongholdId].DefinitionId = "oracle-l5r-1218";   // player abilities (Lobby) are offered only with a published Stronghold
-        var d2 = Add(both, Dainagon, 0, Zone.Home); Add(both, "training-crane-samurai", 0, Zone.Home);
+        var d2 = Add(both, Dainagon, 0, Zone.Home); var samurai = Add(both, "training-crane-samurai", 0, Zone.Home);
         var eb = MatchEngine.FromTestState(both);
         Accept(eb, Enabled(eb, 0, "dainagon-lobby", d2.Id).Command!);
         var again = Edit(eb, st => { st.PriorityPlayerId = 0; st.FavorPlayerId = null; });
-        Check(CanUse(again, 0, "lobby"), "the Limited Lobby was not used up by his Open one: " + string.Join("; ", again.QueryActions(0).Select(o => o.Label + " [" + o.Enabled + "] " + o.Reason)));
+        Check(!CanUse(again, 0, "lobby"), "his Open Lobby spent the player's Lobby for the turn: " + string.Join("; ", again.QueryActions(0).Where(o => o.Command?.AbilityId == "lobby").Select(o => o.Label + " [" + o.Enabled + "] " + o.Reason)));
+        var first = MatchEngine.FromTestState(both);
+        var limited = Enabled(first, 0, "lobby");
+        Accept(first, (limited.Command! with { TargetId = samurai.Id }));
+        var after = Edit(first, st => { st.PriorityPlayerId = 0; st.FavorPlayerId = null; });
+        var dainagonAfter = Options(after, 0, "dainagon-lobby");
+        Check(dainagonAfter.Length > 0 && dainagonAfter.All(o => !o.Enabled) && dainagonAfter.Any(o => o.Reason == "You have already Lobbied this turn."), "after the Limited Lobby, Dainagon may not Lobby the same turn: " + string.Join("; ", dainagonAfter.Select(o => o.Reason)));
+        var nextTurn = Edit(first, st => { st.PriorityPlayerId = 0; st.FavorPlayerId = null; st.TurnNumber++; st.ActivePlayerId = 1; });
+        Check(CanUse(nextTurn, 0, "dainagon-lobby"), "on the next turn (the opponent's) Dainagon may Lobby again");
     }
 
     // ---- Barred Passage ---------------------------------------------------------------------------------------------------------------------------------

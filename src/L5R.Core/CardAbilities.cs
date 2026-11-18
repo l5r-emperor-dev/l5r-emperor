@@ -5717,6 +5717,8 @@ public sealed partial class MatchEngine
         // The per-turn limit is AbilityDefinition.UsesPerTurn (AbilityLimits.cs). A once-per-GAME ability (AbilityDefinition.OncePerGame: Border Keep's refresh, Bo of Water) never resets: any stamp spends it.
         var usageKey = ability.UsageKey ?? id;
         if (!(ability.OncePerGame ? !uses.ContainsKey(usageKey) : !AbilityUseSpent(uses, ability, usageKey) || UnsafePassageWaives(command, source))) return "This ability has already been used within its limit."; // Unsafe Passage (issue #622)
+        // R-098 (Mendon, 2026-11-18): Doji Dainagon's "may Lobby as an Open action" is the player's one Lobby ability taken at another time, so it shares Lobby's once-per-turn use.
+        if (id == "dainagon-lobby" && AbilityUseSpent(player.AbilityUses, AbilityCatalog.All["lobby"], "lobby")) return "You have already Lobbied this turn.";
         RequireAbilityGates(id, player, source);
         if (BattleReactionPresenceRefusal(ability, id, source, player.Id) is { } presenceRefusal) return presenceRefusal; // issue #1133
         if (id == "border-first") { if (!(player.TurnsTaken == 1)) return "This Border Keep ability is only available on your first turn."; }
@@ -7662,6 +7664,7 @@ public sealed partial class MatchEngine
         var ringsBowedAtStart = _state.Cards.Values.Where(c => c.Bowed && Definition(c).Type == CardType.Ring).Select(c => c.Id).ToList();
         _state.CurrentActionRingsBefore = ringsBowedAtStart;
         SpendAbilityUse(uses, ability, ability.UsageKey ?? id);
+        if (id == "dainagon-lobby") SpendAbilityUse(player.AbilityUses, AbilityCatalog.All["lobby"], "lobby"); // R-098: Dainagon's Lobby spends the player's Lobby for the turn
         // Discipline (issue #331): decided once, up front, from where the card is BEFORE anything below moves it --
         // the discard-pile mode is the one that is removed from the game after the action resolves. So is a card played
         // from a discard pile as the additional action Daigotsu Bofana - exp grants (issue #333).

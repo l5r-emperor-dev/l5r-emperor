@@ -257,6 +257,13 @@ Honor as a cost before the colon (audited).
 - **Date:** 2026-11-16
 - **Source:** Mendon, issue #1272 — [decision](../decisions/2026-11-16-otomo-favor-tokens-and-lobby.md).
 
+### R-098 — Doji Dainagon's Open Lobby is the player's one Lobby, once per turn
+"Dainagon may Lobby as an Open action" lets the player take their Lobby ability at another time; it is not a second Lobby ability. The two share Lobby's once-per-turn use: after either, neither is available again that turn. A new turn (the opponent's included) resets it.
+
+- **Cards/primitives:** Lobby (`lobby`), Doji Dainagon (oracle-l5r-2070, `dainagon-lobby`); `ValidateAbility` and `RunAbilityEffects`.
+- **Date:** 2026-11-18
+- **Source:** Mendon, issue #1086 (the Imperial Favor tutorial) — [decision](../decisions/2026-11-18-dainagon-lobby-once-per-turn.md).
+
 ## Reaction scope and triggers
 
 ### R-020 — Cherry Blossom Festival bars Reactions, Proclaim included, not every trait-modelled ability

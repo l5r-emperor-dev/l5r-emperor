@@ -72,6 +72,11 @@ internal static class TutorialCards
     public const string MonasteryOfNewThought = "oracle-l5r-10183";
     public const string YasukiJekku = "oracle-l5r-9443", YasukiTono = "oracle-l5r-9467", KaiuIemasa = "oracle-l5r-4119", TogashiMeiyu = "oracle-l5r-8550", MirumotoGobashi = "oracle-l5r-5087";
     public const string RememberYourAncestors = "oracle-l5r-6253", DismissingTheCur = "oracle-l5r-2027", TheHeirsWrath = "oracle-l5r-8127";
+    // The Imperial Favor lesson: Favors (you, Kyuden Otomo - exp) against Dragon Destruction (Monastery of New Thought).
+    public const string KyudenOtomoExp = "oracle-l5r-4646", DazzlingAttire = "oracle-l5r-1875", DaidojiSosuke = "oracle-l5r-9811", KakitaNara = "oracle-l5r-4206", LuxuriousSilk = "oracle-l5r-4787";
+    public const string TheHostsAdvantage = "oracle-l5r-8141", RequestAuthorization = "oracle-l5r-6265", TheEmpressAddress = "oracle-l5r-8059", MokshaPatam = "oracle-l5r-10121", HomeGuard = "oracle-l5r-3413";
+    public const string MirumotoYumaru = "oracle-l5r-5181", TogashiHiroto = "oracle-l5r-10057", FarmersMarket = "oracle-l5r-10033", IncenseMill = "oracle-l5r-10035";
+    public const string DeadlyDiscipline = "oracle-l5r-1880", HundredFoldCut = "oracle-l5r-3513", Revenge = "oracle-l5r-6302";
 
     /// <summary>A forty-card deck: the lesson's cards on top, then the rest of the side's deck in its own order. A card the deck does not hold displaces the last card.</summary>
     internal static string[] Deck(string[] top, TutorialSide side, bool dynasty)
