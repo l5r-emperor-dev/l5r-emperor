@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "In a settled game (#1283 conditions) the bot also skips province discards and Experienced overlays from provinces in its own Dynasty Phase, at every level, and ends the phase; the goal is to speed the end of the game for the player.",
+  "validation": "decided-game 7/7; the new discard case's control discards at Easy, Moderate and Hard and the case fails with the earlier purchase-only skip; bash tools/check.sh --skip-client: All requested checks passed; dotnet format whitespace verify clean.",
+  "remaining": "The overlay skip shares the discard filter but has no table where the bot would otherwise overlay.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1283",
+  "branch": "claude/1283-skip-dynasty-discards",
+  "updated": "2026-11-18T10:09:18.201303+00:00"
+}
