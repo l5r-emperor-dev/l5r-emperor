@@ -37,6 +37,7 @@ public partial class DeckBuilderProbe : Node
             var all = new[] { source.StrongholdId, "oracle-l5r-1106", "oracle-l5r-679" }.Concat(source.Dynasty).Concat(source.Fate);
             var entries = all.GroupBy(id => id).Select(g => new DeckEntry(_screen.Data.Cards.Single(c => c.Id == g.Key).Name, g.Count())).ToArray();
             var path = _screen.Store.Save("Crane — Court and Steel", new Deck("Emperor", entries)); Check(_screen.OpenFile(path), "published deck loads into builder"); await Wait(5); await Capture("mat");
+            await CheckIdleArt();
             Check(!_screen.Collection.Rows && _screen.Collection.Size.X > _screen.Mat.Size.X, "collection displays full faces beside deck panel");
             // Deck views, Focus/Action filters and full-size hover (#580)
             var browser = _screen.Browser;
@@ -177,6 +178,20 @@ public partial class DeckBuilderProbe : Node
             if (!OS.GetCmdlineUserArgs().Contains("--stay")) GetTree().Quit();
         }
         catch (Exception e) { GD.PushError(e.ToString()); GetTree().Quit(1); }
+    }
+    // #1281: draws record only texture RIDs. Collect .NET garbage with nothing redrawing and require that no gilded
+    // frame, panel cloth or scan turns into Godot's white fallback, as it did after the game sat idle.
+    private async Task CheckIdleArt()
+    {
+        GetViewport().WarpMouse(new Vector2(4, 4)); await Wait(1);
+        RenderingServer.ForceDraw(); var before = GetViewport().GetTexture().GetImage();
+        for (var i = 0; i < 4; i++) { GC.Collect(); GC.WaitForPendingFinalizers(); GC.Collect(); await Wait(.3); }
+        RenderingServer.ForceDraw(); var after = GetViewport().GetTexture().GetImage(); after.SavePng(Path.Combine(_out, "idle-after-gc.png"));
+        var whitened = 0;
+        for (var y = 0; y < after.GetHeight(); y += 2)
+            for (var x = 0; x < after.GetWidth(); x += 2)
+            { var a = after.GetPixel(x, y); var b = before.GetPixel(x, y); if (a.R > .96f && a.G > .96f && a.B > .96f && b.Luminance < .85f) whitened++; }
+        Check(whitened < 50, $"collected garbage leaves frames, deck panel and scans drawn, not white ({whitened} sampled pixels turned white) (#1281)");
     }
     private async Task Wait(double seconds) => await ToSignal(GetTree().CreateTimer(seconds), SceneTreeTimer.SignalName.Timeout);
     private async Task CheckWorkspaceNavigation()

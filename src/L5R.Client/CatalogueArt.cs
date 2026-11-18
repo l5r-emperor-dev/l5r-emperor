@@ -4,7 +4,8 @@ namespace L5R.Client;
 public static class CatalogueArt
 {
     public static readonly Color Ivory = new("e9dfc5"), Gold = new("bd9854"), Muted = new("aea489"), Navy = new("0a1014");
-    public static Texture2D Cloth => GD.Load<Texture2D>("res://Art/Catalogue/gallery-cloth.png");
+    public static Texture2D Cloth => _cloth ??= GD.Load<Texture2D>("res://Art/Catalogue/gallery-cloth.png"); // held for recorded draws (#1281)
+    private static Texture2D? _cloth;
     private static readonly FontFile HeadingFile = GD.Load<FontFile>("res://Art/Fonts/WeatheredQuill-Regular.ttf");
     public static Font Heading(int size) => new FontVariation { BaseFont = HeadingFile, SpacingGlyph = -1, SpacingTop = -(int)(size * .55), SpacingBottom = -(int)(size * .4) };
     public static StyleBoxTexture Frame(int margin = 24) => new() { Texture = Cloth, TextureMarginLeft = margin, TextureMarginRight = margin, TextureMarginTop = margin, TextureMarginBottom = margin, ContentMarginLeft = margin, ContentMarginRight = margin, ContentMarginTop = margin, ContentMarginBottom = margin };
