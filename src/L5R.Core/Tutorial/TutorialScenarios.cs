@@ -95,6 +95,9 @@ public sealed partial class MatchEngine
     /// <summary>The lesson's table starts with this player holding the Imperial Favor (the Dishonor lesson pays The Heir's Wrath with it). Tutorial-only.</summary>
     internal void TutorialGiveFavor(int playerId) => _state.FavorPlayerId = playerId;
 
+    /// <summary>The lesson's table starts with this many Favor tokens on this player's Stronghold (the Imperial Favor lesson's Kyuden Otomo - exp). Tutorial-only.</summary>
+    internal void TutorialAddFavorTokens(int playerId, int count) { for (var n = 0; n < count; n++) CreateToken(StrongholdOf(playerId), FavorTokenType, "tutorial"); }
+
     private int _tutorialAdded;
     /// <summary>The lesson turns these Personalities of this player dishonorable, as an opponent's card would have (Keywords: Seppuku). Tutorial-only.</summary>
     internal void TutorialDishonor(int owner, params string[] definitionIds)

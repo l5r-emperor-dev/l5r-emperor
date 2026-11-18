@@ -19,9 +19,10 @@ internal sealed record TutorialSetup(TutorialSide You, TutorialSide Foe, int Fir
 /// <summary>What the opponent does when a step lets it play: which Personalities it recruits with the Clan Discount, which cards it recruits at full cost (a Holding, whatever is free),
 /// and the abilities it uses on a target (<c>(ability id, definition id of the card it targets)</c>). Anything else it declines or passes.
 /// <see cref="AttackProvince"/>: it declares an attack on its own turn, sends every Personality it has at home against that Province of yours and fights that battle. <see cref="Performers"/>: for an ability
-/// several of its cards could perform (one granted by its Stronghold), the card (by definition id) that performs it, matched by position with <see cref="Abilities"/>.</summary>
+/// several of its cards could perform (one granted by its Stronghold), the card (by definition id) that performs it, matched by position with <see cref="Abilities"/>. <see cref="Attackers"/>: when set, only these
+/// Personalities (by definition id) join that attack.</summary>
 internal sealed record TutorialFoeScript(string[] RecruitWithDiscount, string[] Recruit, (string Ability, string Target)[] Abilities, FoePurchase[]? Purchases = null, string[]? Discard = null,
-    int? AttackProvince = null, string[]? Performers = null)
+    int? AttackProvince = null, string[]? Performers = null, string[]? Attackers = null)
 {
     public static readonly TutorialFoeScript Passive = new([], [], []);
 }
@@ -38,7 +39,7 @@ internal sealed record TutorialLesson(string Id, string Title, TutorialSetup Set
 /// <summary>Every lesson, in the order the menu suggests. The menu never locks one.</summary>
 internal static class TutorialLessons
 {
-    public static readonly TutorialLesson[] All = [TutorialLessonOne.Lesson, TutorialLessonDynasty.Lesson, TutorialLessonRecruiting.Lesson, TutorialLessonSpells.Lesson, TutorialLessonAttachments.Lesson, TutorialLessonKeywords.Lesson, TutorialLessonKeywords2.Lesson, TutorialLessonTraitsActions.Lesson, TutorialLessonAttacks.Lesson, TutorialLessonDuels.Lesson, TutorialLessonDishonor.Lesson];
+    public static readonly TutorialLesson[] All = [TutorialLessonOne.Lesson, TutorialLessonDynasty.Lesson, TutorialLessonRecruiting.Lesson, TutorialLessonSpells.Lesson, TutorialLessonAttachments.Lesson, TutorialLessonKeywords.Lesson, TutorialLessonKeywords2.Lesson, TutorialLessonTraitsActions.Lesson, TutorialLessonAttacks.Lesson, TutorialLessonDuels.Lesson, TutorialLessonDishonor.Lesson, TutorialLessonFavor.Lesson];
     public static TutorialLesson Default => All[0];
     public static TutorialLesson Get(string id) => All.Single(l => l.Id == id);
 }

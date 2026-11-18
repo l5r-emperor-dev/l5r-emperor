@@ -27,7 +27,7 @@ internal static partial class SecondCityBattleTests
         ("Discovering a Conspiracy: a Magistrate removes a Personality's Clan alignment for good and dishonors him; at a battlefield he is also bowed and a chosen player gains or loses 1 Honor -- asked only there", DiscoveringAConspiracy),
         ("Discovering a Conspiracy's Focus Effect: after the duel, its controller gains 2 Honor if his Personality won it -- and none if he lost", ConspiracyFocusEffect),
         ("Insulting Gesture: a Courtier's Political Open action takes the Imperial Favor; its Favor Political Battle action discards the Favor to dishonor, bow and send home an enemy Personality, whose controller loses 2 Honor -- and only a holder of the Favor may use it", InsultingGesture_),
-        ("Doji Dainagon's Lobby is an Open action: he bows to take the Imperial Favor, while his controller's Family Honor is the higher and he has 1 Personal Honor, and it does not use up the Limited Lobby", DainagonLobbies),
+        ("Doji Dainagon's Lobby is an Open action: he bows to take the Imperial Favor, while his controller's Family Honor is the higher and he has 1 Personal Honor, and it shares the Limited Lobby's once-per-turn use in either order (R-098)", DainagonLobbies),
         ("Barred Passage: a Hero who is the only Personality in his army bows an enemy Personality's whole unit; another Personality beside him, or a performer who is not a Hero, refuses it", BarredPassage_),
         ("Every enabled command offered for the cards of this pass validates and is accepted on a fresh engine", OfferedCommandsValidateFresh),
     ]);

@@ -23,6 +23,8 @@ public static class TutorialEmphasis
 public static class TutorialGlow
 {
     public const string PhaseBar = "phase-bar", BattleBar = "battle-bar", Hand = "hand";
+    /// <summary>Your Imperial Favor, on your side of the table.</summary>
+    public const string Favor = "favor";
     /// <summary>Your Family Honor on your placard.</summary>
     public const string Honor = "honor";
 }
@@ -121,6 +123,17 @@ internal sealed class TutorialContext(TutorialRunner runner)
     }
     /// <summary>You hold the Imperial Favor from the start (set in a lesson's opening).</summary>
     public void GiveFavor() => Engine.TutorialGiveFavor(TutorialRunner.Seat);
+    /// <summary>Your Stronghold starts with this many Favor tokens (Kyuden Otomo - exp).</summary>
+    public void AddFavorTokens(int count) => Engine.TutorialAddFavorTokens(TutorialRunner.Seat, count);
+    /// <summary>The opponent draws its opening hand from a deck ordered for the lesson.</summary>
+    public void FoeDraw(int count) => Engine.TutorialDraw(1 - TutorialRunner.Seat, count);
+    /// <summary>You decline the Reaction window open to you now, when the lesson narrates past an optional Reaction (Kyuden Otomo - exp's, after you take the Imperial Favor). Nothing to decline is fine.</summary>
+    public void DeclineYourReaction()
+    {
+        if (Engine.QueryActions(TutorialRunner.Seat).FirstOrDefault(a => a.Enabled && a.Type == "declineReaction" && a.Command is not null) is not { } option) return;
+        var result = Engine.Execute(option.Command!);
+        if (!result.Accepted) throw new InvalidOperationException("The lesson's decline was refused: " + result.Error);
+    }
     /// <summary>The opponent keeps the opportunity to act it has just been given instead of passing it back, until a step makes its move (<see cref="FoeOrderSeppuku"/>), so notes can be read in between.</summary>
     public void FoeWaits() => runner.FoeWaiting = true;
     /// <summary>The opponent orders its dishonorable Personality (by definition id) to commit Seppuku, the Open action every player has. A refusal is a mistake in the lesson, so it throws.</summary>
@@ -388,7 +401,8 @@ public sealed class TutorialRunner
             // once the battle at the attacked Province is over, it fights the Provinces nobody attacked in turn
             if (options.FirstOrDefault(a => a.Type == "attack") is not { } attack) return options.FirstOrDefault(a => a.Type == "selectBattle" && a.Command!.Province == province) ?? options.FirstOrDefault(a => a.Type == "selectBattle");
             var foe = 1 - Seat;
-            var units = _engine.TutorialState.Cards.Values.Where(c => c.OwnerId == foe && c.Zone == Zone.Home && !c.Bowed && CardCatalog.Get(c.DefinitionId).Type == CardType.Personality).Select(c => c.Id);
+            var units = _engine.TutorialState.Cards.Values.Where(c => c.OwnerId == foe && c.Zone == Zone.Home && !c.Bowed && CardCatalog.Get(c.DefinitionId).Type == CardType.Personality
+                && (_lesson.Foe.Attackers is not { } named || named.Contains(c.DefinitionId))).Select(c => c.Id);
             return attack with { Command = attack.Command! with { Assignments = units.ToDictionary(id => id, _ => province) } };
         }
         ActionOption? Buys(string definition, bool discount) => options.FirstOrDefault(a => a.Type == "purchase" && a.Command!.ClanDiscount == discount && _lookup.Is(a.Command.CardId, definition));

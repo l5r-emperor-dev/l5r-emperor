@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Imperial Favor tutorial (imperial-favor) built from Mendon's script with corrections: Favors (Kyuden Otomo - exp, 2 Favor tokens) vs Dragon Destruction; Lobby, the Favor's two abilities, Dazzling Attire, Sosuke spending the Favor before Dainagon's Open Lobby (R-097), Kyuden Otomo tokens paying for Sosuke and the Favor's Battle send-home. Engine: R-098, Dainagon's Open Lobby shares Lobby's once-per-turn use. Tutorial framework: Favor tokens/foe draw/decline-reaction helpers, named attackers, Favor glow, selectlast UI token.",
+  "validation": "tutorial-favor 6/6; all tutorial tests 82/82; second-city-battle DainagonLobbies updated to R-098 (both orders, new turn resets); bash tools/check.sh --skip-client: All requested checks passed; tools/check-tutorial.sh: TUTORIAL_UI_CHECK completed; native lab play-through of all 22 imperial-favor steps through real controls with captures (favor-abilities, favor-home, favor-done); dotnet format whitespace verify clean.",
+  "remaining": "Mendon to playtest the lesson.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1086",
+  "branch": "claude/1086-imperial-favor-tutorial",
+  "updated": "2026-11-18T12:21:28.965567+00:00"
+}

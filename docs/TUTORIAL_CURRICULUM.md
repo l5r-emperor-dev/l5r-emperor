@@ -29,7 +29,7 @@ A track with a single built lesson has no list: choosing it starts the lesson.
 | Special Actions - Dishonor (`special-dishonor`) | Dishonorable status, Dying Dishonorable, Dishonorable Dead, Rehonor, Seppuku: Crab (you) against Dragon. Yasuki Jekku dishonors Mirumoto Gobashi (-17 to -18), the Dragon order his Seppuku (an honorable death, no loss), Kaiu Iemasa's "Gain 3 Honor" rehonors him instead, the Slanderer dishonors Togashi Meiyu (a Monk: no Seppuku), and The Heir's Wrath destroys her, taking the Dragon to -20 and a Dishonor loss at their next End Phase. Built. |
 | Rings and Enlightenment (`rings`) | How to play a ring, How to win an Enlightenment Victory |
 | Reactions (`reactions`) | Timing, Triggers, Effects |
-| Imperial Favor (`imperial-favor`) | Lobbying and Using the Imperial Favor |
+| Imperial Favor (`imperial-favor`) | Lobbying and Using the Imperial Favor: Favors (Kyuden Otomo - exp) against Dragon Destruction. Lobby with Kakita Nara, the Favor's Limited draw, Dazzling Attire, then on the Dragon's turn Daidoji Sosuke spends the Favor, Doji Dainagon Lobbies as an Open action, Kyuden Otomo turns it into a Favor token, a token pays for the second Sosuke and for the Favor's Battle ability that sends Gobashi home (built, issue #1086). |
 
 ## Building a Deck
 
