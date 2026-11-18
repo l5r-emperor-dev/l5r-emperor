@@ -81,6 +81,7 @@ public partial class CatalogueCardTile : Button
     public CatalogueData.Card Card { get; }
     public bool Chosen { get; set; }
     private readonly CatalogueScans _scans;
+    private Texture2D? _drawn; // the scan the last _Draw recorded; the canvas holds only its RID (#1281)
     public CatalogueCardTile(CatalogueData.Card card, CatalogueScans scans)
     {
         Card = card; _scans = scans; AccessibilityName = card.Name; AccessibilityDescription = card.Playable ? "Playable game version. Select to inspect." : "Reference card, not yet playable. Select to inspect."; Flat = true; Text = "";
@@ -149,7 +150,7 @@ public partial class CatalogueCardTile : Button
         var hot = IsHovered() || HasFocus() || Chosen;
         if (hot) for (var i = 8; i > 0; i--) DrawRect(face.Grow(i), new Color(.91f, .66f, .29f, (Chosen ? .10f : .065f) * (1 - i / 9f)), false, 2);
         DrawRect(face.Grow(2), new Color("7b6034")); DrawRect(face.Grow(1), new Color("12100c"));
-        var tex = _scans.Get(Card.Printings.FirstOrDefault());
+        var tex = _drawn = _scans.Get(Card.Printings.FirstOrDefault());
         if (tex is not null)
         {
             var scale = Math.Min(face.Size.X / tex.GetWidth(), face.Size.Y / tex.GetHeight()); var size = tex.GetSize() * scale;

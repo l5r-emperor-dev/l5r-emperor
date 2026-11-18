@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Deck builder and Card Library art no longer turns white after idling: the shared gilded frame, deck-panel cloth and catalogue cloth are held for the process, and card faces/thumbnails/library tiles hold the scan they last drew. Draw calls keep only texture RIDs, so .NET GC freed the throwaway textures and Godot drew its white fallback until a redraw.",
+  "validation": "DeckBuilderProbe idle check (force GC x4 with no redraw, compare captures): unfixed main 29,575 sampled pixels turned white (frames + Your deck panel, matching the report); fixed 0. tools/check-deck-builder.sh DECK BUILDER PASS; tools/check-catalogue.sh CATALOGUE PASS; dotnet format whitespace verify clean.",
+  "remaining": "Mendon to confirm in a long idle session.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1281",
+  "branch": "claude/1281-idle-white-frames",
+  "updated": "2026-11-18T09:11:43.790247+00:00"
+}

@@ -8,6 +8,7 @@ public partial class DeckFace : Button
     private readonly CatalogueScans _scans;
     public int Copies = 1;
     public bool Selected;
+    private Texture2D? _drawn; // the scan the last _Draw recorded; the canvas holds only its RID (#1281)
     public DeckFace(CatalogueData.Card card, CatalogueScans scans)
     {
         Card = card; _scans = scans; Flat = true; AccessibilityName = card.Name; MouseDefaultCursorShape = CursorShape.PointingHand;
@@ -25,10 +26,10 @@ public partial class DeckFace : Button
             var glow = new StyleBoxFlat { BgColor = Colors.Transparent, ShadowColor = new Color(.95f, .64f, .2f, .5f), ShadowSize = 12, CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4, CornerRadiusBottomLeft = 4, CornerRadiusBottomRight = 4 }; glow.Draw(GetCanvasItem(), face.Grow(3));
         }
         DrawRect(face.Grow(2), new Color("8a7045")); DrawRect(face, new Color("070b0e"));
-        var tex = _scans.Get(Card.Printings.FirstOrDefault());
+        var tex = _drawn = _scans.Get(Card.Printings.FirstOrDefault());
         if (tex is not null) { var k = Math.Min(face.Size.X / tex.GetWidth(), face.Size.Y / tex.GetHeight()); var size = tex.GetSize() * k; DrawTextureRect(tex, new Rect2(face.Position + (face.Size - size) / 2, size), false); }
         else { DrawString(Palette.Body, new Vector2(8, face.Size.Y * .45f), Card.Name, HorizontalAlignment.Center, Size.X - 16, 16, CatalogueArt.Ivory); DrawString(Palette.Body, new Vector2(8, face.Size.Y * .55f), "Loading scan…", HorizontalAlignment.Center, Size.X - 16, 14, CatalogueArt.Muted); }
-        DeckSkin.Frame().Draw(GetCanvasItem(), face.Grow(2));
+        DeckSkin.SharedFrame.Draw(GetCanvasItem(), face.Grow(2));
         if (IsHovered() || HasFocus() || Selected) DrawRect(face.Grow(2), new Color("e4ba66"), false, 1);
     }
 }
@@ -37,12 +38,13 @@ public partial class DeckThumbnail : Control
 {
     private readonly CatalogueData.Card _card;
     private readonly CatalogueScans _scans;
+    private Texture2D? _drawn; // held for the recorded draw (#1281)
     public DeckThumbnail(CatalogueData.Card card, CatalogueScans scans)
     { _card = card; _scans = scans; MouseFilter = MouseFilterEnum.Ignore; TextureFilter = TextureFilterEnum.LinearWithMipmaps; scans.Changed += QueueRedraw; TreeExiting += () => scans.Changed -= QueueRedraw; }
     public override void _Draw()
     {
         DrawRect(new Rect2(Vector2.Zero, Size), new Color("171b1d"));
-        var tex = _scans.Get(_card.Printings.FirstOrDefault());
+        var tex = _drawn = _scans.Get(_card.Printings.FirstOrDefault());
         if (tex is not null)
         {
             var crop = new Rect2(tex.GetWidth() * .1f, tex.GetHeight() * .15f, tex.GetWidth() * .8f, tex.GetHeight() * .43f);
