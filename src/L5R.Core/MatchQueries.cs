@@ -63,7 +63,7 @@ public sealed partial class MatchEngine
                 Celestials: owned.Where(c => c.Zone == Zone.Celestial).Select(c => ViewCard(c)).ToArray(),
                 FocusCount: owned.Count(c => c.Zone == Zone.Focused),
                 Underneath: owned.Where(c => c.Zone == Zone.Underneath).Select(c => ViewUnder(c, playerId)).ToArray())
-            { HandLimit = HandLimitFor(player.Id), DynastyActionTaken = player.DynastyActionTaken, PlansWithinPlansArmed = player.Id == playerId && LimitedInsteadOfOpen(player.Id) }; // issue #503: The New Foundries
+            { HandLimit = HandLimitFor(player.Id), DynastyActionTaken = player.DynastyActionTaken, WinsWhenTurnBegins = MeetsHonorVictory(player) || MeetsEnlightenmentVictory(player), PlansWithinPlansArmed = player.Id == playerId && LimitedInsteadOfOpen(player.Id) }; // issue #503: The New Foundries
         }).ToArray();
         var duel = _state.PendingDuel;
         return new(ContentVersion, _scenario, _state.Version, _state.TurnNumber, playerId, _state.ActivePlayerId, _state.PriorityPlayerId,

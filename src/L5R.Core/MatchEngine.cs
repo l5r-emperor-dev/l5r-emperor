@@ -2982,21 +2982,23 @@ public sealed partial class MatchEngine
         _state.TurnNumber++; _state.ActivePlayerId = 1 - _state.ActivePlayerId;
         StartTurn();
     }
+    private bool MeetsHonorVictory(PlayerState player) => player.Honor >= HonorVictoryThreshold(player.Id);
+    private bool MeetsEnlightenmentVictory(PlayerState player) =>
+        !EnlightenmentBarred(player.Id) && RingElements.All(e => _state.Cards.Values.Any(c => c.OwnerId == player.Id && InPlay(c) && Definition(c).Type == CardType.Ring && Keyword(c, e) && !Keyword(c, "Fudo") && CountsForEnlightenment(c)));
     private void StartTurn()
     {
         foreach (var each in _state.Players) each.ProclaimedCardId = null; // a new turn: every Personality may be Proclaimed again (SeedsOfDecayBatch2.cs ProclaimRejection)
         var player = Player(_state.ActivePlayerId);
         _state.PriorityPlayerId = player.Id;
         // Akodo Hotaka (issue #453, batch 2) lowers the 40 his controller needs (HonorVictoryThreshold).
-        if (player.Honor >= HonorVictoryThreshold(player.Id)) { Win(player.Id, "Honor victory at the start of the turn"); return; }
+        if (MeetsHonorVictory(player)) { Win(player.Id, "Honor victory at the start of the turn"); return; }
         // Enlightenment victory (issue #194): begins their turn with all five REAL elemental Rings
         // (Fire/Water/Air/Earth/Void) in play -- checked by Keyword, not a fixed card id, since more
         // than one printing of a given Ring exists. Every False Ring carries its own matching
         // elemental keyword too (e.g. False Ring of Air prints "Air"), so this alone is not enough
         // to exclude them -- but all five False Rings also carry "Fudo", which no real Ring does,
         // so that keyword is the actual False-Ring exclusion.
-        if (!EnlightenmentBarred(player.Id) && RingElements.All(e => _state.Cards.Values.Any(c => c.OwnerId == player.Id && InPlay(c) && Definition(c).Type == CardType.Ring && Keyword(c, e) && !Keyword(c, "Fudo") && CountsForEnlightenment(c))))
-        { Win(player.Id, "Enlightenment victory"); return; }
+        if (MeetsEnlightenmentVictory(player)) { Win(player.Id, "Enlightenment victory"); return; }
         player.TurnsTaken++;
         PromoTurnBegins(player); // issue #653 (PromoEmperorEvents.cs): Losing the Way
         RestrictionsTurnBegin(); // P11 (CardRestrictions.cs): delayed Celestial entries, expired restrictions

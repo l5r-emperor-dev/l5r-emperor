@@ -1529,6 +1529,8 @@ public sealed record PlayerView(int Id, string Name, string Clan, int Honor, int
     public HandLimitView? HandLimit { get; init; }
     /// <summary>True once this player bought, overlaid or discarded a province card since the current Dynasty Phase began (public; absent/false in older payloads).</summary>
     public bool DynastyActionTaken { get; init; }
+    /// <summary>Issue #1283: true while this player would win by Honor or Enlightenment the moment their next turn begins, by the same tests the turn start applies (public inputs only).</summary>
+    public bool WinsWhenTurnBegins { get; init; }
     /// <summary>True only in the owning seat's own view, while Plans Within Plans lets this player take a Limited action in place of an Open one right now. Lets a client treat that out-of-phase Limited action as the one being played.</summary>
     public bool PlansWithinPlansArmed { get; init; }
 }

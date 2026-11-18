@@ -305,6 +305,7 @@ runner.Run("questions", QuestionsTests.Tests); // issue #1206: opportunity, race
 runner.Run("defence", DefenceTests.Tests); // issue #1206: family D, the defence assignment read from the Read
 runner.Run("read-a", ReadATests.Tests); // issue #1206: family A, the attack read from the Read's opportunity
 runner.Run("purchase", PurchaseTests.Tests); // issue #1206: family F, the Dynasty purchase read from the Read
+runner.Run("decided-game", DecidedGameTests.Tests); // issue #1283: no Dynasty purchases once the game is settled
 runner.Run("route", RouteTests.Tests); // issue #1206: family G, the route gate at the attack declaration
 runner.Run("hand", HandTests.Tests); // issue #1206: family I, the Favor, the hand-replacing Event and the hand-limit discard
 runner.Run("descriptor-audit", DescriptorAudit.Tests); // issue #1206: opt-in coverage audit of the descriptors over the tournament and replay decks

@@ -19,6 +19,7 @@ internal static class PhaseOrderTests
         ("The data: only the Attack and Dynasty Phases may be switched; every other order is illegal", RulesData),
         ("The default order is the turn as it always was: Action, Attack (declined or fought), Dynasty, End, and the marker reads default throughout", DefaultOrderScenario),
         ("The Deciding Moment: refused without one of its three conditions (nothing changes), allowed with each", ConditionScenario),
+        ("#1283: each seat's view says whether a player wins by Honor or Enlightenment when their next turn begins, by the turn start's own tests", WinsWhenTurnBeginsScenario),
         ("The Deciding Moment reorders this turn only: Dynasty before Attack, the marker public to both seats, the turn ends with the Attack Phase, and the next turn is default", ReorderThisTurnScenario),
         ("The reorder ends the turn after a declined attack too, and the Attack Phase is still the optional declare-or-decline decision", DeclinedAttackScenario),
         ("An order is refused once a phase it moves has begun, and a second reorder is a harmless no-op", RefusedLateScenario),
@@ -172,6 +173,26 @@ internal static class PhaseOrderTests
             var e = ActionTable((s, _) => { foreach (var element in new[] { "Fire", "Water", "Air", "Earth", "Void" }) Ring(s, element, 0); });
             Check(!Batch336Support.CanUse(e, 0, PhaseOrderAbilities.DecidingMomentOrder), "the player's own five Rings are not another player's");
         }
+    }
+
+    private static void WinsWhenTurnBeginsScenario()
+    {
+        bool Flag(MatchEngine e, int player, int seat) => e.GetView(seat).Players[player].WinsWhenTurnBegins;
+        var five = new[] { "Fire", "Water", "Air", "Earth", "Void" };
+        Check(!Flag(ActionTable(), 1, 0) && !Flag(ActionTable(), 0, 0), "an ordinary table: nobody is about to win");
+        var forty = ActionTable((s, _) => s.Players[1].Honor = 40);
+        Check(Flag(forty, 1, 0) && Flag(forty, 1, 1) && !Flag(forty, 0, 0), "40 Honor: public in both seats, for that player only");
+        Check(!Flag(ActionTable((s, _) => s.Players[1].Honor = 39), 1, 0), "39 Honor is not enough");
+        Check(Flag(ActionTable((s, _) => { foreach (var element in five) Ring(s, element, 1); }), 1, 0), "five elemental Rings in play");
+        Check(!Flag(ActionTable((s, _) => { foreach (var element in five[..4]) Ring(s, element, 1); }), 1, 0), "four Rings are not five");
+        // The flag is the turn start's own test: the player it marks does win when that turn begins.
+        var e = ActionTable((s, _) => s.Players[1].Honor = 40);
+        for (var steps = 0; e.WinnerId is null && e.State.ActivePlayerId == 0 && steps < 400; steps++)
+        {
+            var act = e.QueryActions(e.PriorityPlayerId).FirstOrDefault(a => a.Enabled && a.Type is "pass" or "endDynasty" or "declineAttack" or "endTurn" or "discardHand");
+            if (act is null || !e.Execute(new GameCommand(act.Type, e.PriorityPlayerId, e.Version)).Accepted) break;
+        }
+        Check(e.WinnerId == 1, $"the flagged player wins as their turn begins (winner {e.WinnerId?.ToString() ?? "none"}, phase {e.State.Phase})");
     }
 
     private static CardInstance Ring(MatchState s, string element, int owner)
