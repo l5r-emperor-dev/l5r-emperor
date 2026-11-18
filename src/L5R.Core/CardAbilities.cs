@@ -7713,7 +7713,7 @@ public sealed partial class MatchEngine
         PayCostOption(ability, command, player, source);
         // Every action that discards the Imperial Favor as a cost (Doji Rengetsu and Kakita Tadanobu included), or a Favor token in its place (Kyuden Otomo - exp, issue #486).
         if (IsFavorDiscardAbility(id)) DiscardImperialFavorCost(command, player);
-        Emit("abilityUsed", $"{player.Name}: {(source is null ? "Imperial Favor" : Definition(source).Name)} — {ability.Label}.", player.Id, source?.Id);
+        Emit("abilityUsed", $"{player.Name}: {(source is null ? "Player ability" : Definition(source).Name)} — {ability.Label}.", player.Id, source?.Id);
         _state.CurrentActionHonorGained = false; // Moksha Patam (issue #453 batch 5): only Honor gained from here on is "from its effects".
         // Snapshot before the effect resolves so any Battle-action Honor loss it inflicts on an
         // opponent can be detected generically afterward (Law of Darkness Dojo's passive).

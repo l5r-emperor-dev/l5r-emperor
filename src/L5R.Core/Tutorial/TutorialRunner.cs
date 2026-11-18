@@ -71,6 +71,8 @@ internal sealed class TutorialLookup(MatchEngine engine)
     public string[] Own(string definitionId, params Zone[] zones) => engine.TutorialCardIds(TutorialRunner.Seat, definitionId, zones);
     public string[] Foe(string definitionId, params Zone[] zones) => engine.TutorialCardIds(1 - TutorialRunner.Seat, definitionId, zones);
     public string Stronghold(int owner) => engine.TutorialStrongholdId(owner);
+    /// <summary>The ability of the announced Reaction an order command names (R-039's "Resolve ... next").</summary>
+    public string? Announced(string? id) => engine.TutorialAnnouncedAbility(id);
     public string? Province(int owner, int index) => engine.TutorialProvinceCardId(owner, index);
 }
 
@@ -128,6 +130,18 @@ internal sealed class TutorialContext(TutorialRunner runner)
     /// <summary>The opponent draws its opening hand from a deck ordered for the lesson.</summary>
     public void FoeDraw(int count) => Engine.TutorialDraw(1 - TutorialRunner.Seat, count);
     /// <summary>You decline the Reaction window open to you now, when the lesson narrates past an optional Reaction (Kyuden Otomo - exp's, after you take the Imperial Favor). Nothing to decline is fine.</summary>
+    /// <summary>You pass every Reaction window a resolving Reaction opened in which you have nothing to play (Khalimpeh-jiak's "before this action resolves"), stopping at the announce-and-order window (R-039).</summary>
+    public void PassNestedWindows()
+    {
+        runner.PlayFoe(null, scripted: false); // the opponent's Reactions to the move come first (Armor of the Heavens)
+        for (var guard = 0; guard < 8 && !Engine.TutorialInOrderedWindow && Engine.PriorityPlayerId == TutorialRunner.Seat; guard++)
+        {
+            var offered = Engine.QueryActions(TutorialRunner.Seat).Where(a => a.Enabled && a.Command is not null && a.Type != "concede").ToArray();
+            if (offered is not [{ Type: "declineReaction" } pass]) return;
+            if (!Engine.Execute(pass.Command!).Accepted) return;
+            runner.PlayFoe(null, scripted: false);
+        }
+    }
     public void DeclineYourReaction()
     {
         if (Engine.QueryActions(TutorialRunner.Seat).FirstOrDefault(a => a.Enabled && a.Type == "declineReaction" && a.Command is not null) is not { } option) return;
@@ -366,12 +380,33 @@ public sealed class TutorialRunner
             {
                 var onItsOwnTurn = _engine.TutorialState.ActivePlayerId != Seat;
                 var attacking = _engine.TutorialState.Phase != Phase.Action; // its own Attack and Dynasty phases are the lesson's to narrate
-                if (!scripted && (onItsOwnTurn && attacking || _engine.TutorialState.Phase == Phase.Battle)) return; // and so is the first action of a battle
+                if (!scripted && (onItsOwnTurn && attacking || _engine.TutorialState.Phase == Phase.Battle) && !Reacting(options)) return; // and so is the first action of a battle
                 if (!scripted && FoeWaiting) return; // a step will make its move (the Dishonor lesson's Seppuku)
                 pick = FoeChoice(options, scripted);
             }
             if (pick is null || !_engine.Execute(pick.Command!).Accepted) return;
         }
+    }
+
+    /// <summary>The opponent's options are a Reaction window it answers on its own (only for a lesson that scripts its Reactions): announcing, saying it is done, or playing or declining a Reaction.</summary>
+    private bool Reacting(ActionOption[] options) => _lesson.Foe.Reactions is not null
+        && options.Any(a => a.Type is "reactionAnnounce" or "reactionAnnounceDone" or "declineReaction" || _lesson.Foe.Reactions.Any(r => a.Command?.AbilityId == r.Ability));
+
+    /// <summary>A scripted Reaction of the opponent's: announced when the window asks for announcements (then it is done announcing), and played, aimed at its named card, when it is offered.</summary>
+    private ActionOption? FoeReaction(ActionOption[] options)
+    {
+        if (_lesson.Foe.Reactions is not { } reactions) return null;
+        if (options.FirstOrDefault(a => a.Type == "reactionAnnounce" && reactions.Any(r => r.Ability == a.Command!.AbilityId)) is { } announce) return announce;
+        if (options.FirstOrDefault(a => a.Type == "reactionAnnounceDone") is { } done) return done;
+        foreach (var (ability, target) in reactions)
+        {
+            var option = options.FirstOrDefault(a => a.Type == "useAbility" && a.Command!.AbilityId == ability);
+            if (option is null) continue;
+            if (target is null || option.TargetIds is not { Length: > 0 } targets) return option;
+            var aim = targets.FirstOrDefault(id => _lookup.DefinitionOf(id) == target);
+            if (aim is not null) return option with { Command = option.Command! with { TargetId = aim } };
+        }
+        return null;
     }
 
     private bool StepWants(ActionOption[] options) => Current is { IsAction: true } step && options.Any(a => a.Type != "declineReaction" && step.Allow!(_lookup, a.Command!));
@@ -408,6 +443,7 @@ public sealed class TutorialRunner
         ActionOption? Buys(string definition, bool discount) => options.FirstOrDefault(a => a.Type == "purchase" && a.Command!.ClanDiscount == discount && _lookup.Is(a.Command.CardId, definition));
         var script = _lesson.Foe;
         return (scripted && script.Purchases is { } plan ? options.FirstOrDefault(a => a.Type == "proclaim" && plan.Any(p => p.Proclaim)) : null) // a Proclaim the script asks for comes before declining the window it opens
+            ?? FoeReaction(options)
             ?? options.FirstOrDefault(a => a.Type == "declineReaction")
             ?? options.FirstOrDefault(a => a.Type == "assignDefense" && _attackedProvince is int attacked && (a.Command!.Assignments?.Values.Contains(attacked) ?? a.Command.Province == attacked))
             ?? (scripted && script.AttackProvince is int province && _engine.TutorialState.ActivePlayerId != Seat ? Attacks(province) : null)

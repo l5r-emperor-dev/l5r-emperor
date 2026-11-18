@@ -42,7 +42,7 @@ public sealed partial class MatchEngine
         if (ignoreCosts)
         {
             var ignoring = Player(command.PlayerId); var ignoringSource = command.CardId is null ? null : Card(command.CardId);
-            Emit("abilityUsed", $"{ignoring.Name}: {(ignoringSource is null ? "Imperial Favor" : Definition(ignoringSource).Name)} — {ability.Label} (negated; its costs are ignored).", ignoring.Id, ignoringSource?.Id);
+            Emit("abilityUsed", $"{ignoring.Name}: {(ignoringSource is null ? "Player ability" : Definition(ignoringSource).Name)} — {ability.Label} (negated; its costs are ignored).", ignoring.Id, ignoringSource?.Id);
             CompleteNegatedAction(command, ability, ignoring, ignoringSource, PlayedFromDiscard(ability, ignoringSource), consumedGrant);
             return;
         }
@@ -58,7 +58,7 @@ public sealed partial class MatchEngine
         RecordPerformedKeywordActions(ability, command, source);
         NoteSteelSoulNegated(ability, command.PlayerId, source); // Steel Soul Dojo (Emperor Edition Stronghold pass, issue #486 batch 2): a negated Dark Virtue action was still the first of its phase.
         PayAbilityCosts(ability, command, player, source);
-        Emit("abilityUsed", $"{player.Name}: {(source is null ? "Imperial Favor" : Definition(source).Name)} — {ability.Label} (negated).", player.Id, source?.Id);
+        Emit("abilityUsed", $"{player.Name}: {(source is null ? "Player ability" : Definition(source).Name)} — {ability.Label} (negated).", player.Id, source?.Id);
         CompleteNegatedAction(command, ability, player, source, playedFromDiscard, consumedGrant);
     }
 

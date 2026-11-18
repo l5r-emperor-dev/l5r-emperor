@@ -72,6 +72,10 @@ internal static class TutorialCards
     public const string MonasteryOfNewThought = "oracle-l5r-10183";
     public const string YasukiJekku = "oracle-l5r-9443", YasukiTono = "oracle-l5r-9467", KaiuIemasa = "oracle-l5r-4119", TogashiMeiyu = "oracle-l5r-8550", MirumotoGobashi = "oracle-l5r-5087";
     public const string RememberYourAncestors = "oracle-l5r-6253", DismissingTheCur = "oracle-l5r-2027", TheHeirsWrath = "oracle-l5r-8127";
+    // The Reactions lesson: Mantis (you, Kyuden Kitsune) against Unicorn (Plains of the Maiden).
+    public const string KyudenKitsune = "oracle-l5r-4642", SeasideBazaar = "oracle-l5r-6529", ColonialHarbor = "oracle-l5r-1431", TsuruchiTomaruExp = "oracle-l5r-8894", YoritomoHiromi = "oracle-l5r-9558";
+    public const string Khalimpehjiak = "oracle-l5r-10905", YoritomoNakoshi = "oracle-l5r-9610", Surrounded = "oracle-l5r-7668", StrategicStrike = "oracle-l5r-7525";
+    public const string UtakuRyoko = "oracle-l5r-9094", ChrysanthemumBlossom = "oracle-l5r-1340", UtakuLishan = "oracle-l5r-9083", ArmorOfTheHeavens = "oracle-l5r-446", SuretyOfPurpose = "oracle-l5r-7664", Stables = "oracle-l5r-7443";
     // The Imperial Favor lesson: Favors (you, Kyuden Otomo - exp) against Dragon Destruction (Monastery of New Thought).
     public const string KyudenOtomoExp = "oracle-l5r-4646", DazzlingAttire = "oracle-l5r-1875", DaidojiSosuke = "oracle-l5r-9811", KakitaNara = "oracle-l5r-4206", LuxuriousSilk = "oracle-l5r-4787";
     public const string TheHostsAdvantage = "oracle-l5r-8141", RequestAuthorization = "oracle-l5r-6265", TheEmpressAddress = "oracle-l5r-8059", MokshaPatam = "oracle-l5r-10121", HomeGuard = "oracle-l5r-3413";
