@@ -47,7 +47,7 @@ public partial class Main
         else if (entry.Kind == "Engage") { details.AddChild(Palette.Wrapped("Engaged " + string.Join(", ", entry.Chosen), 19, Palette.Paper)); details.AddChild(Palette.Wrapped(entry.Brief, 18, Palette.Gold)); }
         else
         {
-            details.AddChild(Palette.Wrapped(entry.Source?.Definition?.Name ?? "Imperial Favor", 20, Palette.Paper));
+            details.AddChild(Palette.Wrapped(entry.Source?.Definition?.Name ?? "Player ability", 20, Palette.Paper)); // a player ability (Naval Invasion, the Favor's Battle ability) has no source card
             if (entry.Performer is { } performer) details.AddChild(Palette.Wrapped("Performer: " + performer, 18, Palette.Paper));
             if (entry.Targets.Length > 0) details.AddChild(Palette.Wrapped((entry.Targets.Length == 1 ? "Target: " : "Targets: ") + string.Join(", ", entry.Targets), 18, Palette.Paper));
             if (entry.Chosen.Length > 0) details.AddChild(Palette.Wrapped("Chose: " + string.Join(", ", entry.Chosen), 18, Palette.Paper));

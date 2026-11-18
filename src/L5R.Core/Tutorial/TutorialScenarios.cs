@@ -91,6 +91,11 @@ public sealed partial class MatchEngine
         _state.Cards.Values.Where(c => c.OwnerId == owner && c.DefinitionId == definitionId && (zones.Length == 0 || zones.Contains(c.Zone))).Select(c => c.Id).ToArray();
     internal string? TutorialProvinceCardId(int owner, int index) => Player(owner).Provinces[index].CardId;
     internal string TutorialStrongholdId(int owner) => Player(owner).StrongholdId;
+    /// <summary>True while the open choice is the announce-and-order window itself (R-039), not a window one of its Reactions opened.</summary>
+    internal bool TutorialInOrderedWindow => _state.PendingReactionOrder is { } order && Equals(_state.PendingChoice, order.Window);
+    /// <summary>The ability of a Reaction announced into the open announce-and-order window (R-039), by its announcement id; null when there is none.</summary>
+    internal string? TutorialAnnouncedAbility(string? id) =>
+        id is null || _state.PendingReactionOrder is not { } order ? null : order.Announced.Concat(order.Queue).FirstOrDefault(a => a.Id == id)?.AbilityId;
 
     /// <summary>The lesson's table starts with this player holding the Imperial Favor (the Dishonor lesson pays The Heir's Wrath with it). Tutorial-only.</summary>
     internal void TutorialGiveFavor(int playerId) => _state.FavorPlayerId = playerId;
