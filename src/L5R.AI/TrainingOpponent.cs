@@ -80,7 +80,9 @@ public static partial class TrainingOpponent
     {
         var memory = x.Memory; var view = x.View;
         if (memory.UsePlanner) x = x with { Plan = PlanFor(x) }; // issue #1185: the turn plan, rebuilt when the table changes
-        var candidates = x.Actions.Where(a => a.Enabled && a.Type is not ("concede" or "wait"))
+        var offered = x.Actions.Where(a => a.Enabled && a.Type is not ("concede" or "wait")).ToArray();
+        if (GameDecidedBeforeNextTurn(x) && offered.Any(a => a.Type != "purchase")) offered = offered.Where(a => a.Type != "purchase").ToArray();
+        var candidates = offered
             .Select(a => (Action: a, Command: Prepare(x, a)))
             .Where(p => p.Command is not null && !memory.IsRejected(view.Version, p.Command))
             .Select(p => (p.Action, Command: p.Command!, Score: Score(x, p.Action, p.Command!)))
@@ -91,6 +93,13 @@ public static partial class TrainingOpponent
         if (LookAhead(x, candidates) is { } looked) chosen = (looked.Action, looked.Command, chosen.Score);
         return (x, candidates, chosen);
     }
+
+    /// <summary>Issue #1283 (Mendon): in its own Dynasty Phase the bot buys nothing once the game is settled before anything bought could act: the opponent wins by Honor or Enlightenment
+    /// when their next turn begins, or the bot (at -20 or lower Honor) loses at the start of its End Phase, which follows. Not when the Dynasty Phase comes before the Attack Phase this turn
+    /// (The Deciding Moment, Nocturnal Attack), since a purchase can still attack then. Passing the purchases speeds the end of the game.</summary>
+    private static bool GameDecidedBeforeNextTurn(Ctx x) =>
+        x.View.Phase == Phase.Dynasty && x.View.ActivePlayerId == x.View.ViewerId && x.View.PhaseOrder is null
+        && (x.Opponent.WinsWhenTurnBegins || x.Self.Honor <= -20 || x.Self.DishonorLossPending);
 
     /// <summary>Issue #1206 (strategy brief step 1 item 1; the arena's L5R_TOURN_FIRES=1): the decision is made again once per rule it consulted, with that rule alone masked; a rule fires
     /// when the choice differs (its knob token fires when the default would have changed the choice). What a re-decision touches in memory (the plan, the planned attack, the Read's caches, the
