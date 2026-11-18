@@ -86,3 +86,19 @@ Corrections to the original script, checked against the Comprehensive Rules, the
 
 Player abilities with no source card (Naval Invasion, Lobby) were logged and shown in the battle-action panel as "Imperial Favor"; they now read "Player ability".
 
+
+## The Cost and Effect lesson (issue #1288)
+
+`TutorialLessonCostEffect.cs`, lesson id `cost-effect`: Scorpion (you, The Towers of the Yogo, 2 Honor) against Dragon (Monastery of New Thought, 8 Honor), from your Action phase through one attack on the Dragon's Province 1. Notes on costs, effects and the two colons; Mysterious Deaths (its 6 Gold is its only cost; it destroys your Ninja and Togashi Meiyu, leaves the game and takes you from 2 to -2 Honor), paid without The Merchant's District; the District draws At Any Cost; you attack with Shosuro Koshiba (Nightingale Blade) and Bayushi Kasumi, Mirumoto Gobashi defends, his Khalimpeh-jiak (-2F) and Unparalleled Sword (Melee 4) destroy Koshiba; Revenge, performed by Kasumi, bows and destroys the Sword; Kasumi's Towers ability bows Gobashi; At Any Cost brings Koshiba back with the Clan Discount and you win the battle. The Ninja is made in the opening by the Overlooked Palace (`TutorialContext.Use`).
+
+Corrections to the original script, checked against the Comprehensive Rules, the Emperor printings and the rulings (agreed with Mendon, 2026-11-18):
+- The constraints block is not "the cost": it holds triggers, conditions, targets, performers and costs; only what tells you to do something (bow, pay, lose Honor) is a cost.
+- Mysterious Deaths targets the unit with the lowest total Gold Cost, attachments included, not the lowest Personality. Targeting is not an effect (CR, Definition of effects), so it has three effects, not four; a player with no target simply has nothing destroyed.
+- The Merchant's District's Emperor printing is "Limited: If you have four or fewer cards in your hand and you are a Scorpion Clan player, bow this card: Draw a card." The hand size and Clan are a condition; the cost is bowing it.
+- At Any Cost's Emperor printing is "Battle: If you control any units at the current battlefield, choose your performing dead Samurai: Bring him into play at the current battlefield, paying all costs." Presence and the dead Samurai are a condition and a performer, not costs; the action has no costs. The Samurai's Gold Cost is the cost of bringing him into play (CR, Optional costs: required under the Good Faith Rule, but not a cost of the action). The later Oracle wording ("Dark Virtue Battle, [Gold]: Recruit your target ...") is not used.
+- Khalimpeh-jiak's is an Engage ability (counted as a Reaction at engagement, ruling of 2026-10-31); its bow symbol is the later shorthand for "Bow this card".
+- The Dragon destroy Koshiba (with his Nightingale Blade), not a Sasumata, and it is your turn, not theirs.
+- Revenge's condition is "since the end of your last Battle action this battle", not "since your last turn". Choosing a performer and a target are not costs, so Revenge has no costs (its Gold Cost is 0); its bow and destroy are independent effects.
+- The script's questions ("What are the costs and what are the effects?") are answered in the same step, as Mendon chose.
+
+Engine difference the lesson states: costs are paid as the action is chosen, before it is announced. Engine note for later: `at-any-cost-recruit` reads "recruit your target performing dead Samurai"; the Emperor printing chooses a performer and does not target.

@@ -114,6 +114,14 @@ internal sealed class TutorialContext(TutorialRunner runner)
         var result = Engine.Execute(option.Command!);
         if (!result.Accepted) throw new InvalidOperationException($"The lesson's '{type}' was refused: {result.Error}");
     }
+    /// <summary>You use this ability now, for a move the lesson narrates as already made (the Cost and Effect lesson's Overlooked Palace creating its Ninja). A refusal is a mistake in the lesson, so it throws.</summary>
+    public void Use(string ability)
+    {
+        var option = Engine.QueryActions(TutorialRunner.Seat).FirstOrDefault(a => a.Enabled && a.Command?.AbilityId == ability)
+            ?? throw new InvalidOperationException($"The lesson expected '{ability}' to be open to you.");
+        var result = Engine.Execute(option.Command!);
+        if (!result.Accepted) throw new InvalidOperationException($"The lesson's '{ability}' was refused: {result.Error}");
+    }
     /// <summary>You choose the battle at the Province you attacked, the only one with anything to fight (the lesson narrates the choice rather than asking for it).</summary>
     public void AutoSelectBattle()
     {
