@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Meeting the Keepers' Reaction now answers only a Ring's printed actions, not the Ring's -recruit entry into play (Mendon's ruling R-099).",
+  "validation": "check.sh --skip-client passed; Meeting the Keepers tests 3/3 (the entry-refusal assertion fails on the old code); dotnet format whitespace verified on changed files.",
+  "remaining": "None; ready for review.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1290",
+  "branch": "claude/1290-keepers-ring-ability",
+  "updated": "2026-11-19T11:24:49.848138+00:00"
+}
