@@ -569,7 +569,7 @@ internal static partial class MultiWindowReaction4Tests
     private static CardInstance StrongholdOf(MatchState s, int player, string def) { var c = s.Cards[s.Players[player].StrongholdId]; c.DefinitionId = def; return c; }
 
     private const string Kikugoro = "oracle-l5r-556", Centering = "oracle-l5r-1277", Chukage = "oracle-l5r-10072", Sensei = "oracle-l5r-9899", Kanpeki = "oracle-l5r-1733", GojuKaxt = "oracle-l5r-10336", Rokuta = "oracle-l5r-7156";
-    private const string Words = "oracle-l5r-9377", TacticalAssault = "oracle-l5r-9934", Otomo = "oracle-l5r-4646", Keepers = "oracle-l5r-5018", ImperialGift = "oracle-l5r-3694", Empress = "oracle-l5r-8059";
+    private const string Words = "oracle-l5r-9377", TacticalAssault = "oracle-l5r-9934", Otomo = "oracle-l5r-4646", Keepers = "oracle-l5r-5018", Introspection = "oracle-l5r-3793", ImperialGift = "oracle-l5r-3694", Empress = "oracle-l5r-8059";
     private const string Carpenter = "oracle-l5r-1218";
 
     private static void KikugoroRing()
@@ -768,19 +768,21 @@ internal static partial class MultiWindowReaction4Tests
         {
             var s = Table(Phase.Battle, 0); s.PriorityPlayerId = 0;
             var ring = Add(s, "oracle-l5r-6335", 0, Zone.Hand); // Ring of Fire
-            var strategy = Add(s, Keepers, 0, Zone.Hand);
+            var strategy = Add(s, Introspection, 0, Zone.Hand);
+            var keepers = Add(s, Keepers, 0, Zone.Hand);
             var mine = Add(s, "training-lion-veteran", 0, Zone.Battlefield, province: 0); Batch336Support.Force(mine, 20);
             Add(s, "training-crane-samurai", 1, Zone.Battlefield, province: 0);
-            PutIn(s, ImperialGift, 0, Zone.DynastyDeck); PutIn(s, "training-crane-samurai", 0, Zone.DynastyDeck);
+            PutIn(s, "training-focus-strategy", 0, Zone.FateDeck); PutIn(s, "training-crane-samurai", 0, Zone.FateDeck);
             var e = MatchEngine.FromTestState(s);
             Accept(e, new("pass", e.State.PriorityPlayerId, e.Version)); Accept(e, new("pass", e.State.PriorityPlayerId, e.Version));
             Eq(Window(e), "battleRecruit", "the won battle opens the after-battle window");
             Accept(e, Enabled(e, 0, "ring-of-fire-recruit", ring.Id).Command!);
-            Eq(Window(e), "afterActionResolvedReaction", "putting the Ring into play is an action from one of his Rings");
+            Eq(Window(e), "afterActionResolvedReaction", "one of his Rings entered play");
+            Check(!CanUse(e, 0, "keepers-search", keepers.Id), "Meeting the Keepers does not answer a Ring entering play (R-099)");
             if (search)
             {
-                Accept(e, Enabled(e, 0, "keepers-search", strategy.Id).Command!);
-                Accept(e, new("selectSearchCard", 0, e.Version, Choice: ImperialGift));
+                Accept(e, Enabled(e, 0, "introspection-search", strategy.Id).Command!);
+                Accept(e, new("selectSearchCard", 0, e.Version, Choice: "training-focus-strategy"));
             }
             else Accept(e, new("declineReaction", 0, e.Version));
             for (var guard = 0; guard < 6 && e.State.Phase == Phase.Battle && e.State.PendingChoice is { } open && open.Type is "afterActionResolvedReaction" or "battleRecruit"; guard++)
@@ -1283,7 +1285,7 @@ internal static partial class MultiWindowReaction4Tests
         ("Words Have Strength (after-action-resolved): a chosen player loses 3 Honor after another player's Battle action destroyed a Magistrate", WordsHaveStrength),
         ("Kyuden Otomo (after-action-resolved, trait): discard the Favor you took for a Favor token; not when another player took it; its Political Open still works", OtomoFavor),
         ("Meeting the Keepers (after-action-resolved): after an action from one of its player's Rings it finds an Event; its Open draw still works", KeepersSearch),
-        ("Meeting the Keepers after a Ring put into play in the after-battle window: passing it or searching gives the battleRecruit window back and the battle ends as it does without Keepers (Mendon's stall, 2026-11-19)", KeepersAfterBattleRecruit),
+        ("A Reaction to a Ring put into play in the after-battle window (Introspection; Meeting the Keepers no longer reacts to it, R-099): passing it or searching gives the battleRecruit window back and the battle ends as it does without it (Mendon's stall, 2026-11-19)", KeepersAfterBattleRecruit),
         ("The Empress' Address (after-battle-resolution): brings a dead Personality back after a battle destroyed a defender; only the Defender", EmpressAddress),
         ("Naka Mahatsu (before-action-resolves): negates an element action; not a plain one; at home not in a battle; his Limited search still works", MahatsuNegate),
         ("Interrogation (before-action-resolves): negates an action that bows the player's Holding; not an action on a Personality; its Open draw still works", InterrogationNegate),

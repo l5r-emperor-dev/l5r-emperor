@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Actions that end in a deck search or look (Martial Instruction) now count toward the Ring of Air/Water/Void entry conditions; a Battle action that needs presence is refused between battles instead of crashing the action query (the practice bot's repeated crash). Main's KeepersAfterBattleRecruit test, which relied on Meeting the Keepers answering a Ring entering play (contrary to R-099), now uses Introspection for the same stall coverage.",
+  "validation": "check.sh --skip-client passed; new deferred-action-counts 2/2, both fail on the old engine (the second with the exact 'Nullable object must have a value' crash); multi-window-reaction-4 44/44; formatting verified on changed files.",
+  "remaining": "None; ready for review.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1294",
+  "branch": "claude/1294-deferred-counts-crash",
+  "updated": "2026-11-19T15:27:19.130070+00:00"
+}
