@@ -11,7 +11,7 @@ namespace L5R.Core;
 /// <param name="NextLessonId">On a lesson's last note: the lesson the curriculum lists next, offered beside the button back to the menu (its title is <paramref name="NextTitle"/>).</param>
 public sealed record TutorialCoach(string StepId, string Title, string Body, string? Button, string[] HighlightCardIds, int Step, int Steps, bool Finished, string? Instruction = null,
     string[]? Glow = null, string? ShowDefinitionId = null, bool Slow = false, bool ProvincesOnTable = true, bool CanGoBack = false, string? ExitLabel = null, string[]? AnimateOnly = null,
-    string? Emphasis = null, string? NextLessonId = null, string? NextTitle = null, int? ShowDeadOf = null);
+    string? Emphasis = null, string? NextLessonId = null, string? NextTitle = null, int? ShowDeadOf = null, bool FreePlay = false, bool Restart = false);
 
 /// <summary>Printed parts of a card a note can swell: the Gold Cost coin and the Honor Requirement box.</summary>
 public static class TutorialEmphasis
@@ -60,6 +60,11 @@ internal sealed class TutorialStep
     public string? Emphasis { get; init; }
     /// <summary>Open the opponent's Dead pile gallery when this note appears.</summary>
     public bool ShowFoeDead { get; init; }
+    /// <summary>The lesson's last step plays the game out: every move the engine offers is yours, and the practice opponent (Hard) plays the other side until the match is won or lost
+    /// (the Rings lesson). <see cref="Won"/> and <see cref="Lost"/> are the notes shown then; a loss offers the lesson again.</summary>
+    public bool FreePlay { get; init; }
+    public (string Title, string Body)? Won { get; init; }
+    public (string Title, string Body)? Lost { get; init; }
     public bool IsAction => Allow is not null;
 }
 
@@ -74,6 +79,8 @@ internal sealed class TutorialLookup(MatchEngine engine)
     /// <summary>The ability of the announced Reaction an order command names (R-039's "Resolve ... next").</summary>
     public string? Announced(string? id) => engine.TutorialAnnouncedAbility(id);
     public string? Province(int owner, int index) => engine.TutorialProvinceCardId(owner, index);
+    /// <summary>The province a card of yours is fighting at (the battlefield it was assigned to), or null at home.</summary>
+    public int? BattlefieldOf(string definitionId) => Own(definitionId, Zone.Battlefield).Select(id => engine.TutorialState.Cards[id].ProvinceIndex).FirstOrDefault();
 }
 
 /// <summary>What a step may do to the table when it is done. The opponent only ever plays when a step asks it to, so the lesson can stop between its moves.</summary>
@@ -287,7 +294,11 @@ public sealed class TutorialRunner
     public MatchEngine Engine => _engine;
     public bool Finished => _index >= _steps.Length;
     public string? Refusal { get; private set; }
-    public bool CanGoBack => _inputs.Count > 0;
+    public bool CanGoBack => _inputs.Count > 0 && !FreePlay;
+    /// <summary>The lesson is being played out (<see cref="TutorialStep.FreePlay"/>): the table offers every move, and the practice opponent plays the other side.</summary>
+    public bool FreePlay => Current is { FreePlay: true } && _engine.WinnerId is null;
+    /// <summary>The played-out match is over and was lost: the note offers the lesson again.</summary>
+    public bool LostFreePlay => Current is { FreePlay: true } && _engine.WinnerId is { } winner && winner != Seat;
 
     private TutorialStep? Current => Finished ? null : _steps[_index];
 
@@ -296,6 +307,13 @@ public sealed class TutorialRunner
         get
         {
             if (Current is not { } step) return new("done", "Lesson complete", "", null, [], _steps.Length, _steps.Length, true);
+            if (step.FreePlay && _engine.WinnerId is { } winner)
+            {
+                var (title, body) = winner == Seat ? step.Won ?? ("You win", "") : step.Lost ?? ("You lose", "");
+                return new(step.Id + (winner == Seat ? "-won" : "-lost"), title, body, winner == Seat ? "Tutorial Menu" : "Restart Tutorial", [], _index + 1, _steps.Length, false, Restart: winner != Seat);
+            }
+            if (step.FreePlay)
+                return new(step.Id, step.Title, step.Body, null, step.Highlight?.Invoke(_lookup).ToArray() ?? [], _index + 1, _steps.Length, false, step.Instruction, step.Glow, FreePlay: true);
             var next = _index == _steps.Length - 1 ? TutorialCurriculum.After(_lesson.Id) : null;
             return new(step.Id, step.Title, step.Body, step.Button, step.Highlight?.Invoke(_lookup).ToArray() ?? [], _index + 1, _steps.Length, false, step.Instruction,
                 step.Glow, step.ShowDefinitionId, step.Slow, _index >= _lesson.ProvincesStep, CanGoBack, AnimateOnly: step.AnimateOnly, Emphasis: step.Emphasis, NextLessonId: next?.Id, NextTitle: next?.Title,
@@ -307,6 +325,7 @@ public sealed class TutorialRunner
     public ActionOption[] Actions()
     {
         var offered = _engine.QueryActions(Seat);
+        if (FreePlay) return offered;
         if (Current is not { IsAction: true } step || _engine.PriorityPlayerId != Seat || _engine.TutorialHeld)
             return offered.Select(a => a with { Enabled = false, Reason = a.Enabled ? "Read the tutorial note, then press its button." : a.Reason }).ToArray(); // an option the engine itself refuses keeps its own reason (Sachina: Loyal)
         var targets = step.Targets?.Invoke(_lookup).ToHashSet();
@@ -325,6 +344,12 @@ public sealed class TutorialRunner
     public CommandResult Execute(GameCommand command)
     {
         Refusal = null;
+        if (FreePlay)
+        {
+            var played = _engine.Execute(command);
+            if (!played.Accepted) Refusal = played.Error;
+            return played;
+        }
         if (Current is not { IsAction: true } step || !step.Allow!(_lookup, command) || step.Accept is { } accept && !accept(_lookup, command))
         {
             Refusal = Current?.RefusalHint ?? "The lesson is over.";
@@ -341,6 +366,7 @@ public sealed class TutorialRunner
     /// <summary>The button of a narration step.</summary>
     public bool Continue()
     {
+        if (Current is { FreePlay: true } && _engine.WinnerId == Seat) { _index++; return true; } // the played-out match was won: the lesson is over
         if (Current is not { IsAction: false } step) return false;
         _inputs.Add(null);
         Advance(step);
@@ -377,6 +403,7 @@ public sealed class TutorialRunner
     /// attacked and plays its reactions on your turn, and never starts anything on its own turn, so the lesson can stop between the moves it narrates.</summary>
     internal void PlayFoe(Func<MatchState, bool>? stop, bool scripted)
     {
+        if (FreePlay) return; // the practice opponent plays its side (MatchSession), as in a practice match
         for (var guard = 0; guard < 80 && _engine.WinnerId is null; guard++)
         {
             if (_engine.TutorialHeld || stop?.Invoke(_engine.TutorialState) == true) return;

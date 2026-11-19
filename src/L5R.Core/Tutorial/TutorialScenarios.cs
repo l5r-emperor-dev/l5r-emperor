@@ -35,6 +35,8 @@ public sealed partial class MatchEngine
             var strength = CardCatalog.Get(side.StrongholdId).ProvinceStrength;
             player.Provinces = Enumerable.Range(0, 4).Select(i => new ProvinceState { Index = i, Strength = strength, PrintedStrength = strength }).ToList();
             foreach (var id in side.DynastyDiscard ?? []) Add(seat, id, Zone.DynastyDiscard, true);
+            foreach (var id in side.FateDiscard ?? []) Add(seat, id, Zone.FateDiscard, true);
+            foreach (var index in side.DestroyedProvinces ?? []) player.Provinces[index].Destroyed = true;
             foreach (var (index, id) in side.Regions ?? []) { var region = Add(seat, id, Zone.Region, true); region.ProvinceIndex = index; player.Provinces[index].RegionId = region.Id; }
         }
         state.ActivePlayerId = setup.FirstPlayer; state.PriorityPlayerId = setup.FirstPlayer; state.TurnNumber = 1 + 2 * setup.TurnsTaken;

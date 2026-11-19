@@ -33,9 +33,9 @@ public static class TutorialCurriculum
             new("special-attacks", "Special Actions - Attacks", "Melee and Ranged Attacks"),
             new("special-duels", "Special Actions - Duels", "Refusability, the Duel flow, and Focus Effects"),
             new("special-dishonor", "Special Actions - Dishonor", "Dishonorable status, Dying Dishonorable, Dishonorable Dead, Rehonor, Seppuku"),
-            new("rings", "Rings and Enlightenment", "How to play a ring, How to win an Enlightenment Victory"),
             new("reactions", "Reactions", "Timing, Triggers, Effects"),
             new("imperial-favor", "Imperial Favor", "Lobbying and Using the Imperial Favor"),
+            new("rings", "Rings and Enlightenment", "How to play a ring, How to win an Enlightenment Victory"),
         ]),
         new("building", "Building a Deck",
         [

@@ -84,6 +84,11 @@ internal static class TutorialCards
     public const string MysteriousDeaths = "oracle-l5r-5468", AtAnyCost = "oracle-l5r-639", MirumotoShikei = "oracle-l5r-5148", SuperiorReach = "oracle-l5r-7656";
     public const string MirumotoYumaru = "oracle-l5r-5181", TogashiHiroto = "oracle-l5r-10057", FarmersMarket = "oracle-l5r-10033", IncenseMill = "oracle-l5r-10035";
     public const string DeadlyDiscipline = "oracle-l5r-1880", HundredFoldCut = "oracle-l5r-3513", Revenge = "oracle-l5r-6302";
+    // The Rings and Enlightenment lesson (issue #1084): Dragon Enlightenment (you, Pillars of Virtue) against Scorpion (The Towers of the Yogo).
+    public const string PillarsOfVirtue = "oracle-l5r-5957", TempleOfHarmony = "oracle-l5r-7874", TattoosAndTrinkets = "oracle-l5r-10213", TogashiHizumi = "oracle-l5r-8521", TogashiKasuru = "oracle-l5r-9821";
+    public const string TogashiTsukagi = "oracle-l5r-8591", TogashiOsawaExp = "oracle-l5r-8565", ShosuroTsuji = "oracle-l5r-7179", HiromisVassals = "oracle-l5r-3280", Brawl = "oracle-l5r-1127", EliteTraining = "oracle-l5r-10255";
+    public const string PillarTattoo = "oracle-l5r-5956", VoidTattoo = "oracle-l5r-9943", StringOfVictories = "oracle-l5r-7588", Ambush = "oracle-l5r-344", NerveStrike = "oracle-l5r-5532", GrapplingTheSnake = "oracle-l5r-10150";
+    public const string RingOfTheVoid = "oracle-l5r-6338", RingOfEarth = "oracle-l5r-6334", RingOfFire = "oracle-l5r-6335", RingOfAir = "oracle-l5r-6333", SpinningHeelKick = "oracle-l5r-7413", WeaknessOfMan = "oracle-l5r-8425";
 
     /// <summary>A forty-card deck: the lesson's cards on top, then the rest of the side's deck in its own order. A card the deck does not hold displaces the last card.</summary>
     internal static string[] Deck(string[] top, TutorialSide side, bool dynasty)

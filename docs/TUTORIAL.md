@@ -102,3 +102,20 @@ Corrections to the original script, checked against the Comprehensive Rules, the
 - The script's questions ("What are the costs and what are the effects?") are answered in the same step, as Mendon chose.
 
 Engine difference the lesson states: costs are paid as the action is chosen, before it is announced. Engine note for later: `at-any-cost-recruit` reads "recruit your target performing dead Samurai"; the Emperor printing chooses a performer and does not target.
+
+## The Rings and Enlightenment lesson (issue #1084)
+
+`TutorialLessonRings.cs`, lesson id `rings`, the last lesson of Level Up Your Play (after Imperial Favor, at Mendon's request). Dragon Enlightenment (you, Pillars of Virtue, 9 Honor, Provinces 1-3 destroyed, Togashi Osawa in the last) against Scorpion (The Towers of the Yogo, 2 Honor, everyone bowed), late in the game in your Action phase. Four Rings are in play and the Ring of Fire is in your hand with Nerve Strike, Grappling the Snake and Deadly Discipline; seven cards are in your Fate discard pile. Notes show each Ring and its entry condition (Emperor printings) and what an Enlightenment Victory needs; Togashi Hizumi attacks alone, gives the province -4 strength (7 to 3), destroys it, and the Ring of Fire enters play. The last step, `rg-survive`, is played out (`TutorialStep.FreePlay`): every move is the player's, the client's Hard practice opponent plays the Scorpion, and the lesson ends when the match does. A win (by Enlightenment as your next turn starts, if you survive) shows "CONGRATULATIONS! YOU HAVE COMPLETED ALL OF THE TUTORIALS!" with only Tutorial Menu; a loss shows "YOU LOSE! TRY AGAIN!" with Restart Tutorial, which starts the lesson again. Back is not offered while the game is played out. The decks are filler made of the Dragon Enlightenment deck's own cards (no static deck was needed). `TutorialSide` gained `FateDiscard` and `DestroyedProvinces` for this table.
+
+Corrections to the script, checked against the Comprehensive Rules and the Emperor printings:
+- Enlightenment: the CR (The Player, Enlightenment Victory) asks for five Rings with different element keywords, each of which last entered play by its own text, checked after the start of one of your turns. A Ring put into play by another card does not count while it stays in play (it can count again once it leaves and re-enters by its own text).
+- Ring of the Void: "your fourth or later non-Kiho action from Strategies in one phase": actions resolved from Strategy cards, not Strategies played. A Strategy action can be a Reaction or Limited action, so other phases are possible, but in practice it is the Action or Battle phase.
+- Ring of Earth: "if there were ever any enemy units at that battlefield": the enemy must have had a unit there at some point in the battle, not necessarily opposing at the end.
+- Ring of Air: the three Spell or Kiho actions must come from cards with different titles.
+- Ring of Water: four Battle actions in one battle, from cards with different titles (not any four actions).
+- Ring of Fire: the battle must be at a province; destroying a province or enemy cards in its resolution qualifies, so an unopposed win that destroys the province does too (the lesson's own path), as well as a tie or a win in an opposed battle.
+- Several Rings from one effort: four non-Kiho Strategy actions and three Kiho actions in one battle, all different titles, meet the Void, Air and Water conditions at once (seven Battle actions).
+- The script's step 14 ("pass ... and you'll be given the opportunity to play Ring of Fire") is two steps: pass, then put the Ring of Fire into play. The attack also needs Declare an attack and choosing the battle.
+- Added a note on the Rings' own abilities (bow it or discard it from hand), which help the defence the lesson ends with, and on Rings staying in play when bowed.
+
+Engine fixes made alongside: actions that end in a deck search (Martial Instruction) count toward the Rings' entry conditions; a Battle action between battles no longer crashes the action query (issue #1294).

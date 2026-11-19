@@ -6,9 +6,10 @@ internal sealed record TutorialHomeCard(string DefinitionId, bool Bowed = false,
 
 /// <summary>One side of a lesson's table. The deck is the pinned deck of <see cref="Clan"/> (<c>content/published/lion-crane-v1.json</c>) unless <see cref="Deck"/> names another; the cards in
 /// <see cref="DynastyTop"/> and <see cref="FateTop"/> are put on top in that order, whether or not the deck holds them. A catalogue card outside the pinned decks takes the place of the deck's last card.
-/// <see cref="DynastyDiscard"/> starts in the Dynasty discard pile; each of <see cref="Regions"/> is attached to that Province (counted from 0).</summary>
+/// <see cref="DynastyDiscard"/> starts in the Dynasty discard pile and <see cref="FateDiscard"/> in the Fate discard pile; each of <see cref="Regions"/> is attached to that Province (counted from 0);
+/// each of <see cref="DestroyedProvinces"/> is already destroyed (the Rings lesson opens with one Province left).</summary>
 internal sealed record TutorialSide(string Clan, string StrongholdId, string[] DynastyTop, string[] FateTop, TutorialHomeCard[] Home, int? Honor = null, PublishedDeck? Deck = null,
-    string[]? DynastyDiscard = null, (int Province, string DefinitionId)[]? Regions = null);
+    string[]? DynastyDiscard = null, (int Province, string DefinitionId)[]? Regions = null, string[]? FateDiscard = null, int[]? DestroyedProvinces = null);
 
 /// <summary>The table a lesson starts from. Provinces are filled and face down, hands are empty and the match stops before the first turn (<see cref="MatchEngine.TutorialBeginTurn"/>);
 /// a lesson that needs more (a Ring already in play, a destroyed Province, a hand) does it from its steps' <see cref="TutorialStep.Then"/>.
@@ -40,7 +41,7 @@ internal sealed record TutorialLesson(string Id, string Title, TutorialSetup Set
 /// <summary>Every lesson, in the order the menu suggests. The menu never locks one.</summary>
 internal static class TutorialLessons
 {
-    public static readonly TutorialLesson[] All = [TutorialLessonOne.Lesson, TutorialLessonDynasty.Lesson, TutorialLessonRecruiting.Lesson, TutorialLessonSpells.Lesson, TutorialLessonAttachments.Lesson, TutorialLessonKeywords.Lesson, TutorialLessonKeywords2.Lesson, TutorialLessonTraitsActions.Lesson, TutorialLessonCostEffect.Lesson, TutorialLessonAttacks.Lesson, TutorialLessonDuels.Lesson, TutorialLessonDishonor.Lesson, TutorialLessonReactions.Lesson, TutorialLessonFavor.Lesson];
+    public static readonly TutorialLesson[] All = [TutorialLessonOne.Lesson, TutorialLessonDynasty.Lesson, TutorialLessonRecruiting.Lesson, TutorialLessonSpells.Lesson, TutorialLessonAttachments.Lesson, TutorialLessonKeywords.Lesson, TutorialLessonKeywords2.Lesson, TutorialLessonTraitsActions.Lesson, TutorialLessonCostEffect.Lesson, TutorialLessonAttacks.Lesson, TutorialLessonDuels.Lesson, TutorialLessonDishonor.Lesson, TutorialLessonReactions.Lesson, TutorialLessonFavor.Lesson, TutorialLessonRings.Lesson];
     public static TutorialLesson Default => All[0];
     public static TutorialLesson Get(string id) => All.Single(l => l.Id == id);
 }

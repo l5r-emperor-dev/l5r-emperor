@@ -72,6 +72,7 @@ public partial class Main
             _inspector.AddChild(Palette.Text("MATCH COMPLETE", 12, Palette.Gold));
             _inspector.AddChild(Palette.Text(View.Players[winner].Clan + " prevails", 28, title: true));
             _inspector.AddChild(Palette.Wrapped(View.VictoryReason ?? "Victory"));
+            if (_session.Tutorial is not null) return; // a lesson's own note says what comes next
             _inspector.AddChild(SidebarSkin.Button("Start another practice", ShowPractice, true));
             _inspector.AddChild(SidebarSkin.Button("Return to main menu", ShowMainMenu)); return; // issue #793
         }
