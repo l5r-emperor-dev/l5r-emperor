@@ -5035,7 +5035,22 @@ public sealed partial class MatchEngine
     // Ring of Air ("After you resolve your third or later Spell or Kiho action in one turn from cards with different titles") and Ring of Water ("...your fourth or later Battle action in one
     // battle from cards with different titles"): each resolved action of that kind counts once per card title; the action that reaches the count grants the recruit. A repeat of a counted title
     // is not another action "from cards with different titles", so it neither raises the count nor grants again.
-    private void NoteRingActionCounts(PlayerState player, AbilityDefinition ability, CardInstance? source)
+    // Every count a Ring's entry condition reads, for one resolved action (issue #1294: an action that ends in a search or a look reaches this from FinishDeferredAction, not CompleteAbilityResolution).
+    private void NoteResolvedActionCounts(PlayerState player, string timing, CardInstance? source)
+    {
+        NoteRingActionCounts(player, timing, source);
+        // Ring of the Void's own recruitment condition (issue #1157): "after you resolve your fourth or later non-Kiho action from Strategies in one phase". The count
+        // restarts whenever the (turn, phase) stamp moves on.
+        if (source is not null && Definition(source).Type == CardType.Strategy && !Keyword(source, "Kiho"))
+        {
+            var phaseStamp = $"{_state.TurnNumber}:{_state.Phase}";
+            if (player.StrategyActionsPhase != phaseStamp) { player.StrategyActionsPhase = phaseStamp; player.StrategyActionsThisPhase = 0; }
+            player.StrategyActionsThisPhase++;
+            GrantRingRecruit(player, player.StrategyActionsThisPhase >= 4, "ring-of-void-recruit");
+        }
+    }
+
+    private void NoteRingActionCounts(PlayerState player, string timing, CardInstance? source)
     {
         if (source is null) return;
         var title = Definition(source).Name;
@@ -5049,7 +5064,7 @@ public sealed partial class MatchEngine
                 GrantRingRecruit(player, player.SpellKihoActionTitles.Count >= 3, "ring-of-air-recruit");
             }
         }
-        if (_state.Phase == Phase.Battle && ability.Timing is "Battle" or "BattleOrOpen")
+        if (_state.Phase == Phase.Battle && timing is "Battle" or "BattleOrOpen")
         {
             var battle = _state.BattleNumber.ToString();
             if (player.BattleActionsStamp != battle) { player.BattleActionsStamp = battle; player.BattleActionTitles = []; }
@@ -5749,6 +5764,9 @@ public sealed partial class MatchEngine
             // effect cases so an ability that moves a Personality to a battlefield cannot be added without it. Munefusa's move-home keeps its old
             // no-presence clause as an explicit Absent.
             var reinforcesFromElsewhere = ability.Absent || ability.MovesToBattle || DojiWaivesFavorPresence(id, player); // Doji's Guidance (Emperor Edition remaining-cards pass, issue #492, group E).
+            // Issue #1294: an action that needs presence needs a battle in progress. Between battles there is no current battlefield to be present at (a Ring's put-into-play in the
+            // after-battle window needs no presence, so it is not refused here).
+            if (!reinforcesFromElsewhere && _state.CurrentBattleProvince is null) return "There is no battle in progress.";
             if (!reinforcesFromElsewhere) { if (!(Army(player.Id, _state.CurrentBattleProvince!.Value).Any() || Wave735WaivesPresence(player.Id))) return "You need a unit at the current battlefield."; }
             if (!reinforcesFromElsewhere && !SourceMayBeAway(ability, source) && !HomeWaivesSourceLocation(ability, source) /* issue #672 (P16): Home */ && source is not null && Definition(source).Type == CardType.Personality)
             { if (!(AtBattle(source) || HasHalls(player.Id) && Keyword(source, "Shugenja"))) return "The performing card must be at this battlefield."; }
@@ -10718,16 +10736,7 @@ public sealed partial class MatchEngine
         // Favor actions are still counted (FavorActionsThisTurn); the Emperor Edition Ring of Air no longer reads them (it counts Spell and Kiho actions, below).
         if (id is "shunya-honor" or "favor-cycle" or "favor-cycle-kurohito" or "favor-battle" or "jakuei-bow-favor" or "bonds-of-coin-draw" or "baiko-shame")
             player.FavorActionsThisTurn++;
-        NoteRingActionCounts(player, ability, source);
-        // Ring of the Void's own recruitment condition (issue #1157): "after you resolve your fourth or later non-Kiho action from Strategies in one phase". The count
-        // restarts whenever the (turn, phase) stamp moves on.
-        if (source is not null && Definition(source).Type == CardType.Strategy && !Keyword(source, "Kiho"))
-        {
-            var phaseStamp = $"{_state.TurnNumber}:{_state.Phase}";
-            if (player.StrategyActionsPhase != phaseStamp) { player.StrategyActionsPhase = phaseStamp; player.StrategyActionsThisPhase = 0; }
-            player.StrategyActionsThisPhase++;
-            GrantRingRecruit(player, player.StrategyActionsThisPhase >= 4, "ring-of-void-recruit");
-        }
+        NoteResolvedActionCounts(player, ability.Timing, source);
         // Forgotten Legacy pass (issue #467), batch 1: Doji Rengetsu's is a Favor action too (and, batch 4 of the Emperor Edition Personality pass, Kakita Tadanobu's).
         if (id is "rengetsu-disable" or "tadanobu-draw") player.FavorActionsThisTurn++;
         if (opponentHonorBeforeBattleAction is int before && Player(target!.OwnerId).Honor < before && Definition(Card(player.StrongholdId)).Effect == "law-of-darkness-punish")
