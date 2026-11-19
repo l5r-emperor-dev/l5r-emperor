@@ -96,5 +96,5 @@ internal static class TutorialLessonAttacks
     /// <summary>Mantis sends both Personalities at your first Province; every other move is asked for by a step.</summary>
     private static readonly TutorialFoeScript FoePlays = new([], [], [], AttackProvince: 0);
 
-    public static readonly TutorialLesson Lesson = new("special-attacks", "Special Actions - Attacks", Table, Steps, FoePlays, Opening: Opening);
+    public static readonly TutorialLesson Lesson = new("special-attacks", "Attacks", Table, Steps, FoePlays, Opening: Opening);
 }

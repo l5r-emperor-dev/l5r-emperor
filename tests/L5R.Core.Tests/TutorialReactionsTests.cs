@@ -11,7 +11,7 @@ internal static class TutorialReactionsTests
         ("The lesson opens in your Action phase with the script's table: Mantis on 8 Honor against Unicorn on 13, every Province face down", OpensAsMantis),
         ("Every move step says what to click and the lesson ends on a button back to the menu", EveryStepSaysWhatToDo),
         ("Back rebuilds the table as it was before the last button or move", BackUndoesTheLastStep),
-        ("Reactions is built, follows Special Actions - Dishonor and precedes Imperial Favor", Curriculum),
+        ("Reactions is built, follows Dishonor and precedes Imperial Favor", Curriculum),
     ]);
 
     private static void Expect(bool condition, string message) { if (!condition) throw new Exception(message); }
@@ -166,6 +166,6 @@ internal static class TutorialReactionsTests
     private static void Curriculum()
     {
         Expect(TutorialCurriculum.All.Single(e => e.Id == Lesson).Built, "Reactions is built");
-        Expect(TutorialCurriculum.After("special-dishonor")?.Id == Lesson && TutorialCurriculum.After(Lesson)?.Id == "imperial-favor", "Reactions sits between Special Actions - Dishonor and Imperial Favor");
+        Expect(TutorialCurriculum.After("special-dishonor")?.Id == Lesson && TutorialCurriculum.After(Lesson)?.Id == "imperial-favor", "Reactions sits between Dishonor and Imperial Favor");
     }
 }

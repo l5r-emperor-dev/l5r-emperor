@@ -88,7 +88,7 @@ public partial class Main
             {
                 scroll = menu.TrackScroll!;
                 MenuAssert(scroll.ScrollVertical > _menuProbeVersion, $"dragging the scroll bar scrolls the list ({_menuProbeVersion} to {scroll.ScrollVertical})");
-                MenuAssert(menu.Entries.GetChildren().OfType<Button>().Count() == 13, "all thirteen lessons are in the list");
+                MenuAssert(menu.Entries.GetChildren().OfType<Button>().Count() == L5R.Core.TutorialCurriculum.Tracks[1].Entries.Length, "every lesson of the track is in the list");
                 _menuProbeStep = 33; _captureClock = 0; return;
             }
         }

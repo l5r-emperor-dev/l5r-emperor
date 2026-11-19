@@ -389,7 +389,7 @@ public partial class Main
         ["soshi-bow"] = "select:Soshi House Guard;click:Natsumi;click:Use Soshi House Guard",
         ["towers-bow"] = "select:Bayushi Hurunayi;click:Isawa Tomohiro;click:Use Bayushi Hurunayi",
         ["blade-bow"] = "select:Nightingale Blade;click:Isawa Tomohiro;click:Use Nightingale Blade",
-        // Special Actions - Dishonor: Jekku paid with the Small Farm, Kaiu Iemasa's own ability, the Slanderer, and The Heir's Wrath discarding the Imperial Favor.
+        // Dishonor: Jekku paid with the Small Farm, Kaiu Iemasa's own ability, the Slanderer, and The Heir's Wrath discarding the Imperial Favor.
         ["jekku"] = "select:Yasuki Jekku;click:Mirumoto Gobashi;selecthome:Small Farm;click:Use Yasuki Jekku",
         ["iemasa"] = "select:Kaiu Iemasa;click:Use Kaiu Iemasa",
         ["slanderer"] = "select:Slanderer;click:Togashi Meiyu;click:Use Slanderer",
