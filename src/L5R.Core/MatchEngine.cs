@@ -377,7 +377,9 @@ public sealed partial class MatchEngine
         ApplyCore(command);
         if (_honorReplayCommand is not null) return; // an Honor-change window just closed: Execute runs the command it set aside again.
         var resumed = ResumeIdleSuspendedWindow() || _state.SuspendedWindows.Count < suspendedBefore;
-        if (resumed) SettleReactionWindow(); // issue #644: a window given back after a Reaction of its own is not offered to a player with nothing to react with: a window given back after a Reaction of its own is not offered to a player with nothing to react with
+        // issue #644: a window given back after a Reaction of its own is not offered to a player with nothing to react with. When settling closes it, the window it was set
+        // aside over is given back the same way (Meeting the Keepers' search inside the after-action window inside the after-battle battleRecruit window: Mendon, 2026-11-19).
+        for (var depth = 0; resumed && depth < 8; depth++) { SettleReactionWindow(); resumed = ResumeIdleSuspendedWindow(); }
         FinishSpentBeforeBattleItem();
         FinishTwistOfFateAction(twistWasActive);
         OpenAssignedReactionWindow(); // Chrysanthemum Blossom (issue #492 group G): "After this Personality is assigned".
