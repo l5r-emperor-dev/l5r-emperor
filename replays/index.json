@@ -19,7 +19,8 @@
           "fingerprint": "1127513f3267"
         }
       ],
-      "note": ""
+      "note": "",
+      "digest": false
     },
     {
       "file": "practice-20261109-133956.json",
@@ -39,7 +40,8 @@
           "fingerprint": "29787b731e5e"
         }
       ],
-      "note": ""
+      "note": "",
+      "digest": false
     },
     {
       "file": "practice-20261109-172814.json",
@@ -59,7 +61,8 @@
           "fingerprint": "d6c23492dc06"
         }
       ],
-      "note": ""
+      "note": "",
+      "digest": false
     },
     {
       "file": "practice-20261109-184403.json",
@@ -79,7 +82,8 @@
           "fingerprint": "f9315058903e"
         }
       ],
-      "note": ""
+      "note": "",
+      "digest": false
     },
     {
       "file": "practice-20261109-195056.json",
@@ -99,7 +103,8 @@
           "fingerprint": "3569b1c95f56"
         }
       ],
-      "note": ""
+      "note": "",
+      "digest": false
     },
     {
       "file": "practice-20261109-201243.json",
@@ -119,7 +124,8 @@
           "fingerprint": "b6b8d1478ef6"
         }
       ],
-      "note": ""
+      "note": "",
+      "digest": false
     },
     {
       "file": "practice-20261110-173816.json",
@@ -139,7 +145,29 @@
           "fingerprint": "d30c76bab139"
         }
       ],
-      "note": ""
+      "note": "",
+      "digest": false
+    },
+    {
+      "file": "practice-20261111-111739.json",
+      "sha256": "75313251f2912d1c7aff1cdcf44126ef15299acb8f52a56bd95c36c74d5a74e4",
+      "commands": 109,
+      "turns": 7,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Eternal Victory Dojo",
+          "cards": 83,
+          "fingerprint": "413945d8cc48"
+        },
+        {
+          "stronghold": "Koshin Keep",
+          "cards": 96,
+          "fingerprint": "1127513f3267"
+        }
+      ],
+      "note": "",
+      "digest": false
     },
     {
       "file": "practice-20261113-185919.json",
@@ -159,7 +187,8 @@
           "fingerprint": "d30c76bab139"
         }
       ],
-      "note": ""
+      "note": "",
+      "digest": false
     },
     {
       "file": "practice-20261113-191822.json",
@@ -179,7 +208,8 @@
           "fingerprint": "d30c76bab139"
         }
       ],
-      "note": ""
+      "note": "",
+      "digest": false
     },
     {
       "file": "practice-20261113-221421.json",
@@ -199,7 +229,8 @@
           "fingerprint": "d30c76bab139"
         }
       ],
-      "note": ""
+      "note": "",
+      "digest": false
     },
     {
       "file": "practice-20261113-223647.json",
@@ -219,7 +250,8 @@
           "fingerprint": "9a3d48342f91"
         }
       ],
-      "note": ""
+      "note": "",
+      "digest": false
     },
     {
       "file": "practice-20261114-111401.json",
@@ -239,7 +271,8 @@
           "fingerprint": "5664e2ea9210"
         }
       ],
-      "note": ""
+      "note": "",
+      "digest": false
     },
     {
       "file": "practice-20261114-173235.json",
@@ -259,7 +292,8 @@
           "fingerprint": "659e5a17e1a4"
         }
       ],
-      "note": ""
+      "note": "",
+      "digest": false
     },
     {
       "file": "practice-20261114-192911.json",
@@ -279,7 +313,8 @@
           "fingerprint": "659e5a17e1a4"
         }
       ],
-      "note": ""
+      "note": "",
+      "digest": false
     },
     {
       "file": "practice-20261115-094037.json",
@@ -299,7 +334,8 @@
           "fingerprint": "659e5a17e1a4"
         }
       ],
-      "note": ""
+      "note": "",
+      "digest": false
     },
     {
       "file": "practice-20261115-232319.json",
@@ -319,7 +355,190 @@
           "fingerprint": "3569b1c95f56"
         }
       ],
-      "note": ""
+      "note": "",
+      "digest": false
+    },
+    {
+      "file": "practice-20261116-185851.json",
+      "sha256": "1d24f91eb8c5d791481e6b6d1a9a7f944e598eb51fa21dda96a842892ee67c77",
+      "commands": 240,
+      "turns": 16,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Kyuden Otomo",
+          "cards": 88,
+          "fingerprint": "8bf663877675"
+        },
+        {
+          "stronghold": "Halls of Memory",
+          "cards": 83,
+          "fingerprint": "29787b731e5e"
+        }
+      ],
+      "note": "",
+      "practice": {
+        "yourDeck": "Crane Favors",
+        "opponentDeck": "Lion Starter",
+        "botLevel": "Hard"
+      },
+      "digest": true
+    },
+    {
+      "file": "practice-20261117-094836.json",
+      "sha256": "50049bd2da73c736aed856ab3026ba7e0ecbdbcea8ba1e2e2ab5d849416a30be",
+      "commands": 214,
+      "turns": 12,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Kyuden Otomo",
+          "cards": 86,
+          "fingerprint": "53780e0a1495"
+        },
+        {
+          "stronghold": "Halls of Memory",
+          "cards": 83,
+          "fingerprint": "29787b731e5e"
+        }
+      ],
+      "note": "",
+      "practice": {
+        "yourDeck": "Crane Favors",
+        "opponentDeck": "Lion Starter",
+        "botLevel": "Hard"
+      },
+      "digest": true
+    },
+    {
+      "file": "practice-20261117-121926.json",
+      "sha256": "e5566b5577c2aed7b91f8c4f1a1509d65fc44c83620f238f9449174af66d5b82",
+      "commands": 286,
+      "turns": 15,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Kyuden Otomo",
+          "cards": 86,
+          "fingerprint": "53780e0a1495"
+        },
+        {
+          "stronghold": "Steel Soul Dojo",
+          "cards": 83,
+          "fingerprint": "d6c23492dc06"
+        }
+      ],
+      "note": "",
+      "practice": {
+        "yourDeck": "Crane Favors",
+        "opponentDeck": "Spider Conquer",
+        "botLevel": "Hard"
+      },
+      "digest": true
+    },
+    {
+      "file": "practice-20261118-093237.json",
+      "sha256": "4dc29c77d5dd5f9350055fc91e5cc246569a7f9e0769170ee3c49099b51c0b85",
+      "commands": 241,
+      "turns": 15,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Kyuden Otomo",
+          "cards": 83,
+          "fingerprint": "e9b33b0c3c7e"
+        },
+        {
+          "stronghold": "Monastery of New Thought",
+          "cards": 88,
+          "fingerprint": "d30c76bab139"
+        }
+      ],
+      "note": "",
+      "practice": {
+        "yourDeck": "Crane Favors",
+        "opponentDeck": "Dragon Destruction",
+        "botLevel": "Hard"
+      },
+      "digest": true
+    },
+    {
+      "file": "practice-20261119-105124.json",
+      "sha256": "b3ff381d99bd8d06274f1608fe2bb01750a2e17279b03b25a2d4423ddceb2167",
+      "commands": 154,
+      "turns": 10,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Pillars of Virtue",
+          "cards": 112,
+          "fingerprint": "b5739f4a681b"
+        },
+        {
+          "stronghold": "Halls of Memory",
+          "cards": 84,
+          "fingerprint": "641886035dc1"
+        }
+      ],
+      "note": "",
+      "practice": {
+        "yourDeck": "Dragon Enlightenment",
+        "opponentDeck": "Classic Lion",
+        "botLevel": "Easy"
+      },
+      "digest": true
+    },
+    {
+      "file": "practice-20261119-200432.json",
+      "sha256": "42d6885aaef87bd786d9975944f4c1972b58200e7aeaea914a03e0d601fceb83",
+      "commands": 154,
+      "turns": 10,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Monastery of New Thought",
+          "cards": 88,
+          "fingerprint": "d30c76bab139"
+        },
+        {
+          "stronghold": "Kyuden Otomo",
+          "cards": 83,
+          "fingerprint": "9e4e0c32a384"
+        }
+      ],
+      "note": "",
+      "practice": {
+        "yourDeck": "Dragon Destruction",
+        "opponentDeck": "Crane Favors",
+        "botLevel": "Hard"
+      },
+      "digest": true
+    },
+    {
+      "file": "practice-20261119-201928.json",
+      "sha256": "b9afa3737fab7411c5e0b0aae0bbc00598fcd30292cb3a56588b8bb10d29c6ba",
+      "commands": 219,
+      "turns": 14,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Monastery of New Thought",
+          "cards": 88,
+          "fingerprint": "d30c76bab139"
+        },
+        {
+          "stronghold": "Shinden Asahina",
+          "cards": 84,
+          "fingerprint": "b330186bc3a6"
+        }
+      ],
+      "note": "",
+      "practice": {
+        "yourDeck": "Dragon Destruction",
+        "opponentDeck": "Classic Crane",
+        "botLevel": "Hard"
+      },
+      "digest": true
     }
   ],
   "retired": [
