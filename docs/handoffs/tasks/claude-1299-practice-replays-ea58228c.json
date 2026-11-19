@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Replays: 8 new practice exports (2026-11-11 to 2026-11-19) added to replays/games and indexed; none retired. Corpus now 24 games.",
+  "validation": "check_replays.py: 24 files, 0 findings; ReplayCheck: 24 replays rebuilt by emperor-lion-crane-0.5.0, every card and every move legal.",
+  "remaining": "Notes for the new games pending Mendon's input.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1299",
+  "branch": "claude/1299-practice-replays",
+  "updated": "2026-11-19T20:22:59.653608+00:00"
+}
