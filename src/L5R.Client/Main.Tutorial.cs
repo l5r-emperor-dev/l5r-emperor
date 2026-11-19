@@ -84,6 +84,7 @@ public partial class Main
         var coach = lesson.Coach;
         SyncTutorialGlow(coach.Glow ?? []); SyncTutorialShow(coach.ShowDefinitionId); SyncTutorialDeal(coach);
         if (_coachPanel.StepId != coach.StepId && coach.ShowDeadOf is int deadOf) Callable.From(() => ShowFallenGallery(deadOf)).CallDeferred(); // the note talks about that player's dead
+        else if (_coachPanel.StepId != coach.StepId && IsInstanceValid(_fallenWindow)) _closeFallenGallery?.Invoke(); // a later note never sits under a Dead pile gallery left open (it would cover the note's buttons)
         if (_coachPanel.StepId != coach.StepId || !_coachPanel.Visible) _coachPanel.Present(coach);
         _coachPanel.Show(); LayoutTutorialCoach();
     }
@@ -113,6 +114,8 @@ public partial class Main
 
     private void TutorialContinue()
     {
+        // A played-out lesson that was lost offers itself again (the Rings lesson's "Restart Tutorial").
+        if (_session.Tutorial is { LostFreePlay: true } lost) { _coachPanel?.Hide(); StartTutorial(lost.LessonId); return; }
         _session.TutorialContinue();
         if (_session.Tutorial is { Finished: true } done) { _coachPanel?.Hide(); ShowMainMenu(); _titleMenu?.ShowTutorialFor(done.LessonId); }
     }
@@ -176,7 +179,7 @@ public partial class Main
             foreach (var token in (OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith("--tutorial-script="))?["--tutorial-script=".Length..] ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries))
             {
                 await RunTutorialUiToken(token);
-                GD.Print($"TUTORIAL_DUMP after {token}: step={_session.Tutorial?.Coach.StepId} {TutorialControls()} notice={_status.Text}");
+                GD.Print($"TUTORIAL_DUMP after {token}: lesson={_session.Tutorial?.LessonId} step={_session.Tutorial?.Coach.StepId} {TutorialControls()} notice={_status.Text}");
             }
             if (capture is null) { GetTree().Quit(); return; }
         }
@@ -417,6 +420,12 @@ public partial class Main
         ["ce-towers"] = "select:Bayushi Kasumi;click:Mirumoto Gobashi;click:Use Bayushi Kasumi",
         ["ce-any-cost-play"] = "select:At Any Cost;click:Shosuro Koshiba;click:Clan discount: 2 less Gold;selecthome:Geisha House;click:Play At Any Cost",
         ["ce-resolve"] = "click:Pass battle action",
+        ["rg-declare"] = "click:Declare an attack",
+        ["rg-assign"] = "select:Togashi Hizumi;selectprovince:1/2;click:Confirm assignments",
+        ["rg-engage"] = "click:Fight at province 3",
+        ["rg-hizumi"] = "click:Give the current battlefield's province -4 strength;click:Use Togashi Hizumi",
+        ["rg-pass"] = "click:Pass battle action",
+        ["rg-fire-play"] = "select:Ring of Fire;click:Play Reaction",
         // Imperial Favor: Lobby, the Favor's two abilities (one paid with the Favor, one with a Kyuden Otomo token), Dazzling Attire, Sosuke twice, Dainagon's Open Lobby and Kyuden Otomo's Reaction.
         ["lobby-nara"] = "select:Kakita Nara;click:Lobby · bow a Personality;click:Kakita Nara ·;click:Use ability",
         ["favor-cycle"] = "select:The Empress' Address;click:Discard Favor and a card;click:The Empress' Address;click:Discard the Imperial Favor;click:Confirm choice",

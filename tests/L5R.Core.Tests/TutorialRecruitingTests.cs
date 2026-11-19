@@ -221,7 +221,7 @@ internal static class TutorialRecruitingTests
         var all = TutorialCurriculum.All.ToArray();
         Expect(TutorialCurriculum.After("first-turn")?.Id == "dynasty-deck" && TutorialCurriculum.After("dynasty-deck")?.Id == "recruiting" && TutorialCurriculum.After("recruiting")?.Id == "spells", "The Basics, then Events Regions and Celestials, then Recruiting, then Spells");
         Expect(TutorialCurriculum.After(all[^1].Id) is null, "nothing follows the last lesson");
-        foreach (var lesson in TutorialLessons.All)
+        foreach (var lesson in TutorialLessons.All.Where(l => !l.Steps[^1].FreePlay)) // the Rings lesson ends by playing the game out; TutorialRingsTests checks its win and loss notes
         {
             var runner = TutorialRunner.Start(lesson.Id);
             var steps = lesson.Steps;

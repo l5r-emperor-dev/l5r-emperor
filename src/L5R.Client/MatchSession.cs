@@ -102,6 +102,8 @@ public sealed partial class MatchSession : IDisposable
     private TutorialRunner? _tutorial;
     /// <summary>The scripted lesson being played offline (issue #935), or null. While it runs, what the table offers and accepts is the lesson's, and the opponent's side is played by its script.</summary>
     public TutorialRunner? Tutorial => _tutorial;
+    /// <summary>The lesson is being played out against the practice opponent (the Rings lesson's last step).</summary>
+    public bool TutorialFreePlay => _tutorial is { FreePlay: true };
 
     public void StartTutorial(string? lessonId = null)
     {
@@ -200,7 +202,7 @@ public sealed partial class MatchSession : IDisposable
     /// bot remembers it) and the opponent is asked once more at the same position, up to a dozen tries. Without a callback a refusal is shown as a notice, as before.</summary>
     public bool StepPracticeOpponent(Func<MatchView, ActionOption[], GameCommand?> choose, Action<GameCommand, string?, long>? refused = null)
     {
-        if (_engine is null || _tutorial is not null || Online || _engine.WinnerId is not null || _engine.PriorityPlayerId == _localSeat) return false;
+        if (_engine is null || _tutorial is { FreePlay: false } || Online || _engine.WinnerId is not null || _engine.PriorityPlayerId == _localSeat) return false;
         var opponent = 1 - _localSeat;
         for (var attempt = 0; attempt < 12; attempt++)
         {
@@ -233,7 +235,7 @@ public sealed partial class MatchSession : IDisposable
     /// chooses again, up to a dozen times at one position, as in <see cref="StepPracticeOpponent"/>. Returns true when a move was played.</summary>
     public bool StepPracticeOpponentAsync(Func<MatchView, ActionOption[], MatchEngine, GameCommand?> choose, Action<GameCommand, string?, long> refused)
     {
-        if (_engine is null || _tutorial is not null || Online || _engine.WinnerId is not null || _engine.PriorityPlayerId == _localSeat) { _thinking = null; return false; }
+        if (_engine is null || _tutorial is { FreePlay: false } || Online || _engine.WinnerId is not null || _engine.PriorityPlayerId == _localSeat) { _thinking = null; return false; }
         var opponent = 1 - _localSeat;
         if (_thinking is null)
         {
@@ -262,7 +264,7 @@ public sealed partial class MatchSession : IDisposable
     /// still prompts).</summary>
     public bool StepPracticeReaction()
     {
-        if (_engine is null || _tutorial is not null || Online || _engine.WinnerId is not null) return false;
+        if (_engine is null || _tutorial is { FreePlay: false } || Online || _engine.WinnerId is not null) return false;
         if (!_engine.HasPendingChoice || _engine.PriorityPlayerId != _localSeat) return false;
         var enabled = _engine.QueryActions(_localSeat).Where(a => a.Enabled).ToArray();
         if (enabled is not [{ Type: "declineReaction" } only]) return false;

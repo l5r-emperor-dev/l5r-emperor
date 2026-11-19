@@ -191,16 +191,17 @@ public partial class Main : Node
         foreach (var tracker in _sidebarHeader.GetChildren().OfType<BattleTracker>()) tracker.ReducedMotion = _reducedMotion;
         foreach (var plaque in _clanHud.GetChildren().OfType<ClanPlaque>()) plaque.ReducedMotion = _reducedMotion;
         _fullscreenGate.Visible = false;
-        if (_autoOpponent && !PresentationBusy && !PlayShowcaseBusy && !_session.Online && _capturePath is null) // issue #630: the practice opponent waits for a played card to finish showing
+        if ((_autoOpponent || _session.TutorialFreePlay) && !PresentationBusy && !PlayShowcaseBusy && !_session.Online && _capturePath is null) // issue #630: the practice opponent waits for a played card to finish showing
         {
             _opponentClock += delta;
             if (_opponentClock > (_reducedMotion ? .12 : .7))
             {
                 _opponentClock = 0;
                 // Issue #642: the bot keeps one memory per match (what it has seen played, what the engine refused) and chooses again after a refusal.
-                if (_botMemory is null || _botMemoryKey != _session.MatchKey) { _botMemory = _botLevel.NewMemory(); _botMemoryKey = _session.MatchKey; }
+                var botLevel = _session.TutorialFreePlay ? BotLevel.Hard : _botLevel; // the Rings lesson plays out against the Hard opponent
+                if (_botMemory is null || _botMemoryKey != _session.MatchKey) { _botMemory = botLevel.NewMemory(); _botMemoryKey = _session.MatchKey; }
                 var botMemory = _botMemory;
-                if (_botLevel.NeedsSampler()) // issue #1214: Hard decides in the background on a copy of the match and plays out its battles on redealt copies of that, so the table never freezes
+                if (botLevel.NeedsSampler()) // issue #1214: Hard decides in the background on a copy of the match and plays out its battles on redealt copies of that, so the table never freezes
                     _session.StepPracticeOpponentAsync((view, actions, copy) => ChooseHard(view, actions, copy, botMemory), (command, error, version) => botMemory.NoteRejection(version, command, error));
                 else
                     _session.StepPracticeOpponent((view, actions) => view.PendingDuel is not null ? DuelOpponent.Choose(view, actions) : TrainingOpponent.Choose(view, actions, botMemory).Command,
