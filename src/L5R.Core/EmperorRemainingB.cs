@@ -462,9 +462,11 @@ public sealed partial class MatchEngine
             && _state.Cards.Values.Any(c => c.OwnerId == owner && Definition(c).Type == CardType.Personality && !c.Bowed && AtBattle(c) && Keyword(c, "Ninja"));
     }
 
-    // "After the resolution of an action from one of your Rings": the resolved action's source is a Ring of the reactor's, whichever action it was.
+    // "After the resolution of an action from one of your Rings": the resolved action is one of the printed actions of a Ring of the reactor's. Putting the Ring into play (its "-recruit"
+    // entry, issue #1290, Mendon's ruling) is not a use of the Ring's ability, so it gives the Reaction nothing to answer; nor does a fact about the Ring that no action of its caused.
     private bool RingActionResolved(ResolvedActionFacts facts, int playerId) =>
-        facts.PlayerId == playerId && facts.SourceId is { } sourceId && _state.Cards.TryGetValue(sourceId, out var ring) && Definition(ring).Type == CardType.Ring && ring.OwnerId == playerId;
+        facts.PlayerId == playerId && facts.SourceId is { } sourceId && _state.Cards.TryGetValue(sourceId, out var ring) && Definition(ring).Type == CardType.Ring && ring.OwnerId == playerId
+        && (Definition(ring).Abilities ?? []).Contains(facts.AbilityId) && !facts.AbilityId.EndsWith("-recruit", StringComparison.Ordinal);
 
     // "+1F for each of his keywords except 'Soul of' keywords": the distinct keywords the card has now, printed or granted, less any it has lost.
     private int KeywordCountExceptSoulOf(CardInstance card) =>

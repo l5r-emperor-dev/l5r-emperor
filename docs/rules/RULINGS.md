@@ -779,6 +779,13 @@ Fallow Lands already worked this way; the older notes that it acts on its own ar
 - **Date:** 2026-10-27
 - **Source:** Mendon, issue #1133 (extends R-088; supersedes the Fallow Lands notes in R-065 and R-087). Open: Quagmire's own text names an adjacent province but a Region is now present only at its own battle province.
 
+### R-099 — Meeting the Keepers answers a Ring's printed action, not the Ring entering play
+"Meeting the Keepers should not be able to react to a Ring entering play. Only the use of its ability that is printed on it." "After the resolution of an action from one of your Rings" counts only the Ring's own printed actions (Ring of the Void's draw, Ring of Air's straighten, a False Ring's action...); putting the Ring into play from your hand is not one of them.
+
+- **Cards/primitives:** Meeting the Keepers (oracle-l5r-5018, `keepers-search`); `RingActionResolved`.
+- **Date:** 2026-11-19
+- **Source:** Mendon, issue #1290.
+
 ## Printings and card text
 
 ### R-086 — Ring of Fire reads as the Promotional–Emperor text on the Emperor Edition scan
