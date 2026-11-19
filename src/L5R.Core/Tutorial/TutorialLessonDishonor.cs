@@ -100,5 +100,5 @@ internal static class TutorialLessonDishonor
     /// <summary>The Dragon only ever plays what a step asks of it (the Seppuku).</summary>
     private static readonly TutorialFoeScript FoePlays = new([], [], []);
 
-    public static readonly TutorialLesson Lesson = new("special-dishonor", "Special Actions - Dishonor", Table, Steps, FoePlays, Opening: Opening);
+    public static readonly TutorialLesson Lesson = new("special-dishonor", "Dishonor", Table, Steps, FoePlays, Opening: Opening);
 }

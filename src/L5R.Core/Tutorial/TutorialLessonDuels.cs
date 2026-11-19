@@ -127,5 +127,5 @@ internal static class TutorialLessonDuels
     /// <summary>Scorpion only ever plays what a step asks of it.</summary>
     private static readonly TutorialFoeScript FoePlays = new([], [], []);
 
-    public static readonly TutorialLesson Lesson = new("special-duels", "Special Actions - Duels", Table, Steps, FoePlays, Opening: Opening);
+    public static readonly TutorialLesson Lesson = new("special-duels", "Duels", Table, Steps, FoePlays, Opening: Opening);
 }

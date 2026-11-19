@@ -12,7 +12,7 @@ internal static class TutorialCostEffectTests
         ("Mysterious Deaths may not be paid with The Merchant's District, and the District's condition bars it with five cards in hand", RefusesWhatTheStepForbids),
         ("Every move step says what to click and the lesson ends on a button back to the menu", EveryStepSaysWhatToDo),
         ("Back rebuilds the table as it was before the last button or move", BackUndoesTheLastStep),
-        ("Cost and Effect is built, follows Traits and Actions and precedes Special Actions - Attacks", Curriculum),
+        ("Cost and Effect is built, follows Traits and Actions and precedes Attacks", Curriculum),
     ]);
 
     private static void Expect(bool condition, string message) { if (!condition) throw new Exception(message); }
@@ -214,6 +214,6 @@ internal static class TutorialCostEffectTests
     private static void Curriculum()
     {
         Expect(TutorialCurriculum.All.Single(e => e.Id == Lesson).Built, "Cost and Effect is built");
-        Expect(TutorialCurriculum.After("traits-actions")?.Id == Lesson && TutorialCurriculum.After(Lesson)?.Id == "special-attacks", "Cost and Effect sits between Traits and Actions and Special Actions - Attacks");
+        Expect(TutorialCurriculum.After("traits-actions")?.Id == Lesson && TutorialCurriculum.After(Lesson)?.Id == "special-attacks", "Cost and Effect sits between Traits and Actions and Attacks");
     }
 }
