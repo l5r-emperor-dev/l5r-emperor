@@ -480,7 +480,7 @@
           "fingerprint": "641886035dc1"
         }
       ],
-      "note": "",
+      "note": "Went long because Mendon was playing for an Enlightenment victory. A player may make sub-optimal moves while chasing Enlightenment; the bot should not copy them.",
       "practice": {
         "yourDeck": "Dragon Enlightenment",
         "opponentDeck": "Classic Lion",
