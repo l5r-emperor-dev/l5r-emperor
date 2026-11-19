@@ -1,0 +1,9 @@
+{
+  "lane": "rules",
+  "summary": "Engine fix for a practice stall: the after-action Reaction window (Meeting the Keepers) now sets aside the battleRecruit window it opens over, and Apply gives back nested set-aside windows while each settles closed.",
+  "validation": "Regression KeepersAfterBattleRecruit (decline and search paths) failed before each fix and passes; bash tools/check.sh --skip-client passed (Core 4,718 cases, AI 323, server/transport/collection/python stages).",
+  "remaining": "None; ready for review. Mendon's stuck game cannot be resumed; new games need a client built from main after merge.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1291",
+  "branch": "claude/1291-keepers-stall",
+  "updated": "2026-11-19T11:22:14.882598+00:00"
+}
