@@ -41,7 +41,8 @@ jobs:
           - os: macos-local
             runner: [self-hosted, macOS, ARM64, l5r-mac-m5]
             args: ''
-            timeout: 25
+            # 60, not 25: a runner's first full clone of the ~4.5 GB repository takes longer than the checks; later runs fetch only changes (issue #1304).
+            timeout: 60
             sparse: ''
           - os: windows-2022-quick
             runner: [windows-2022]
