@@ -53,7 +53,8 @@ class CheckMatrixTests(unittest.TestCase):
 
     def test_only_the_client_job_needs_the_godot_files(self):
         # The rules jobs skip what only Godot reads; the client job and the Mac (no sparse checkout) must keep every file.
-        matrix = WORKFLOW[WORKFLOW.index("include:"):WORKFLOW.index("    runs-on:")]
+        start = WORKFLOW.index("include:")
+        matrix = WORKFLOW[start:WORKFLOW.index("    runs-on:", start)]
         entries = {}
         for chunk in matrix.split("- os: ")[1:]:
             entries[chunk.split()[0]] = chunk
