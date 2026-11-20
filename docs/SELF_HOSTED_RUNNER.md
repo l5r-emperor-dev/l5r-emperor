@@ -2,10 +2,14 @@
 
 Issue: https://github.com/l5r-emperor-dev/l5r-emperor/issues/100
 
-The macOS row of Desktop foundation checks asks for `self-hosted`, `macOS`, `ARM64`, `l5r-mac` (issue #1304).
-Two repository-scoped runners carry that label: `alfredo-mac-studio` (also labelled `l5r-mac-studio`)
-and Mendon's backup `mendon-mac-m5`. Whichever is free takes the job, so a busy or slow Studio no longer
-stalls the check. The host notes below describe the Studio; the backup runs as Mendon on his Mac.
+Two repository-scoped Mac runners exist: `alfredo-mac-studio` (labels `self-hosted`, `macOS`, `ARM64`,
+`l5r-mac`, `l5r-mac-studio`) and Mendon's backup `mendon-mac-m5` (`self-hosted`, `macOS`, `ARM64`, `l5r-mac`,
+`l5r-mac-m5`). The backup runs as Mendon on his Mac; the host notes below describe the Studio.
+
+**Current routing (issue #1304, 2026-11-20):** the macOS row asks for `l5r-mac-m5`, so it runs on Mendon's Mac.
+Since 2026-11-19 about 20:45 UTC, the Studio's Godot client step hangs until the 25-minute limit (every test stage
+finishes in about 4 minutes, then Godot hangs and is killed as an orphan). Once the Studio is checked, set the row to
+`l5r-mac` so whichever Mac is free takes the job, or to `l5r-mac-studio` to return it to the Studio alone.
 The Windows row and Linux collaboration workflows remain GitHub-hosted.
 One runner executes one job at a time. Newer desktop runs supersede older runs
 on the same PR/ref. Fork PRs do not execute the desktop workflow on this Mac.

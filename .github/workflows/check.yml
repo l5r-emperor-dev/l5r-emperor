@@ -35,10 +35,11 @@ jobs:
         # The Mac runner keeps one job with every check, and macOS coverage is deliberate. It takes one job at a time, so that job
         # runs its stages side by side inside tools/check.sh instead of as more matrix jobs (issue #805). Its checkout cleans the
         # workspace (git clean -ffdx), so every run still bootstraps the tools, builds and does the whole Godot import.
-        # l5r-mac is shared by Alfredo's Mac Studio and Mendon's backup Mac (mendon-mac-m5): whichever is free takes the job (issue #1304).
+        # Issue #1304: the Studio's Godot client step hangs since 2026-11-19, so the job runs on Mendon's backup Mac (mendon-mac-m5, label l5r-mac-m5).
+        # When the Studio is healthy, l5r-mac (both Macs carry it) lets whichever is free take the job.
         include:
           - os: macos-local
-            runner: [self-hosted, macOS, ARM64, l5r-mac]
+            runner: [self-hosted, macOS, ARM64, l5r-mac-m5]
             args: ''
             timeout: 25
             sparse: ''

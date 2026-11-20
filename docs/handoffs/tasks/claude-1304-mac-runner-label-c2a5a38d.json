@@ -1,9 +1,9 @@
 {
   "lane": "shared",
-  "summary": "CI: the macOS row of Desktop foundation checks now asks for the shared l5r-mac label, so either self-hosted Mac (alfredo-mac-studio or Mendon's backup mendon-mac-m5) takes the job. Alfredo's Studio timed out twice on PR #1302. SELF_HOSTED_RUNNER.md updated.",
-  "validation": "check_policy.py passed; security unit tests pass except the zizmor-dependent test, which errors identically on main (zizmor not installed locally; CI runs it). The PR's own macOS job is the live test of routing.",
-  "remaining": "Confirm the macOS job on this PR lands on a free l5r-mac runner and passes.",
+  "summary": "CI: the macOS row now runs on Mendon's backup Mac (runner mendon-mac-m5, new label l5r-mac-m5 added via the API). Alfredo's Studio's Godot client step hangs to the 25-minute limit since 2026-11-19 ~20:45 UTC (3 timeouts). SELF_HOSTED_RUNNER.md records both runners and how to switch back (l5r-mac for either, l5r-mac-studio for the Studio).",
+  "validation": "check_policy.py passed; Studio log shows all test stages done in ~4 min then Godot hung; this PR's macOS job on mendon-mac-m5 is the live test.",
+  "remaining": "Alfredo to check the Studio runner (Godot hang); then switch the row back to l5r-mac.",
   "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1304",
   "branch": "claude/1304-mac-runner-label",
-  "updated": "2026-11-20T08:32:10.625175+00:00"
+  "updated": "2026-11-20T09:20:16.825683+00:00"
 }
