@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Backup macOS CI runner: the macos-local row runs on label l5r-mac, shared by alfredo-mac-studio and the new mendon-mac-m5 (dedicated hidden user l5r-runner, LaunchDaemon, caffeinate -s on AC only, nice 10). Installer tools/ci/install-mac-runner.sh; docs/SELF_HOSTED_RUNNER.md.",
+  "validation": "Runner 22 mendon-mac-m5 registered online with labels self-hosted,macOS,ARM64,l5r-mac; runner 21 gained l5r-mac; installer verified the runner tarball SHA-256; this PR's macos-local job is the end-to-end check.",
+  "remaining": "None once this PR's macOS job passes on either runner.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1303",
+  "branch": "claude/1303-backup-mac-runner",
+  "updated": "2026-11-20T08:31:18.749179+00:00"
+}

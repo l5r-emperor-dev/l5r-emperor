@@ -37,7 +37,7 @@ jobs:
         # workspace (git clean -ffdx), so every run still bootstraps the tools, builds and does the whole Godot import.
         include:
           - os: macos-local
-            runner: [self-hosted, macOS, ARM64, l5r-mac-studio]
+            runner: [self-hosted, macOS, ARM64, l5r-mac] # either Mac runner (docs/SELF_HOSTED_RUNNER.md)
             args: ''
             timeout: 25
             sparse: ''

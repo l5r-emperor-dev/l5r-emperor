@@ -2,8 +2,11 @@
 
 Issue: https://github.com/l5r-emperor-dev/l5r-emperor/issues/100
 
-The macOS row of Desktop foundation checks uses the repository-scoped runner
-`alfredo-mac-studio`, labelled `self-hosted`, `macOS`, `ARM64`, `l5r-mac-studio`.
+The macOS row of Desktop foundation checks runs on any repository-scoped runner
+labelled `self-hosted`, `macOS`, `ARM64`, `l5r-mac` (issue #1303). Two runners carry it:
+`alfredo-mac-studio` (below; it also keeps its own label `l5r-mac-studio`) and the backup
+`mendon-mac-m5` (see "Backup runner"). GitHub gives each job to whichever is idle, so
+either Mac being offline only slows the queue.
 The Windows row and Linux collaboration workflows remain GitHub-hosted.
 One runner executes one job at a time. Newer desktop runs supersede older runs
 on the same PR/ref. Fork PRs do not execute the desktop workflow on this Mac.
@@ -32,6 +35,24 @@ on the same PR/ref. Fork PRs do not execute the desktop workflow on this Mac.
   caches reside under the runner directory. Each job installs/validates
   the pinned project tools and runs the same full check script as hosted macOS.
 - Runner updates remain automatic. Credentials and binaries are outside Git.
+
+## Backup runner: `mendon-mac-m5`
+
+- Host: Mendon's MacBook (Apple M5, 32 GB RAM, macOS 26.5). Runner ID 22, labels
+  `self-hosted`, `macOS`, `ARM64`, `l5r-mac`. Installed 2026-11-20 by `tools/ci/install-mac-runner.sh`.
+- It runs as the hidden standard user `l5r-runner` (home `/Users/l5r-runner`, mode 700), not as Mendon:
+  workflow code cannot read his home folder (also mode 700), credentials or game data. Runner
+  directory `/Users/l5r-runner/actions-runner`, jobs in its `_work`.
+- Service: the LaunchDaemon `/Library/LaunchDaemons/dev.l5r-emperor.actions-runner.plist` (starts at
+  boot, no login needed; KeepAlive; nice 10). It wraps the runner in `caffeinate -s`, which keeps the
+  system awake **on AC power only**: on battery or with the lid closed the laptop sleeps and the
+  runner is simply offline. Python is Homebrew's 3.13 (the runner's `.path`).
+- Arena runs on this Mac: Conan's lookahead is bounded by wall-clock time, so a CI job beside an
+  arena run distorts the arms. Stop the runner first, start it after:
+  `sudo launchctl bootout system/dev.l5r-emperor.actions-runner` /
+  `sudo launchctl bootstrap system /Library/LaunchDaemons/dev.l5r-emperor.actions-runner.plist`.
+- Remove: boot it out as above, delete the plist, remove the runner in Settings → Actions → Runners,
+  then `sudo sysadminctl -deleteUser l5r-runner`.
 
 ## Controls
 
