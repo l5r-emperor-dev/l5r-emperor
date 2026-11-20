@@ -19,6 +19,7 @@ concurrency:
 
 jobs:
   route-mac:
+    name: route-mac
     # Issue #1303: picks the Mac for the macos-local row. Alfredo's Studio is primary. When the Studio's last two macos-local jobs both
     # hit the 25-minute limit and the newer one ended in the last 24 hours, the row runs on Mendon's backup Mac instead; after 24 hours
     # without a new Studio timeout it tries the Studio again. Repository variable MAC_RUNNER (studio or m5) overrides the choice.
@@ -27,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
-      actions: read
+      actions: read # list this workflow's past runs and their jobs to find Studio timeouts
     outputs:
       runner: ${{ steps.pick.outputs.runner }}
       timeout: ${{ steps.pick.outputs.timeout }}
