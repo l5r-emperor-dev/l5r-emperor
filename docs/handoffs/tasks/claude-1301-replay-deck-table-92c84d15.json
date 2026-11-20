@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "upload-replays skill: new step prints a plays-by-deck table (ReplayCheck --decks) with a Needed for bot training column. Targets per bot-pool deck: 5 games played by Mendon (rule mining: a habit needs 3 separate games) and 10 played by the bot at Hard (0 wins in 10 bounds its win rate under 26% at 95%). Skill also records the CRLF-to-LF step for Windows exports. Codex mirror synced.",
+  "validation": "ReplayCheck --decks runs over the 24-game corpus; ReplayCheck and check_replays.py still pass (fingerprints unchanged); sync_skills --check clean; format verified.",
+  "remaining": "Targets are a proposal from the bot docs, not a stated requirement; adjust HumanTarget/BotTarget in DeckTable.cs if Mendon wants different numbers.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1301",
+  "branch": "claude/1301-replay-deck-table",
+  "updated": "2026-11-19T20:40:35.287291+00:00"
+}

@@ -12,17 +12,20 @@ using L5R.Core;
 //
 //   dotnet run -c Release --project tools/ReplayCheck                 check every replay against the engine and the index
 //   dotnet run -c Release --project tools/ReplayCheck -- --write-index    add new replays to the index and refresh its facts (notes and status are kept)
+//   dotnet run -c Release --project tools/ReplayCheck -- --decks          print the plays-by-deck table and the games still needed for bot training (reads the index only)
 //   (run from the repository root, or pass --root DIR)
 
-var root = Directory.GetCurrentDirectory(); var write = false;
+var root = Directory.GetCurrentDirectory(); var write = false; var deckTable = false;
 for (var i = 0; i < args.Length; i++)
 {
     if (args[i] == "--root" && i + 1 < args.Length) root = args[++i];
     else if (args[i] == "--write-index") write = true;
+    else if (args[i] == "--decks") deckTable = true;
     else { Console.Error.WriteLine($"unknown argument {args[i]}"); return 2; }
 }
 var games = Path.Combine(root, "replays", "games"); var indexPath = Path.Combine(root, "replays", "index.json");
 var findings = new List<string>();
+if (deckTable) return DeckTable.Print(root);
 
 // The stage 1 schema must name exactly the engine's fields, so neither stage can drift from the export format.
 var stage1 = File.ReadAllText(Path.Combine(root, "tools", "replays", "check_replays.py"));
@@ -83,9 +86,7 @@ ReplayFacts? Check(string name, byte[] bytes, out string? problem)
 DeckFacts Deck(Deck deck, MatchEngine game, int seat)
 {
     var stronghold = game.State.Cards.Values.FirstOrDefault(c => c.OwnerId == seat && c.Zone == Zone.Stronghold) is { } card ? CardCatalog.Get(card.DefinitionId).Name : "?";
-    var lines = deck.Entries.OrderBy(e => e.Name, StringComparer.Ordinal).Select(e => $"{e.Count} {e.Name}");
-    var print = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join("\n", lines))))[..12];
-    return new DeckFacts(stronghold, deck.Entries.Sum(e => e.Count), print);
+    return new DeckFacts(stronghold, deck.Entries.Sum(e => e.Count), DeckTable.Fingerprint(deck));
 }
 
 bool Same(IndexEntry a, IndexEntry b) => a.Sha256 == b.Sha256 && a.Commands == b.Commands && a.Turns == b.Turns && a.Winner == b.Winner && a.Decks.SequenceEqual(b.Decks) && a.Practice == b.Practice && a.Digest == b.Digest;
