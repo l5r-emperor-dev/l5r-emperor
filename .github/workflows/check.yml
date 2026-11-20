@@ -18,8 +18,61 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  route-mac:
+    # Issue #1303: picks the Mac for the macos-local row. Alfredo's Studio is primary. When the Studio's last two macos-local jobs both
+    # hit the 25-minute limit and the newer one ended in the last 24 hours, the row runs on Mendon's backup Mac instead; after 24 hours
+    # without a new Studio timeout it tries the Studio again. Repository variable MAC_RUNNER (studio or m5) overrides the choice.
+    # Concurrency cancels are not timeouts: a timeout is a cancelled job that ran at least 24 minutes. Any API error keeps the Studio.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+    outputs:
+      runner: ${{ steps.pick.outputs.runner }}
+      timeout: ${{ steps.pick.outputs.timeout }}
+      depth: ${{ steps.pick.outputs.depth }}
+    steps:
+      - id: pick
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OVERRIDE: ${{ vars.MAC_RUNNER }}
+        run: |
+          studio_timeouts() {
+            local seen=0 timeouts=0 newest_end=""
+            for run in $(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/check.yml/runs?status=completed&per_page=30" --jq '.workflow_runs[].id'); do
+              job=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run/jobs?per_page=50" --jq \
+                '[.jobs[] | select(.name == "verify (macos-local)" and .runner_name == "alfredo-mac-studio" and .started_at != null and .completed_at != null)][0] // empty | "\(.conclusion) \(.started_at) \(.completed_at)"')
+              [ -n "$job" ] || continue
+              read -r conclusion started completed <<< "$job"
+              minutes=$(( ($(date -d "$completed" +%s) - $(date -d "$started" +%s)) / 60 ))
+              seen=$((seen + 1)); [ -n "$newest_end" ] || newest_end=$completed
+              [ "$conclusion" = cancelled ] && [ "$minutes" -ge 24 ] && timeouts=$((timeouts + 1))
+              echo "Studio job in run $run: $conclusion after $minutes min" >&2
+              [ "$seen" -lt 2 ] || break
+            done
+            [ "$timeouts" -eq 2 ] && [ $(( $(date +%s) - $(date -d "$newest_end" +%s) )) -lt 86400 ]
+          }
+          case "$OVERRIDE" in
+            m5) pick=m5 ;;
+            studio) pick=studio ;;
+            *) if studio_timeouts; then pick=m5; else pick=studio; fi ;;
+          esac
+          if [ "$pick" = m5 ]; then
+            # 60 minutes and full history: a shallow fetch re-sends the whole ~3.8 GB tree every run (~27 min on this connection), while
+            # full history, once on disk, lets each later run fetch only new commits.
+            echo 'runner=["self-hosted","macOS","ARM64","l5r-mac-m5"]' >> "$GITHUB_OUTPUT"
+            echo 'timeout=60' >> "$GITHUB_OUTPUT"
+            echo 'depth=0' >> "$GITHUB_OUTPUT"
+          else
+            echo 'runner=["self-hosted","macOS","ARM64","l5r-mac-studio"]' >> "$GITHUB_OUTPUT"
+            echo 'timeout=25' >> "$GITHUB_OUTPUT"
+            echo 'depth=1' >> "$GITHUB_OUTPUT"
+          fi
+          echo "macos-local runs on: $pick" | tee -a "$GITHUB_STEP_SUMMARY"
   verify:
     name: verify (${{ matrix.os }})
+    needs: route-mac
     # Only this repository’s own branches (never a fork’s) may execute on the personal Mac.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     strategy:
@@ -35,14 +88,13 @@ jobs:
         # The Mac runner keeps one job with every check, and macOS coverage is deliberate. It takes one job at a time, so that job
         # runs its stages side by side inside tools/check.sh instead of as more matrix jobs (issue #805). Its checkout cleans the
         # workspace (git clean -ffdx), so every run still bootstraps the tools, builds and does the whole Godot import.
-        # Issue #1304: the Studio's Godot client step hangs since 2026-11-19, so the job runs on Mendon's backup Mac (mendon-mac-m5, label l5r-mac-m5).
-        # When the Studio is healthy, l5r-mac (both Macs carry it) lets whichever is free take the job.
+        # Issue #1303: Alfredo's Studio is the Mac runner; the route-mac job moves the row to Mendon's backup Mac (mendon-mac-m5) after two
+        # Studio timeouts in a row, with its time limit and full-history checkout (see route-mac and docs/SELF_HOSTED_RUNNER.md).
         include:
           - os: macos-local
-            runner: [self-hosted, macOS, ARM64, l5r-mac-m5]
+            runner: ${{ fromJSON(needs.route-mac.outputs.runner) }}
             args: ''
-            # 60, not 25: a runner's first full clone of the ~4.5 GB repository takes longer than the checks; later runs fetch only changes (issue #1304).
-            timeout: 60
+            timeout: ${{ fromJSON(needs.route-mac.outputs.timeout) }}
             sparse: ''
           - os: windows-2022-quick
             runner: [windows-2022]
@@ -150,6 +202,8 @@ jobs:
           # Windows runners start from an empty disk: skip ~2.2 GB of screenshots, videos and table source art that no check reads.
           sparse-checkout: ${{ matrix.sparse }}
           sparse-checkout-cone-mode: false
+          # Full history (depth 0) only on the backup Mac; see route-mac. The output is the string '0', which is truthy here.
+          fetch-depth: ${{ matrix.os == 'macos-local' && needs.route-mac.outputs.depth || 1 }}
       - name: Fetch main's tip for the diff-scoped comment-swallow lint
         # A single branch tip, not fetch-depth 0: this checkout is intentionally
         # shallow/sparse for slow, fresh-disk Windows runners, and full history
@@ -160,7 +214,10 @@ jobs:
         # instead of turning credential persistence back on repo-wide.
         env:
           GH_TOKEN: ${{ github.token }}
-        run: git fetch --no-tags --depth=1 "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" +refs/heads/main:refs/remotes/origin/main
+        # A full-history checkout (the backup Mac) fetches main whole, so a later fetch stays incremental.
+        run: |
+          depth=--depth=1; [ "$(git rev-parse --is-shallow-repository)" = true ] || depth=
+          git fetch --no-tags $depth "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" +refs/heads/main:refs/remotes/origin/main
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         if: runner.os == 'Windows'
         with:

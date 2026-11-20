@@ -4,12 +4,16 @@ Issue: https://github.com/l5r-emperor-dev/l5r-emperor/issues/100
 
 Two repository-scoped Mac runners exist: `alfredo-mac-studio` (labels `self-hosted`, `macOS`, `ARM64`,
 `l5r-mac`, `l5r-mac-studio`) and Mendon's backup `mendon-mac-m5` (`self-hosted`, `macOS`, `ARM64`, `l5r-mac`,
-`l5r-mac-m5`). The backup runs as Mendon on his Mac; the host notes below describe the Studio.
+`l5r-mac-m5`; see "Backup runner"). The host notes below describe the Studio.
 
-**Current routing (issue #1304, 2026-11-20):** the macOS row asks for `l5r-mac-m5`, so it runs on Mendon's Mac.
-Since 2026-11-19 about 20:45 UTC, the Studio's Godot client step hangs until the 25-minute limit (every test stage
-finishes in about 4 minutes, then Godot hangs and is killed as an orphan). Once the Studio is checked, set the row to
-`l5r-mac` so whichever Mac is free takes the job, or to `l5r-mac-studio` to return it to the Studio alone.
+**Routing (issue #1303, 2026-11-20):** the Studio is primary. Before each run, the `route-mac` job in
+`check.yml` reads the Studio's last two `verify (macos-local)` jobs. If both hit the 25-minute limit (a
+cancelled job that ran at least 24 minutes; a cancel for a newer push is not a timeout) and the newer one
+ended in the last 24 hours, the row runs on `mendon-mac-m5`, with 60 minutes and a full-history checkout.
+After 24 hours without a new Studio timeout (or once the Studio's timeouts drop out of the last 30 runs), it
+tries the Studio again. To force a Mac, set the repository variable `MAC_RUNNER` to `studio` or `m5`
+(Settings → Secrets and variables → Actions → Variables); delete it to return to automatic routing.
+Each run's summary says which Mac it chose.
 The Windows row and Linux collaboration workflows remain GitHub-hosted.
 One runner executes one job at a time. Newer desktop runs supersede older runs
 on the same PR/ref. Fork PRs do not execute the desktop workflow on this Mac.
@@ -38,6 +42,26 @@ on the same PR/ref. Fork PRs do not execute the desktop workflow on this Mac.
   caches reside under the runner directory. Each job installs/validates
   the pinned project tools and runs the same full check script as hosted macOS.
 - Runner updates remain automatic. Credentials and binaries are outside Git.
+
+## Backup runner: `mendon-mac-m5`
+
+- Host: Mendon's MacBook (Apple M5, 32 GB RAM, macOS 26.5). Runner ID 22. Installed 2026-11-20 by
+  `tools/ci/install-mac-runner.sh`; the `l5r-mac-m5` label was added afterwards (issue #1304).
+- It runs as the hidden standard user `l5r-runner` (home `/Users/l5r-runner`, mode 700), not as Mendon:
+  workflow code cannot read his home folder (also mode 700), credentials or game data. Runner
+  directory `/Users/l5r-runner/actions-runner`, jobs in its `_work`.
+- Checkout: full history (`fetch-depth: 0`). A shallow fetch re-sends the whole ~3.8 GB tree on every
+  run, about 27 minutes on this Mac's connection; with full history on disk, later runs fetch only new commits.
+- Service: the LaunchDaemon `/Library/LaunchDaemons/dev.l5r-emperor.actions-runner.plist` (starts at
+  boot, no login needed; KeepAlive; nice 10). It wraps the runner in `caffeinate -s`, which keeps the
+  system awake **on AC power only**: on battery or with the lid closed the laptop sleeps and the
+  runner is simply offline. Python is Homebrew's 3.13 (the runner's `.path`).
+- Arena runs on this Mac: Conan's lookahead is bounded by wall-clock time, so a CI job beside an
+  arena run distorts the arms. Stop the runner first, start it after:
+  `sudo launchctl bootout system/dev.l5r-emperor.actions-runner` /
+  `sudo launchctl bootstrap system /Library/LaunchDaemons/dev.l5r-emperor.actions-runner.plist`.
+- Remove: boot it out as above, delete the plist, remove the runner in Settings → Actions → Runners,
+  then `sudo sysadminctl -deleteUser l5r-runner`.
 
 ## Controls
 
