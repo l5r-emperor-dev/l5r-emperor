@@ -23,7 +23,7 @@ jobs:
     # Issue #1303: picks the Mac for the macos-local row. Alfredo's Studio is primary. When the Studio's last two macos-local jobs both
     # hit the 25-minute limit and the newer one ended in the last 24 hours, the row runs on Mendon's backup Mac instead; after 24 hours
     # without a new Studio timeout it tries the Studio again. Repository variable MAC_RUNNER (studio or m5) overrides the choice.
-    # Concurrency cancels are not timeouts: a timeout is a cancelled job that ran at least 24 minutes. Any API error keeps the Studio.
+    # A timeout is a cancelled job that ran at least 24 minutes; shorter cancels (a newer push) are skipped. Any API error keeps the Studio.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -47,9 +47,11 @@ jobs:
               [ -n "$job" ] || continue
               read -r conclusion started completed <<< "$job"
               minutes=$(( ($(date -d "$completed" +%s) - $(date -d "$started" +%s)) / 60 ))
-              seen=$((seen + 1)); [ -n "$newest_end" ] || newest_end=$completed
-              [ "$conclusion" = cancelled ] && [ "$minutes" -ge 24 ] && timeouts=$((timeouts + 1))
               echo "Studio job in run $run: $conclusion after $minutes min" >&2
+              # A shorter cancel (a newer push superseded the run) says nothing about the Studio: skip it rather than count it.
+              if [ "$conclusion" = cancelled ] && [ "$minutes" -lt 24 ]; then continue; fi
+              seen=$((seen + 1)); [ -n "$newest_end" ] || newest_end=$completed
+              [ "$conclusion" = cancelled ] && timeouts=$((timeouts + 1))
               [ "$seen" -lt 2 ] || break
             done
             [ "$timeouts" -eq 2 ] && [ $(( $(date +%s) - $(date -d "$newest_end" +%s) )) -lt 86400 ]

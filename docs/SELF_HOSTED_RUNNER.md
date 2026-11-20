@@ -8,7 +8,7 @@ Two repository-scoped Mac runners exist: `alfredo-mac-studio` (labels `self-host
 
 **Routing (issue #1303, 2026-11-20):** the Studio is primary. Before each run, the `route-mac` job in
 `check.yml` reads the Studio's last two `verify (macos-local)` jobs. If both hit the 25-minute limit (a
-cancelled job that ran at least 24 minutes; a cancel for a newer push is not a timeout) and the newer one
+cancelled job that ran at least 24 minutes; a shorter cancel, from a newer push, is skipped) and the newer one
 ended in the last 24 hours, the row runs on `mendon-mac-m5`, with 60 minutes and a full-history checkout.
 After 24 hours without a new Studio timeout (or once the Studio's timeouts drop out of the last 30 runs), it
 tries the Studio again. To force a Mac, set the repository variable `MAC_RUNNER` to `studio` or `m5`
