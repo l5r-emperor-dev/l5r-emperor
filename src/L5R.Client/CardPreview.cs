@@ -11,7 +11,7 @@ public static class CardPreview
         var face = new CardTile(card with { Bowed = false }, true, _ => { }, _ => { })
         {
             CustomMinimumSize = new Vector2(width, height),
-            FaceHeight = height,
+            FaceHeight = height - PrintedActionStrip.ReservedHeight(card, height),
             ReducedMotion = true,
             ShowTokenRail = false,
             UprightPreview = true,
@@ -19,8 +19,15 @@ public static class CardPreview
             MouseFilter = Control.MouseFilterEnum.Ignore,
             FocusMode = Control.FocusModeEnum.None
         };
-        face.Resized += () => { face.FaceHeight = Math.Min(height, Math.Max(1, face.Size.X - (CreatedCopyStatus.VisibleOn(card) ? 72 : 0)) * 1.4f); face.QueueRedraw(); };
-        return face;
+        face.Resized += () => { face.FaceHeight = Math.Min(height - PrintedActionStrip.ReservedHeight(card, height), Math.Max(1, face.Size.X - (CreatedCopyStatus.VisibleOn(card) ? 72 : 0)) * 1.4f); face.QueueRedraw(); };
+        if (!PrintedActionStrip.VisibleOn(card)) return face;
+        var frame = new Control { CustomMinimumSize = new Vector2(width, height), MouseFilter = Control.MouseFilterEnum.Ignore };
+        frame.AddChild(face);
+        void ArrangeFace() => face.Size = new Vector2(frame.Size.X, height - PrintedActionStrip.ReservedHeight(card, height));
+        frame.Resized += ArrangeFace;
+        frame.Ready += ArrangeFace;
+        face.CustomMinimumSize = new Vector2(0, height - PrintedActionStrip.ReservedHeight(card, height));
+        return frame;
     }
     public static Control Create(CardView card, string context, int? gold, float scale = 1, Func<string, string?>? sourceName = null, string? interactionHint = null, bool printedOnly = false)
     {
@@ -66,6 +73,7 @@ public static class CardPreview
         }
         foreach (var token in CardTokenRail.Groups(card))
             details.AddChild(Palette.Wrapped($"{token.Type} ×{token.Instances.Length}" + (CardTokenRail.Delta(token.Stat, token.Amount) is { Length: > 0 } delta ? $" · {delta} each" : ""), 16, Palette.Gold));
+        if (PrintedActionStrip.VisibleOn(card)) details.AddChild(PrintedActionStrip.Explanation(card));
         if (card.Dishonorable) details.AddChild(Palette.Wrapped("Dishonorable", 20, new Color("efaa9a")));
         if (CardChanges.Entries(card).Length > 0) details.AddChild(CardChangePanel.Create(card, sourceName, compact: true));
         details.AddChild(Palette.Wrapped(string.IsNullOrWhiteSpace(def.Text) ? "No activated ability is printed on this card. Its statistics and traits can still be used by the game and other card effects." : def.Text, 16, Palette.PaperDim));

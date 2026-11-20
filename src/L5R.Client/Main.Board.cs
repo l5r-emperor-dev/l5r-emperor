@@ -99,7 +99,7 @@ public partial class Main
         for (var i = 0; i < attachments.Length; i++)
             if (attachments[i].Bowed && CardTokenRail.HasRail(attachments[i]))
                 padding = Math.Max(padding, CardTokenRail.WidthFor(card) + attachments.Take(i + 1).Where(CardTokenRail.HasRail).Sum(c => CardTokenRail.WidthFor(c) + 2));
-        return padding;
+        return padding + PrintedActionStrip.ReservedHeight(card, CardHeight) + attachments.Sum(c => PrintedActionStrip.ReservedHeight(c, CardHeight));
     }
     private float StackHeight(CardView card, PlayerView owner) => PlaneHeight(CardHeight) + AttachmentCount(card, owner) * 24 + (AttachmentCount(card, owner) > 0 ? 24 : 0) + TokenBottomPadding(card, owner);
     private int ArmyColumns(int province) => Math.Clamp((int)Math.Ceiling(Math.Sqrt(View.Players.Max(p => CourtUnits(p, province).Count()))), 1, 4);
@@ -271,8 +271,16 @@ public partial class Main
                 }
                 x += 164;
             }
+            var provincePeers = area.GetChildren().OfType<CardTile>().ToArray();
+            foreach (var tile in provincePeers)
+            {
+                tile.ActionStripCompanions = provincePeers;
+                tile.ActionStripBottomPadding = ProvinceThresholdArt.Footer;
+            }
         }
     }
+    private float ProvinceActionsHeight(ProvinceView province) => ProvincePresentation.Slots(province).Where(s => s.Card is not null).Sum(s => PrintedActionStrip.ReservedHeight(s.Card!, CardHeight))
+        + (province.Region is { } region ? PrintedActionStrip.ReservedHeight(region, CardHeight) : 0);
 
     // A changed province strength, persistently shown with its province: the strength box with the engine's net change from the printed strength (every source: Willing Spirits, Regions, timed effects, ...) and, for
     // a province Dark Experiments marked, the Gold Production coin, each only while its modifier is non-zero. A destroyed province is skipped by the caller, and a province gained later is a new one the engine never marks. The viewer's own provinces carry it below the threshold frame (nearer the viewer); the opponent's above the province (farther away).

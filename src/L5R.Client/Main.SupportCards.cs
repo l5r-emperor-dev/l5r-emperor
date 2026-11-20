@@ -28,6 +28,7 @@ public partial class Main
         AddInspectionCaption(card.Zone == Zone.Region ? $"REGION · PROVINCE {card.ProvinceIndex + 1}" : "CELESTIAL · HOME");
         var name = Palette.Wrapped(definition.Name, 24); name.AddThemeFontOverride("font", SidebarSkin.Bold); _inspector.AddChild(name);
         _inspector.AddChild(Palette.Wrapped(owner.Clan + " · " + (card.Bowed ? "Bowed" : "Unbowed"), 15, Palette.Gold));
+        if (PrintedActionStrip.VisibleOn(card)) _inspector.AddChild(PrintedActionStrip.Explanation(card));
         var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 14); _inspector.AddChild(row);
         var face = CardPreview.Face(card, _chosen is null ? 184 : 126, _chosen is null ? 128 : 90); face.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin; row.AddChild(face);
         var text = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; text.AddThemeConstantOverride("separation", 7); row.AddChild(text);
