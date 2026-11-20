@@ -2,8 +2,10 @@
 
 Issue: https://github.com/l5r-emperor-dev/l5r-emperor/issues/100
 
-The macOS row of Desktop foundation checks uses the repository-scoped runner
-`alfredo-mac-studio`, labelled `self-hosted`, `macOS`, `ARM64`, `l5r-mac-studio`.
+The macOS row of Desktop foundation checks asks for `self-hosted`, `macOS`, `ARM64`, `l5r-mac` (issue #1304).
+Two repository-scoped runners carry that label: `alfredo-mac-studio` (also labelled `l5r-mac-studio`)
+and Mendon's backup `mendon-mac-m5`. Whichever is free takes the job, so a busy or slow Studio no longer
+stalls the check. The host notes below describe the Studio; the backup runs as Mendon on his Mac.
 The Windows row and Linux collaboration workflows remain GitHub-hosted.
 One runner executes one job at a time. Newer desktop runs supersede older runs
 on the same PR/ref. Fork PRs do not execute the desktop workflow on this Mac.

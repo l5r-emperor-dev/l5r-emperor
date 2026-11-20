@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "CI: the macOS row of Desktop foundation checks now asks for the shared l5r-mac label, so either self-hosted Mac (alfredo-mac-studio or Mendon's backup mendon-mac-m5) takes the job. Alfredo's Studio timed out twice on PR #1302. SELF_HOSTED_RUNNER.md updated.",
+  "validation": "check_policy.py passed; security unit tests pass except the zizmor-dependent test, which errors identically on main (zizmor not installed locally; CI runs it). The PR's own macOS job is the live test of routing.",
+  "remaining": "Confirm the macOS job on this PR lands on a free l5r-mac runner and passes.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1304",
+  "branch": "claude/1304-mac-runner-label",
+  "updated": "2026-11-20T08:32:10.625175+00:00"
+}
