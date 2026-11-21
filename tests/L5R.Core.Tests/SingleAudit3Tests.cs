@@ -1034,7 +1034,7 @@ internal static partial class SingleAudit3Tests
         var plain = InProvince(s, "training-crane-samurai", w.Me, 2);
         var facedown = InProvince(s, "training-scout-samurai", w.Me, 3); facedown.FaceUp = false;
         var e = MatchEngine.FromTestState(s);
-        var targets = Options(e, w.Me, fx.Ability, fx.Card, fx.Performer).Where(o => o.Enabled).SelectMany(o => o.TargetIds ?? []).ToArray();
+        var targets = Options(e, w.Me, fx.Ability, fx.Card, fx.Performer).Where(o => o.Enabled).SelectMany(o => o.TargetIds ?? []).Distinct().ToArray(); // issue #1232: one option per way to pay, the same target
         Check(targets.SequenceEqual([fx.Target!]), "only the face-up Scout in a province is a target: " + string.Join(",", targets));
         Check(!targets.Contains(plain.Id) && !targets.Contains(facedown.Id), "not a non-Scout nor a face-down Scout");
         var (s2, w2) = Scene("battle-attacker");

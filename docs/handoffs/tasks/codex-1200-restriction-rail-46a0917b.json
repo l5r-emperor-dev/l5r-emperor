@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Implement approved concept A restriction rail for #1200, with authoritative public projection and crowded native validation.",
+  "validation": "Client build 0 warnings/errors; 6/6 focused regressions; native restriction suite PASS at 1920x1080 and 1280x720/800, perspective and reduced motion, crowded upright/bowed attachments with six token types, overlap checks, native clicks/hover, both seats and expiry. Supplementary full --skip-client equivalent PASS on SDK 10.0.401 (4686 core, 204 AI plus Python/server/transport/collection); pinned 10.0.400 stalled. Four independent governance review lenses reconciled. Native screenshots visually inspected. Prepared review launcher rebuilt and reached ACTION_LOCK_REVIEW_READY from permanent artifacts/1200-restriction-rail checkout, native exit 0; original full-game launcher hit its authenticated bulk-reference-art prerequisite, so review uses checked-in fixture art directly. Evidence: artifacts/checks/restrictions/{normal,small,perspective,table-normal,table-reduced}.*, artifacts/checks/restriction-launcher.log.",
+  "remaining": "Local implementation ready for review; GitHub publication/PR/private Windows preview blocked by invalid CLI credentials and connector write 403. No push/merge/notification claimed. Windows graphical acceptance, pinned-SDK rerun and exhaustive static/global restriction catalogue coverage remain.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1200",
+  "branch": "codex/1200-restriction-rail",
+  "updated": "2026-11-11T19:42:46.235651+00:00"
+}

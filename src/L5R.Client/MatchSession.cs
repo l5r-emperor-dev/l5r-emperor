@@ -41,6 +41,7 @@ public sealed partial class MatchSession : IDisposable
 
     public void StartPractice(bool economy, bool published = false, int seat = 0)
     {
+        _practiceLabels = null; // issue #1266: labels belong to the custom practice they were given with
         Generation++; Disconnect();
         // A fixed seed shuffled every deck identically, game after game — Practice looked unshuffled
         // even though the shuffle itself was correct. Match the server's per-match randomness (RoomManager.cs).
@@ -58,6 +59,7 @@ public sealed partial class MatchSession : IDisposable
     /// <summary>Demo hosts own their own MatchSession; this never replaces the main practice session.</summary>
     public void StartDuelDemo(string scenario, ulong seed, int seat = 0)
     {
+        _practiceLabels = null; // issue #1266: labels belong to the custom practice they were given with
         if (seat is < 0 or > 1) throw new ArgumentOutOfRangeException(nameof(seat));
         Generation++; Disconnect();
         _engine = MatchEngine.CreateDuelDemo(scenario, seed);
@@ -86,6 +88,7 @@ public sealed partial class MatchSession : IDisposable
     /// on screen. Reached only through the --capture-mode=gold-* harness, never from a menu or a room.</summary>
     public void StartShowcase(string kind)
     {
+        _practiceLabels = null; // issue #1266: labels belong to the custom practice they were given with
         Generation++; Disconnect();
         _engine = MatchEngine.CreateGoldPaymentShowcase(kind);
         _preparedReview = false;
@@ -99,9 +102,12 @@ public sealed partial class MatchSession : IDisposable
     private TutorialRunner? _tutorial;
     /// <summary>The scripted lesson being played offline (issue #935), or null. While it runs, what the table offers and accepts is the lesson's, and the opponent's side is played by its script.</summary>
     public TutorialRunner? Tutorial => _tutorial;
+    /// <summary>The lesson is being played out against the practice opponent (the Rings lesson's last step).</summary>
+    public bool TutorialFreePlay => _tutorial is { FreePlay: true };
 
     public void StartTutorial(string? lessonId = null)
     {
+        _practiceLabels = null; // issue #1266: labels belong to the custom practice they were given with
         Generation++; Disconnect();
         _tutorial = lessonId is null ? TutorialRunner.Start() : TutorialRunner.Start(lessonId); _engine = _tutorial.Engine; _preparedReview = true;
         MatchKey = Guid.NewGuid().ToString("N"); _localSeat = _practiceNameSeat = TutorialRunner.Seat;
@@ -150,13 +156,26 @@ public sealed partial class MatchSession : IDisposable
     /// <summary>The practice opponent is the bot, so nobody can read anything from the engine passing in an empty battle for a player with nothing to play (issue #894).</summary>
     public void AllowIdleBattlePasses() => _engine?.AllowIdleBattlePasses();
 
-    public void StartCustomPractice(Deck yourDeck, Deck opponentDeck)
+    /// <param name="labels">issue #1266: the deck names and bot level the export carries for its readers (sanitised to a plain name; never a path).</param>
+    public void StartCustomPractice(Deck yourDeck, Deck opponentDeck, PracticeLabels? labels = null)
     {
         // Construct and validate before disconnecting/replacing a running session.
         var seed = BitConverter.ToUInt64(RandomNumberGenerator.GetBytes(sizeof(ulong)));
         var engine = MatchEngine.CreateCustomMatch(seed, yourDeck, opponentDeck);
         // A new match: the table drops what it queued or kept (an unfinished duel) for the last one (issue #1103).
-        Generation++; Disconnect(); _engine = engine; _preparedReview = false; MatchKey = Guid.NewGuid().ToString("N"); _localSeat = 0; _practiceNameSeat = 0; RefreshLocal();
+        Generation++; Disconnect(); _engine = engine; _preparedReview = false; MatchKey = Guid.NewGuid().ToString("N"); _localSeat = 0; _practiceNameSeat = 0;
+        _practiceLabels = labels is null ? null : new(PlainLabel(labels.YourDeck), PlainLabel(labels.OpponentDeck), PlainLabel(labels.BotLevel)); RefreshLocal();
+    }
+
+    private PracticeLabels? _practiceLabels;
+    /// <summary>A label as the export may carry it (issue #1266): letters, digits, spaces and ! &amp; ' ( ) , - _ only, at most 60 characters; null when nothing is left.</summary>
+    internal static string? PlainLabel(string? label)
+    {
+        if (label is null) return null;
+        var kept = new string(label.Select(c => char.IsLetterOrDigit(c) || " !&'(),-_".Contains(c) ? c : ' ').ToArray());
+        kept = System.Text.RegularExpressions.Regex.Replace(kept, " {2,}", " ").Trim();
+        if (kept.Length > 60) kept = kept[..60].TrimEnd();
+        return kept.Length == 0 ? null : kept;
     }
 
     public void FollowPracticePriority()
@@ -168,19 +187,22 @@ public sealed partial class MatchSession : IDisposable
 
     private void RefreshLocal()
     {
+        // A lesson that sets up a new table partway (Keywords) hands the session a new engine; the table redraws as for a new match.
+        if (_tutorial is not null && !ReferenceEquals(_engine, _tutorial.Engine)) { _engine = _tutorial.Engine; Generation++; MatchKey = Guid.NewGuid().ToString("N"); }
         if (_engine is null) return;
         Snapshot = new(NamedView(_engine.GetView(_localSeat)), _tutorial?.Actions() ?? _engine.QueryActions(_localSeat), _engine.GetView(_localSeat).Scenario.StartsWith("duel-demo/", StringComparison.Ordinal) ? "Duel Demo" : _tutorial is not null ? "Tutorial" : "Practice");
         Changed?.Invoke();
     }
 
     public bool CanExportPracticeReplay => _engine is not null && !Online && !_preparedReview && !BattleValuesReview;
-    public string? ExportPracticeReplay() => !CanExportPracticeReplay ? null : JsonSerializer.Serialize(_engine!.ExportReplay(), new JsonSerializerOptions(Json) { WriteIndented = true });
+    // issue #1266: the export names the decks and the bot level (custom practice only) and carries the final state's digest, which Replay checks.
+    public string? ExportPracticeReplay() => !CanExportPracticeReplay ? null : JsonSerializer.Serialize(_engine!.ExportReplay() with { Practice = _practiceLabels, FinalDigest = _engine.Digest() }, new JsonSerializerOptions(Json) { WriteIndented = true });
 
     /// <summary>One move of the practice opponent. Issue #642: like a player whose action is refused, it chooses again: each refusal is reported to <paramref name="refused"/> (the
     /// bot remembers it) and the opponent is asked once more at the same position, up to a dozen tries. Without a callback a refusal is shown as a notice, as before.</summary>
     public bool StepPracticeOpponent(Func<MatchView, ActionOption[], GameCommand?> choose, Action<GameCommand, string?, long>? refused = null)
     {
-        if (_engine is null || _tutorial is not null || Online || _engine.WinnerId is not null || _engine.PriorityPlayerId == _localSeat) return false;
+        if (_engine is null || _tutorial is { FreePlay: false } || Online || _engine.WinnerId is not null || _engine.PriorityPlayerId == _localSeat) return false;
         var opponent = 1 - _localSeat;
         for (var attempt = 0; attempt < 12; attempt++)
         {
@@ -198,6 +220,43 @@ public sealed partial class MatchSession : IDisposable
         return false;
     }
 
+    // Issue #1214: a practice opponent that thinks for seconds (Hard plays its battles out ahead) decides on a private copy of the match in the background, so the table stays responsive. Its answer is
+    // used only if nothing has happened at the table meanwhile; otherwise it is dropped and the opponent decides again.
+    private Task<GameCommand?>? _thinking;
+    private MatchEngine? _thinkingEngine;
+    private long _thinkingVersion, _refusedVersion = -1;
+    private int _refusals;
+
+    /// <summary>True while a background decision of the practice opponent is running.</summary>
+    public bool OpponentThinking => _thinking is { IsCompleted: false };
+
+    /// <summary>One move of a slow practice opponent. Call it every frame: the first call starts a decision on a copy of the match (<paramref name="choose"/> gets that copy's view, actions and the copy
+    /// itself, which it may sample from, and runs on another thread); a later call, once the decision is ready and the match is unchanged, plays it. Refusals go to <paramref name="refused"/> and the opponent
+    /// chooses again, up to a dozen times at one position, as in <see cref="StepPracticeOpponent"/>. Returns true when a move was played.</summary>
+    public bool StepPracticeOpponentAsync(Func<MatchView, ActionOption[], MatchEngine, GameCommand?> choose, Action<GameCommand, string?, long> refused)
+    {
+        if (_engine is null || _tutorial is { FreePlay: false } || Online || _engine.WinnerId is not null || _engine.PriorityPlayerId == _localSeat) { _thinking = null; return false; }
+        var opponent = 1 - _localSeat;
+        if (_thinking is null)
+        {
+            if (_engine.Version != _refusedVersion) { _refusedVersion = -1; _refusals = 0; }
+            if (_refusals >= 12) { Notice?.Invoke("The practice opponent could not act."); _refusals = 0; return false; }
+            var copy = _engine.Clone(); var view = copy.GetView(opponent); var actions = copy.QueryActions(opponent);
+            _thinkingEngine = _engine; _thinkingVersion = view.Version;
+            _thinking = Task.Run(() => choose(view, actions, copy));
+            return false;
+        }
+        if (!_thinking.IsCompleted) return false;
+        var task = _thinking; _thinking = null;
+        if (task.IsFaulted || !ReferenceEquals(_thinkingEngine, _engine) || _engine.Version != _thinkingVersion || task.Result is not { } command) return false;
+        var result = _engine.Execute(command);
+        if (result.Accepted) { _refusals = 0; RefreshLocal(); return true; }
+        if (_engine.Version != _refusedVersion) { _refusedVersion = _engine.Version; _refusals = 0; }
+        _refusals++;
+        refused(command, result.Error, _thinkingVersion);
+        return false;
+    }
+
     /// <summary>Core never asks a player who holds no Reaction to pass once a Reaction has resolved or the other player has passed (issue #644): the window is handed on or closed
     /// there, online and solo alike (the small timing leak that costs was accepted for the proclaim and entry windows in #639/#644). A window can still open on a player whose only
     /// option is the pass (Core does not decide that at the opening). Against a real opponent that pass is explicit, as bluffing is part of the game; solo against the practice bot
@@ -205,7 +264,7 @@ public sealed partial class MatchSession : IDisposable
     /// still prompts).</summary>
     public bool StepPracticeReaction()
     {
-        if (_engine is null || _tutorial is not null || Online || _engine.WinnerId is not null) return false;
+        if (_engine is null || _tutorial is { FreePlay: false } || Online || _engine.WinnerId is not null) return false;
         if (!_engine.HasPendingChoice || _engine.PriorityPlayerId != _localSeat) return false;
         var enabled = _engine.QueryActions(_localSeat).Where(a => a.Enabled).ToArray();
         if (enabled is not [{ Type: "declineReaction" } only]) return false;

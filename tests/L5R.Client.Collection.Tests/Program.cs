@@ -47,7 +47,7 @@ try
     // ---- the collection file (issues #807, #1141): Set, Card Name, Card Type, Rarity, Clan, Limit, Count ----
     var root = new DirectoryInfo(AppContext.BaseDirectory); while (root is not null && !File.Exists(Path.Combine(root.FullName, "AGENTS.md"))) root = root.Parent;
     var printings = CollectionPrintings.Parse(CollectionPrintings.Decode(File.ReadAllBytes(Path.Combine(root!.FullName, "src/L5R.Client/Content/collection-printings.txt"))));
-    Check(printings.Length == 2374 && printings.All(p => p.Set.Length > 0 && p.Rarity.Length > 0) && printings.Any(p => p.Rarity == "Promo") && !printings.Any(p => p.Set.Contains("â")), "the shipped list has every printing, each with a set and rarity, and clean set names");
+    Check(printings.Length == 2373 && printings.All(p => p.Set.Length > 0 && p.Rarity.Length > 0) && printings.Any(p => p.Rarity == "Promo") && !printings.Any(p => p.Set.Contains("â")), "the shipped list has every printing, each with a set and rarity, and clean set names");
     Check(printings.Count(p => p.Type == "Token") == 35 && printings.Where(p => p.Type == "Token").All(p => p.Rarity == "Token") && printings.All(p => p.Limit is "U" or "S" or "N" or "X" or ""), "Tokens are labelled Token in type and rarity, and every limit is U, S, N or X");
     Check(new[] { ("Itoku (Exp)", "itoku - exp"), ("Kaiu Esumi (Exp.)", "kaiu esumi - exp"), ("Shadow Dragon (Exp2)", "shadow dragon - exp2"), ("Bayushi Nitoshi (Inexp)", "bayushi nitoshi - inexperienced"), ("Daigotsu Hotako (Exp. 3)", "daigotsu hotako - exp3"),
         ("Daigotsu Takayasu (Exp) Personality", "daigotsu takayasu - exp"), ("Akodo Tsudoken Experienced 2", "akodo tsudoken - exp2"), ("Doji Hoturi Inexperienced", "doji hoturi - inexperienced"), ("Bayushi Kachiko Experienced CoM", "bayushi kachiko - exp"),
@@ -72,6 +72,10 @@ try
     var withUnassigned = ps.Export(shelf, list); Check(withUnassigned.Contains("\"\",\"Kyuden\",\"\",\"\",\"\",\"\",\"4\""), "copies of no recorded printing are exported on a row of their own");
     var round = ps.Preview(withUnassigned, shelf, list); ps.Apply(round, CollectionImportMode.Replace); Check(ps.CountOf("k") == 4 && ps.Count("t") == 5, "and import back as the same unassigned copies");
     ps.Set("t", 2); Check(ps.Count("t") == 2 && ps.CountOf("t@Embers of War@Rare") == 0 && ps.CountOf("t@Before the Dawn@Common") == 2, "removing copies comes off unassigned copies first, then printings from the last bucket name backwards");
+    ps.Set("t", 5); var merged = ps.Export(shelf, list); var mergedLines = merged.Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
+    Check(merged.Contains("\"Embers of War\",\"Itoku\",\"Personality\",\"Rare\",\"Crane\",\"U\",\"3\"") && merged.Contains("\"Before the Dawn\",\"Itoku\",\"Personality\",\"Common\",\"Crane\",\"U\",\"2\"") && mergedLines.Count(l => l.Contains("\"Itoku\"")) == 2 && !mergedLines.Any(l => l.StartsWith("\"\",\"Itoku\"")),
+        "copies of no recorded printing go in the Count of the card's first row; no second row is appended for a card the list names");
+    var mergedBack = ps.Preview(merged, shelf, list); ps.Apply(mergedBack, CollectionImportMode.Replace); Check(ps.Count("t") == 5 && ps.CountOf("t") == 0, "and import back with the same total");
     var template = MyCollectionStore.Template(list); Check(template.Contains("\"Assassin\",\"Token\",\"Token\",\"\",\"\",\"0\"") && template.Contains("\"Itoku\",\"Personality\",\"Rare\",\"Crane\",\"U\",\"0\""), "the template lists every printing with 0 owned");
     var zero = MyCollectionStore.Template(printings).Split("\r\n", StringSplitOptions.RemoveEmptyEntries).Skip(1).ToArray();
     Check(zero.Length == printings.Length && zero.All(line => line.EndsWith(",\"0\"")), "with nothing owned, every card is still reported, each on a line with 0 in the Count column");
@@ -88,6 +92,13 @@ try
     var unresolved = resolved.Rows.Count(r => r.Id is null);
     Console.WriteLine($"  template against the catalogue: {resolved.Rows.Length - unresolved} of {resolved.Rows.Length} rows resolve without review");
     Check(resolved.Rows.Length > 2000 && unresolved < 120, "all but a few of the template's rows resolve to a catalogue card without review");
+    // Every non-Token row names a library card, apart from the printings the library has no version of (an Experienced or flavour version, a card it lacks). A misspelt row exports as 0 with
+    // its copies on a trailing row (issue #1164), so a new row that matches nothing must be fixed or added here on purpose.
+    var versionKeys = real.Select(c => CollectionPrintings.Key(c.VersionName)).ToHashSet(); var baseKeys = real.Select(c => CollectionPrintings.Key(c.Name)).ToHashSet();
+    string[] notInLibrary = ["Itoku (Exp)", "Naka Mahatsu (Exp.)", "Bayushi Kachiko Experienced CoM", "Border Keep (Inexp) (Phoenix Flavor)", "Border Keep (Inexp) (Scorpion Flavor)", "Fukuzo (Chuda Fukuzo Exp.)",
+        "Isawa Tsuke Experienced CoM", "Iuchi Shunshi (Exp.2)", "Shiba Tsukimi (Exp 3.5)", "Tsubo (Exp.)", "Earth's Embrace", "Exquisite Gifts", "Frozen in Place", "Into the Wastes", "The Asahina's Shame", "Oblivious"];
+    var unmatched = printings.Where(p => p.Type != "Token" && !versionKeys.Contains(CollectionPrintings.Key(p.Name)) && !baseKeys.Contains(CollectionPrintings.Key(p.Name))).Select(p => p.Name).Distinct().Order().ToArray();
+    Check(unmatched.SequenceEqual(notInLibrary.Order()), "every printing in the list names a library card except the known absent ones; unexpected: " + string.Join(" | ", unmatched.Except(notInLibrary)) + "; now matched: " + string.Join(" | ", notInLibrary.Except(unmatched)));
     // ---- the closest-name guess (issue #807): the deck troubleshooter's scoring, for names the catalogue spells differently ----
     CollectionIdentity[] spelled = [new("w", "Advance Warning", "Advance Warning"), new("m", "Modifications", "Modifications"), new("i", "Itoku", "Itoku"), new("a", "Kaiu Esumi", "Kaiu Esumi"), new("b", "Kaiu Esumi", "Kaiu Esumi - exp")];
     var guessed = new MyCollectionStore(Path.Combine(dir, "guess.json")).Preview("Set,Card Name,Card Type,Rarity,Clan,Limit,Count\nBefore the Dawn,Advanced Warning,Strategy,Common,,N,2\nBefore the Dawn,Modifcations,Strategy,Common,,N,1\nEmbers of War,Itoku (Exp),Personality,Rare,,U,1\nEmbers of War,Kaiu Esumi (Exp.),Personality,Rare,,U,1\nBefore the Dawn,Zzzz Qqqq,Strategy,Common,,N,1\nBefore the Dawn,Zzzz Qqqq,Strategy,Common,,N,0\n", spelled, list);
@@ -131,6 +142,29 @@ try
     Check(BattleActionText.WithoutIds("Bow Hida Kisada (card-0123): bow him (created-0004)") == "Bow Hida Kisada: bow him", "card and created-card ids never show");
     Check(BattleActionText.TitleFirst("Reaction: Redirect · Akodo Toturi (card-0123)", ["Akodo Toturi"]) == "Akodo Toturi · Reaction: Redirect", "the card concerned leads the placard, without its id");
     Check(BattleActionText.TitleFirst("Open: Bow · Not A Card", ["Akodo Toturi"]) == "Open: Bow · Not A Card", "a trailing name that is not one of the option's cards is left alone");
+    // ---- safeguards (issue #1194): nothing the file says is changed, mergedFile or hidden without a trace ----
+    var safe = Path.Combine(dir, "safe", "my-collection.json");
+    var keep = new MyCollectionStore(safe); keep.Names = cards; keep.Set("a", 3); keep.Set("b", 2);
+    Check(File.Exists(keep.CsvMirrorPath) && File.ReadAllText(keep.CsvMirrorPath).Contains("\"a\",\"Twin\",\"3\""), "every save writes a readable CSV copy with card names");
+    var mirror = keep.Preview(File.ReadAllText(keep.CsvMirrorPath), cards); Check(mirror.CanApply && mirror.Rows.Any(r => r.Id == "a" && r.Count == 3), "the CSV copy imports back unchanged");
+    for (var i = 0; i < MyCollectionStore.SnapshotsKept + 5; i++) { keep.Set("a", 10 + i); Thread.Sleep(3); }
+    var shots = Directory.GetFiles(keep.SnapshotDirectory, "my-collection-*.json");
+    Check(shots.Length == MyCollectionStore.SnapshotsKept, "only the newest " + MyCollectionStore.SnapshotsKept + " snapshots are kept: " + shots.Length);
+    Check(shots.Any(f => File.ReadAllText(f).Contains("\"a\":" + (10 + MyCollectionStore.SnapshotsKept + 3))), "a snapshot holds the file as it was before the latest change");
+    Check(File.ReadAllText(safe).Contains("WrittenBy"), "the file records the build that wrote it");
+    // Two spellings of one printing are added together on load: that is reported, kept in a snapshot, and the file on disk is not rewritten by reading.
+    var mergedFile = Path.Combine(dir, "merge", "my-collection.json"); Directory.CreateDirectory(Path.GetDirectoryName(mergedFile)!);
+    var raw = "{\"SchemaVersion\":2,\"Counts\":{\"a@EE\":4,\"a@Emperor Edition\":6,\"gone-card\":3}}"; File.WriteAllText(mergedFile, raw);
+    var loaded = new MyCollectionStore(mergedFile); Check(loaded.Count("a") == 10 && loaded.LoadNotes.Length == 1 && loaded.LoadNotes[0].Contains("a@EE x4") && loaded.LoadNotes[0].Contains("x10"), "entries added together on load are named in LoadNotes: " + string.Join("|", loaded.LoadNotes));
+    Check(File.ReadAllText(mergedFile) == raw, "reading never rewrites the file");
+    Check(Directory.GetFiles(loaded.SnapshotDirectory).Length == 1 && File.ReadAllText(Directory.GetFiles(loaded.SnapshotDirectory)[0]) == raw, "a load that changed something keeps the original file");
+    Check(loaded.Unmatched(cards).Single() == ("gone-card", 3) && loaded.Health(cards).Contains("3 owned copies") && loaded.Health(cards).Contains("a@EE x4"), "copies matching no catalogue card are reported, not just hidden");
+    Check(new MyCollectionStore(safe).LoadNotes.Length == 0 && new MyCollectionStore(safe).Health(cards).Length == 0, "a clean file reports nothing");
+    var capped = Path.Combine(dir, "cap", "my-collection.json"); Directory.CreateDirectory(Path.GetDirectoryName(capped)!);
+    File.WriteAllText(capped, "{\"SchemaVersion\":2,\"Counts\":{\"a@EE\":60000,\"a@Emperor Edition\":60000}}");
+    Check(new MyCollectionStore(capped).LoadNotes.Any(n => n.Contains("capped at 99999")), "a count capped on load is reported");
+    var oldFile = Path.Combine(dir, "v1", "my-collection.json"); Directory.CreateDirectory(Path.GetDirectoryName(oldFile)!);
+    File.WriteAllText(oldFile, "{\"SchemaVersion\":1,\"Counts\":{\"a\":2}}"); Check(new MyCollectionStore(oldFile).Count("a") == 2, "a file with no WrittenBy still loads");
     Console.WriteLine($"COLLECTION DATA PASS: {checks} assertions");
 }
 finally { Directory.Delete(dir, true); }

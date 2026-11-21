@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "At Any Cost offers Clan discount (2 less), Clan allegiance (2 more, ignoring the Honor Requirement), both, or full cost for a Samurai of the player's Clan, asked after the Samurai (CR: these apply at any time, not just the Dynasty Phase). Proclaim is not offered: its text needs a Personality in a province, and the 2026-09-20 ruling says At Any Cost's recruit may not be proclaimed -- open for Mendon. Only At Any Cost offers the options; other ability recruits are unchanged.",
+  "validation": "bash tools/check.sh --skip-client: all passed (new GoldRulingsTests.AtAnyCostClanModes; AtAnyCostRestrictions updated). check-variant-steps-ui: passed with a new At Any Cost scenario (Samurai, then Clan discount at 5 Gold, holdings clicked, recruited for 5). check-direct-play-ui, check-table-click-ui: passed. check-reaction-flow-ui: normal-seat0 failed once on a Forest Cover hover step, then passed twice on rerun; the other three cases passed.",
+  "remaining": "Proclaim for At Any Cost awaits Mendon's decision. Other ability recruits (Your Clan Needs You!, Shinden Shorai, ...) could offer the Clan options too. No human playtest.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1230",
+  "branch": "claude/1230-at-any-cost-clan-options",
+  "updated": "2026-11-13T19:46:04.283980+00:00"
+}

@@ -648,6 +648,7 @@ internal static class SeedsOfDecayBatch2Tests
         Accept(e4, Enabled(e4, 0, "brotherhood-schism-rings", schism.Id).Command!);
         Eq(e4.State.RingSchismTurn, e4.State.TurnNumber);
         var t4 = e4.State; t4.PriorityPlayerId = 1;
+        t4.Phase = Phase.Battle; t4.AdditionalActions.Add(new AdditionalActionGrant(1, [ring.Id], Battle: t4.BattleNumber)); // the recruit is a granted Battle action (issue #1157)
         var e5 = MatchEngine.FromTestState(t4);
         Reject(e5, Use(e5, 1, "ring-of-void-recruit", ring.Id));
         t4.Players[1].RingPutIntoPlayTurn = -1;

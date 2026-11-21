@@ -152,9 +152,12 @@ var tests = new (string Name, Action Run)[]
     ("Goju House Guard and Aberrations (issue #192): the new deck-return primitive (top or bottom, controller's choice for Goju itself; unattached unit cards always to the bottom of their owner's appropriate deck, fully reset) and top-of-Fate-deck discard primitive (Force bonus equal to the discarded card's Focus Value)", GojuHouseGuardAndAberrations),
     ("Focus-1 Battle-action wave (issue #192): Sankaku-Yari (target-keyword-conditional Attack strength, zero new primitives), Pearl of Embers (BattleOrOpen, zero new primitives), Ritual Preparation (the new own-unit-card Target category -- a Personality OR Follower, own, in play)", FocusOneBattleActionsWave),
     ("Enlightenment victory (issue #194): all five real elemental Rings in play at the start of a turn wins; a False Ring's own matching elemental keyword never substitutes, even for a missing real Ring -- Fudo is the actual exclusion", EnlightenmentVictory),
-    ("Ring of Air (issue #194): two Favor actions in one turn grants an Additional Battle Action scoped to the Ring rather than a forced interrupt; recruiting it, then its own Repeatable straighten action", RingOfAir),
-    ("Ring of Water (issue #194): a battle resolving with a Terrain played, a Terrain destroyed, and something destroyed grants an Additional Battle Action scoped to the Ring, surviving battle-end cleanup", RingOfWater),
-    ("Ring of the Void (issue #194): a Limited ability gated on two or fewer Rings in play, discarding the rest of the player's hand as its own cost", RingOfTheVoid),
+    ("Ring of Air (Emperor Edition scan): a third Spell or Kiho action of a different title in one turn grants an Additional Battle Action scoped to the Ring rather than a forced interrupt; recruiting it, then its Battle/Open straighten of a performing Personality's unit", RingOfAir),
+    ("Battle action record (issue #1169): actions, passes and innate actions are listed for both seats with their card, performer, target and a terse effect", BattleActionRecordTest),
+    ("Battle action record (issue #1169): engaging opens the record with an Engage entry, and a pass in the Engage window follows it", BattleActionRecordEngageTest),
+    ("Ring of Water (Emperor Edition scan): a fourth Battle action of a different title in one battle grants an Additional Battle Action scoped to the Ring, surviving battle-end cleanup; its move-home and move-to-an-enemy-battlefield halves straighten the mover", RingOfWater),
+    ("Ring of Earth (Emperor Edition scan): a won battle against enemy units grants the recruit unless one of the winner's Personalities was destroyed during the battle", RingOfEarthRecruit),
+    ("Ring of the Void (issue #1157): the Emperor Edition scan, recruited after a fourth non-Kiho Strategy action in a phase and drawing by the hand comparison, never discarding a hand", RingOfTheVoid),
     ("False Ring of Air (issue #194): winning a battle with an opposing unit present grants an Additional Battle Action scoped to the Ring; recruiting it costs 2 Honor, unlike a real Ring", FalseRingOfAir),
     ("False Ring of Water (issue #194): a standing Province-Strength-11-or-greater condition, not a Reaction/grant -- usable any time it holds, like an ordinary Battle ability", FalseRingOfWater),
     ("Review of previously Ring-blocked cards (issue #194): Moshi Ikako's 'Fire Battle' is a plain classification, not Ring-gated (confirmed, zero new primitives); Scholarly Hermit needed only a Ring-type check in a discard pile (new own-ring-in-discard Target)", RingBlockedCardsReview),
@@ -4431,7 +4434,7 @@ static void ExperiencedKeywordAndOverlay()
     Equal(Experienced.Level([]), 0, "No Experienced keyword means level 0");
     Equal(Experienced.Level(["Experienced"]), 1, "Experienced without a number means level 1");
     Equal(Experienced.Level(["Experienced 5"]), 5, "Experienced N supplies level N");
-    Equal(Experienced.Level(["Inexperienced"]), 0, "Inexperienced is not the Experienced keyword");
+    Equal(Experienced.Level(["Inexperienced"]), -1, "Inexperienced is experience level -1 (Comprehensive Rules)");
     Equal(Experienced.BaseTitle("Mirumoto Yozo - exp2"), "Mirumoto Yozo", "Imported Experience suffixes are not part of the in-game title");
 
     var s = MatchEngine.CreateEconomyScenario().State;
@@ -5276,6 +5279,7 @@ static void AdditionalActionPrimitive()
         var enemyHost = Add(s, "training-lion-veteran", 1, Zone.Battlefield, province: 0);
         var enemy = Add(s, "training-follower", 1, Zone.Attached, province: 0, attachedTo: enemyHost.Id); // Force 2, matching the Weapon's Melee 2
         var twoHands = Add(s, "oracle-l5r-10175", 0, Zone.Hand);
+        kensai.Bowed = true; // "your performing Kensai" prints no "unbowed": a bowed Kensai performs it (R-035, issue #1228)
         var e = MatchEngine.FromTestState(s);
         Accept(e, new GameCommand("useAbility", 0, e.Version, CardId: twoHands.Id, PerformerId: kensai.Id, AbilityId: "two-hands-grant"));
         Equal(e.State.AdditionalActions.Count(g => g.PlayerId == 0), 2, "Grants two additional Battle actions");
@@ -5846,65 +5850,207 @@ static void EnlightenmentVictory()
         Check(e.State.WinnerId is null, "A False Ring's own elemental keyword does not substitute for the real Ring");
     }
 }
+static bool RingGranted(MatchEngine e, CardInstance ring) => e.State.AdditionalActions.Any(g => g.PlayerId == 0 && g.ScopeCardIds is { Length: 1 } ids && ids[0] == ring.Id);
 static void RingOfAir()
 {
-    // Ring of Air (issue #194): two Favor actions in one turn grants an Additional Battle Action
-    // scoped to the Ring (rather than a forced mid-resolution interrupt, per the user's own
-    // simplification); consuming it recruits the Ring; its own in-play action (straighten a
-    // Personality or attachment, Repeatable) is then usable, bowing itself as the cost.
-    // Ring of Air's own condition is checked mid-Action-phase (Favor actions are usable there), but
-    // its recruit ability is Timing "Battle" -- a real match reaches both within the same turn via
-    // Action -> AttackDeclaration -> Battle. MatchEngine.State always returns a fresh copy (writes
-    // through it are no-ops), so the transition is modeled by capturing the post-Favor-action state,
-    // editing its Phase/PriorityPlayerId, and wrapping a second engine around it (same pattern used
-    // for Volcano Tattoo's own Phase.Action -> Phase.Battle test, issue #190).
-    var s = StrongholdBattle("oracle-l5r-1218"); s.ActivePlayerId = 0; s.Phase = Phase.Action; s.FavorPlayerId = 0; s.Players[0].FavorActionsThisTurn = 1;
+    // Ring of Air, Emperor Edition scan: "After you resolve your third or later Spell or Kiho action in one turn from cards with different titles: You may put this card into play from your hand.
+    // Battle/Open: Bow this card or discard it from your hand, and choose your performing Personality: Straighten his unit." Spell actions come from Spell cards, Kiho actions from any card with the
+    // Kiho keyword; a Strategy without Kiho does not count, and a second action from a title already counted is not an action "from cards with different titles".
+    var s = StrongholdBattle("oracle-l5r-1218"); s.ActivePlayerId = 0; s.Phase = Phase.Action; // the Kiho are Open actions (Action phase); the Spells have Battle actions, taken after the move to the battle below
     var ring = Add(s, "training-ring-of-air", 0, Zone.Hand);
-    var host = Add(s, "training-crane-samurai", 0, Zone.Battlefield, province: 0, bowed: true);
-    var shunya = Add(s, "training-honor-personality", 0, Zone.Home);
+    var host = Add(s, "training-shugenja", 0, Zone.Battlefield, province: 0); // a Shugenja wields the Spells
+    var sleeper = Add(s, "training-lion-veteran", 0, Zone.Battlefield, province: 0, bowed: true);
+    var foe = Add(s, "training-crane-samurai", 1, Zone.Battlefield, province: 0);
+    var boost = Add(s, "training-spell-with-ability", 0, Zone.Attached, province: 0, attachedTo: host.Id);
+    var bow = Add(s, "training-bow-spell", 0, Zone.Attached, province: 0, attachedTo: host.Id);
+    var plain = Add(s, "training-plain-strategy", 0, Zone.Hand);
+    var kiho = Add(s, "training-kiho-strategy", 0, Zone.Hand);
+    var kihoAgain = Add(s, "training-kiho-strategy", 0, Zone.Hand);
     var e = MatchEngine.FromTestState(s);
-    Accept(e, new GameCommand("useAbility", 0, e.Version, CardId: shunya.Id, AbilityId: "shunya-honor")); // this turn's 2nd Favor action
-    Check(e.State.AdditionalActions.Any(g => g.PlayerId == 0 && g.ScopeCardIds != null && g.ScopeCardIds.Contains(ring.Id)), "Grants an Additional Battle Action scoped to the Ring");
-    var s2 = e.State; s2.Phase = Phase.Battle; s2.PriorityPlayerId = 0; s2.BattleNumber = 1; // the grant made in the Action phase belongs to the next battle (#379): the one SelectBattle numbers 1
-    var e2 = MatchEngine.FromTestState(s2);
-    Accept(e2, new GameCommand("useAbility", 0, e2.Version, CardId: ring.Id, AbilityId: "ring-of-air-recruit"));
-    Equal(e2.State.Cards[ring.Id].Zone, Zone.Home, "Recruited into play"); Check(!e2.State.Players[0].Hand.Contains(ring.Id));
-    Accept(e2, Cmd(e2, "pass")); // priority ceded to the opponent once the grant is spent; they pass back
-    Accept(e2, new GameCommand("useAbility", 0, e2.Version, CardId: ring.Id, TargetId: host.Id, AbilityId: "ring-of-air-straighten"));
-    Check(!e2.State.Cards[host.Id].Bowed, "Straightens the target"); Check(e2.State.Cards[ring.Id].Bowed, "Bows itself as the in-play cost");
+    void Act(GameCommand c) { Accept(e, c); Accept(e, Cmd(e, "pass")); } // the opponent passes back: the same player keeps acting
+    Act(new GameCommand("useAbility", 0, e.Version, CardId: plain.Id, AbilityId: "training-plain-open"));
+    Check(!RingGranted(e, ring), "a Strategy that is neither a Spell nor Kiho does not count");
+    Act(new GameCommand("useAbility", 0, e.Version, CardId: kiho.Id, AbilityId: "training-plain-open"));
+    Act(new GameCommand("useAbility", 0, e.Version, CardId: kihoAgain.Id, AbilityId: "training-plain-open"));
+    Check(!RingGranted(e, ring), "a Kiho action counts once; a second copy of the same title adds nothing");
+    var battle = e.State; battle.Phase = Phase.Battle; battle.PriorityPlayerId = 0; battle.BattleNumber = 1; // the same turn: its count carries over into the battle
+    e = MatchEngine.FromTestState(battle);
+    Act(new GameCommand("useAbility", 0, e.Version, CardId: boost.Id, TargetId: host.Id, AbilityId: "training-spell-force-boost"));
+    Check(!RingGranted(e, ring), "Kiho and a Spell of different titles are two actions");
+    Act(new GameCommand("useAbility", 0, e.Version, CardId: bow.Id, TargetId: foe.Id, AbilityId: "training-bow-at-battle"));
+    Check(RingGranted(e, ring), "the third Spell or Kiho action from a different title grants the recruit");
+    Accept(e, new GameCommand("useAbility", 0, e.Version, CardId: ring.Id, AbilityId: "ring-of-air-recruit"));
+    Equal(e.State.Cards[ring.Id].Zone, Zone.Home, "Recruited into play"); Check(!e.State.Players[0].Hand.Contains(ring.Id));
+    Accept(e, Cmd(e, "pass"));
+    Accept(e, new GameCommand("useAbility", 0, e.Version, CardId: ring.Id, PerformerId: sleeper.Id, AbilityId: "ring-of-air-straighten"));
+    Check(!e.State.Cards[sleeper.Id].Bowed, "Straightens his unit"); Check(e.State.Cards[ring.Id].Bowed, "Bows itself as the in-play cost");
+}
+static void BattleActionRecordTest()
+{
+    // Issue #1169: the battle's actions and passes are recorded as they are announced, newest last, and shown to both seats.
+    var s = StrongholdBattle("oracle-l5r-1218"); s.ActivePlayerId = 0;
+    var host = Add(s, "training-shugenja", 0, Zone.Battlefield, province: 0);
+    var foe = Add(s, "training-crane-samurai", 1, Zone.Battlefield, province: 0);
+    var tactician = Add(s, "training-tactician", 0, Zone.Battlefield, province: 0);
+    var boost = Add(s, "training-spell-with-ability", 0, Zone.Attached, province: 0, attachedTo: host.Id);
+    var discard = Add(s, "training-focus-strategy", 0, Zone.Hand);
+    var e = MatchEngine.FromTestState(s);
+    string NameOf(CardInstance c) => e.GetView(0).Players.SelectMany(p => p.Home.Concat(p.Army).Concat(p.Hand)).First(v => v.Id == c.Id).Definition!.Name;
+    Check(e.GetView(0).BattleActions is null, "before anyone acts the battle has no record");
+    Accept(e, new GameCommand("useAbility", 0, e.Version, CardId: boost.Id, TargetId: host.Id, AbilityId: "training-spell-force-boost"));
+    Accept(e, Cmd(e, "pass"));
+    var log = e.GetView(1).BattleActions!;
+    Equal(log.Length, 2, "an action and the pass that answered it");
+    Check(log[0].Kind == "Action" && log[0].PlayerId == 0 && log[0].Source?.Id == boost.Id && log[0].Source!.Definition is not null && log[0].Targets.SequenceEqual([NameOf(host)]) && log[0].Brief.Length is > 0 and <= BattleActionLog.BriefLimit, "the action names its player, its card, its target and a terse effect, in the opponent's view too");
+    Check(log[1].Kind == "Pass" && log[1].PlayerId == 1 && log[1].Source is null, "the pass is a record with no card");
+    Accept(e, new GameCommand("useAbility", 0, e.Version, TargetId: discard.Id, AbilityId: "tactical-advantage", PerformerId: tactician.Id));
+    var innate = e.GetView(0).BattleActions!.Last();
+    Check(innate.Source?.Id == discard.Id && innate.Performer == NameOf(tactician) && innate.Targets.Length == 0, "an innate action shows the card discarded for it as its source, and that card is not also a target");
+    Check(AbilityCatalog.All.All(a => BattleActionLog.Brief(a.Key, a.Value).Length <= BattleActionLog.BriefLimit), "every ability has an effect line within the sidebar's limit");
+}
+static void BattleActionRecordEngageTest()
+{
+    // Issue #1169: engaging opens the battle's record with an Engage entry, and a pass in the Engage window is recorded after it.
+    var s = StrongholdBattle("oracle-l5r-1218"); s.ActivePlayerId = 0;
+    Add(s, "training-crane-samurai", 0, Zone.Battlefield, province: 0);
+    Add(s, "training-crane-samurai", 1, Zone.Battlefield, province: 0);
+    s.Phase = Phase.BattleSelection; s.CurrentBattleProvince = null; s.UnresolvedBattlefields = [0]; s.PriorityPlayerId = 0;
+    var e = MatchEngine.FromTestState(s);
+    Accept(e, new GameCommand("selectBattle", 0, e.Version, Province: 0));
+    var log = e.GetView(1).BattleActions!;
+    Check(log.Length >= 1 && log[0].Kind == "Engage" && log[0].PlayerId == 0 && log[0].Source is null && log[0].Chosen.Length == 1, "engaging records who engaged and where, as the battle's first entry");
+    if (e.State.PendingChoice is { Type: "engageReaction" })
+    {
+        Accept(e, Cmd(e, "pass"));
+        Check(e.GetView(0).BattleActions!.Last().Kind == "Pass", "a pass in the Engage window is recorded");
+    }
 }
 static void RingOfWater()
 {
-    // Ring of Water (issue #194): a battle resolves in which this player played a Terrain, destroyed
-    // a Terrain, and destroyed a card during resolution -- grants an Additional Battle Action scoped
-    // to the Ring, surviving FinishBattleResolution's own Clear() (only ordinary grants are cleared).
+    // Ring of Water, Emperor Edition scan: "After you resolve your fourth or later Battle action in one battle from cards with different titles: You may put this card into play from your hand.
+    // Battle: Bow this card or discard it from your hand, and choose your performing Personality: Move him home or to a battlefield with one or more enemy units. If he moved, straighten his unit."
     var s = StrongholdBattle("oracle-l5r-1218"); s.ActivePlayerId = 0;
     var ring = Add(s, "training-ring-of-water", 0, Zone.Hand);
-    var host = Add(s, "training-crane-samurai", 0, Zone.Battlefield, province: 0); // Force 3
-    var destroyer = Add(s, "training-terrain-destroyer", 0, Zone.Battlefield, province: 0); // Force 2 -- af=5
-    var terrain = Add(s, "training-terrain", 0, Zone.Hand);
-    var enemy = Add(s, "training-crane-samurai", 1, Zone.Battlefield, province: 0); // Force 3 -- df=3, attacker wins
+    var host = Add(s, "training-shugenja", 0, Zone.Battlefield, province: 0); // a Shugenja wields the Spells
+    var caster = Add(s, "training-delayed-caster", 0, Zone.Battlefield, province: 0);
+    var penalty = Add(s, "training-penalty-source", 0, Zone.Battlefield, province: 0);
+    var foe = Add(s, "training-crane-samurai", 1, Zone.Battlefield, province: 0);
+    var boost = Add(s, "training-spell-with-ability", 0, Zone.Attached, province: 0, attachedTo: host.Id);
+    var bow = Add(s, "training-bow-spell", 0, Zone.Attached, province: 0, attachedTo: host.Id);
     var e = MatchEngine.FromTestState(s);
-    Accept(e, new GameCommand("playStrategy", 0, e.Version, CardId: terrain.Id));
-    Check(e.State.Players[0].TerrainPlayedThisBattle, "Playing a Terrain sets the flag");
-    Accept(e, Cmd(e, "pass"));
-    Accept(e, new GameCommand("useAbility", 0, e.Version, CardId: destroyer.Id, TargetId: terrain.Id, AbilityId: "training-destroy-terrain"));
-    Check(e.State.Players[0].TerrainDestroyedThisBattle, "Destroying it sets the flag");
-    Resolve(e); // two passes in Phase.Battle -> ResolveBattle; af=5 > df=3, the enemy Personality is destroyed
-    Check(e.State.AdditionalActions.Any(g => g.PlayerId == 0 && g.ScopeCardIds != null && g.ScopeCardIds.Contains(ring.Id)), "Grants an Additional Battle Action scoped to the Ring, surviving battle-end cleanup");
+    void Act(GameCommand c) { Accept(e, c); Accept(e, Cmd(e, "pass")); }
+    Act(new GameCommand("useAbility", 0, e.Version, CardId: boost.Id, TargetId: host.Id, AbilityId: "training-spell-force-boost"));
+    Act(new GameCommand("useAbility", 0, e.Version, CardId: bow.Id, TargetId: foe.Id, AbilityId: "training-bow-at-battle"));
+    Act(new GameCommand("useAbility", 0, e.Version, CardId: caster.Id, TargetId: host.Id, AbilityId: "training-delayed-boost"));
+    Check(!RingGranted(e, ring), "three Battle actions of different titles: no grant yet");
+    Act(new GameCommand("useAbility", 0, e.Version, CardId: penalty.Id, TargetId: host.Id, AbilityId: "training-penalty-force-own"));
+    Check(RingGranted(e, ring), "the fourth Battle action in the battle from a different title grants the recruit");
+    Accept(e, new GameCommand("useAbility", 0, e.Version, CardId: ring.Id, AbilityId: "ring-of-water-recruit"));
+    Equal(e.State.Cards[ring.Id].Zone, Zone.Home, "Recruited into play");
+
+    // The ability, home half: the performer moves home, and his unit is straightened because he moved. The Ring is discarded from the hand as the cost.
+    var m = StrongholdBattle("oracle-l5r-1218"); m.ActivePlayerId = 0;
+    var mRing = Add(m, "training-ring-of-water", 0, Zone.Hand);
+    var mover = Add(m, "training-crane-samurai", 0, Zone.Battlefield, province: 0, bowed: true);
+    Add(m, "training-lion-samurai", 1, Zone.Battlefield, province: 0);
+    var me = MatchEngine.FromTestState(m);
+    Accept(me, new GameCommand("useAbility", 0, me.Version, CardId: mRing.Id, PerformerId: mover.Id, AbilityId: "ring-of-water-move-home"));
+    Equal(me.State.Cards[mover.Id].Zone, Zone.Home, "he moved home"); Check(!me.State.Cards[mover.Id].Bowed, "and his unit was straightened because he moved");
+    Equal(me.State.Cards[mRing.Id].Zone, Zone.FateDiscard, "the Ring was discarded from the hand as the cost");
+
+    // The battlefield half: from home to the battlefield where the enemy has units (the current one, so no presence is needed), straightened because he moved.
+    var h = StrongholdBattle("oracle-l5r-1218"); h.ActivePlayerId = 0;
+    var hRing = Add(h, "training-ring-of-water", 0, Zone.Hand);
+    var traveller = Add(h, "training-crane-samurai", 0, Zone.Home, bowed: true);
+    Add(h, "training-lion-samurai", 1, Zone.Battlefield, province: 0);
+    var he = MatchEngine.FromTestState(h);
+    Reject(he, new GameCommand("useAbility", 0, he.Version, CardId: hRing.Id, PerformerId: traveller.Id, AbilityId: "ring-of-water-move-battlefield", Province: 1));
+    Accept(he, new GameCommand("useAbility", 0, he.Version, CardId: hRing.Id, PerformerId: traveller.Id, AbilityId: "ring-of-water-move-battlefield", Province: 0));
+    Equal(he.State.Cards[traveller.Id].Zone, Zone.Battlefield, "he moved to the battlefield with enemy units"); Check(!he.State.Cards[traveller.Id].Bowed, "and was straightened");
 }
 static void RingOfTheVoid()
 {
-    // Ring of the Void (issue #194): a Limited ability (not a granted Additional Action) -- gated
-    // only by controlling two or fewer Rings; its own cost discards the rest of the player's hand.
+    // Ring of the Void (issue #1157), the Emperor Edition scan: never discards a hand. Its recruit is granted by a fourth non-Kiho Strategy action in one phase,
+    // and its Open draws only when an opponent holds more cards than its player, or the Ring is already in play.
     var s = MatchEngine.CreateEconomyScenario().State; s.Phase = Phase.Action; s.PriorityPlayerId = 0; s.ActivePlayerId = 0;
     var ring = Add(s, "training-ring-of-void", 0, Zone.Hand);
-    var otherCard = Add(s, "training-follower", 0, Zone.Hand);
+    var bystander = Add(s, "training-follower", 0, Zone.Hand);
+    var strategies = Enumerable.Range(0, 4).Select(_ => Add(s, "training-plain-strategy", 0, Zone.Hand)).ToArray();
     var e = MatchEngine.FromTestState(s);
-    Accept(e, new GameCommand("useAbility", 0, e.Version, CardId: ring.Id, AbilityId: "ring-of-void-recruit"));
-    Equal(e.State.Cards[ring.Id].Zone, Zone.Home, "Recruited into play");
-    Equal(e.State.Cards[otherCard.Id].Zone, Zone.FateDiscard, "The rest of the hand is discarded");
-    Check(!e.State.Players[0].Hand.Contains(otherCard.Id) && !e.State.Players[0].Hand.Contains(ring.Id));
+    bool Granted() => e.State.AdditionalActions.Any(g => g.PlayerId == 0 && g.ScopeCardIds is { Length: 1 } ids && ids[0] == ring.Id);
+    for (var n = 0; n < 4; n++)
+    {
+        Check(!Granted(), $"{n} Strategy actions resolved: no recruit grant yet");
+        Accept(e, new GameCommand("useAbility", 0, e.Version, CardId: strategies[n].Id, AbilityId: "training-plain-open"));
+        Accept(e, new GameCommand("pass", 1, e.Version)); // the opponent passes back: the same player keeps acting
+    }
+    Check(Granted(), "the fourth Strategy action in the phase grants the recruit");
+    Check(e.State.Players[0].Hand.Contains(bystander.Id) && e.State.Players[0].Hand.Contains(ring.Id), "nothing was discarded from the hand");
+
+    // The recruit itself, on a battle table: the Ring enters play and the rest of the hand stays.
+    var b = MatchEngine.CreateEconomyScenario().State; b.Phase = Phase.Battle; b.PriorityPlayerId = 0; b.ActivePlayerId = 0;
+    var bRing = Add(b, "training-ring-of-void", 0, Zone.Hand);
+    var kept = Add(b, "training-follower", 0, Zone.Hand);
+    b.AdditionalActions.Add(new AdditionalActionGrant(0, [bRing.Id], Battle: b.BattleNumber));
+    var be = MatchEngine.FromTestState(b);
+    Accept(be, new GameCommand("useAbility", 0, be.Version, CardId: bRing.Id, AbilityId: "ring-of-void-recruit"));
+    Equal(be.State.Cards[bRing.Id].Zone, Zone.Home, "Recruited into play");
+    Equal(be.State.Cards[kept.Id].Zone, Zone.Hand, "The rest of the hand is kept");
+
+    // The draw: an opponent with more cards in hand, then the Ring in play, then neither. `lead` is how many cards the opponent holds beyond the player's hand
+    // once the Ring has left it; the result is how many cards the draw added to the player's hand (the Ring's own discard from the hand not counted).
+    int CardsDrawn(Zone ringZone, int lead)
+    {
+        var d = MatchEngine.CreateEconomyScenario().State; d.Phase = Phase.Action; d.PriorityPlayerId = 0; d.ActivePlayerId = 0;
+        var r = Add(d, "training-ring-of-void", 0, ringZone);
+        var own = d.Players[0].Hand.Count - (ringZone == Zone.Hand ? 1 : 0);
+        while (d.Players[1].Hand.Count < own + lead) Add(d, "training-follower", 1, Zone.Hand);
+        var m = MatchEngine.FromTestState(d);
+        Accept(m, new GameCommand("useAbility", 0, m.Version, CardId: r.Id, AbilityId: "ring-of-void-draw"));
+        return m.State.Players[0].Hand.Count - own;
+    }
+    Equal(CardsDrawn(Zone.Hand, lead: 2), 1, "discarded from the hand while an opponent holds more cards: draws");
+    Equal(CardsDrawn(Zone.Hand, lead: 0), 0, "discarded from the hand with no opponent ahead: no draw");
+    Equal(CardsDrawn(Zone.Home, lead: -1), 1, "bowed in play: draws whatever the opponent holds");
+
+    // Kiho is a keyword: a card carrying it produces Kiho actions, which the Void does not count. Plain, Kiho, plain, Kiho, plain, plain: only the sixth action is the fourth non-Kiho one.
+    var k = MatchEngine.CreateEconomyScenario().State; k.Phase = Phase.Action; k.PriorityPlayerId = 0; k.ActivePlayerId = 0;
+    var kRing = Add(k, "training-ring-of-void", 0, Zone.Hand);
+    var kCards = new[] { "training-plain-strategy", "training-kiho-strategy", "training-plain-strategy", "training-kiho-strategy", "training-plain-strategy", "training-plain-strategy" }.Select(d => Add(k, d, 0, Zone.Hand)).ToArray();
+    var ke = MatchEngine.FromTestState(k);
+    for (var n = 0; n < kCards.Length; n++)
+    {
+        Accept(ke, new GameCommand("useAbility", 0, ke.Version, CardId: kCards[n].Id, AbilityId: "training-plain-open"));
+        Accept(ke, new GameCommand("pass", 1, ke.Version));
+        Equal(RingGranted(ke, kRing), n == kCards.Length - 1, $"after {n + 1} actions (Kiho ones not counted): the recruit is granted only with the fourth non-Kiho action");
+    }
+}
+static void RingOfEarthRecruit()
+{
+    // Ring of Earth, Emperor Edition scan: "After the resolution of a battle that you won, if there were ever any enemy units at that battlefield and none of your Personalities were destroyed
+    // during the battle: You may put this card into play from your hand." A Personality of the winner destroyed by an action during the battle withholds the grant.
+    MatchState Battle(bool killBait, out CardInstance ring, out CardInstance bait, out CardInstance killer)
+    {
+        var s = StrongholdBattle("oracle-l5r-1218"); s.ActivePlayerId = 0;
+        ring = Add(s, "training-ring-of-earth-stub", 0, Zone.Hand);
+        Add(s, "training-lion-veteran", 0, Zone.Battlefield, province: 0); // Force 6
+        bait = Add(s, "training-crane-courtier", 0, Zone.Battlefield, province: 0);
+        Add(s, "training-crane-samurai", 1, Zone.Battlefield, province: 0); // Force 3
+        killer = Add(s, "training-no-attachments-destroyer", 1, Zone.Battlefield, province: 0); // Force 2: the defenders total 5 against 6+
+        return s;
+    }
+    var baseline = MatchEngine.FromTestState(Battle(false, out var ring, out _, out _));
+    Resolve(baseline);
+    Check(RingGranted(baseline, ring), "won against enemy units with every Personality alive: the recruit is granted");
+
+    var s = Battle(true, out var ring2, out var bait, out var killer);
+    var e = MatchEngine.FromTestState(s);
+    Accept(e, Cmd(e, "pass")); // the attacker passes; the defender takes the action
+    Accept(e, new GameCommand("useAbility", 1, e.Version, CardId: killer.Id, TargetId: bait.Id, AbilityId: "training-destroy-no-attachments"));
+    Check(e.State.Players[0].PersonalityDestroyedThisBattle, "the destruction of one of the winner's Personalities during the battle is recorded");
+    Accept(e, Cmd(e, "pass")); Accept(e, Cmd(e, "pass"));
+    Equal(e.State.Cards[bait.Id].Zone, Zone.Dead, "the Personality is dead");
+    Check(!RingGranted(e, ring2), "a Personality of yours was destroyed during the battle: no recruit grant");
 }
 static void FalseRingOfAir()
 {

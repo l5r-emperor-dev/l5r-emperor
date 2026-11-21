@@ -159,7 +159,7 @@ public sealed partial class MatchEngine
         // Shadow Dragon's Open half is Kunji - exp's "paying all costs": his ordinary entry price, and every restriction on bringing him into play (Unique, the Honor Requirement).
         if (id == EmperorMechBAbilities.ShadowDragonReturn && source is not null)
         {
-            var quote = QuotePurchase(player.Id, source.Id, fromDeadPile: true);
+            var quote = QuotePurchase(player.Id, source.Id, command.ClanDiscount, command.ClanAllegiance, fromDeadPile: true);
             Require(quote.Error is null, quote.Error ?? "");
         }
     }

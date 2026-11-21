@@ -20,6 +20,10 @@ ROOT = Path(__file__).resolve().parents[2]
 EDITION = ROOT / "content/oracle/emperor-edition"
 OUTPUT = ROOT / "content/oracle/emperor-supplemental-catalogue.json"
 MEMBERSHIP = "Emperor Edition printing outside the Age of Conquest (Emperor) legality query"
+# Wired cards that no Emperor Edition printing or legality query brings in: (set folder, card id). Quelsa (The Shadow's Embrace #69) is wired in
+# personality-wave-75 and, like the six above, is recorded by Oracle as banned from Emperor Edition tournaments (2013), so the legality query drops him. R-040 applies.
+OTHER_MEMBERSHIP = "Wired card outside the Age of Conquest (Emperor) legality query"
+OTHER_SET_CARDS = [("the-shadow-s-embrace", "oracle-l5r-9857")]
 GAME_TYPES = {"Stronghold", "Personality", "Follower", "Item", "Spell", "Strategy", "Holding", "Event", "Celestial", "Region", "Ring"}
 
 
@@ -37,6 +41,15 @@ def build(root: Path = ROOT) -> dict:
                     source_legality_labels=[plain(label) for label in record["source_legality_labels"]],
                     source_ban_notes=[plain(note) for note in record["source_record"].get("banned", [])],
                     emperor_edition_numbers=entry["printing_number"])
+        cards.append(card)
+    for folder, card_id in OTHER_SET_CARDS:
+        record = next(c for c in json.loads((root / "content/oracle" / folder / "catalogue.json").read_text(encoding="utf-8"))["cards"] if c["id"] == card_id)
+        card = normalize_card(record["source_record"], require_membership=False)
+        if not GAME_TYPES.issuperset(card["types"]):
+            raise ValueError(f"{card['name']} is not a game card: {card['types']}")
+        card.update(source_membership=OTHER_MEMBERSHIP, legality_status="supplemental_review", historical_legality_status="playable_by_ruling_r040",
+                    source_legality_labels=[plain(label) for label in record.get("source_legality_labels", [])],
+                    source_ban_notes=[plain(note) for note in record["source_record"].get("banned", [])], emperor_edition_numbers=[])
         cards.append(card)
     cards.sort(key=lambda card: (card["name"].casefold(), card["id"]))
     return {"schema_version": 1, "notice": "Reference-only. These cards have explicit Emperor Edition printings but are absent from the Age of Conquest (Emperor) legality query "

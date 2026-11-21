@@ -68,7 +68,7 @@ public sealed partial class MatchEngine
                         Require(Player(_state.ActivePlayerId).TurnsTaken > 2, "It is the active player's first or second turn.");
                     if (SlotCards(command, "target").FirstOrDefault() is { } recruit)
                     {
-                        var quote = QuotePurchase(player.Id, recruit.Id, fromDeadPile: true);
+                        var quote = QuotePurchase(player.Id, recruit.Id, command.ClanDiscount, command.ClanAllegiance, fromDeadPile: true);
                         Require(quote.Error is null, quote.Error ?? "");
                     }
                     break;

@@ -63,7 +63,7 @@ public sealed partial class MatchEngine
                 Celestials: owned.Where(c => c.Zone == Zone.Celestial).Select(c => ViewCard(c)).ToArray(),
                 FocusCount: owned.Count(c => c.Zone == Zone.Focused),
                 Underneath: owned.Where(c => c.Zone == Zone.Underneath).Select(c => ViewUnder(c, playerId)).ToArray())
-            { HandLimit = HandLimitFor(player.Id), DynastyActionTaken = player.DynastyActionTaken, PlansWithinPlansArmed = player.Id == playerId && LimitedInsteadOfOpen(player.Id) }; // issue #503: The New Foundries
+            { HandLimit = HandLimitFor(player.Id), DynastyActionTaken = player.DynastyActionTaken, WinsWhenTurnBegins = MeetsHonorVictory(player) || MeetsEnlightenmentVictory(player), PlansWithinPlansArmed = player.Id == playerId && LimitedInsteadOfOpen(player.Id) }; // issue #503: The New Foundries
         }).ToArray();
         var duel = _state.PendingDuel;
         return new(ContentVersion, _scenario, _state.Version, _state.TurnNumber, playerId, _state.ActivePlayerId, _state.PriorityPlayerId,
@@ -74,7 +74,7 @@ public sealed partial class MatchEngine
             // Deck search (issue #312): the deck viewer is private to the searcher; the shown-cards record is public.
             BuildSearchView(playerId), BuildShownCards(), BuildLookView(playerId), BuildCopyView(playerId), BuildEitherOrView(playerId), BuildOpponentPaymentView(playerId),
             _state.LastDuel is null ? null : Copy(_state.LastDuel), BuildPendingAttackCue(), BuildProvinceSights(playerId), BuildBattlefieldViews(), BuildHandSights(playerId)) // issue #503: hand sights
-        { ReactionPresentation = BuildReactionPresentation(), ReactionOrder = BuildReactionOrderView(), PhaseOrder = _state.PhaseOrder.IsDefault ? null : [.. _state.PhaseOrder.Order], PendingProvinceOrder = BuildProvinceOrderView(playerId), PendingHarshChoices = BuildHarshChoicesView(), ActionPhaseTurnPlayerId = _state.WinnerId is null ? R1.Aside?.TurnPlayerId : null, ResolutionArea = BuildResolutionAreaView() }; // Plains of Otosan Uchi (issue #554); public context only, the paused effect stays engine-private.
+        { ReactionPresentation = BuildReactionPresentation(), ReactionOrder = BuildReactionOrderView(), PhaseOrder = _state.PhaseOrder.IsDefault ? null : [.. _state.PhaseOrder.Order], PendingProvinceOrder = BuildProvinceOrderView(playerId), PendingHarshChoices = BuildHarshChoicesView(), ActionPhaseTurnPlayerId = _state.WinnerId is null ? R1.Aside?.TurnPlayerId : null, ResolutionArea = BuildResolutionAreaView(), BattleActions = BuildBattleActionViews(playerId) }; // Plains of Otosan Uchi (issue #554); public context only, the paused effect stays engine-private.
     }
 
     // The reveal-order decision (PR #544's own contract): PUBLIC identity/prompt, options PRIVATE to the deciding
@@ -119,7 +119,15 @@ public sealed partial class MatchEngine
             card.Protections.Select(p => new GrantedEffectView("Action protection", "Effects of actions this card performs will not be negated.", p.Source, p.Duration)).Concat(MechBGrantedEffects(card)).Concat(PromoGrantedEffects(card)).ToArray(), // issue #501: Only a Shadow's trait
             IsCopyCard(card), card.CopyOfCardId, CopyOfDefinition(card), CopyConditionsText(card), // issue #501 item 32 (EmperorMechBCopies.cs)
             card.OriginalOwnerId is int realOwner && realOwner != card.OwnerId ? realOwner : null, // issue #501: the owner of a card another player controls
-            card.UnitNumber, card.Zone == Zone.Underneath ? card.HostCardId : null);
+            card.UnitNumber, card.Zone == Zone.Underneath ? card.HostCardId : null, SpentPrintedAbilities(card, def), RestrictionViews(card));
+    }
+
+    /// <summary>The printed abilities of a face-up card in play whose uses this turn are used up (never an Unlimited one); null when there are none.</summary>
+    private string[]? SpentPrintedAbilities(CardInstance card, CardDefinition def)
+    {
+        if (!card.FaceUp || card.Zone is not (Zone.Home or Zone.Battlefield) || def.Abilities is not { Length: > 0 } ids) return null;
+        var spent = ids.Where(id => AbilityCatalog.All.TryGetValue(id, out var ability) && ability.UsesPerTurn != AbilityUseLimit.Unlimited && AbilityUseSpent(card.AbilityUses, ability, ability.UsageKey ?? id)).ToArray();
+        return spent.Length == 0 ? null : spent;
     }
 
     /// <summary>Returns exact proposed commands plus customization targets. Command validation remains authoritative.</summary>
@@ -170,7 +178,7 @@ public sealed partial class MatchEngine
                 // "May not perform actions" (issue #336): a Reaction is an action, so a locked performer is listed disabled with the reason.
                 why ??= ActionLockRejection(command);
                 var text = label ?? AbilityOptionLabel(abilityId, AbilityCatalog.All[abilityId], null, card);
-                if (chosenPlayer is int who) text += who == playerId ? " · you" : " · your opponent";
+                if (chosenPlayer is int who) text = PlayerChoiceOptionLabel(abilityId, who == playerId) ?? text + (who == playerId ? " · you" : " · your opponent");
                 Add("useAbility", text, command, why, card.Id, provinces: destinations, gold: gold);
             }
         }
@@ -821,7 +829,7 @@ public sealed partial class MatchEngine
                                     null, targets: [solo], provinces: [province]);
                         }
                     // Spiritual Manipulation (issue #476 batch 4): assigning no attackers is refused while a forced target can be assigned in this segment.
-                    Add("pass", attack ? (cavalrySegment ? "Assign no Cavalry attackers" : "Assign no Infantry attackers") : (cavalrySegment ? "Assign no Cavalry defenders" : "Assign no defenders"), Command("pass"),
+                    Add("pass", attack ? (cavalrySegment ? "Assign no Cavalry attackers" : "Assign no Infantry attackers") : (cavalrySegment ? "Assign no Cavalry defenders" : "Assign no Infantry defenders"), Command("pass"),
                         attack ? ForcedAssignmentRefusal(playerId, null, cavalrySegment) : null);
                     break;
                 case Phase.BattleSelection:

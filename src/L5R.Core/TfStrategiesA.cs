@@ -65,7 +65,7 @@ public static class TfStrategiesAAbilities
         all[OutpostOpen] = new("Open", "Straighten your target Magistrate", "own-personality-with-keyword", RequiredKeywords: ["Magistrate"]);
         all[OutpostBattle] = new("Battle", "Straighten your target Personality", "own-personality");
         all[WitnessDuel] = new("Battle", "Choose your performing unbowed Personality and target an enemy Personality: Your Personality duels the target. Bow the duel's loser. The duel's winner's controller may create a 2F/2C/2PH Samurai Personality with that player's Clan alignment on his side of the current battlefield",
-            "enemy-personality", Performer: "own-unbowed-personality", IssuesDuel: true,
+            "enemy-personality", Performer: "own-unbowed-personality-at-battle", IssuesDuel: true,
             Creates: new CreatedCardSpec(CardType.Personality, Force: 2, Chi: 2, PersonalHonor: 2, Keywords: ["Samurai"], ProxyId: "oracle-l5r-10018", AtBattlefield: true) { ControllerClan = true });
         return all;
     }

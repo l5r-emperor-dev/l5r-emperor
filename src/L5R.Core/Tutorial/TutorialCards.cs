@@ -10,7 +10,7 @@ internal static class TutorialCards
     public const string BorderKeep = "oracle-l5r-1106";
     public const string BambooHarvesters = "oracle-l5r-679";
 
-    public const string IkomaSugo = "oracle-l5r-3641", MatsuHachiro = "oracle-l5r-4915", CopperMine = "oracle-l5r-1497", SmallFarm = "oracle-l5r-7303", LargeFarm = "oracle-l5r-4664";
+    public const string IkomaSugo = "oracle-l5r-3641", MatsuHachiro = "oracle-l5r-4915", CopperMine = "oracle-l5r-1497", SmallFarm = "oracle-l5r-7303", ShinomenMarsh = "oracle-l5r-6984", LargeFarm = "oracle-l5r-4664";
     public const string DaidojiTsunehiko = "oracle-l5r-9812", DaidojiKenshi = "oracle-l5r-1645";
     public const string LightArmor = "oracle-l5r-10118", VeteranSkirmishers = "oracle-l5r-9147", BlockSupplyLines = "oracle-l5r-1045", Incapacitated = "oracle-l5r-3730",
         PreparedForDeath = "oracle-l5r-6051", DefensiveStance = "oracle-l5r-10368", PaidOff = "oracle-l5r-5861", NeverAfraid = "oracle-l5r-9916";
@@ -40,6 +40,55 @@ internal static class TutorialCards
 
     // The Attachments lesson (issue #1077): Scorpion Lethargy (you, The Towers of the Yogo) against Phoenix (Library of Rebirth). Its Spells are the Spells lesson's.
     public const string NightingaleBlade = "oracle-l5r-5556", ClanStandard = "oracle-l5r-1407", SoshiHouseGuard = "oracle-l5r-7347", RedCraneDojo = "oracle-l5r-6219";
+
+    // The Keywords lesson (issue #1078): Crane (you, Shinden Asahina) against Scorpion, then Spider (The Spider's Web) against Unicorn (Plains of the Maiden), then Spider against a lone Stalwart Phoenix.
+    public const string SpiderStronghold = "oracle-l5r-8352";
+    public const string DojiDainagon = "oracle-l5r-2070", AsahinaKonomi = "oracle-l5r-502", KakitaMaratai = "oracle-l5r-4197", ScentOfDishonor = "oracle-l5r-10131";
+    public const string DaigotsuShiraume = "oracle-l5r-10317", DaigotsuShikenuro = "oracle-l5r-1765", DaigotsuHotako = "oracle-l5r-1726", Ohaba = "oracle-l5r-5685", BladeOfPerfection = "oracle-l5r-1010", Hunger = "oracle-l5r-3514";
+    public const string AParagonsStrength = "oracle-l5r-61", ControlTheBoard = "oracle-l5r-1486", UnorthodoxAttack = "oracle-l5r-8999", Focus = "oracle-l5r-2619";
+    public const string MotoTaha = "oracle-l5r-5379", HorseArchers = "oracle-l5r-3456", BayushiKasumi = "oracle-l5r-10247", ShibaJikaro = "oracle-l5r-10244";
+
+    // The Keywords 2 lesson (issue #1150): Phoenix (you, Library of Rebirth) against Dragon (Foothills Keep); then Scorpion (The Towers of the Yogo) against Dragon; then Scorpion against Crane (Shinden Asahina).
+    public const string DragonStronghold = "oracle-l5r-2626";
+    public const string IsawaSanetomo = "oracle-l5r-3892", TravelingPeddler = "oracle-l5r-8729", AsakoRikateExp = "oracle-l5r-10075", TemplesOfGiseiToshi = "oracle-l5r-7898", SilkWorks = "oracle-l5r-7265", ImperialGift = "oracle-l5r-3694";
+    public const string Renewal = "oracle-l5r-6261", BladesOfTheBlackDragon = "oracle-l5r-10111", EliteSentry = "oracle-l5r-2304", RingOfWater = "oracle-l5r-6339", Hanabi = "oracle-l5r-2954";
+    public const string KitsukiMinori = "oracle-l5r-10052", TogashiNoboru = "oracle-l5r-10058", YogoTakashi = "oracle-l5r-10657", BayushiWateru = "oracle-l5r-10870", FloatingReserve = "oracle-l5r-10896",
+        ThickMarsh = "oracle-l5r-8445", AStainCleansed = "oracle-l5r-82", CelestialSwordOfTheDragonExp = "oracle-l5r-10112", GoldMine = "oracle-l5r-2867";
+    public const string BayushiNitoshi = "oracle-l5r-850", BayushiNitoshiExp = "oracle-l5r-10480", BayushiNitoshiInexperienced = "oracle-l5r-10248", TravelingMarket = "oracle-l5r-10571", Slanderer = "oracle-l5r-7291",
+        DojiMakoto = "oracle-l5r-2118", DojiHakusekiExp2 = "oracle-l5r-2082", DamagedPort = "oracle-l5r-10264", SecondCityPort = "oracle-l5r-10037";
+
+    // The Traits and Actions lesson: Mantis (you, Koshin Keep) against Crane (Shinden Asahina).
+    public const string YoritomoMinori = "oracle-l5r-9605", YoritomoHama = "oracle-l5r-9552", AsahinaMunefusa = "oracle-l5r-505", Chiisai = "oracle-l5r-9803", BackToTheFront = "oracle-l5r-662";
+
+    // The Attacks lesson: Dragon (you, Foothills Keep) against Mantis (Koshin Keep).
+    public const string MirumotoMichi = "oracle-l5r-10054", UnparalleledSword = "oracle-l5r-10124", TogashiTorazu = "oracle-l5r-8590", StrongDefenses = "oracle-l5r-9931";
+    public const string TsuruchiTomaru = "oracle-l5r-8893", YoritomoHaruhiko = "oracle-l5r-9556", WastelandScout = "oracle-l5r-9874";
+
+    // The Duels lesson: Crane (you, Shinden Asahina) against Scorpion (Law of Darkness Dojo).
+    public const string LawOfDarknessDojo = "oracle-l5r-4676", DaidojiMarketplace = "oracle-l5r-10214", ReserveWeapon = "oracle-l5r-6269", AshigaruRecruits = "oracle-l5r-618";
+    public const string SanctionedDuel = "oracle-l5r-6465", RecklessDuel = "oracle-l5r-6209", Retribution = "oracle-l5r-6290", CourtesyOfTheCrane = "oracle-l5r-7996", LoyaltyOfTheScorpion = "oracle-l5r-8207", CrushingStrength = "oracle-l5r-1589";
+
+    // The Dishonor lesson: Crab Control (you, Yasuki Palaces - exp) against Dragon Destruction (Monastery of New Thought).
+    public const string MonasteryOfNewThought = "oracle-l5r-10183";
+    public const string YasukiJekku = "oracle-l5r-9443", YasukiTono = "oracle-l5r-9467", KaiuIemasa = "oracle-l5r-4119", TogashiMeiyu = "oracle-l5r-8550", MirumotoGobashi = "oracle-l5r-5087";
+    public const string RememberYourAncestors = "oracle-l5r-6253", DismissingTheCur = "oracle-l5r-2027", TheHeirsWrath = "oracle-l5r-8127";
+    // The Reactions lesson: Mantis (you, Kyuden Kitsune) against Unicorn (Plains of the Maiden).
+    public const string KyudenKitsune = "oracle-l5r-4642", SeasideBazaar = "oracle-l5r-6529", ColonialHarbor = "oracle-l5r-1431", TsuruchiTomaruExp = "oracle-l5r-8894", YoritomoHiromi = "oracle-l5r-9558";
+    public const string Khalimpehjiak = "oracle-l5r-10905", YoritomoNakoshi = "oracle-l5r-9610", Surrounded = "oracle-l5r-7668", StrategicStrike = "oracle-l5r-7525";
+    public const string UtakuRyoko = "oracle-l5r-9094", ChrysanthemumBlossom = "oracle-l5r-1340", UtakuLishan = "oracle-l5r-9083", ArmorOfTheHeavens = "oracle-l5r-446", SuretyOfPurpose = "oracle-l5r-7664", Stables = "oracle-l5r-7443";
+    // The Imperial Favor lesson: Favors (you, Kyuden Otomo - exp) against Dragon Destruction (Monastery of New Thought).
+    public const string KyudenOtomoExp = "oracle-l5r-4646", DazzlingAttire = "oracle-l5r-1875", DaidojiSosuke = "oracle-l5r-9811", KakitaNara = "oracle-l5r-4206", LuxuriousSilk = "oracle-l5r-4787";
+    public const string TheHostsAdvantage = "oracle-l5r-8141", RequestAuthorization = "oracle-l5r-6265", TheEmpressAddress = "oracle-l5r-8059", MokshaPatam = "oracle-l5r-10121", HomeGuard = "oracle-l5r-3413";
+    // The Cost and Effect lesson: Scorpion (you, The Towers of the Yogo) against Dragon (Monastery of New Thought).
+    public const string ShosuroKoshiba = "oracle-l5r-7122", MerchantsDistrict = "oracle-l5r-10216", OverlookedPalace = "oracle-l5r-10036", Ninja = "oracle-l5r-10200";
+    public const string MysteriousDeaths = "oracle-l5r-5468", AtAnyCost = "oracle-l5r-639", MirumotoShikei = "oracle-l5r-5148", SuperiorReach = "oracle-l5r-7656";
+    public const string MirumotoYumaru = "oracle-l5r-5181", TogashiHiroto = "oracle-l5r-10057", FarmersMarket = "oracle-l5r-10033", IncenseMill = "oracle-l5r-10035";
+    public const string DeadlyDiscipline = "oracle-l5r-1880", HundredFoldCut = "oracle-l5r-3513", Revenge = "oracle-l5r-6302";
+    // The Rings and Enlightenment lesson (issue #1084): Dragon Enlightenment (you, Pillars of Virtue) against Scorpion (The Towers of the Yogo).
+    public const string PillarsOfVirtue = "oracle-l5r-5957", TempleOfHarmony = "oracle-l5r-7874", TattoosAndTrinkets = "oracle-l5r-10213", TogashiHizumi = "oracle-l5r-8521", TogashiKasuru = "oracle-l5r-9821";
+    public const string TogashiTsukagi = "oracle-l5r-8591", TogashiOsawaExp = "oracle-l5r-8565", ShosuroTsuji = "oracle-l5r-7179", HiromisVassals = "oracle-l5r-3280", Brawl = "oracle-l5r-1127", EliteTraining = "oracle-l5r-10255";
+    public const string PillarTattoo = "oracle-l5r-5956", VoidTattoo = "oracle-l5r-9943", StringOfVictories = "oracle-l5r-7588", Ambush = "oracle-l5r-344", NerveStrike = "oracle-l5r-5532", GrapplingTheSnake = "oracle-l5r-10150";
+    public const string RingOfTheVoid = "oracle-l5r-6338", RingOfEarth = "oracle-l5r-6334", RingOfFire = "oracle-l5r-6335", RingOfAir = "oracle-l5r-6333", SpinningHeelKick = "oracle-l5r-7413", WeaknessOfMan = "oracle-l5r-8425";
 
     /// <summary>A forty-card deck: the lesson's cards on top, then the rest of the side's deck in its own order. A card the deck does not hold displaces the last card.</summary>
     internal static string[] Deck(string[] top, TutorialSide side, bool dynasty)

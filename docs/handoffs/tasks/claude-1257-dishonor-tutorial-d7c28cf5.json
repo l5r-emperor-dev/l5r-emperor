@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Special Actions - Dishonor tutorial (special-dishonor): Crab Control vs Dragon. Jekku dishonors Gobashi, the Dragon order his Seppuku, Kaiu Iemasa's Gain 3 Honor rehonors him instead, the Slanderer dishonors Meiyu (a Monk) and The Heir's Wrath takes the Dragon to -20. Tutorial-only runner hooks: FoeWaits/FoeOrderSeppuku, GiveFavor, ShowFoeDead (opens the opponent's Dead pile gallery). Script corrections are in docs/TUTORIAL.md.",
+  "validation": "dotnet run --project tests/L5R.Core.Tests -- --filter tutorial: 76/76 (new TutorialDishonorTests 6/6, incl. playing past the lesson to the Dragon's End Phase loss); bash tools/check.sh --skip-client: All requested checks passed; bash tools/check-tutorial.sh: TUTORIAL_UI_CHECK completed; native lab walk of special-dishonor through the real controls (--tutorial-step=dishonor-congratulations) with captures at 7 steps.",
+  "remaining": "Mendon to play-test and accept the wording; the Dead pile gallery opens automatically and must be closed before Continue.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1257",
+  "branch": "claude/1257-dishonor-tutorial",
+  "updated": "2026-11-15T23:45:40.895138+00:00"
+}

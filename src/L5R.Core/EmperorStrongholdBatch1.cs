@@ -184,6 +184,8 @@ public sealed partial class MatchEngine
         StrongholdHasEffect(playerId, KyudenOtomoExpEffect) && TokenCount(StrongholdOf(playerId), FavorTokenType) > 0 ? StrongholdOf(playerId) : null;
 
     private static readonly CostOption FavorTokenOption = new(FavorTokenCostOption, "Discard a Favor token instead", CostVerb.Bow, CostSubject.Stronghold);
+    // Issue #1275: how the plain Imperial Favor discard is labelled when a Favor token is offered beside it (view only: its command carries no cost option).
+    private static readonly CostOption ImperialFavorOption = new("imperial-favor", "Discard the Imperial Favor", CostVerbs.DiscardFavor, CostSubject.Source);
 
     // Validation of the Favor discard cost: the Imperial Favor, or (with the cost option) a Favor token.
     private void RequireFavorDiscard(GameCommand command, PlayerState player)

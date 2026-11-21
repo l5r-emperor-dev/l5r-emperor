@@ -9,6 +9,7 @@ internal static class CavalryDefenseTests
         ("DefensePlanner: parity needs Force / threat + 0.1 per hand card and Battle action to reach 1; one army per sub-army that reaches 1 alone; leftovers stay home unless they print a Battle action", Planner),
         ("Bot: with no infantry assigned against it, it commits its infantry to the most valuable province when it can match the attacker's possible Cavalry, and passes when it cannot or there is none", BotDefends),
         ("Bot: when its attacker's Cavalry (with any army already assigned) can destroy every Province it has left, it defends with everything where that stops it, else at its strongest Province; not when the Cavalry cannot take them all", AllProvincesThreatened),
+        ("Bot (issue #1211): a last stand against a dozen Cavalry with eight defenders, where every Province can still be taken, is decided in moments, not hours", LastStandIsBounded),
         ("Bot attack: the Infantry Maneuvers Segment assigns only infantry; the Cavalry waits and is assigned in the Cavalry Maneuvers Segment to join the infantry already sent", CavalryWaits),
     ];
 
@@ -132,6 +133,24 @@ internal static class CavalryDefenseTests
         var covered = TrainingOpponent.Choose(mixed, [Pass(mixed), Defend(2)]);
         Check(covered.Command?.Type == "assignDefense" && covered.Command.Assignments?["own-1"] == 1, "with its infantry already at Province 0 the horse would take Province 1: it defends there (got " + covered.Command?.Type + ")");
         Check(TrainingOpponent.Choose(two, [Pass(two), Defend(2)], new BotContext { UseCavalryDefense = false }).Command?.Type == "pass", "switched off, it plays as before");
+    }
+
+    private static void LastStandIsBounded()
+    {
+        var view = MatchEngine.CreateStarterMatch().GetView(0);
+        var cavalry = CardCatalog.Get("training-cavalry");
+        // 12 horses of 2 against four Provinces of 3 and eight defenders of 1: each Province needs three horses once two defenders stand on it, so the Cavalry can still take all four
+        // under the most even defence. The old search tried every horse subset at every Province for each of the 4^8 assignments and ran for hours.
+        var table = view with
+        {
+            Phase = Phase.DefenseAssignment, ActivePlayerId = 1, PriorityPlayerId = 0, PendingChoice = null,
+            Players = [view.Players[0] with { Home = Enumerable.Range(0, 8).Select(i => Unit("own-" + i, 0, 1, Infantry)).ToArray(), Army = [], HandCount = 0, Hand = [], Provinces = Enumerable.Range(0, 4).Select(i => new ProvinceView(i, 3, false, null, null)).ToArray() },
+                view.Players[1] with { Home = Enumerable.Range(0, 12).Select(i => Unit("h-" + i, 1, 2, cavalry)).ToArray(), Army = [] }]
+        };
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        var choice = TrainingOpponent.Choose(table, [new("pass", "Pass", true, null, new("pass", 0, table.Version)), new("assignDefense", "Defend", true, null, null, TargetIds: Enumerable.Range(0, 8).Select(i => "own-" + i).ToArray(), Provinces: [0, 1, 2, 3])]);
+        Check(clock.Elapsed < TimeSpan.FromSeconds(10), $"the last stand took {clock.Elapsed.TotalSeconds:0.0} s");
+        Check(choice.Command?.Type == "assignDefense" && choice.Command.Assignments?.Count == 8, "every defender stands (got " + choice.Command?.Type + ")");
     }
 
     private static void CavalryWaits()

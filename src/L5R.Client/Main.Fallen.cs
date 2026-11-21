@@ -7,6 +7,7 @@ public partial class Main
 {
     private Window? _fallenWindow;
     private FallenGallery? _fallenGallery;
+    private Action? _closeFallenGallery;
     private void ShowFallenGallery(int owner)
     {
         if (IsInstanceValid(_fallenWindow) && _fallenWindow!.Visible)
@@ -28,10 +29,10 @@ public partial class Main
         void Close()
         {
             var id = gallery.OwnerId;
-            _fallenWindow = null; _fallenGallery = null; window.QueueFree();
+            _fallenWindow = null; _fallenGallery = null; _closeFallenGallery = null; window.QueueFree();
             _clanHud.GetChildren().OfType<FallenCounter>().FirstOrDefault(c => c.Player.Id == id)?.GrabFocus();
         }
-        gallery.Close += Close; window.CloseRequested += Close;
+        gallery.Close += Close; window.CloseRequested += Close; _closeFallenGallery = Close;
         gallery.Chosen += id => { Close(); if (FindCard(id) is { } picked) SelectCard(picked); }; // issue #965: a dead card that is a legal choice
         PresentDialog(window, 1480, 811); gallery.BackButton.GrabFocus();
     }

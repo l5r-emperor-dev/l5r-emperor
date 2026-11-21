@@ -154,7 +154,7 @@ public sealed partial class MatchEngine
             case SearchPlayAbilities.RosaryCelestial:
                 return SearchPlayRosary(context);
             case SearchPlayAbilities.MasayaRecruit:
-                return SearchPlayMasayaRecruit(player, source!);
+                return SearchPlayMasayaRecruit(player, source!, command);
             default:
                 return null;
         }

@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "slug": "card-restrictions",
+  "title": "Card Restriction Rails",
+  "source_pr": 1274,
+  "source_commit": "de307f5d009d1d922e3b4fbb2dcb4c1db4185944",
+  "revision": 1,
+  "reviewer": "mdornbrook",
+  "summary": "Approved concept A: public restriction explanations on the shared card rail, with crowded upright and bowed review positions. Please review the initial coverage and wording; no legality changes or automatic merge.",
+  "review_steps": [
+    "Extract the complete ZIP and open Start Review.cmd. The crowded table has a real Hotako action lock plus clearly synthetic six-token/layout stresses.",
+    "Inspect restriction glyphs and their sentences; inspect the attachment and expand/fold its unit. Confirm tokens, permanent grants, copied-card markers and card faces remain readable.",
+    "Open Other previews/Bowed Units.cmd and compare the rails below the complete stack, including dishonored and mixed-bow attachments.",
+    "Open Other previews/Opposite Seat.cmd. Check that the same public restrictions are visible without hidden-source identities.",
+    "Use Advance turn in the prepared review. The turn-bound action lock should disappear; reopen a launcher to reset. A normal game is available through Open Full Game.",
+    "Open Other previews/Reduced Motion.cmd and inspect the same layouts. Please record rules-sensitive wording, missing supported states and UI spacing feedback on PR #1274."
+  ],
+  "known_limitations": [
+    "Initial priority-systems projection, not every catalogue/global restriction. Historical effects without stored source metadata have no invented source name.",
+    "Prepared six-token/copy/grant/movement/protection stresses are synthetic fixtures; Hotako action refusal and turn expiry use the real engine.",
+    "Automated Windows runtime/launcher checks do not constitute Mendon\u2019s native graphical playtest or rules acceptance.",
+    "This public preview contains the game\u2019s required existing artwork and approved restriction derivative. It is not a separate bulk artwork/research release.",
+    "No #1201 used-action indicator is included. This review never merges or accepts the change automatically."
+  ],
+  "scenarios": [
+    {
+      "name": "Start Review",
+      "mode": "published-action-lock-restriction-crowded-review"
+    },
+    {
+      "name": "Other previews/Bowed Units",
+      "mode": "published-action-lock-restriction-crowded-bowed-review"
+    },
+    {
+      "name": "Other previews/Opposite Seat",
+      "mode": "published-action-lock-restriction-crowded-opponent-review"
+    },
+    {
+      "name": "Other previews/Reduced Motion",
+      "mode": "published-action-lock-restriction-crowded-reduced-review"
+    },
+    {
+      "name": "Open Full Game",
+      "mode": null
+    }
+  ]
+}

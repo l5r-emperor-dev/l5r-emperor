@@ -75,6 +75,16 @@ public partial class TitleMenu : Control
         _message.Size = page.StartsWith("tutorial") ? new Vector2(414, 100) : new Vector2(414, 54);
         _message.Text = "";
     }
+    /// <summary>Largest menu font size (from 52) at which every given entry fits: one size for a whole set of entries, so none looks smaller than its neighbours.</summary>
+    private static int FitSize(IEnumerable<string> texts)
+    {
+        var fontSize = 52;
+        foreach (var text in texts)
+            while (fontSize > 20 && (Palette.Title.GetHeight(fontSize) > 62 || Palette.Title.GetStringSize(text.ToUpperInvariant(), fontSize: fontSize).X > 390)) fontSize--;
+        return fontSize;
+    }
+    /// <summary>The one font size of every tutorial menu entry: the track list, each track's lessons and their Back.</summary>
+    private static int TutorialFontSize => FitSize(Core.TutorialCurriculum.Tracks.Select(t => t.Title).Concat(Core.TutorialCurriculum.All.Select(e => e.Title)).Append("Back"));
     private Button Entry(string text, Action action, int fontSize = 52)
     {
         var button = new MenuEntry { Text = text.ToUpperInvariant(), ReducedMotion = () => Preferences.ReducedMotion, CustomMinimumSize = new Vector2(0, 62), Alignment = HorizontalAlignment.Left, MouseDefaultCursorShape = CursorShape.PointingHand };
@@ -143,10 +153,10 @@ public partial class TitleMenu : Control
         foreach (var track in Core.TutorialCurriculum.Tracks)
         {
             var open = track;
-            var button = Entry(track.Title, () => OpenTutorialTrack(open));
+            var button = Entry(track.Title, () => OpenTutorialTrack(open), TutorialFontSize);
             button.FocusEntered += () => _message.Text = track.Entries.Length == 1 ? track.Entries[0].Subtitle : $"{track.Entries.Count(e => e.Built)} of {track.Entries.Length} lessons built.";
         }
-        Entry("Back", ShowPlay);
+        Entry("Back", ShowPlay, TutorialFontSize);
         _message.Text = "Choose a track. Every lesson is open from the start.";
         FocusFirst();
     }
@@ -177,7 +187,7 @@ public partial class TitleMenu : Control
         foreach (var entry in track.Entries)
         {
             var lesson = entry;
-            var button = Entry(entry.Title, () => { if (lesson.Built && Tutorial is { } start) start(lesson.Id); });
+            var button = Entry(entry.Title, () => { if (lesson.Built && Tutorial is { } start) start(lesson.Id); }, TutorialFontSize);
             button.TooltipText = entry.Subtitle;
             var describe = lesson.Built ? lesson.Subtitle : ("Not built yet. " + lesson.Subtitle).Trim();
             if (!entry.Built)
@@ -187,7 +197,7 @@ public partial class TitleMenu : Control
             button.FocusEntered += () => _message.Text = describe;
             button.MouseEntered += () => _message.Text = describe;
         }
-        var back = Entry("Back", ShowTutorialTracks); Entries.RemoveChild(back); Canvas.AddChild(back);
+        var back = Entry("Back", ShowTutorialTracks, TutorialFontSize); Entries.RemoveChild(back); Canvas.AddChild(back);
         back.Position = new Vector2(1056, 701); back.Size = new Vector2(414, 62); _trackBack = back;
         _message.Text = "Dimmed lessons are placeholders: they are not built yet.";
         FocusFirst();

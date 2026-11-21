@@ -22,7 +22,7 @@ public partial class DeckBuilderScreen
         Put(_library, CatalogueArt.Label("My decks", 38, true), 40, 20, 500, 55);
         Put(_library, CatalogueArt.Button("Import deck", ImportDeck), _library.Size.X - 345, 15, 150, 44);
         Put(_library, CatalogueArt.Button("New deck", NewDeck), _library.Size.X - 177, 15, 150, 44);
-        Put(_library, CatalogueArt.Label("Saved on this device · plain-text files you can share", 19), 20, 77, _library.Size.X - 40, 28);
+        var back = CatalogueArt.Button("‹  Back", () => Closed?.Invoke()); back.AccessibilityName = "Back to menu"; Put(_library, back, 20, 72, 130, 44); // issue #1270: Back near the top, as on the Card Library and Practice pages
         var scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }; Put(_library, scroll, 20, 128, _library.Size.X - 40, _library.Size.Y - 188);
         var grid = new GridContainer { Columns = Math.Max(1, (int)((_library.Size.X - 60) / 480)), SizeFlagsHorizontal = SizeFlags.ExpandFill }; grid.AddThemeConstantOverride("h_separation", 22); grid.AddThemeConstantOverride("v_separation", 22); scroll.AddChild(grid);
         foreach (var path in files)
@@ -44,7 +44,8 @@ public partial class DeckBuilderScreen
         }
         Put(_library, CatalogueArt.Button("Open deck folder", () => { Directory.CreateDirectory(Store.DirectoryPath); OS.ShellOpen(Store.DirectoryPath); }), 20, _library.Size.Y - 44, 220, 38);
         Put(_library, CatalogueArt.Button("Restore shipped decks", ConfirmRestoreShipped), 250, _library.Size.Y - 44, 260, 38);
-        Put(_library, CatalogueArt.Button("Back to menu", () => Closed?.Invoke()), _library.Size.X - 230, _library.Size.Y - 44, 210, 38);
+        var stored = CatalogueArt.Label("Saved on this device · plain-text files you can share", 19); stored.HorizontalAlignment = HorizontalAlignment.Right; stored.VerticalAlignment = VerticalAlignment.Center;
+        Put(_library, stored, 530, _library.Size.Y - 44, _library.Size.X - 600, 38); // clear of the frame's corner ornament
     }
     // The shipped decks also exist as read-only copies inside the game (and the tutorial plays only those); this puts a missing or edited one back in the deck folder.
     private void ConfirmRestoreShipped()

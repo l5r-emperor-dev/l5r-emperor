@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Added 10 of Mendon's practice replay exports (2026-11-13 to 2026-11-15) to docs/bots/replays/ for the Conan bot work (#1206).",
+  "validation": "Data only. Each file parses as JSON (contentVersion emperor-lion-crane-0.5.0, scenario custom-practice-v1, 129-269 commands, both decks embedded); scanned for personal paths, emails and names: none.",
+  "remaining": "None; the Mac Conan session can use them as further decision positions.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1260",
+  "branch": "claude/1260-practice-replays",
+  "updated": "2026-11-16T11:16:39.615511+00:00"
+}

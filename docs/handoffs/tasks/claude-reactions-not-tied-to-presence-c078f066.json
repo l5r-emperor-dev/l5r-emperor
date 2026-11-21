@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Reactions are not tied to presence unless their text says so (R-092, reverses R-090); a card printed as an Interrupt keeps the Rules of Presence and Location; Engage unchanged (R-064).",
+  "validation": "tools/check.sh --skip-client passed (all stages) after updating 8 tests that pinned the #1133 presence rule; targeted province-attack, Tamoko, Quagmire, Tower and Dislodge tests pass.",
+  "remaining": "None; ready for review. The Reactions tutorial outline follows the ruling.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1152",
+  "branch": "claude/reactions-not-tied-to-presence",
+  "updated": "2026-10-31T11:45:18.075737+00:00"
+}

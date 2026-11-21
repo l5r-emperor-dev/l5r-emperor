@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Collection safeguards: load reports what it changed (entries added together, counts capped) and keeps the original file, entries matching no catalogue card are reported, every save writes a readable my-collection.csv copy with card names and keeps the newest 10 dated snapshots, the file records the writing build.",
+  "validation": "L5R.Client.Collection.Tests 103 assertions pass (13 new); tools/check.sh --client-only passes. Not hand-played in the editor UI.",
+  "remaining": "Need Allan's my-collection.json and .previous to confirm the cause of 1089 to 1099; this adds the diagnostics and backups but cannot prove the cause.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1194",
+  "branch": "claude/1194-collection-safety",
+  "updated": "2026-11-09T11:32:29.367484+00:00"
+}

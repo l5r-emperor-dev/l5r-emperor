@@ -23,6 +23,8 @@ def package(root: Path) -> dict[str, int]:
     if supplemental_file.is_file():
         fields = catalogue["cards"][0].keys()
         cards = [*cards, *({field: card[field] for field in fields if field in card} for card in read("content/oracle/emperor-supplemental-catalogue.json")["cards"])]
+    from stat_corrections import apply_to_library_cards  # printed stats Oracle gets wrong (Ikoma Shika's cost)
+    apply_to_library_cards(cards, root)
     card_ids = {card["id"] for card in cards}
     if len(card_ids) != len(cards):
         raise ValueError("Catalogue contains duplicate canonical IDs")

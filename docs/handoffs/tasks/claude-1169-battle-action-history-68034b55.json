@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Battle sidebar action panel (#1169): engine records every battle action, Reaction, pass and the Engage in MatchView.BattleActions; client panel with the small card face, terse effect text below, back/forward arrows, newest in view, shown in Reaction windows too. Replaces the old exchange list.",
+  "validation": "check.sh --skip-client passed (all shards); core tests BattleActionRecordTest and BattleActionRecordEngageTest pass; client builds with 0 warnings/errors; owner playtested the Windows build and approved (Looks good). Automated captures only contain passes.",
+  "remaining": "Pass/Engage artwork is a stand-in plate; effect lines are mostly each ability's printed text (hand-written only for Rings and Tactical Advantage); passes outside the Engage window and declined Reactions are not recorded; full client native checks not run.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1169",
+  "branch": "claude/1169-battle-action-history",
+  "updated": "2026-11-05T14:59:23.425956+00:00"
+}

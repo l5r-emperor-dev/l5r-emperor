@@ -22,21 +22,231 @@ public static partial class TrainingOpponent
         if (view.WinnerId is not null) return new(null, "The match has finished.");
         // A seat waits unless the engine offers it something to do: a pending choice can belong to the player who does not hold priority (the province order, a reaction).
         if (view.ViewerId != view.PriorityPlayerId && !actions.Any(a => a.Enabled && a.Type is not ("concede" or "wait"))) return new(null, "Waiting for the other player's decision.");
+        CheckDeadline(memory);
         memory.Observe(view);
+        if (memory.UsePlannerTriage) memory.NoteBattleActions(view); // issue #1185: what each performer has already used this turn
+        if (memory.Has("read")) memory.NoteRead(view); // issue #1206: the Read in shadow mode (docs/bots/CONAN_STRATEGY_BRIEF.md section 4); it drives nothing
         var self = view.Players.Single(p => p.Id == view.ViewerId);
         var opponent = view.Players.Single(p => p.Id != view.ViewerId);
         var x = new Ctx(view, self, opponent, BotProfile.Assess(self, memory.DeckAveragePersonalHonor), memory, AllCards(view)) { Actions = actions, Odds = BattlePolicy.Assess(view) };
-        var candidates = actions.Where(a => a.Enabled && a.Type is not ("concede" or "wait"))
+        memory.Consulted = memory.CountFires ? new HashSet<string>(StringComparer.Ordinal) : null; // issue #1206 (fire counters): the rules this decision consults
+        if (Decide(x) is not { } decided) { memory.Consulted = null; return new(null, "No complete legal action was supplied for this decision."); }
+        if (memory.CountFires) CountFires(x, memory, decided.Chosen.Command);
+        var candidates = decided.Candidates; var chosen = decided.Chosen; x = decided.X;
+        Remember(x, chosen.Command);
+        if (chosen.Command.Type is "useAbility" or "playStrategy" or "equip") memory.NoteUse(view.TurnNumber, chosen.Command.AbilityId, chosen.Command.CardId);
+        // issue #1206 (family A in shadow): with read on and readA off, the opportunity's attack or hold and its shape beside what was chosen
+        if (memory.Has("read") && !memory.Has("readA") && view.ActivePlayerId == view.ViewerId && (view.Phase == Phase.AttackDeclaration || view.Phase == Phase.InfantryDeclaration && chosen.Command.Type == "attack") && ReadAnswers(x) is { } shadowA)
+            memory.NoteAttack(view, shadowA, chosen.Command);
+        // issue #1206 (family C in shadow): with read on and readC off, what the Guard would keep back from the attack chosen
+        if (memory.Has("read") && !memory.Has("readC") && view.ActivePlayerId == view.ViewerId && view.Phase is Phase.InfantryDeclaration or Phase.CavalryDeclaration && chosen.Command is { Type: "attack", Assignments: { Count: > 0 } chosenA } && ReadGuard(x, chosenA) is { } shadowC)
+            memory.NoteGuard(view, shadowC, chosenA);
+        // issue #1206 (family E in shadow): with read on and readE off, what the Fight would do at this Battle priority beside what was chosen
+        if (memory.Has("read") && !memory.Has("readE") && ReadFight(x) is { } shadowE)
+            memory.NoteFight(view, shadowE.Plan, FightKey(chosen.Command) is { } ck && shadowE.Options.FirstOrDefault(o => SameFightAction(o.Key, ck)) is { } same ? same.Key : chosen.Command.Type is "pass" or "passAllBattles" ? "pass" : "other:" + chosen.Command.Type + "/" + chosen.Command.AbilityId, shadowE.Position);
+        // issue #1206 (family B in shadow): with read on and readB off, what the Cavalry fork would declare at each of the seat's declarations beside what was chosen
+        if (memory.Has("read") && !memory.Has("readB") && view.ActivePlayerId == view.ViewerId && view.Phase is Phase.InfantryDeclaration or Phase.CavalryDeclaration && candidates.Any(c => c.Action.Type == "attack") && ReadFork(x) is { } shadowB)
+            memory.NoteFork(view, shadowB, chosen.Command);
+        // issue #1206 (family I in shadow): with read on and readI off, the Favor, the hand-replacing Event and the hand-limit discard as the Read would decide them
+        if (memory.Has("read") && !memory.Has("readI"))
+        {
+            if (view.Phase == Phase.Battle && candidates.FirstOrDefault(c => c.Action.Type == "useAbility" && c.Command.AbilityId == "favor-battle") is { Command: { } favorOffer } && ReadFavor(x, favorOffer.TargetId) is { } fp)
+            {
+                var spent = chosen.Command.AbilityId == "favor-battle";
+                memory.NoteHand(view, "favor", spent == fp.Spend, spent ? "spend" : "keep", fp.Spend ? "spend" : "keep", fp.Why);
+            }
+            if (chosen.Command.Type == "eventChoice" && chosen.Command.Choice is "yes" or "no" && (Hand.ReplacesHand(x.Card(chosen.Command.CardId)?.Definition?.Effect) || Hand.ReplacesHandPrompt(view.PendingChoice?.Prompt)) && Hand.ReplaceHand((memory.CurrentRead is { } cr && cr.Key == Read.KeyOf(view) ? cr : Read.Of(view)).Ledger.Me) is { } keep)
+                memory.NoteHand(view, "event", (chosen.Command.Choice == "no") == !keep, chosen.Command.Choice!, keep ? "yes" : "no", "three or more answers in hand");
+            if (chosen.Command.Type == "discardHand" && chosen.Command.CardIds is { Length: > 0 } dropped)
+            {
+                var dp = ReadDiscard(x, dropped.Length);
+                memory.NoteHand(view, "discard", dropped.OrderBy(i => i, StringComparer.Ordinal).SequenceEqual(dp.CardIds.OrderBy(i => i, StringComparer.Ordinal)), string.Join(",", dropped.Select(i => x.Card(i)?.Definition?.Name ?? i)), string.Join(",", dp.CardIds.Select(i => x.Card(i)?.Definition?.Name ?? i)), dp.Why);
+            }
+        }
+        // issue #1206 (family G in shadow): with read on and readG off, what the route gate would say at the attack declaration beside declare or pass
+        if (memory.Has("read") && !memory.Has("readG") && view.ActivePlayerId == view.ViewerId && view.Phase == Phase.AttackDeclaration && chosen.Command.Type is "declareAttack" or "pass" && ReadAnswers(x) is { } shadowG)
+            memory.NoteRoute(view, shadowG, Route.Gate(shadowG, LethalPlan(x, x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed).ToArray(), x.Opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Index).ToArray()) is not null), chosen.Command.Type);
+        // issue #1206 (family F in shadow): with read on and readF off, what the Read would buy next beside what was bought
+        if (memory.Has("read") && !memory.Has("readF") && view.ActivePlayerId == view.ViewerId && view.Phase == Phase.Dynasty && candidates.Any(c => c.Action.Type == "purchase") && ReadPurchase(x) is { } shadowF)
+            memory.NotePurchase(view, shadowF, chosen.Command, chosen.Command.CardId is { } boughtId ? x.Card(boughtId)?.Definition?.Name : null);
+        // issue #1206 (family D in shadow): with read on and readD off, what the Read's defence would have assigned beside what was chosen
+        if (memory.Has("read") && !memory.Has("readD") && view.Phase == Phase.DefenseAssignment && chosen.Command.Type is "assignDefense" or "pass" && candidates.FirstOrDefault(c => c.Action.Type == "assignDefense").Action is { } offer)
+            memory.NoteDefence(view, ReadDefence(x, offer), chosen.Command);
+        return new(chosen.Command, Explain(chosen.Action.Type));
+    }
+
+    /// <summary>The decision itself: the turn plan, every offered action prepared and scored, the best first, then the lookahead's say. Null when no action is complete and legal.</summary>
+    private static (Ctx X, (ActionOption Action, GameCommand Command, double Score)[] Candidates, (ActionOption Action, GameCommand Command, double Score) Chosen)? Decide(Ctx x)
+    {
+        var memory = x.Memory; var view = x.View;
+        if (memory.UsePlanner) x = x with { Plan = PlanFor(x) }; // issue #1185: the turn plan, rebuilt when the table changes
+        var offered = x.Actions.Where(a => a.Enabled && a.Type is not ("concede" or "wait")).ToArray();
+        if (GameDecidedBeforeNextTurn(x) && offered.Any(a => !SettledGameSkips.Contains(a.Type))) offered = offered.Where(a => !SettledGameSkips.Contains(a.Type)).ToArray();
+        var candidates = offered
             .Select(a => (Action: a, Command: Prepare(x, a)))
             .Where(p => p.Command is not null && !memory.IsRejected(view.Version, p.Command))
             .Select(p => (p.Action, Command: p.Command!, Score: Score(x, p.Action, p.Command!)))
             .OrderByDescending(p => p.Score).ThenBy(p => p.Action.Type, StringComparer.Ordinal)
             .ThenBy(p => p.Command.CardId, StringComparer.Ordinal).ThenBy(p => p.Command.AbilityId, StringComparer.Ordinal).ToArray();
-        if (candidates.Length == 0) return new(null, "No complete legal action was supplied for this decision.");
+        if (candidates.Length == 0) return null;
         var chosen = candidates[0];
-        Remember(x, chosen.Command);
-        if (chosen.Command.Type is "useAbility" or "playStrategy" or "equip") memory.NoteUse(view.TurnNumber, chosen.Command.AbilityId, chosen.Command.CardId);
-        return new(chosen.Command, Explain(chosen.Action.Type));
+        if (LookAhead(x, candidates) is { } looked) chosen = (looked.Action, looked.Command, chosen.Score);
+        return (x, candidates, chosen);
+    }
+
+    /// <summary>Issue #1283: the province actions a settled game skips -- buying, overlaying an Experienced Personality from a province, and discarding a province card.</summary>
+    private static readonly HashSet<string> SettledGameSkips = new(StringComparer.Ordinal) { "purchase", "overlay", "discardProvince" };
+
+    /// <summary>Issue #1283 (Mendon): in its own Dynasty Phase the bot buys, overlays and discards nothing once the game is settled before any of it could matter: the opponent wins by Honor or Enlightenment
+    /// when their next turn begins, or the bot (at -20 or lower Honor) loses at the start of its End Phase, which follows. Not when the Dynasty Phase comes before the Attack Phase this turn
+    /// (The Deciding Moment, Nocturnal Attack), since a purchase can still attack then. Skipping straight to the end of the phase speeds the end of the game for the player.</summary>
+    private static bool GameDecidedBeforeNextTurn(Ctx x) =>
+        x.View.Phase == Phase.Dynasty && x.View.ActivePlayerId == x.View.ViewerId && x.View.PhaseOrder is null
+        && (x.Opponent.WinsWhenTurnBegins || x.Self.Honor <= -20 || x.Self.DishonorLossPending);
+
+    /// <summary>Issue #1206 (strategy brief step 1 item 1; the arena's L5R_TOURN_FIRES=1): the decision is made again once per rule it consulted, with that rule alone masked; a rule fires
+    /// when the choice differs (its knob token fires when the default would have changed the choice). What a re-decision touches in memory (the plan, the planned attack, the Read's caches, the
+    /// logs) is put back, so the real decision's state stands. The playout bots inside a search keep their full rule set; the game's deadline cuts the counting, never the game.</summary>
+    private static void CountFires(Ctx x, BotContext memory, GameCommand chosen)
+    {
+        var consulted = memory.Consulted!.OrderBy(r => r, StringComparer.Ordinal).ToArray(); memory.Consulted = null;
+        memory.CountedDecisions++;
+        foreach (var rule in consulted) memory.Active[rule] = memory.Active.GetValueOrDefault(rule) + 1;
+        var snapshot = memory.Save(); var want = System.Text.Json.JsonSerializer.Serialize(chosen);
+        foreach (var rule in consulted)
+        {
+            if (memory.Deadline is { } cutoff && DateTime.UtcNow >= cutoff) { memory.FiresCut++; break; }
+            memory.Masked = rule; memory.Restore(snapshot); memory.ForgetPlan(); memory.ReadAnswersCache = null; memory.ReadDefencePlan = null; memory.ReadFightPlan = null; memory.ReadGuardPlan = null; memory.ReadForkPlan = null; memory.ReadPurchasePlan = null;
+            try
+            {
+                if (Decide(x) is not { } again || System.Text.Json.JsonSerializer.Serialize(again.Chosen.Command) != want) memory.Fires[rule] = memory.Fires.GetValueOrDefault(rule) + 1;
+            }
+            catch (BotDeadlineException) { memory.FiresCut++; break; }
+            finally { memory.Masked = null; }
+        }
+        memory.Restore(snapshot);
+    }
+
+    /// <summary>Issue #1206 (family E): the Fight's plan at the viewer's own Battle priority (no pending choice): the offered Battle actions it can read (an ability or Strategy with a Battle
+    /// descriptor, aimed at an enemy Personality here or adding Force), computed once per view version. Null outside such a priority, or when nothing offered can be read.</summary>
+    private static (FightPlan Plan, FightOption[] Options, string Position)? ReadFight(Ctx x)
+    {
+        var view = x.View;
+        if (view.Phase != Phase.Battle || view.PendingChoice is not null || x.Odds is not { } odds || view.BattleStep is not { } step || step.DecisionPlayerId != x.Self.Id || step.BattlefieldProvince is not { } province) return null;
+        if (x.Memory.ReadFightPlan is { } cached && cached.Version == view.Version) return (cached.Plan, FightOptions(x, province), FightPosition(x, odds));
+        var read = x.Memory.CurrentRead is { } current && current.Key == Read.KeyOf(view) ? current : Read.Of(view);
+        var options = FightOptions(x, province);
+        if (options.Length == 0) return null;
+        var viewerAttacks = odds.IsAttacker;
+        var deciding = viewerAttacks ? x.Opponent.Provinces.Count(p => !p.Destroyed) <= 1 : x.Self.Provinces.Count(p => !p.Destroyed) <= 1;
+        var plan = Fight.Of(read, province, viewerAttacks, step.ConsecutivePasses > 0, deciding, options, Rule(x, "reOpen"));
+        x.Memory.ReadFightPlan = (view.Version, plan);
+        return (plan, options, FightPosition(x, odds));
+    }
+
+    /// <summary>For the decision set (ConanPositions, L5R_POS_READ=1): the Fight's plan at this view with these offered actions, with every option's projection; null when the Fight does not act here.</summary>
+    public static string? DescribeFight(MatchView view, ActionOption[] actions, BotContext memory)
+    {
+        var self = view.Players.Single(p => p.Id == view.ViewerId); var opponent = view.Players.Single(p => p.Id != view.ViewerId);
+        var x = new Ctx(view, self, opponent, BotProfile.Assess(self, memory.DeckAveragePersonalHonor), memory, AllCards(view)) { Actions = actions, Odds = BattlePolicy.Assess(view) };
+        if (ReadFight(x) is not { } fight) return null;
+        return $"fight: {fight.Plan.Pick ?? "pass"} ({fight.Plan.Why}) | {fight.Position} | {fight.Plan.Standing}; {fight.Plan.Reach}\n    " + string.Join("\n    ", fight.Plan.Log)
+            + (actions.Where(a => a.Enabled && a.Type is "useAbility" or "playStrategy" && a.Command is not null && !fight.Options.Any(o => o.Key == FightKey(a.Command))).Select(a => $"{a.Type}/{a.Command!.AbilityId} card={a.Command.CardId} target={a.Command.TargetId}").ToArray() is { Length: > 0 } unread ? "\n    not read: " + string.Join("; ", unread) : "");
+    }
+
+    private static string FightPosition(Ctx x, BattlePolicy.Odds odds) => $"{(odds.IsAttacker ? "attacking" : "defending")} {odds.Own}v{odds.Enemy} s{odds.Strength} hand {x.Self.Hand.Count()}/{x.Opponent.HandCount} gold {Ready(x)}";
+
+    /// <summary>The offered Battle actions as Fight options. An action without a Battle descriptor, or aimed at something other than an enemy Personality at this battlefield, is not read (it keeps the Contender's score).</summary>
+    private static FightOption[] FightOptions(Ctx x, int province)
+    {
+        var list = new List<FightOption>();
+        foreach (var a in x.Actions.Where(a => a.Enabled && a.Type is "useAbility" or "playStrategy" && a.Command is not null))
+        {
+            var c = a.Command!;
+            var card = x.Card(c.CardId);
+            var d = a.Type == "useAbility" ? (c.AbilityId is { } id ? EffectDescriptors.Of(id) : null) : card is null ? null : EffectDescriptors.Of(card).FirstOrDefault(e => e.IsBattle);
+            if (d is null || !d.IsBattle || d.IsReaction || d.Class == EffectClass.Unknown) continue;
+            var fromHand = card is not null && x.Self.Hand.Any(h => h.Id == card.Id);
+            var performer = x.Card(c.PerformerId) ?? (fromHand ? null : card);
+            var source = c.AbilityId == "favor-battle" ? "Favor" : performer?.Definition?.Name ?? card?.Definition?.Name ?? c.CardId ?? c.AbilityId ?? "?";
+            // the Fight chooses the target itself (PM 3.5 "target", "discard for Focus the card ... whose value suffices"): one option per legal target the engine lists, the command's own when it has one
+            var targets = (a.TargetIds ?? []).Concat(c.TargetId is { } chosen ? [chosen] : []).Distinct(StringComparer.Ordinal).ToArray(); // every target the engine lists (the template's own may not be the completer's)
+            if (d.Neutralises)
+            {
+                foreach (var tid in targets)
+                {
+                    var t = x.Card(tid);
+                    if (t is null || t.OwnerId == x.Self.Id || t.Definition?.Type != CardType.Personality || t.ProvinceIndex != province || t.Zone != Zone.Battlefield) continue;
+                    list.Add(new(FightKey(c with { TargetId = tid })!, new Answer(d, source, fromHand, a.Gold?.Cost ?? d.GoldCost), tid));
+                }
+            }
+            else if (d.Class == EffectClass.ForceAdd && (d.MagnitudeVaries || d.Magnitude is null) && targets.Any(tid => x.Self.Hand.Any(h => h.Id == tid)))
+            {
+                // a Force add worth the discarded card's Focus (Tactical Advantage, "discard a card: +Force = its Focus Value"): one option per card, at that card's value
+                foreach (var tid in targets.Where(tid => x.Self.Hand.Any(h => h.Id == tid)))
+                    if (x.Card(tid) is { Definition: { } discarded }) list.Add(new(FightKey(c with { TargetId = tid })!, new Answer(d with { Magnitude = discarded.Focus, MagnitudeVaries = false }, source, fromHand, a.Gold?.Cost ?? d.GoldCost), null));
+            }
+            else if (d.Class == EffectClass.ForceAdd) list.Add(new(FightKey(c)!, new Answer(d, source, fromHand, a.Gold?.Cost ?? d.GoldCost), null));
+        }
+        return list.ToArray();
+    }
+
+    private static string? FightKey(GameCommand c) => c.Type is "useAbility" or "playStrategy" ? $"{c.Type}|{c.AbilityId}|{c.CardId}|{c.PerformerId}|{c.TargetId}" : null;
+
+    /// <summary>The same Battle action: equal keys, or keys that differ only in the card or performer slot where one side has none (the engine's template leaves them to the completer).</summary>
+    internal static bool SameFightAction(string? a, string? b)
+    {
+        if (a is null || b is null) return false;
+        if (a == b) return true;
+        var pa = a.Split('|'); var pb = b.Split('|');
+        if (pa.Length != 5 || pb.Length != 5) return false;
+        for (var i = 0; i < 5; i++) if (pa[i] != pb[i] && !(i is 2 or 3 && (pa[i].Length == 0 || pb[i].Length == 0))) return false; // the card and performer slots: the template may leave them to the completer
+        return true;
+    }
+
+    /// <summary>Issue #1206 (family A): the Read's three answers for this decision, computed once per view version (BotContext.CurrentAnswers holds the shadow's own, taken at the same moments).</summary>
+    /// <summary>Issue #1206 (family B): the Cavalry fork's plan at this declaration, once per view version (null: the seat has no Cavalry to fork with).</summary>
+    private static ForkPlan? ReadFork(Ctx x)
+    {
+        if (x.View.ActivePlayerId != x.Self.Id || x.View.Phase is not (Phase.InfantryDeclaration or Phase.CavalryDeclaration)) return null;
+        if (x.Memory.ReadForkPlan is { } cached && cached.Version == x.View.Version) return cached.Plan;
+        var read = x.Memory.CurrentRead is { } current && current.Key == Read.KeyOf(x.View) ? current : Read.Of(x.View);
+        var posture = ReadAnswers(x)?.Posture;
+        ForkPlan? plan = null;
+        if (x.View.Phase == Phase.InfantryDeclaration)
+        {
+            if (x.Actions.FirstOrDefault(a => a.Type == "attack") is { } attack)
+            {
+                var (units, provinces) = AttackInputs(x, attack);
+                var prepared = PlanAttack(x, units, provinces, AlreadyAssigned(x)) is { } whole ? HoldCavalry(x, OfferedOnly(whole, units)) : null;
+                plan = Fork.AtInfantry(read, prepared, posture);
+            }
+        }
+        else plan = Fork.AtCavalry(read, posture);
+        x.Memory.ReadForkPlan = (x.View.Version, plan);
+        return plan;
+    }
+
+    private static Answers? ReadAnswers(Ctx x)
+    {
+        if (x.View.ActivePlayerId != x.Self.Id) return null;
+        if (x.Memory.ReadAnswersCache is { } cached && cached.Version == x.View.Version) return cached.Answers;
+        var read = x.Memory.CurrentRead is { } current && current.Key == Read.KeyOf(x.View) ? current : Read.Of(x.View);
+        var answers = Questions.Of(read, x.Memory.TrendNow());
+        x.Memory.ReadAnswersCache = (x.View.Version, answers);
+        return answers;
+    }
+
+    /// <summary>Issue #1206 (family D): the Read's defence plan for this decision, computed once per view version. Their last Province is conceded when the opportunity razes it next turn.</summary>
+    private static DefencePlan? ReadDefence(Ctx x, ActionOption action)
+    {
+        if (x.Memory.ReadDefencePlan is { } cached && cached.Version == x.View.Version) return cached.Plan;
+        var read = x.Memory.CurrentRead is { } current && current.Key == Read.KeyOf(x.View) ? current : Read.Of(x.View);
+        var provinces = action.Provinces ?? x.Self.Provinces.Where(p => !p.Destroyed).Select(p => p.Index).ToArray();
+        var concede = x.Opponent.Provinces.Count(p => !p.Destroyed) == 1 && Questions.Of(read, x.Memory.TrendNow()).Opportunity.Best.ExpectedProvinces >= .5 * Questions.ProvinceWorth(1);
+        var plan = Defence.Of(read, action.TargetIds, provinces, concede, concedeSpare: !Rule(x, "rdDefend"));
+        x.Memory.ReadDefencePlan = (x.View.Version, plan);
+        return plan;
     }
 
     /// <summary>Everything one decision reads, built once from the permitted view.</summary>
@@ -46,6 +256,8 @@ public static partial class TrainingOpponent
         public ActionOption[] Actions { get; init; } = [];
         /// <summary>The Force picture of the battle in progress, or null outside one.</summary>
         public BattlePolicy.Odds? Odds { get; init; }
+        /// <summary>Issue #1185: the turn plan, null unless <see cref="BotContext.UsePlanner"/>.</summary>
+        public TurnPlan? Plan { get; init; }
         public int MaxHand => Self.HandLimit?.Maximum ?? 8;
         public CardView? Card(string? id) => id is not null && Cards.TryGetValue(id, out var c) ? c : null;
     }
@@ -62,6 +274,97 @@ public static partial class TrainingOpponent
     }
 
     private static GameCommand? Prepare(Ctx x, ActionOption action)
+    {
+        var command = PrepareCore(x, action);
+        // Issue #1206 (readD, RULE_FAMILIES.md family D): the defence assignment read from the Read; nobody is carried out by scoring the assignment below a pass (ScoreCore).
+        if (command is not null && action.Type == "assignDefense" && Rule(x, "readD") && x.View.Phase == Phase.DefenseAssignment && ReadDefence(x, action) is { } readPlan && readPlan.Why != "nobody attacks") // no infantry yet: the Cavalry plans keep the decision
+            return readPlan.Nobody ? (x.Actions.Any(a => a.Enabled && a.Type == "pass") ? null : command) : command with { Assignments = readPlan.Assignments }; // nobody: no assignment is offered, the pass wins
+        // Issue #1185 tuning (presence): a defense the ordinary rules would not make, when one unit's presence lets the bot's removals save the Province.
+        if (command is not null && action.Type == "assignDefense" && Rule(x, "presence") && PresencePlan(x, action) is { } presence && ScoreCore(x, action, command) < 95)
+            return command with { Assignments = presence };
+        // Issue #1185 tuning (deter): spare attackers stay home when they are enough to stop the opponent's whole army attacking next turn.
+        if (command is { Assignments.Count: > 0 } && action.Type == "attack" && x.View.Phase == Phase.InfantryDeclaration && Rule(x, "deter") && DeterPlan(x, command.Assignments) is { } deter)
+            return command with { Assignments = deter };
+        // guard (block 7800's losses): units that must stay home to stop the counter-attack razing a last Province are taken out of the attack; what is left goes only where it still
+        // beats the Province and every unbowed defender, else nobody goes.
+        if (command is { Assignments.Count: > 0 } && action.Type == "attack" && Rule(x, "guard")
+            && Guard(x, x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed).ToArray(), x.Self.Army.Where(c => c.Definition?.Type == CardType.Personality).ToArray()) is { Length: > 0 } guard)
+        {
+            var home = guard.Select(c => c.Id).ToHashSet(StringComparer.Ordinal);
+            var rest = command.Assignments.Where(a => !home.Contains(a.Key)).ToDictionary(a => a.Key, a => a.Value, StringComparer.Ordinal);
+            var defenders = ArmyForce(x.Opponent.Home);
+            bool Beats(IGrouping<int, KeyValuePair<string, int>> g) => x.Opponent.Provinces.FirstOrDefault(p => p.Index == g.Key) is { } target
+                && g.Sum(a => x.Card(a.Key) is { } c ? UnitForceOf(x, c) : 0) + x.Self.Army.Where(c => c.ProvinceIndex == g.Key && c.Definition?.Type == CardType.Personality).Sum(c => UnitForceOf(x, c)) > target.Strength + defenders;
+            return command with { Assignments = rest.GroupBy(a => a.Value).Where(Beats).SelectMany(g => g).ToDictionary(a => a.Key, a => a.Value, StringComparer.Ordinal) };
+        }
+        // Issue #1206 (readC, RULE_FAMILIES.md family C): the attack as prepared is read for the counter-attack it leaves home open to; units are kept back, or nobody goes, when that turns the threat.
+        if (command is { Assignments.Count: > 0 } && action.Type == "attack" && Rule(x, "readC") && x.View.Phase is Phase.InfantryDeclaration or Phase.CavalryDeclaration && ReadGuard(x, command.Assignments) is { } guardPlan && !guardPlan.Stands)
+            return guardPlan.Nobody ? (x.Actions.Any(a => a.Enabled && a.Type is "pass" or "passAllBattles") ? null : command) : command with { Assignments = new Dictionary<string, int>(guardPlan.Assignments, StringComparer.Ordinal) };
+        return command;
+    }
+
+    /// <summary>Issue #1206 (family I): the Favor's reading at this battle, for the attacker the offer would send home.</summary>
+    private static FavorPlan? ReadFavor(Ctx x, string? targetId)
+    {
+        if (x.View.Phase != Phase.Battle || x.Odds is not { } odds || x.View.BattleStep?.BattlefieldProvince is not { } province) return null;
+        var read = x.Memory.CurrentRead is { } current && current.Key == Read.KeyOf(x.View) ? current : Read.Of(x.View);
+        var target = targetId is null ? null : read.Ledger.Them.Units.FirstOrDefault(u => u.Id == targetId);
+        var deciding = !odds.IsAttacker && x.Self.Provinces.Count(p => !p.Destroyed) <= 1;
+        return Hand.Favor(read, province, odds.IsAttacker, target, deciding);
+    }
+
+    /// <summary>Issue #1206 (family I): the hand-limit discard by live uses, the Contender's own value for ties.</summary>
+    private static DiscardPlan ReadDiscard(Ctx x, int count)
+    {
+        var read = x.Memory.CurrentRead is { } current && current.Key == Read.KeyOf(x.View) ? current : Read.Of(x.View);
+        if (Rule(x, "riBoard"))
+            return Hand.DiscardByRead(read, x.Self.Hand.Select(c => new Hand.HandCard(c.Id, c.Definition?.Name ?? c.Id, EffectDescriptors.Of(c).ToArray(), c.Definition?.Type is CardType.Follower or CardType.Item,
+                Math.Max(0, c.Definition?.Force ?? 0), HandValue(c))).ToList(), count,
+                attacksToWin: x.Memory.Archetype is not { Primary: WinRoute.Honor or WinRoute.Dishonor }); // the deck's primary route decides (G5: Dishonor first, Military second, "never really attacks")
+        var hand = x.Self.Hand.Select(c => (c.Id, c.Definition?.Name ?? c.Id, EffectDescriptors.Of(c).ToArray(), (double)HandValue(c))).ToList();
+        return Hand.Discard(read, hand, count);
+    }
+
+    /// <summary>Issue #1206 (family F): the Purchase's reading of the affordable row at this Dynasty decision, once per view version. The posture and the clocks are read on the board as it
+    /// will stand next turn (my units straightened): at the Dynasty phase the army that attacked is bowed and the questions would read a hold.</summary>
+    private static PurchasePlan? ReadPurchase(Ctx x)
+    {
+        if (x.View.ActivePlayerId != x.Self.Id || x.View.Phase != Phase.Dynasty) return null;
+        if (x.Memory.ReadPurchasePlan is { } cached && cached.Version == x.View.Version) return cached.Plan;
+        var read = x.Memory.CurrentRead is { } current && current.Key == Read.KeyOf(x.View) ? current : Read.Of(x.View);
+        var row = new List<PurchaseCandidate>(); var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var offer in x.Actions.Where(a => a.Enabled && a.Type == "purchase" && a.CardId is not null))
+        {
+            if (!seen.Add(offer.CardId!) || x.Card(offer.CardId!) is not { Definition: { } def } card) continue;
+            var cost = EffectiveCost(x, card);
+            if (def.Type == CardType.Personality)
+                row.Add(new(card.Id, def.Name, def.Type, cost, Math.Max(0, def.Force), def.GoldProduction, new LedgerUnit(card.Id, def.Name, x.Self.Id, Math.Max(0, def.Force), Math.Max(0, def.Force), false,
+                    def.Keywords?.Contains("Cavalry") ?? false, null, EffectDescriptors.Of(card).ToArray(), [], def.Chi, def.PersonalHonor, false, false, 0, 0, def.GoldCost, def.Keywords)));
+            else if (def.Type == CardType.Holding) row.Add(new(card.Id, def.Name, def.Type, cost, 0, def.GoldProduction, null));
+        }
+        var next = Questions.Of(Purchase.NextTurn(read, null), x.Memory.TrendNow());
+        var turnsLeft = (int)Math.Clamp(Math.Min(next.Clocks.MyFastest, next.Clocks.TheirFastest), 2, 8);
+        var plan = Purchase.Of(read, row.ToArray(), next.Posture, turnsLeft, Rule(x, "rfRead"));
+        x.Memory.ReadPurchasePlan = (x.View.Version, plan);
+        return plan;
+    }
+
+    /// <summary>Issue #1206 (family C): the Guard's reading of an attack assignment at this declaration, once per view version and assignment.</summary>
+    private static GuardPlan? ReadGuard(Ctx x, IReadOnlyDictionary<string, int> assignment)
+    {
+        if (x.View.ActivePlayerId != x.Self.Id || assignment.Count == 0) return null;
+        var key = string.Join(",", assignment.OrderBy(a => a.Key, StringComparer.Ordinal).Select(a => $"{a.Key}>{a.Value}"));
+        if (x.Memory.ReadGuardPlan is { } cached && cached.Version == x.View.Version && cached.Key == key) return cached.Plan;
+        var read = x.Memory.CurrentRead is { } current && current.Key == Read.KeyOf(x.View) ? current : Read.Of(x.View);
+        var units = x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed).ToArray();
+        var provinces = x.Opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Index).ToArray();
+        var lethal = LethalPlan(x, units, provinces) is not null || HonorRace(x);
+        var plan = L5R.AI.Guard.Of(read, assignment, ReadAnswers(x)?.Posture, lethal);
+        x.Memory.ReadGuardPlan = (x.View.Version, key, plan);
+        return plan;
+    }
+
+    private static GameCommand? PrepareCore(Ctx x, ActionOption action)
     {
         var self = x.Self; var opponent = x.Opponent; var view = x.View;
         var command = action.Command;
@@ -97,13 +400,40 @@ public static partial class TrainingOpponent
                     }
                 return null;
             }
+            if (action.Type == "attack" && (Rule(x, "lean") || Rule(x, "lean2") || Rule(x, "lean3")) && !HonorRace(x))
+            {
+                // Issue #1185 tuning (lean): the smallest razing armies, everything else home. In the Cavalry segment, armies already razing get nobody more.
+                if (x.View.Phase == Phase.CavalryDeclaration && AlreadyAssigned(x).Length > 0) { if (Rule(x, "lean") || Rule(x, "lean3") && LeanArmiesRaze(x) || Rule(x, "lean2") && LeanArmiesSuffice(x)) return null; }
+                else if (LeanPlan(x, units, provinces) is { } lean) return command with { Assignments = lean };
+                else if (Rule(x, "lean")) return null; // lean2 falls back to the ordinary attack
+            }
+            if (action.Type == "attack" && Rule(x, "readA") && x.View.Phase == Phase.InfantryDeclaration && AlreadyAssigned(x).Length == 0 && LethalPlan(x, units, provinces) is null && ReadAnswers(x) is { Opportunity.Attacks: true } answersA)
+            {
+                // issue #1206 (readA): the opportunity's shape, restricted to what the engine offers; the Cavalry waits for its own segment. raShape (formulation 2): only the shape, the Contender decides attack or hold
+                var shape = OfferedOnly(answersA.Opportunity.Best.Assignment.Where(a => provinces.Contains(a.Value)).ToDictionary(a => a.Key, a => a.Value, StringComparer.Ordinal), units);
+                if (shape.Count > 0) return command with { Assignments = HoldCavalry(x, shape) };
+            }
+            if (action.Type == "attack" && Rule(x, "readB") && (x.View.Phase == Phase.CavalryDeclaration || x.View.Phase == Phase.InfantryDeclaration && !Rule(x, "rbCav")) && LethalPlan(x, units, provinces) is null && !HonorRace(x) && ReadFork(x) is { } fork)
+            {
+                // issue #1206 (readB, RULE_FAMILIES.md family B): the Cavalry fork. At the Infantry declaration the infantry option with the highest forced value (nothing: the Cavalry goes alone in its segment);
+                // at the Cavalry declaration the follow-up against the defence as placed, sized to exceed Strength alone, the Cavalry it does not need home.
+                var part = x.View.Phase == Phase.InfantryDeclaration ? fork.Infantry : fork.Cavalry;
+                var offered = OfferedOnly(new Dictionary<string, int>(part, StringComparer.Ordinal), units);
+                return offered.Count > 0 ? command with { Assignments = offered } : x.Actions.Any(a => a.Enabled && a.Type is "pass" or "passAllBattles") ? null : command;
+            }
             if (action.Type == "attack")
             {
                 // Mendon's spec (issue #642): as many sub-armies as can each beat their province plus every unit that could defend it.
                 var assigned = AlreadyAssigned(x);
                 var plan = PlanAttack(x, units, provinces, assigned) is { } whole ? HoldCavalry(x, OfferedOnly(whole, units)) : null;
+                if (LethalPlan(x, units, provinces) is { } lethal) return command with { Assignments = lethal }; // issue #1185 tuning (lethal)
                 if (HonorAttackOf(x, units, provinces) is { } honorAttack) return command with { Assignments = HoldCavalry(x, honorAttack.Assignments) }; // issue #818 item 8
+                if (!HonorRace(x) && PlannerAssignment(x, units, provinces) is { } planned) return command with { Assignments = planned }; // issue #1185: the plan's own attack
+                if (Rule(x, "maxraze") && !HonorRace(x) && x.View.Phase == Phase.InfantryDeclaration && MaxRazePlan(x, units, provinces) is { } razing
+                    && razing.Values.Distinct().Count() > (plan?.Values.Distinct().Count() ?? 0)) return command with { Assignments = razing }; // issue #1185 tuning: more Provinces this turn
+                if (plan is not null && Rule(x, "favoraware") && !HonorRace(x) && FavorStopsAttack(x, plan)) return null; // issue #1185 tuning: the visible Favor sends the lone army's biggest unit home
                 if (plan is not null) return command with { Assignments = plan };
+                if ((Rule(x, "aggro") || Rule(x, "aggro2")) && AggroAttack(x, units, provinces) is { } aggro) return command with { Assignments = HoldCavalry(x, aggro) }; // issue #1185 tuning
                 if (TradeFor(x, units) is { } trade)
                 {
                     var weakest = opponent.Provinces.Where(p => provinces.Contains(p.Index)).OrderBy(p => p.Strength).ThenBy(p => p.Index).First().Index;
@@ -124,6 +454,7 @@ public static partial class TrainingOpponent
         {
             var count = self.HandCount - x.MaxHand;
             if (count <= 0 || self.Hand.Length != self.HandCount) return null;
+            if (Rule(x, "readI")) return command with { CardIds = ReadDiscard(x, count).CardIds }; // issue #1206 (family I): the fewest live uses first
             return command with { CardIds = self.Hand.OrderBy(HandValue).ThenBy(c => c.Id, StringComparer.Ordinal).Take(count).Select(c => c.Id).ToArray() };
         }
         if (action.Type == "useAbility")
@@ -140,6 +471,7 @@ public static partial class TrainingOpponent
                 var holdingCount = self.Home.Count(c => c.Definition?.Type == CardType.Holding);
                 var selected = self.Provinces.Where(p => p.Card?.Definition is not null && (action.TargetIds ?? []).Contains(p.Card.Id))
                     .Where(p => p.Card!.Definition!.GoldCost > ready || self.TurnsTaken <= 2 && holdingCount < 3 && p.Card.Definition.Type == CardType.Personality || holdingCount >= 7 && p.Card.Definition.Type == CardType.Holding)
+                    .Where(p => !(Rule(x, "keepbody") && p.Card!.Definition!.Type == CardType.Personality && EffectiveCost(x, p.Card) <= ready)) // issue #1185 tuning: an affordable body is never cycled away
                     .Select(p => p.Card!.Id).ToArray();
                 if (selected.Length == 0) return null;
                 return command with { CardIds = selected };
@@ -179,11 +511,47 @@ public static partial class TrainingOpponent
             // Issue #902: a Strategy that bows takes an unbowed target; with none, it is not played.
             if (x.Memory.UsePrudence && action.Type == "playStrategy" && StrategyIntent(x.Card(command.CardId)) is { Rank: EffectRank.Bow } bowing && bowing.Side != TargetSide.Own && targetCards.All(c => c.Bowed)) return null;
             var ordered = targetCards.OrderBy(c => c.Bowed).ThenByDescending(c => c.Force);
+            // spreadwide (Mendon, grill 2026-11-09: "spread those out so that you can be more versatile"): once one unit beats the strongest Province alone, further attachments go to the
+            // weakest unbowed Personality, so one bow or kill does not take the whole army.
+            if (Rule(x, "spreadwide") && action.Type == "equip" && targetCards.Where(c => c.OwnerId == self.Id && !c.Bowed && c.Definition?.Type == CardType.Personality).ToArray() is { Length: > 1 } wide
+                && wide.Max(c => UnitForce(x, c)) > opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Strength).DefaultIfEmpty(0).Max() + 2)
+                ordered = targetCards.OrderBy(c => wide.Contains(c) ? 0 : 1).ThenBy(c => wide.Contains(c) ? UnitForce(x, c) : 0).ThenByDescending(c => c.Force);
+            // spreadvwide (Mendon, 2026-11-09): a Personality with no attachment gets one before any Personality gets a second; a Kensai may carry two Weapons.
+            if (Rule(x, "spreadvwide") && action.Type == "equip" && x.Card(command.CardId)?.Definition is { } gear
+                && (!Rule(x, "svwgate") || self.Home.Concat(self.Army).Where(c => c.OwnerId == self.Id && c.Definition?.Type == CardType.Personality && !c.Bowed).Any(c => UnitForce(x, c) > opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Strength).DefaultIfEmpty(0).Max() + 2)))
+            {
+                var weapon = gear.Keywords?.Contains("Weapon", StringComparer.OrdinalIgnoreCase) == true;
+                var cards = self.Home.Concat(self.Army).ToArray();
+                int Load(CardView c)
+                {
+                    if (c.OwnerId != self.Id || c.Definition?.Type != CardType.Personality) return 99;
+                    var on = cards.Where(a => a.AttachedTo == c.Id).ToArray();
+                    var weapons = on.Count(a => a.Definition?.Keywords?.Contains("Weapon", StringComparer.OrdinalIgnoreCase) == true);
+                    var kensai = c.Definition.Keywords?.Contains("Kensai", StringComparer.OrdinalIgnoreCase) == true;
+                    return weapon && kensai && weapons < 2 && on.Length == weapons ? 0 : on.Length;
+                }
+                ordered = ordered.OrderBy(Load).ThenBy(c => c.Bowed).ThenByDescending(c => c.Force);
+            }
+            // Issue #1185 tuning (spread): a unit that already beats the strongest Province and every defender gains nothing more; the attachment goes to the next unit, so two armies can raze.
+            if (Rule(x, "spread") && action.Type == "equip" && targetCards.Length > 1 && targetCards.Where(c => c.OwnerId == self.Id).ToArray() is { Length: > 1 } mine)
+            {
+                var cap = opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Strength).DefaultIfEmpty(0).Max() + ArmyForce(opponent.Home) + 2;
+                var under = mine.Where(c => !c.Bowed && UnitForce(x, c) <= cap).OrderByDescending(c => UnitForce(x, c)).ToArray();
+                if (under.Length > 0 && mine.Any(c => UnitForce(x, c) > cap)) ordered = under.Concat(targetCards.Except(under)).OrderBy(c => under.Contains(c) ? 0 : 1);
+            }
             var bowStrategy = x.Memory.UseBattlePolicy && action.Type == "playStrategy" && x.Card(command.CardId)?.Definition?.Effect == "bow-small" ? PickBowTarget(x, targetCards.Select(c => c.Id).ToArray(), null) : null;
             var withTarget = WithTarget(command, action, bowStrategy?.Id ?? ordered.ThenBy(c => c.Id, StringComparer.Ordinal).First().Id);
             return withTarget is null ? null : Complete(x, action, withTarget);
         }
-        return Complete(x, action, command);
+        return FightTarget(x, action, Complete(x, action, command));
+    }
+
+    /// <summary>Issue #1206 (readE): when the Fight picks this action with a target of its own choosing (the enemy to hit, the card to discard for Force), the prepared command takes that target.</summary>
+    private static GameCommand? FightTarget(Ctx x, ActionOption action, GameCommand? command)
+    {
+        if (command is null || !Rule(x, "readE") || action.Type is not ("useAbility" or "playStrategy") || x.View.Phase != Phase.Battle || ReadFight(x) is not { Plan.Pick: { } pick }) return command;
+        var target = pick.Split('|') is { Length: 5 } parts && SameFightAction(FightKey(command with { TargetId = parts[4] }), pick) ? parts[4] : "";
+        return target.Length > 0 && target != command.TargetId && (action.TargetIds?.Contains(target) ?? false) ? command with { TargetId = target } : command;
     }
 
     /// <summary>Retargets an offered command. When the cost depends on the target (issue #303), the engine's
@@ -197,7 +565,7 @@ public static partial class TrainingOpponent
         return command;
     }
 
-    private static double Score(Ctx x, ActionOption action, GameCommand command) => Adjust(x, action, command, ScoreCore(x, action, command));
+    private static double Score(Ctx x, ActionOption action, GameCommand command) => Contender2Score(x, action, command, TriageScore(x, action, command, PlanScore(x, action, command, Adjust(x, action, command, ScoreCore(x, action, command)))));
 
     private static double ScoreCore(Ctx x, ActionOption action, GameCommand command)
     {
@@ -264,9 +632,18 @@ public static partial class TrainingOpponent
             // The Declaration Segment: declare when the whole unbowed home army would threaten the weakest province, as the old
             // per-maneuver attack score did, otherwise decline (pass scores 10).
             case "declareAttack":
+                // issue #1206 (readA, RULE_FAMILIES.md family A): the Read's opportunity decides attack or hold; a lethal attack is declared as before
+                if (Rule(x, "readA") && !Rule(x, "raShape") && LethalPlan(x, x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed).ToArray(), x.Opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Index).ToArray()) is null && ReadAnswers(x) is { } answersA)
+                    return answersA.Opportunity.Attacks ? 150 : PassScore - 1;
+                // issue #1206 (readG, RULE_FAMILIES.md family G): the route gate: a lock, a drain or a wait passes unless the attack risks nothing, a race or a punish declares, the rest is the Contender's
+                if (Rule(x, "readG") && ReadAnswers(x) is { } answersG && Route.Gate(answersG, LethalPlan(x, x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed).ToArray(), x.Opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Index).ToArray()) is not null, Rule(x, "rgRace")) is { Declare: { } gate })
+                    return gate ? Math.Max(150, DeclareScore(x)) : PassScore - 1;
                 return DeclareScore(x);
             case "attack":
                 if (command.Assignments is not { Count: > 0 }) return -100;
+                // issue #1206 (readA): the opportunity's own shape is the attack; the old estimator does not judge it
+                if (Rule(x, "readA") && x.View.Phase == Phase.InfantryDeclaration && ReadAnswers(x) is { Opportunity.Attacks: true } readAttack
+                    && command.Assignments.All(a => readAttack.Opportunity.Best.Assignment.TryGetValue(a.Key, out var p) && p == a.Value)) return 150;
                 var assignments = WholeAttack(x, action, command.Assignments);
                 if (Spec(x)) // issue #818 item 8: the unit sent only to gain Honor is not part of the attack that must destroy a Province
                 {
@@ -288,6 +665,7 @@ public static partial class TrainingOpponent
                 if (armies.Length == 1 && armies[0].Force > (opponent.Provinces.FirstOrDefault(p => p.Index == armies[0].Province)?.Strength ?? int.MaxValue / 2) && homeDefense == 0) return 80;
                 return armies.Length == 1 && TradeOf(x, assignments.Keys) is { } traded ? TradeScore(traded) : 0;
             case "assignDefense":
+                if (Rule(x, "readD") && x.View.Phase == Phase.DefenseAssignment && ReadDefence(x, action) is { Why: not "nobody attacks" } readPlan) return readPlan.Nobody ? PassScore - 1 : 150; // issue #1206 (family D)
                 if (CavalryLastStandPlan(x, action, null) is not null) return 200; // the Cavalry, with any army already assigned, could destroy every Province: defend with everything
                 if (x.Memory.UseInformedDefense && InformedDefenseScore(x, command) is { } informed) return informed;
                 var enemyForce = ArmyForce(opponent.Army);

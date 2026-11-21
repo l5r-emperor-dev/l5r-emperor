@@ -442,7 +442,7 @@
       "HonorRequirement": 0,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "Battle: Target a Personality with lower Force: Bow or straighten him.\nBattle: Target a Personality with lower Force: Bow or straighten him.",
+      "Text": "Battle: Target a Personality with lower Force: Bow or straighten him.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9818.jpg",
       "Keywords": [
@@ -755,7 +755,7 @@
       "HonorRequirement": 4,
       "ProvinceStrength": 0,
       "StartingHonor": 0,
-      "Text": "While Korimi is defending, negate her bowing from other players' actions.\nBattle: Target an enemy card without unbowed attachments: Bow the target. You may discard a Kiho or Tattoo Strategy; if you did, destroy the target.\nWhile Korimi is defending, negate her bowing from other players' actions.\nBattle: Target an enemy card without unbowed attachments: Bow the target. You may discard a Kiho or Tattoo Strategy; if you did, destroy the target.",
+      "Text": "While Korimi is defending, negate her bowing from other players' actions.\nBattle: Target an enemy card without unbowed attachments: Bow the target. You may discard a Kiho or Tattoo Strategy; if you did, destroy the target.",
       "ScenarioOnly": false,
       "ArtworkKey": "res://Content/Published/oracle-l5r-9822.jpg",
       "Keywords": [

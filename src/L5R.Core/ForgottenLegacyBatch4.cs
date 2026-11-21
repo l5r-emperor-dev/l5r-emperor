@@ -36,13 +36,13 @@ public sealed partial class MatchEngine
             // Sundering Strike: "you may target one of his attachments and pay Gold equal to its Gold Cost minus four" -- the Variable cost is exactly that
             // amount (never below 0) when an attachment is named, and nothing otherwise.
             case "sundering-strike":
-            {
-                var attachment = SlotCards(command, "attachment").FirstOrDefault();
-                var owed = attachment is null ? 0 : Math.Max(0, CardGoldCost(attachment) - 4);
-                Require(PaidGoldAmount(command) == owed, attachment is null ? "Pay nothing unless you target one of his attachments."
-                    : $"Pay exactly {owed} Gold (the attachment's Gold Cost minus four).");
-                break;
-            }
+                {
+                    var attachment = SlotCards(command, "attachment").FirstOrDefault();
+                    var owed = attachment is null ? 0 : Math.Max(0, CardGoldCost(attachment) - 4);
+                    Require(PaidGoldAmount(command) == owed, attachment is null ? "Pay nothing unless you target one of his attachments."
+                        : $"Pay exactly {owed} Gold (the attachment's Gold Cost minus four).");
+                    break;
+                }
         }
     }
 
@@ -72,9 +72,9 @@ public sealed partial class MatchEngine
 
     // Rise of the Dark Naga: the shared recruit entry sequence into HOME at the full recruit price (Shinden Shorai's shape), then "Refill the province
     // face-up" (Kharmic's own face-up replacement). True when an entry window opened.
-    private bool RiseOfTheDarkNagaRecruit(PlayerState player, CardInstance recruit)
+    private bool RiseOfTheDarkNagaRecruit(PlayerState player, CardInstance recruit, GameCommand command)
     {
-        var quote = QuotePurchase(player.Id, recruit.Id);
+        var quote = QuotePurchase(player.Id, recruit.Id, command.ClanDiscount, command.ClanAllegiance); // issue #1232: the way to pay the player chose
         Require(quote.Error is null && Definition(recruit).Type == CardType.Personality, quote.Error ?? "");
         var province = player.Provinces.Single(p => p.CardId == recruit.Id);
         var opened = BringProvincePersonalityIntoPlay(player, recruit, quote, null, "Rise of the Dark Naga", proclaimResumesTo: 1 - player.Id);
@@ -132,7 +132,7 @@ public sealed partial class MatchEngine
     {
         var castles = _state.Cards.Values.Count(c => c.OwnerId == playerId && InPlay(c) && Keyword(c, "Castle"));
         if (CurrentBattlefieldProvince() is not { } province) return; // a battlefield without a province has no strength to change (issue #492, rulings pass R1)
-                GiveProvinceStrengthThisTurn(1 - _state.ActivePlayerId, province.Index, raise ? castles : -castles, "Siege Volley"); // until end of turn (issue #492 ruling R3)
+        GiveProvinceStrengthThisTurn(1 - _state.ActivePlayerId, province.Index, raise ? castles : -castles, "Siege Volley"); // until end of turn (issue #492 ruling R3)
     }
 
     // Sundering Strike: "If you did, destroy it. Move the Personality home."

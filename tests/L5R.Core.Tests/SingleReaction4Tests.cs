@@ -1313,13 +1313,12 @@ internal static partial class SingleReaction4Tests
             Accept(go, Offer(go, 0, "training-straighten-at-battle", straightener.Id, victim.Id));
             Check(go.State.Cards[victim.Id].Bowed, "the first straightening was negated");
         }
-        // Two provinces away, a bowed Region, or the Attacker's Region: no window.
-        foreach (var (province, owner, bowed, why) in new[] { (1, 0, false, "an adjacent province (the Region is not at the battle)"), (2, 0, false, "two provinces away"), (0, 0, true, "a bowed Region"), (0, 1, false, "the Attacker's Region") })
+        // Two provinces away, a bowed Region, or the Attacker's Region: no window. (An adjacent province is in range of its text, and a Reaction needs no presence at the battle: issue #1152.)
+        foreach (var (province, owner, bowed, why) in new[] { (2, 0, false, "two provinces away"), (0, 0, true, "a bowed Region"), (0, 1, false, "the Attacker's Region") })
         {
             var (e, victim, bower, region) = Setup(province, owner, bowed);
             Accept(e, Offer(e, 1, "training-bow-at-battle", bower.Id, victim.Id));
-            // An adjacent Region still opens an (unusable) bowReaction window in the engine (OpenBowReactionWindow ignores the presence rule): there the Region must at least be unusable.
-            Check((province == 1 || e.State.PendingChoice is not { Type: "bowReaction" }) && !CanUse(e, 0, ability, region.Id), "no window for " + why);
+            Check(e.State.PendingChoice is not { Type: "bowReaction" } && !CanUse(e, 0, ability, region.Id), "no window for " + why);
             Check(e.State.Cards[victim.Id].Bowed && e.State.Cards[victim.Id].StraightenBlockedTurn != e.State.TurnNumber, "he stays bowed and nothing is negated");
         }
     }
@@ -1335,7 +1334,7 @@ internal static partial class SingleReaction4Tests
         var top = Add(s, airRing, 0, Zone.FateDeck); s.Players[0].Hand.Remove(top.Id); s.Players[0].FateDeck.Insert(0, top.Id);
         var e = MatchEngine.FromTestState(s);
         Check(!CanUse(e, 0, ability, yung.Id), "no Ring has entered play yet");
-        Accept(e, Use(e, 0, "ring-of-void-recruit", ring.Id));
+        e = Batch336Support.GrantVoid(e, 0, ring.Id); Accept(e, Use(e, 0, "ring-of-void-recruit", ring.Id));
         Eq(e.State.Cards[ring.Id].Zone, Zone.Home, "the Ring entered play");
         var command = InWindow(e, "afterActionResolvedReaction", 0, ability, yung.Id);
         Accept(e, command);
@@ -1351,7 +1350,7 @@ internal static partial class SingleReaction4Tests
         var t = Table(Phase.Action, 1);
         var y2 = Add(t, def, 0, Zone.Home); var enemyRing = Add(t, voidRing, 1, Zone.Hand);
         var f = MatchEngine.FromTestState(t);
-        Accept(f, Use(f, 1, "ring-of-void-recruit", enemyRing.Id));
+        f = Batch336Support.GrantVoid(f, 1, enemyRing.Id); Accept(f, Use(f, 1, "ring-of-void-recruit", enemyRing.Id));
         Check(!CanUse(f, 0, ability, y2.Id), "an enemy Ring gives Yung nothing");
         Reject(f, Use(f, 0, ability, y2.Id));
     }

@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Deck builder setup picker: clicking a stronghold (or Border Keep / Bamboo Harvesters variant) card selects it; clicking another switches to it. The radio-style Select button under each card is gone; the chosen card keeps its gold frame and a plain 'Selected' caption. Outside the setup picker a card click still opens the inspection.",
+  "validation": "Client build: 0 warnings, 0 errors. bash tools/check-deck-builder.sh: DECK BUILDER PASS, including new native checks: no Select buttons in the picker; clicking a stronghold selects it without opening the inspection; clicking a second stronghold switches to it; a Border Keep variant click replaces the previous one. Capture artifacts/deck-builder-checks/setup-selected.png inspected.",
+  "remaining": "Mendon to try it by hand.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1268",
+  "branch": "claude/1268-stronghold-click-select",
+  "updated": "2026-11-16T13:08:12.972019+00:00"
+}

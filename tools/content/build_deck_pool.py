@@ -40,6 +40,9 @@ def build(source: Path = SOURCE, published_path: Path = PUBLISHED, extra_publish
         supplemental = SUPPLEMENTAL  # a fixture catalogue never picks up the real supplemental cards
     extra = json.loads(supplemental.read_text(encoding="utf-8"))["cards"] if supplemental is not None and supplemental.exists() else []
     extra_ids = {card["id"] for card in extra}
+    if source == SOURCE:  # a fixture catalogue never picks up the real corrections
+        from stat_corrections import apply_to_library_cards
+        apply_to_library_cards([*data["cards"], *extra])
     playable = playable_ids(published_path, *extra_published_paths)
     entries = []
     for card in [*data["cards"], *extra]:

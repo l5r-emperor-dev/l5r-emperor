@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Regions refilled face up (Border Keep etc.) never attached: the Events Phase now attaches and refills them like face-up Events. Adds region-audit tests over every catalogue Region (attach+refill, second-Region discard, face-up case, Distant Reaches); Kokure's Lands and Tested Land handled by their text.",
+  "validation": "region-audit 4/4; core shard 1 and ai shard 1 of check.sh --skip-client passed locally; CI runs the rest",
+  "remaining": "None; ready for review.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1190",
+  "branch": "claude/1190-face-up-region-attach",
+  "updated": "2026-11-08T22:45:24.884001+00:00"
+}

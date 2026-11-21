@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Table menu: Return to game now closes the menu. The dialog hid only its built-in Close button; the button's row stayed over the bottom of the body and swallowed clicks on Return to game. HideDialogButtons (Main.Dialogs.cs) hides the row too and is used by every dialog that hides its Close button (table menu, both Pass the device curtains, Removed from the Game gallery). New native check tools/check-table-menu-ui.sh opens the menu from its icon and really clicks Return to game.",
+  "validation": "tools/check-table-menu-ui.sh passed at 1920x1080 and 1280x800 (failed before the fix: menu stayed open, click never reached the button). bash tools/check.sh --client-only exit 0. check-ui-consolidation cases published-lacquer-menu, published-rules, published-board-removed-gallery (both sizes), payment, purchase, menu-flow, menu-input passed; published-board-target-confirm fails identically on unchanged origin/main (CommitAction not visible, random practice fixture) and the Catalogue probe's full reference catalogue check also failed, neither touches these dialogs. check-province-ui passed. Pass the device curtains have no native check. Not played by a human.",
+  "remaining": "Pre-existing: published-board-target-confirm fails on main; Catalogue probe full-catalogue check fails on this machine.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1250",
+  "branch": "claude/1250-table-menu-return",
+  "updated": "2026-11-15T11:13:13.870137+00:00"
+}

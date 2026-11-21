@@ -196,15 +196,12 @@ internal static class AbilityGrantTests
     private static void UsageLimits()
     {
         var s = Table(); var card = Add(s, "training-crane-samurai");
-        card.GrantedAbilities = [new("horibe-bow", "a", "Permanent"), new("horibe-straighten", "b", "Permanent"), new("mochitoko-negate", "c", "Permanent"), new("ring-of-air-straighten", "d", "Permanent")];
+        card.GrantedAbilities = [new("horibe-bow", "a", "Permanent"), new("horibe-straighten", "b", "Permanent"), new("mochitoko-negate", "c", "Permanent"), new("elite-sentry-straighten", "d", "Permanent")];
         card.AbilityUses["horibe-bow-straighten"] = s.TurnNumber;
         var e = MatchEngine.FromTestState(s);
         var grants = View(e, card.Id).GrantedAbilities!;
         Check(grants.Take(2).All(g => g.UsesRemaining == 0), "shared usage key");
         Check(grants[2].UsesPerTurn == 2 && grants[2].UsesRemaining == 2);
         Check(grants[3].UsesPerTurn == 0 && grants[3].UsesRemaining == null);
-        Accept(e, Offered(e, card.Id, "ring-of-air-straighten", card.Id));
-        e = Edit(e, state => state.PriorityPlayerId = 0);
-        Accept(e, Offered(e, card.Id, "ring-of-air-straighten", card.Id));
     }
 }

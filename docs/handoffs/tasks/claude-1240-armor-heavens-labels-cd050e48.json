@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Armor of the Heavens' four reaction choices now read You Gain 2 Honor / You Lose 2 Honor / Opponent Gains 2 Honor / Opponent Loses 2 Honor instead of repeating the printed Political Reaction text with a ' · you' suffix (engine option label only; the card text and commands are unchanged).",
+  "validation": "bash tools/check.sh --skip-client exit 0 (Core 1561x3 shards, AI shards all passed). EmperorRemainingGTests checks all four labels; MultiWindowReaction2/3 Armor tests now find the options by ability id so their negative checks still test something. Not playtested in the client.",
+  "remaining": "None; ready for review.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1240",
+  "branch": "claude/1240-armor-heavens-labels",
+  "updated": "2026-11-14T17:43:06.916251+00:00"
+}

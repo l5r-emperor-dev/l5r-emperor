@@ -12,6 +12,8 @@ This is an audit by shape, not a playthrough of every card. Each panel is proven
 | Multi-target (`RenderMultiTargets`) | 184 | one group at a time, hands over when full, summary and Back | `check-multi-targets-ui.sh` (single group, mixed groups with summary and Back) |
 | Province picker | 24 | the province, in the draft | `check-province-target-ui.sh` |
 | Movement | 65 | the destination (already a single question) | `check-movement-ui.sh` |
+| Draft with a choice of cost (`RenderDecisionChooser`, issue #1202) | the abilities with `CostOptions` (Governor's Court, Ancestor Fukui, Akodo Kamina, ...) | performer on its own screen with nothing pre-selected, then the target, then "how do you pay?" with each way listed once, Back at each | `check-variant-steps-ui.sh` (Governor's Court), `check-decision-chooser.sh` (Fukui, Kamina) |
+| Draft with a choice after the target (`RenderChoicePicker`, issue #1202) | Stolen Merchandise (an option carries `ChoiceLabel`) | the Holding, then which of its abilities to copy, then summary and Back | `check-variant-steps-ui.sh` (Stolen Merchandise) |
 | Support-card draft (`RenderSupportDraft`) | part of the draft count | performer first when several, then target, summary and Back | `check-direct-play-ui.sh` (shared performer step) |
 | Reaction windows | 447 | unchanged: the reaction flow keeps its own panel | `check-reaction-flow-ui.sh` |
 | Dedicated wizards (deck search, look, copy, either/or, opponent payment) | 70 | unchanged: each already asks one thing at a time | their own `check-*-ui.sh` scripts |

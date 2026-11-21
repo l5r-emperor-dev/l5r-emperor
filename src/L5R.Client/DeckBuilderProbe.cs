@@ -23,14 +23,21 @@ public partial class DeckBuilderProbe : Node
             Button("New deck").GrabFocus(); await Wait(.2); await Capture("landing-focus"); Click(Button("New deck")); await Wait(3); await Capture("setup");
             Check(_screen.Draft.Count("Border Keep") == 1 && _screen.Draft.Count("Bamboo Harvesters") == 1, "default setup chosen outside deck totals");
             Check(_screen.Draft.Review().Dynasty == 0 && _screen.Draft.Review().Fate == 0, "setup excluded from counts");
-            var select = Walk(_screen).OfType<Button>().First(b => b.Text == "Select" && b.IsVisibleInTree()); Click(select); await Wait(.5); Check(_screen.Draft.Cards.Count(c => c.SetupSlot == "Stronghold") == 1, "native single stronghold selection"); await Capture("setup-selected");
-            Click(Walk(_screen).OfType<Button>().Single(b => b.AccessibilityName == "Choose Border Keep" && b.IsVisibleInTree())); await Wait(.4); var alternatives = Walk(_screen).OfType<Button>().Where(b => b.Text == "Select" && b.IsVisibleInTree()).ToArray();
-            if (alternatives.Length > 0) { Click(alternatives[0]); await Wait(.3); Check(_screen.Draft.Cards.Count(c => c.SetupSlot == "Border Keep") == 1, "setup variant replaces previous starting card"); }
+            DeckFace[] Choices() => Walk(_screen).OfType<DeckFace>().Where(f => f.IsVisibleInTree() && f.AccessibilityName.StartsWith("Select ", StringComparison.Ordinal)).ToArray();
+            Check(!Walk(_screen).OfType<Button>().Any(b => b.Text is "Select" or "Selected" && b.IsVisibleInTree()), "setup picker has no radio Select buttons (#1268)");
+            var strongholds = Choices(); var first = strongholds[0].Card.Id; Click(strongholds[0]); await Wait(.5);
+            Check(_screen.Draft.Cards.Count(c => c.SetupSlot == "Stronghold") == 1 && _screen.Draft.Count(first) == 1, "clicking a stronghold card selects it (#1268)"); await Capture("setup-selected");
+            Check(!Walk(_screen).OfType<Label>().Any(l => l.Text == "Card inspection" && l.IsVisibleInTree()), "clicking a setup card selects it instead of opening the inspection");
+            var second = Choices().FirstOrDefault(f => f.Card.Id != first);
+            if (second is not null) { var id = second.Card.Id; Click(second); await Wait(.5); Check(_screen.Draft.Count(id) == 1 && _screen.Draft.Count(first) == 0 && _screen.Draft.Cards.Count(c => c.SetupSlot == "Stronghold") == 1, "clicking another stronghold switches to it (#1268)"); }
+            Click(Walk(_screen).OfType<Button>().Single(b => b.AccessibilityName == "Choose Border Keep" && b.IsVisibleInTree())); await Wait(.4); var alternatives = Choices();
+            if (alternatives.Length > 0) { Click(alternatives[0]); await Wait(.3); Check(_screen.Draft.Cards.Count(c => c.SetupSlot == "Border Keep") == 1 && _screen.Draft.Count(alternatives[0].Card.Id) == 1, "setup variant replaces previous starting card"); }
             Check(!Walk(_screen).OfType<OptionButton>().Any(o => o.GetItemText(0).StartsWith("Emperor Edition")), "no redundant printing dropdown");
             var source = PublishedContent.Snapshot.Decks.First(d => d.Clan == "Crane");
             var all = new[] { source.StrongholdId, "oracle-l5r-1106", "oracle-l5r-679" }.Concat(source.Dynasty).Concat(source.Fate);
             var entries = all.GroupBy(id => id).Select(g => new DeckEntry(_screen.Data.Cards.Single(c => c.Id == g.Key).Name, g.Count())).ToArray();
             var path = _screen.Store.Save("Crane — Court and Steel", new Deck("Emperor", entries)); Check(_screen.OpenFile(path), "published deck loads into builder"); await Wait(5); await Capture("mat");
+            await CheckIdleArt();
             Check(!_screen.Collection.Rows && _screen.Collection.Size.X > _screen.Mat.Size.X, "collection displays full faces beside deck panel");
             // Deck views, Focus/Action filters and full-size hover (#580)
             var browser = _screen.Browser;
@@ -120,7 +127,10 @@ public partial class DeckBuilderProbe : Node
             _screen.SaveDraft();
             File.AppendAllText(path, "\n"); _screen.Adjust(card, 1); _screen.SaveDraft(); await Wait(.3); Check(Walk(_screen).OfType<ConfirmationDialog>().Any(d => d.Visible), "external edit requires overwrite decision"); KeyPress(Key.Escape); await Wait(.3); Check(_screen.Dirty, "overwrite cancel preserves dirty draft");
             _screen.SaveDraft(); await Wait(.3); KeyPress(Key.Enter); await Wait(.3); Check(!_screen.Dirty, "confirmed overwrite saves draft");
-            Click(Button("‹ My decks")); await Wait(2); Check(!_screen.ViewStrip.IsVisibleInTree(), "deck views are hidden on the My decks page"); await Capture("saved-decks"); Click(Button("Open in builder")); await Wait(.5);
+            Click(Button("‹ My decks")); await Wait(2); Check(!_screen.ViewStrip.IsVisibleInTree(), "deck views are hidden on the My decks page"); await Capture("saved-decks");
+            var deckBack = Walk(_screen).OfType<Button>().Single(b => b.Text == "‹  Back" && b.IsVisibleInTree()); var stored = Walk(_screen).OfType<Label>().Single(l => l.Text.StartsWith("Saved on this device", StringComparison.Ordinal) && l.IsVisibleInTree());
+            Check(deckBack.GlobalPosition.Y < _screen.Size.Y * .2f && stored.GlobalPosition.Y > _screen.Size.Y * .85f && !Walk(_screen).OfType<Button>().Any(b => b.Text == "Back to menu" && b.IsVisibleInTree()), "My decks: Back near the top, device caption at the bottom (#1270)");
+            Click(Button("Open in builder")); await Wait(.5);
             var slider = _screen.Browser.CardSize; var unchanged = _screen.Collection.Cards.Select(c => c.Id).ToArray();
             await DragSlider(slider, .9f); await Wait(.4); await Capture("slider-large");
             Check(slider.Value > 260 && _screen.Collection.CardWidth == (float)slider.Value, "native builder slider drag enlarges collection faces");
@@ -168,6 +178,20 @@ public partial class DeckBuilderProbe : Node
             if (!OS.GetCmdlineUserArgs().Contains("--stay")) GetTree().Quit();
         }
         catch (Exception e) { GD.PushError(e.ToString()); GetTree().Quit(1); }
+    }
+    // #1281: draws record only texture RIDs. Collect .NET garbage with nothing redrawing and require that no gilded
+    // frame, panel cloth or scan turns into Godot's white fallback, as it did after the game sat idle.
+    private async Task CheckIdleArt()
+    {
+        GetViewport().WarpMouse(new Vector2(4, 4)); await Wait(1);
+        RenderingServer.ForceDraw(); var before = GetViewport().GetTexture().GetImage();
+        for (var i = 0; i < 4; i++) { GC.Collect(); GC.WaitForPendingFinalizers(); GC.Collect(); await Wait(.3); }
+        RenderingServer.ForceDraw(); var after = GetViewport().GetTexture().GetImage(); after.SavePng(Path.Combine(_out, "idle-after-gc.png"));
+        var whitened = 0;
+        for (var y = 0; y < after.GetHeight(); y += 2)
+            for (var x = 0; x < after.GetWidth(); x += 2)
+            { var a = after.GetPixel(x, y); var b = before.GetPixel(x, y); if (a.R > .96f && a.G > .96f && a.B > .96f && b.Luminance < .85f) whitened++; }
+        Check(whitened < 50, $"collected garbage leaves frames, deck panel and scans drawn, not white ({whitened} sampled pixels turned white) (#1281)");
     }
     private async Task Wait(double seconds) => await ToSignal(GetTree().CreateTimer(seconds), SceneTreeTimer.SignalName.Timeout);
     private async Task CheckWorkspaceNavigation()

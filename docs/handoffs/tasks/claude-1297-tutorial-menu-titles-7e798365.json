@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Tutorial menu: Attacks, Duels and Dishonor lose the 'Special Actions - ' prefix (curriculum, lesson titles, docs, tests); every tutorial menu entry (track list, lesson list, Back) now uses one font size, the largest at which all titles fit, instead of each shrinking on its own. The menu scroll probe's stale 13-lesson count now uses the track's length (14 with Rings).",
+  "validation": "Client build; native captures of menu-tutorial and menu-tutorial-track show uniform entry size; menu-tutorial-scroll probe passes; check-tutorial.sh and check.sh --skip-client passed; format verified on changed files.",
+  "remaining": "None; ready for review.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1297",
+  "branch": "claude/1297-tutorial-menu-titles",
+  "updated": "2026-11-19T18:14:25.090477+00:00"
+}

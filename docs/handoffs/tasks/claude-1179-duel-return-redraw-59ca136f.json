@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "A match duel's return to the table put the interface back under the main node instead of the CanvasLayer it was built in, so the table came back blank (seen when leaving the Duels tutorial's refused Sanctioned Duel screen). It now returns to its own layer. The coach's Continue and the duel screen's own Continue both work: the first advances the lesson and, when the next step needs the table, hands back to it. Lab verb duelcontinue added.",
+  "validation": "Native lab: coach Continue first, duel Continue first, and both in sequence all redraw the table; tools/check-duel-match.sh variants normal, refusal and tie complete (the script's strict ERROR grep trips on a Godot signal-already-connected message the duel screen logs with or without a lesson); dotnet format whitespace clean.",
+  "remaining": "None; ready for review.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1179",
+  "branch": "claude/1179-duel-return-redraw",
+  "updated": "2026-11-07T13:20:31.576085+00:00"
+}

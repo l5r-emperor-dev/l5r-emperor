@@ -45,7 +45,7 @@ internal static class EmperorRemainingBTests
         ("Opportunistic Advance: a Commander moves another Personality of his army to another unresolved battlefield; the Commander himself, an enemy and a Personality elsewhere are not targets", OpportunisticAdvanceScenario),
         ("Introspection: after one of its player's Rings enters play the Strategy is played from the hand, the Fate deck is searched for any card and it goes to the hand; not for an enemy Ring, and not without a Ring entering play", IntrospectionScenario),
         ("Martial Instruction: bows the Monk, removes itself from the game and finds a Kiho Strategy with a Battle action in the Fate deck; a Kiho Strategy without one is not eligible", MartialInstructionScenario),
-        ("Meeting the Keepers: after an action from one of its player's Rings it finds an Event in the Dynasty deck and puts it on top after shuffling; its Open action bows a Ring to draw two cards", MeetingTheKeepersScenario),
+        ("Meeting the Keepers: after one of its player's Rings' printed actions (not the Ring entering play) it finds an Event in the Dynasty deck and puts it on top after shuffling; its Open action bows a Ring to draw two cards", MeetingTheKeepersScenario),
         ("Oyo's Second Lesson: a dead Henshin is reborn over the target Personality (overlay: his state, attachments and place, the target leaves the game), its player draws and may take an additional action; a Henshin in play or a non-Henshin does not qualify", OyosSecondLessonScenario),
         ("Hidden Defenses: with no Personality of its player's in play, one or two Personalities anywhere are bowed and cannot be straightened this turn; its Reaction after engaging moves a Personality there and straightens him if he moved", HiddenDefensesScenario),
         ("Hundred-Fold Cut: a Kensai targeted by an action that could destroy him is saved by bowing or destroying one of his Weapons; its Battle action bows the Kensai or one of his Weapons to draw two cards", HundredFoldCutScenario),
@@ -586,12 +586,23 @@ internal static class EmperorRemainingBTests
 
     private static void MeetingTheKeepersScenario()
     {
-        var e = BattleWithFalseRing(0, MeetingTheKeepers);
-        var strategy = e.State.Cards.Values.Single(c => c.DefinitionId == MeetingTheKeepers);
-        var eventCard = e.State.Cards.Values.Single(c => c.DefinitionId == ImperialGift);
-        var ring = e.State.Cards.Values.Single(c => c.DefinitionId == FalseRingOfWater);
-        Accept(e, Use(e, 0, "false-ring-of-water-recruit", ring.Id));
-        Eq(e.State.PendingChoice?.Type, "afterActionResolvedReaction");
+        // Putting a Ring into play is not an action from it (issue #1290): only the use of the Ring's printed ability is.
+        var entry = BattleWithFalseRing(0, MeetingTheKeepers);
+        var entryStrategy = entry.State.Cards.Values.Single(c => c.DefinitionId == MeetingTheKeepers);
+        Accept(entry, Use(entry, 0, "false-ring-of-water-recruit", entry.State.Cards.Values.Single(c => c.DefinitionId == FalseRingOfWater).Id));
+        Check(!CanUse(entry, 0, "keepers-search", entryStrategy.Id), "a Ring entering play gives it nothing to react to");
+
+        var s = Table(Phase.Action, 0);
+        var ring = Add(s, "training-ring-of-void", 0, Zone.Home);
+        var strategy = Add(s, MeetingTheKeepers, 0, Zone.Hand);
+        PutIn(s, "training-crane-samurai", 0, Zone.FateDeck);
+        PutIn(s, "training-lion-samurai", 0, Zone.FateDeck);
+        var eventCard = PutIn(s, ImperialGift, 0, Zone.DynastyDeck);
+        PutIn(s, "training-crane-samurai", 0, Zone.DynastyDeck);
+        PutIn(s, "training-lion-samurai", 0, Zone.DynastyDeck);
+        var e = MatchEngine.FromTestState(s);
+        Accept(e, Enabled(e, 0, "ring-of-void-draw", ring.Id).Command!);
+        Eq(e.State.PendingChoice?.Type, "afterActionResolvedReaction", "the Ring's printed action resolved");
         Accept(e, Enabled(e, 0, "keepers-search", strategy.Id).Command!);
         Eq(e.State.PendingChoice?.Type, "searchSelect");
         var entries = e.GetView(0).PendingSearch!.Entries!;

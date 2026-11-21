@@ -282,12 +282,33 @@ runner.Run("sure-reactions", SureReactionsTests.Tests); // issue #963: bot loop 
 runner.Run("deck-archetype", DeckArchetypeTests.Tests); // issue #963: bot loop S0
 runner.Run("archetype-play", ArchetypePlayTests.Tests); // issue #963: archetype flags, split defense
 runner.Run("bodies-first", BodiesFirstTests.Tests); // issue #963: bot loop round 3
+runner.Run("planner", PlannerTests.Tests); // issue #1185: the turn-planning bot
+runner.Run("triage", TriageTests.Tests); // issue #1185 slice 3: ability triage
+runner.Run("challenge-guard", ChallengeGuardTests.Tests); // issue #1203: no challenge to a higher duel stat
+runner.Run("bot-level", BotLevelTests.Tests); // issue #1214: practice difficulty (Easy Champion, Moderate Contender, Hard Conan)
 runner.Run("informed-defense", InformedDefenseTests.Tests); // issue #963: bot loop round 2
 runner.Run("seppuku", SeppukuTests.Tests); // issue #963: bot loop round 1
 runner.Run("michi-stall", MichiStallReplayTests.Tests); // issue #967
 runner.Run("prudence", PrudenceTests.Tests); // issue #902: Mendon's bot notes
 runner.Run("cavalry-defense", CavalryDefenseTests.Tests); // issue #946: defending against the attacker's possible Cavalry
 runner.Run("bot-profile", BatchProfile.Tests); // issue #888: opt-in timing of seeded bot-vs-bot matches
+runner.Run("human-compare", HumanReplayCompare.Tests);
+runner.Run("conan-positions", ConanPositions.Tests); // issue #1206: the decision test set from Mendon's replays (docs/bots/CONAN_STRATEGY_BRIEF.md step 1) // issue #1185: opt-in, a human practice replay beside the bot's choices
+runner.Run("effect-descriptor", EffectDescriptorTests.Tests); // issue #1206: the card-agnostic effect descriptors (step 2 of the strategy brief)
+runner.Run("read", ReadTests.Tests); // issue #1206: the Read in shadow (ledger, belief, exchange)
+runner.Run("rule-registry", RuleRegistryTests.Tests); // issue #1206: every rule name declared once, the frozen T2 yardstick, the fire counters (step 0 and step 1 item 1)
+runner.Run("guard", GuardTests.Tests); // issue #1206: family C, the Guard against the counter-attack (step 3)
+runner.Run("fight", FightTests.Tests); // issue #1206: family E, the Fight inside a battle (step 3)
+runner.Run("fork", ForkTests.Tests); // issue #1206: family B, the Cavalry fork (step 3)
+runner.Run("threat", ThreatTests.Tests); // issue #1206: threat(home), the Read's second question (section 4.5)
+runner.Run("questions", QuestionsTests.Tests); // issue #1206: opportunity, race and posture (section 4.5)
+runner.Run("defence", DefenceTests.Tests); // issue #1206: family D, the defence assignment read from the Read
+runner.Run("read-a", ReadATests.Tests); // issue #1206: family A, the attack read from the Read's opportunity
+runner.Run("purchase", PurchaseTests.Tests); // issue #1206: family F, the Dynasty purchase read from the Read
+runner.Run("decided-game", DecidedGameTests.Tests); // issue #1283: no Dynasty purchases once the game is settled
+runner.Run("route", RouteTests.Tests); // issue #1206: family G, the route gate at the attack declaration
+runner.Run("hand", HandTests.Tests); // issue #1206: family I, the Favor, the hand-replacing Event and the hand-limit discard
+runner.Run("descriptor-audit", DescriptorAudit.Tests); // issue #1206: opt-in coverage audit of the descriptors over the tournament and replay decks
 return runner.Finish();
 
 void Run(string name, Action run) => tests.Add((name, run));

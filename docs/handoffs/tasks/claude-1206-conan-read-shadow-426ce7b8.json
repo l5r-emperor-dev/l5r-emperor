@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Conan strategy campaign, step 2 second part: the Read in shadow (ledger, belief, exchange; rule 'read', drives nothing) with need/have, Tactician late Force, the Read in every battle record, and the calibration gate: on held-out block 9300 the Read's Brier is 0.152 against 0.213 (paper margin) and 0.223 (EstimateAttack), every cell of 200+ within 10 points, 0 games changed with the shadow on (block 9200). Decision set prints the Read at attack positions (L5R_POS_READ=1).",
+  "validation": "bash tools/check.sh --skip-client: all requested checks passed. New cases: read (7). Formatting check (tools/quality/check_format.py) clean. Arena: block 9200 A/A 50.6% and T2+read identical (0 flipped); block 9300 A/A 51.8%; records regenerated on 9200 with the current recorder. Evidence: docs/bots/experiments/2026-11-13-conan-instruments.md.",
+  "remaining": "The threat answer (threat(home)), the three questions and posture (brief 4.5), replanning (4.6); then family D rules reading the Read, screened at Contender speed on fresh Mac blocks (9400+). The belief's prior is weak against these bots (likely rarely differs from open); revisit with reveal-driven updates. Nothing becomes a default.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
+  "branch": "claude/1206-conan-read-shadow",
+  "updated": "2026-11-13T17:59:15.431880+00:00"
+}

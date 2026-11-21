@@ -320,6 +320,82 @@
     },
     {
       "automation_status": "unsupported",
+      "clans": [
+        "Unaligned"
+      ],
+      "current_oracle_text": "Quelsa has +2F while he has a Spell.\nQuelsa attaches Spells paying 2 less Gold.",
+      "current_primary_printing_id": "1",
+      "deck_types": [
+        "Dynasty"
+      ],
+      "emperor_edition_numbers": [],
+      "experience": null,
+      "historical_legality_status": "playable_by_ruling_r040",
+      "historical_text_status": "needs_era_review",
+      "id": "oracle-l5r-9857",
+      "keywords": [
+        "Jakla",
+        "Naga",
+        "Nonhuman",
+        "Pearl",
+        "Shugenja"
+      ],
+      "legality_status": "supplemental_review",
+      "name": "Quelsa",
+      "oracle_id": 9857,
+      "playable": false,
+      "printings": [
+        {
+          "artists": [
+            "Carlos NCT"
+          ],
+          "id": "1",
+          "numbers": [
+            "69"
+          ],
+          "sets": [
+            "The Shadow's Embrace"
+          ],
+          "stats_overrides": {},
+          "text_override": "Quelsa has +2F while he has a Spell.\nQuelsa attaches Spells paying 2 less Gold."
+        }
+      ],
+      "source_ban_notes": [
+        "Banned from constructed Emperor Edition tournaments, effective September 21st, 2013"
+      ],
+      "source_legality_labels": [
+        "Legacy",
+        "Modern"
+      ],
+      "source_membership": "Wired card outside the Age of Conquest (Emperor) legality query",
+      "source_url": "https://oracleofthevoid.com/#cardid=9857",
+      "stats": {
+        "chi": [
+          "3"
+        ],
+        "cost": [
+          "7"
+        ],
+        "force": [
+          "6"
+        ],
+        "honor": [
+          "-"
+        ],
+        "ph": [
+          "0"
+        ]
+      },
+      "titles": [
+        "Quelsa"
+      ],
+      "types": [
+        "Personality"
+      ],
+      "version_notation": "unspecified"
+    },
+    {
+      "automation_status": "unsupported",
       "clans": [],
       "current_oracle_text": "As a Focus Effect: You may choose (now) to delay the effects of losing this duel until after the next Dynasty Phase begins.\nBattle: If you control any units at the current battlefield, choose your performing Crab Clan Personality who is face-up in your provinces or discarded (not dead): Bring him into play there, paying all costs.",
       "current_primary_printing_id": "1",
@@ -513,7 +589,7 @@
   "source": {
     "derived_from": "content/oracle/emperor-edition/catalogue.json",
     "name": "Oracle of the Void",
-    "record_count": 7,
+    "record_count": 8,
     "selected_by": "content/oracle/emperor-edition/coverage-review.json metadata_review"
   }
 }

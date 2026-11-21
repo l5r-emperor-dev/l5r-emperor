@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Conan (#1206): MatchEngine.Sample redeals cards hidden from a viewer; BotContext.Conan() = Contender + 'look' battle lookahead over samples (bot-vs-bot only). Also carries the Contender tuning branch (#1185).",
+  "validation": "check.sh --skip-client passed; hidden-sample test (fails when the sampler leaks the viewer's hand); arena vs Champion: 7000x2 77.7% (+62 vs Contender), 7100 76.6% (+36), holdout 79.3% (+39), p<.0001.",
+  "remaining": "Iteration on Conan knobs (lkAtk/lkDef/lkOpp/weights) continues on a follow-up branch; engine throws in ValidateAbilityResult on some sampled states (caught).",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
+  "branch": "claude/1206-battle-lookahead",
+  "updated": "2026-11-10T05:36:54.866279+00:00"
+}

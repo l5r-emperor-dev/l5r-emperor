@@ -135,7 +135,7 @@ public sealed partial class MatchEngine
             // Chuda Hitaka: Hitaka was destroyed as the cost; the Oni enters at home (a Limited action has no battlefield), priced by the TargetRecruit rule.
             case "hitaka-recruit-oni":
                 {
-                    var quote = QuotePurchase(player.Id, target!.Id, fromDeadPile: true);
+                    var quote = QuotePurchase(player.Id, target!.Id, command.ClanDiscount, command.ClanAllegiance, fromDeadPile: true);
                     Require(quote.Error is null, quote.Error ?? "");
                     return BringDeadPersonalityIntoPlay(player, target, name, null);
                 }

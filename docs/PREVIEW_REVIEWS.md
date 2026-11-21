@@ -71,6 +71,19 @@ link to the extracted launcher is then available for future clicks. If GitHub CL
 isn't configured, use the authenticated browser download; no token belongs in a
 message, command pasted into a PR, or committed file.
 
+## Public repository publication
+
+The repository and its Releases are public; a prerelease is not private storage.
+Follow `docs/PUBLIC_REPO.md`. For an owner-authorized game preview, pass
+`--allow-public-repository` to the stage command only after checking the package
+and its required artwork for public distribution. The default still refuses public
+publication without that explicit opt-in. This does not relax hashes, immutable
+versions, Windows validation or notification gates. Do not publish additional bulk
+artwork, research scans, credentials or local room data as part of a preview.
+
+For #1200, Alfredo explicitly requested publication and Mendon's review on
+16 November 2026; the issue records the bounded game/required-art preview scope.
+
 ## Publisher workflow (Codex and Claude)
 
 The user has authorized targeted review notifications to Mendon for Alfredo's
@@ -96,14 +109,14 @@ every build retry or claim that a GitHub comment was delivered/read by email.
    GitHub's 2 GiB per-asset limit are delivered as numbered ZIP parts without changing
    the game or its artwork. The receipt records each part and the original archive's
    hash; the bundled Windows helper verifies and assembles those exact bytes.
-3. Stage a private validation candidate (GitHub CLI authentication required):
+3. Stage a validation candidate (GitHub CLI authentication required):
 
    ```sh
    python3 tools/previews/publish.py stage --spec previews/regions-celestials.json --receipt artifacts/previews/regions-celestials.receipt.json --archive artifacts/previews/L5R-Review-pr292-7360ff1c17-r1-Windows.zip
    ```
 
    The publisher uploads as a draft, verifies GitHub's size/SHA-256, then makes it
-   a private prerelease titled **Validation pending** so read-only CI can download
+   a prerelease titled **Validation pending** so read-only CI can download
    it. No targeted review notification is sent yet. It never replaces an existing
    asset. Copy that receipt into `previews/published/<name>.json`, commit
    it with the tooling/specification and handoff, then push the delivery PR.

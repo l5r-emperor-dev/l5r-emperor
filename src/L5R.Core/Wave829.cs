@@ -147,7 +147,7 @@ public sealed partial class MatchEngine
                 if (command.TargetId is { } crabId && _state.Cards.TryGetValue(crabId, out var crab))
                 {
                     Require(Wave829CrabCandidate(player.Id, crab), "Choose a Crab Clan Personality of yours, face-up in a province or in your discard pile (not dead).");
-                    var quote = QuotePurchase(player.Id, crab.Id, fromDeadPile: crab.Zone != Zone.Province);
+                    var quote = QuotePurchase(player.Id, crab.Id, command.ClanDiscount, command.ClanAllegiance, fromDeadPile: crab.Zone != Zone.Province);
                     Require(quote.Error is null, quote.Error ?? "");
                 }
                 break;
@@ -167,7 +167,7 @@ public sealed partial class MatchEngine
                     if (command.Selections?.FirstOrDefault(s => s.Slot == Wave829Abilities.OnyxTarget)?.CardIds?.FirstOrDefault() is { } oniId && _state.Cards.TryGetValue(oniId, out var oni))
                     {
                         Require(Definition(oni).Type == CardType.Personality && IsDiscardedPersonality(oni), "Choose an Oni Personality in your discard pile.");
-                        var quote = QuotePurchase(player.Id, oni.Id, fromDeadPile: true);
+                        var quote = QuotePurchase(player.Id, oni.Id, command.ClanDiscount, command.ClanAllegiance, fromDeadPile: true);
                         Require(quote.Error is null, quote.Error ?? "");
                     }
                     break;
@@ -245,7 +245,7 @@ public sealed partial class MatchEngine
                     var crab = target!;
                     var battlefield2 = _state.CurrentBattleProvince!.Value;
                     var name = Definition(source!).Name;
-                    var quote = QuotePurchase(player.Id, crab.Id, fromDeadPile: crab.Zone != Zone.Province);
+                    var quote = QuotePurchase(player.Id, crab.Id, command.ClanDiscount, command.ClanAllegiance, fromDeadPile: crab.Zone != Zone.Province);
                     Require(quote.Error is null && Definition(crab).Type == CardType.Personality, quote.Error ?? "");
                     SpendHandPlayedCard(player, source);
                     if (crab.Zone == Zone.Province) return BringProvincePersonalityIntoPlay(player, crab, quote, battlefield2, name);

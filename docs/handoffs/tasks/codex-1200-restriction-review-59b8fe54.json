@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Published #1200 draft PR #1274 and the immutable Windows validation candidate for Mendon; exact game source de307f5d.",
+  "validation": "Pinned 10.0.400 full suite PASS (4699 Core, 316 AI plus Python/server/transport/collection); 8/8 focused regressions; native five-mode spacing/input plus four interactive launcher smokes PASS; 13 preview-tooling tests and C# formatting PASS. Full local launcher builds/opens. Windows export integrity/source omission checks PASS. GitHub uploaded ZIP size 1011034232 and SHA-256 07dcd51507a1176597a30e68e88cc16e991a1246ac5a37a4c0f37c3c8258374b verified. Four independent governance lenses reconciled; native captures inspected and committed.",
+  "remaining": "Wait for exact-receipt Windows package check and current PR CI, then mark ready/request Mendon review and deliver one validated notification. Initial catalogue/global coverage and human Windows graphical/rules acceptance remain explicit; no merge or #1201 implementation.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1200",
+  "branch": "codex/1200-restriction-review",
+  "updated": "2026-11-16T16:20:07.650784+00:00"
+}

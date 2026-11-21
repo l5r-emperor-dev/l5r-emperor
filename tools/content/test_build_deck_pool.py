@@ -65,7 +65,7 @@ class BuildDeckPoolTests(unittest.TestCase):
 
     def test_real_catalogue_matches_the_verified_count(self):
         pool = build()
-        self.assertEqual(pool["count"], 2150)  # 2149 total minus 6 Proxy entries, plus 7 Emperor Edition cards the legality query omits (issue #812)
+        self.assertEqual(pool["count"], 2151)  # 2149 total minus 6 Proxy entries, plus 8 cards the legality query omits: 7 Emperor Edition (issue #812) and Quelsa
 
     def test_lion_crane_pool_is_a_clean_subset(self):
         # Every currently-playable card must resolve inside the Age of Conquest pool --

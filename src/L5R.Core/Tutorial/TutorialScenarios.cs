@@ -28,11 +28,16 @@ public sealed partial class MatchEngine
                 var placed = Add(seat, home.DefinitionId, Zone.Home, true, home.Bowed);
                 foreach (var attachment in home.Attachments ?? []) { var worn = Add(seat, attachment, Zone.Attached, true); worn.AttachedTo = placed.Id; }
                 if (home.ChiToken != 0) placed.Tokens.Add(new CardToken("token-tutorial-" + placed.Id, "Poison", "Tutorial", "Chi", home.ChiToken));
+                for (var n = 0; n < home.FireTokens; n++) placed.Tokens.Add(new CardToken($"token-tutorial-fire-{n}-{placed.Id}", "Fire", "Tutorial", "Force", 1));
             }
             foreach (var id in TutorialCards.Deck(side.DynastyTop, side, dynasty: true)) player.DynastyDeck.Add(Add(seat, id, Zone.DynastyDeck).Id);
             foreach (var id in TutorialCards.Deck(side.FateTop, side, dynasty: false)) player.FateDeck.Add(Add(seat, id, Zone.FateDeck).Id);
             var strength = CardCatalog.Get(side.StrongholdId).ProvinceStrength;
             player.Provinces = Enumerable.Range(0, 4).Select(i => new ProvinceState { Index = i, Strength = strength, PrintedStrength = strength }).ToList();
+            foreach (var id in side.DynastyDiscard ?? []) Add(seat, id, Zone.DynastyDiscard, true);
+            foreach (var id in side.FateDiscard ?? []) Add(seat, id, Zone.FateDiscard, true);
+            foreach (var index in side.DestroyedProvinces ?? []) player.Provinces[index].Destroyed = true;
+            foreach (var (index, id) in side.Regions ?? []) { var region = Add(seat, id, Zone.Region, true); region.ProvinceIndex = index; player.Provinces[index].RegionId = region.Id; }
         }
         state.ActivePlayerId = setup.FirstPlayer; state.PriorityPlayerId = setup.FirstPlayer; state.TurnNumber = 1 + 2 * setup.TurnsTaken;
         foreach (var player in state.Players) player.TurnsTaken = setup.TurnsTaken;
@@ -88,4 +93,37 @@ public sealed partial class MatchEngine
         _state.Cards.Values.Where(c => c.OwnerId == owner && c.DefinitionId == definitionId && (zones.Length == 0 || zones.Contains(c.Zone))).Select(c => c.Id).ToArray();
     internal string? TutorialProvinceCardId(int owner, int index) => Player(owner).Provinces[index].CardId;
     internal string TutorialStrongholdId(int owner) => Player(owner).StrongholdId;
+    /// <summary>True while the open choice is the announce-and-order window itself (R-039), not a window one of its Reactions opened.</summary>
+    internal bool TutorialInOrderedWindow => _state.PendingReactionOrder is { } order && Equals(_state.PendingChoice, order.Window);
+    /// <summary>The ability of a Reaction announced into the open announce-and-order window (R-039), by its announcement id; null when there is none.</summary>
+    internal string? TutorialAnnouncedAbility(string? id) =>
+        id is null || _state.PendingReactionOrder is not { } order ? null : order.Announced.Concat(order.Queue).FirstOrDefault(a => a.Id == id)?.AbilityId;
+
+    /// <summary>The lesson's table starts with this player holding the Imperial Favor (the Dishonor lesson pays The Heir's Wrath with it). Tutorial-only.</summary>
+    internal void TutorialGiveFavor(int playerId) => _state.FavorPlayerId = playerId;
+
+    /// <summary>The lesson's table starts with this many Favor tokens on this player's Stronghold (the Imperial Favor lesson's Kyuden Otomo - exp). Tutorial-only.</summary>
+    internal void TutorialAddFavorTokens(int playerId, int count) { for (var n = 0; n < count; n++) CreateToken(StrongholdOf(playerId), FavorTokenType, "tutorial"); }
+
+    private int _tutorialAdded;
+    /// <summary>The lesson turns these Personalities of this player dishonorable, as an opponent's card would have (Keywords: Seppuku). Tutorial-only.</summary>
+    internal void TutorialDishonor(int owner, params string[] definitionIds)
+    {
+        foreach (var card in _state.Cards.Values.Where(c => c.OwnerId == owner && c.Zone is Zone.Home or Zone.Battlefield && definitionIds.Contains(c.DefinitionId))) card.Dishonorable = true;
+    }
+
+    /// <summary>Puts a Personality of this player into play at home, honorable, unbowed and face up, with these attachments on it; one that lies dead is brought back, otherwise a new card is made. Tutorial-only.</summary>
+    internal void TutorialPutInPlay(int owner, string definitionId, params string[] attachments)
+    {
+        CardInstance Make(string definition, Zone zone)
+        {
+            _ = CardCatalog.Get(definition);
+            var card = new CardInstance { Id = "tutorial-added-" + _tutorialAdded++, DefinitionId = definition, OwnerId = owner, Zone = zone, FaceUp = true };
+            _state.Cards.Add(card.Id, card); return card;
+        }
+        var host = _state.Cards.Values.FirstOrDefault(c => c.OwnerId == owner && c.DefinitionId == definitionId && c.Zone == Zone.Dead) ?? Make(definitionId, Zone.Home);
+        host.Zone = Zone.Home; host.FaceUp = true; host.Bowed = false; host.Dishonorable = false;
+        foreach (var attachment in attachments) Make(attachment, Zone.Attached).AttachedTo = host.Id;
+        Emit("tutorialPlaced", "The tutorial put a Personality into play.");
+    }
 }

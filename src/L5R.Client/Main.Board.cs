@@ -91,21 +91,21 @@ public partial class Main
     private static int AttachmentCount(CardView card, PlayerView owner) => owner.Home.Concat(owner.Army).Count(c => c.AttachedTo == card.Id);
     private static int TokenAttachmentCount(CardView card, PlayerView owner) => owner.Home.Concat(owner.Army).Count(c => c.AttachedTo == card.Id && CardTokenRail.HasRail(c));
     private float UnitWidth(CardView card, PlayerView owner) => Math.Max(CardFootprint(card, CardHeight), owner.Home.Concat(owner.Army)
-        .Where(c => c.AttachedTo == card.Id).Select(c => CardFootprint(c, CardHeight)).DefaultIfEmpty(0).Max()) + (card.UnitForce.HasValue ? UnitStandard.ReservedWidth : 0) + TokenAttachmentCount(card, owner) * CardTokenRail.Width;
+        .Where(c => c.AttachedTo == card.Id).Select(c => CardFootprint(c, CardHeight)).DefaultIfEmpty(0).Max()) + (card.UnitForce.HasValue ? UnitStandard.ReservedWidth : 0) + owner.Home.Concat(owner.Army).Where(c => c.AttachedTo == card.Id && CardTokenRail.HasRail(c)).Sum(c => CardTokenRail.WidthFor(c));
     private float TokenBottomPadding(CardView card, PlayerView owner)
     {
         var attachments = owner.Home.Concat(owner.Army).Where(c => c.AttachedTo == card.Id).ToArray();
-        var padding = card.Bowed && CardTokenRail.HasRail(card) ? CardTokenRail.Width : 0f;
+        var padding = card.Bowed && CardTokenRail.HasRail(card) ? CardTokenRail.WidthFor(card) : 0f;
         for (var i = 0; i < attachments.Length; i++)
             if (attachments[i].Bowed && CardTokenRail.HasRail(attachments[i]))
-                padding = Math.Max(padding, (2 + attachments.Take(i).Count(CardTokenRail.HasRail)) * CardTokenRail.Width * 1.02f);
+                padding = Math.Max(padding, CardTokenRail.WidthFor(card) + attachments.Take(i + 1).Where(CardTokenRail.HasRail).Sum(c => CardTokenRail.WidthFor(c) + 2));
         return padding;
     }
     private float StackHeight(CardView card, PlayerView owner) => PlaneHeight(CardHeight) + AttachmentCount(card, owner) * 24 + (AttachmentCount(card, owner) > 0 ? 24 : 0) + TokenBottomPadding(card, owner);
     private int ArmyColumns(int province) => Math.Clamp((int)Math.Ceiling(Math.Sqrt(View.Players.Max(p => CourtUnits(p, province).Count()))), 1, 4);
     private static float CardFootprint(CardView card, float height)
     {
-        var rail = (CardTokenRail.HasRail(card) ? CardTokenRail.Width * height / CardHeight : 0)
+        var rail = (CardTokenRail.HasRail(card) ? CardTokenRail.WidthFor(card) * height / CardHeight : 0)
             + (CreatedCopyStatus.VisibleOn(card) ? height * .32f : 0);
         if (card.Bowed) return height + rail;
         var art = card.Definition is { ScenarioOnly: false } definition ? CardTile.Artwork(definition) : null;
@@ -167,7 +167,7 @@ public partial class Main
         }
         // Expose a usable strip of each attachment. A spread opens the entire card.
         var step = expanded ? side * .80f : 24f;
-        var faceWidth = Math.Max(CardFootprint(personality, side), attachments.Select(c => CardFootprint(c, side)).DefaultIfEmpty(0).Max()) + (expanded ? 0 : TokenAttachmentCount(personality, owner) * CardTokenRail.Width * side / CardHeight);
+        var faceWidth = Math.Max(CardFootprint(personality, side), attachments.Select(c => CardFootprint(c, side)).DefaultIfEmpty(0).Max()) + (expanded ? 0 : attachments.Where(CardTokenRail.HasRail).Sum(c => CardTokenRail.WidthFor(c)) * side / CardHeight);
         var bannerWidth = personality.UnitForce.HasValue ? UnitStandard.ReservedWidth * side / CardHeight : 0;
         var width = (expanded && attachments.Length > 0 ? faceWidth * 2 + Math.Max(0, attachments.Length - 1) * step : faceWidth) + bannerWidth;
         var tileHeight = detail ? side : PlaneHeight(side);
@@ -179,7 +179,7 @@ public partial class Main
         for (var i = attachments.Length - 1; i >= 0; i--)
         {
             var child = Tile(attachments[i], true, faceWidth, side);
-            child.TokenRailOffset = expanded ? 0 : (1 + attachments.Take(i).Count(CardTokenRail.HasRail)) * CardTokenRail.Width * (side - 12) / 198f;
+            child.TokenRailOffset = expanded ? 0 : (CardTokenRail.WidthFor(personality) + attachments.Take(i).Where(CardTokenRail.HasRail).Sum(c => CardTokenRail.WidthFor(c) + 2)) * (side - 12) / 198f;
             if (detail) { child.ProjectToScreen = null; child.CustomMinimumSize = new Vector2(faceWidth, side); }
             Place(stack, child, expanded ? faceWidth + bannerWidth + i * step : 0, expanded ? 4 : (attachments.Length - 1 - i) * step, faceWidth, tileHeight);
         }

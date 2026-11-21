@@ -65,6 +65,13 @@ Left/Right choice, replaced by the card's own title once it is face up.
 - **Date:** 2026-09-30
 - **Source:** [Plains of Otosan Uchi province rules](../decisions/2026-09-30-otosan-uchi-province-rules.md)
 
+### R-091 — Conquest is used once per turn, across every battlefield
+The rulebook Conquest ability is not Repeatable, so a player uses it once per turn. The limit covers every battlefield that turn: once a Conqueror is chosen and kept unbowed, no other Conqueror may be straightened and kept unbowed by Conquest that turn, at that battle or a later one. The Plain of Glass's "twice per turn during the same battle" gives two uses, both at one battle, which spend the turn's Conquest. Conquest is offered only when the attacker wins the battle (the engine's existing behaviour, kept: no change).
+
+- **Cards/primitives:** `PlayerState.ConquestTurn`; `ContinueAfterResolution` and `FinishBattleResolution` (MatchEngine.cs); The Plain of Glass.
+- **Date:** 2026-10-29
+- **Source:** Mendon, issue #1147.
+
 ## Delays and negation
 
 ### R-003 — The shared delay mechanism
@@ -242,6 +249,20 @@ Honor as a cost before the colon (audited).
 - **Cards/primitives:** Rhetoric, Solid Defense, `honorChangeReaction`.
 - **Date:** 2026-09-25
 - **Source:** [Emperor Edition rulings pass](../decisions/2026-09-25-emperor-edition-rulings-pass.md) (R4)
+
+### R-097 — Only holding the Imperial Favor bars Lobby; Favor tokens never do
+"The only time they will be barred from lobbying for the favor is if they are currently holding the imperial favor "card" instead of the imperial favor tokens on Kyuden Otomo." A player who controls the Imperial Favor may not Lobby; Favor tokens on Kyuden Otomo - exp are not the Favor and never stop Lobby.
+
+- **Cards/primitives:** Lobby (`lobby`, `dainagon-lobby`), Kyuden Otomo - exp (oracle-l5r-4646); `ValidateAbility`'s Lobby conditions.
+- **Date:** 2026-11-16
+- **Source:** Mendon, issue #1272 — [decision](../decisions/2026-11-16-otomo-favor-tokens-and-lobby.md).
+
+### R-098 — Doji Dainagon's Open Lobby is the player's one Lobby, once per turn
+"Dainagon may Lobby as an Open action" lets the player take their Lobby ability at another time; it is not a second Lobby ability. The two share Lobby's once-per-turn use: after either, neither is available again that turn. A new turn (the opponent's included) resets it.
+
+- **Cards/primitives:** Lobby (`lobby`), Doji Dainagon (oracle-l5r-2070, `dainagon-lobby`); `ValidateAbility` and `RunAbilityEffects`.
+- **Date:** 2026-11-18
+- **Source:** Mendon, issue #1086 (the Imperial Favor tutorial) — [decision](../decisions/2026-11-18-dainagon-lobby-once-per-turn.md).
 
 ## Reaction scope and triggers
 
@@ -732,7 +753,7 @@ Fallow Lands' Reaction ("after a Melee or Ranged Attack is targeted: -2 strength
 - **Date:** 2026-10-27
 - **Source:** Mendon, issue #1124.
 
-### R-088 — Attack reactions: a province is a target, and presence at the attacked battlefield is required (generalised by R-089)
+### R-088 — Attack reactions: a province is a target, and presence at the attacked battlefield is required (generalised by R-089; the presence part is narrowed by R-092)
 An Attack on a province is targeted (as is any card the Attack affects), so every "after an Attack is targeted" Reaction triggers on it. Unless its text lets it be used from another location, a Reaction to an Attack, whether it targets a province or a card, needs presence at the battlefield of the Attack: an in-play card must be at that battlefield (a Follower, Item or Spell through its wielder) and a Strategy played from a hand needs its player to have a Personality there. Isawa Kaname, Moshi Umiko and Kaiu Fumiko must stand at the battlefield. Archery Range may react from home. A Reaction that needs a card to be targeted (A Close Call, Akodo Kakihara, Flesh Cutter Arrows) cannot react to an Attack that targets no card. An Attack that names neither a card nor a province cannot be reacted to.
 
 - **Cards/primitives:** `before-attack-resolves` Reactions (Khol Regulars, Archery Range, Isawa Kaname, Moshi Umiko, Kaiu Fumiko, Strong Defenses, Trusting Instinct, Precision, Sniping, Unholy Strike, Steal the Candle's Flame, Fallow Lands); `AttackReactionOffered`. The `training-attack-boost` / `training-attack-negate` fixture has no location rule.
@@ -746,7 +767,7 @@ Core rules (Abilities, 31 Jan 2013): a single copy of a Reaction (one source) ma
 - **Date:** 2026-10-27
 - **Source:** Mendon, issue #1131 (reading of Comprehensive Rules, Abilities: "single copy ... from a single given source").
 
-### R-090 — A Reaction taken in a battle follows the Rules of Presence and Location
+### R-090 — A Reaction taken in a battle follows the Rules of Presence and Location (reversed by R-092)
 A Reaction taken during a battle is an Interrupt action, so it follows the Rule of Presence and the Rule of Location (Comprehensive Rules, Combat Segment); this overrides the sentence "Reactions are not subject to rules of Presence and Location". A Reaction taken outside a battle has no presence rule. In a battle:
 - The player needs a unit at the current battlefield. Absent Reactions and those that move a unit to the battle are exempt (the CR exception).
 - A Reaction printed on a Personality needs that Personality at the battlefield, and one on an attachment needs its wielder there, unless the ability may be used away or from home (Home). Engage Reactions are the same. The ones already listed in `EngageSourceElsewhere` (Rokku, Hayan, the Sled), Tsukimi's, Rokku's and The Wave Persists' moves of their own unit to the battlefield, and Mitsuo (who reacts to being moved away) are exempt from the location half.
@@ -758,6 +779,13 @@ Fallow Lands already worked this way; the older notes that it acts on its own ar
 - **Date:** 2026-10-27
 - **Source:** Mendon, issue #1133 (extends R-088; supersedes the Fallow Lands notes in R-065 and R-087). Open: Quagmire's own text names an adjacent province but a Region is now present only at its own battle province.
 
+### R-099 — Meeting the Keepers answers a Ring's printed action, not the Ring entering play
+"Meeting the Keepers should not be able to react to a Ring entering play. Only the use of its ability that is printed on it." "After the resolution of an action from one of your Rings" counts only the Ring's own printed actions (Ring of the Void's draw, Ring of Air's straighten, a False Ring's action...); putting the Ring into play from your hand is not one of them.
+
+- **Cards/primitives:** Meeting the Keepers (oracle-l5r-5018, `keepers-search`); `RingActionResolved`.
+- **Date:** 2026-11-19
+- **Source:** Mendon, issue #1290.
+
 ## Printings and card text
 
 ### R-086 — Ring of Fire reads as the Promotional–Emperor text on the Emperor Edition scan
@@ -766,3 +794,38 @@ Oracle of the Void's current text for Ring of Fire is the Twenty Festivals readi
 - **Cards/primitives:** Ring of Fire (oracle-l5r-6335); `ring-of-fire-recruit`, `ring-of-fire-destroy`; `content/oracle/printing-readings.json`, `tools/content/apply_printing_readings.py`.
 - **Date:** 2026-10-18
 - **Source:** Mendon — [decision](../decisions/2026-10-18-tutorial-lion-crane-rulings.md). Issue #935.
+
+### R-092 — A Reaction needs presence only if its text says so; an Interrupt is a Reaction that does
+A Reaction may be taken from anywhere unless its own text requires the card to be at the battlefield (Utaku Ryoko, Khol Regulars). An Interrupt is a Reaction taken in the window its text names, and the Comprehensive Rules' tie between Interrupts and presence counts as text on the card. Engage abilities are Reactions taken at engagement (R-064 unchanged).
+
+- **Cards/primitives:** `BattleReactionPresenceRefusal`, `PrintedInterrupt` (CardAbilities.cs); Unholy Strike and Steal the Candle's Flame (Interrupts) still need presence; Kaname, Umiko, Fumiko, Tamoko and Strategy Reactions no longer do. Reverses R-090 and narrows R-088.
+- **Date:** 2026-10-31
+- **Source:** Mendon, issue #1152 — [decision](../decisions/2026-10-31-reactions-not-tied-to-presence.md).
+
+### R-093 — Ring of the Void reads as the Emperor Edition scan, not the Twenty Festivals text
+Oracle of the Void's current text for Ring of the Void is the Twenty Festivals reading ("Limited: Play if you have two or fewer Rings in play. Discard your hand."), which does not match the Emperor Edition scan or the Comprehensive Rules. The card uses the scan's text everywhere: "After you resolve your fourth or later non-Kiho action from Strategies in one phase: You may put this card into play from your hand. Open: Bow this card or discard it from your hand: If any player has more cards in his hand than you do, or if this card is in play, draw a card." Nothing discards a hand. Like the other Rings, the recruit is a granted Additional Battle Action for the next battle (or the battle in progress), not a mid-resolution interrupt; the count restarts each phase.
+
+- **Cards/primitives:** Ring of the Void (oracle-l5r-6338); `ring-of-void-recruit` (granted from `CompleteAbilityResolution` through `StrategyActionsThisPhase`), `ring-of-void-draw`; `content/published/ring-wave-1.json`.
+- **Date:** 2026-11-02
+- **Source:** Mendon, issue #1157.
+
+### R-094 — Rings of Air, Water and Earth read as the Emperor Edition scans
+The engine had wired Air and Water from the Twenty Festivals reprint and left Earth without one of its conditions. Each now reads as its scan. **Air:** "After you resolve your third or later Spell or Kiho action in one turn from cards with different titles: You may put this card into play from your hand. Battle/Open: Bow this card or discard it from your hand, and choose your performing Personality: Straighten his unit." Spell actions are actions of Spell cards; Kiho is a keyword and any card carrying it produces Kiho actions. **Water:** "After you resolve your fourth or later Battle action in one battle from cards with different titles: You may put this card into play from your hand. Battle: Bow this card or discard it from your hand, and choose your performing Personality: Move him home or to a battlefield with one or more enemy units. If he moved, straighten his unit." **Earth:** the recruit also needs that none of the winner's Personalities were destroyed during the battle. READING TO CONFIRM: "from cards with different titles" is read as counting each card title once (a second action from a title already counted is not another action of a different title); the recruit is granted by the action that brings the count to the printed number. Water's move to the current battlefield is an Absent Battle action (the Exception to the Rules of Presence and Location), any other battlefield needs the performer at the current battlefield, like Back to the Front.
+
+- **Cards/primitives:** Ring of Air, Ring of Water, Ring of Earth (oracle-l5r-6333, -6339, -6334); `NoteRingActionCounts`, `ring-of-air-straighten`, `ring-of-water-move-home`, `ring-of-water-move-battlefield`, `MoveSpec.EnemyBattlefield`, `PersonalityDestroyedThisBattle`; `content/published/ring-wave-1.json`.
+- **Date:** 2026-11-03
+- **Source:** Mendon, this task's request (issue #1160).
+
+### R-095 — Two-Fold Virtue creates its Personality at the targeted Paragon's battlefield
+"Two fold virtue should create the personality at the battlefield where the targeted paragon is located." As a Battle action its target is at the current battlefield, so the Personality joins that battle.
+
+- **Cards/primitives:** Two-Fold Virtue (oracle-l5r-9939); `p5-two-fold-virtue`, `CreateTwoFoldVirtue` → `CreatePersonality(battlefield)`.
+- **Date:** 2026-11-13
+- **Source:** Mendon, issue #1224 — [decision](../decisions/2026-11-13-two-fold-virtue-at-paragon.md).
+
+### R-096 — Every recruit offers Clan discount and allegiance; Proclaim in any phase on your own turn
+"Recruit should always behave the same unless otherwise specified." Every ability that recruits a Personality offers Clan discount, Clan allegiance, both or neither. Proclaim follows its text in any phase: a Personality in your province, of your Clan, without Clan discount, on your own turn, once per turn; taking it spends that turn's Proclaim.
+
+- **Cards/primitives:** Your Clan Needs You!, Shinden Shorai, Requesting Reinforcements, Masaya, Rise of the Dark Naga, the dead-pile recruits; `RecruitOffersClanModes`, `QuotePurchase` (`ProclaimEligible`), `ProclaimAllowed`.
+- **Date:** 2026-11-13
+- **Source:** Mendon, issue #1232 — [decision](../decisions/2026-11-13-recruit-clan-options-and-proclaim.md).

@@ -60,7 +60,7 @@ public partial class CreatedCopySeal : Button
         var left = corners.Min(p => p.X);
         if (CardAnchor.TokenRail is { } rail)
         {
-            var body = rail.Body;
+            var body = rail.TotalBody;
             left = Math.Min(left, new[] { body.Position, body.End, new Vector2(body.End.X, body.Position.Y), new Vector2(body.Position.X, body.End.Y) }
                 .Select(p => (inverse * rail.GetGlobalTransform() * p).X).Min());
         }

@@ -120,16 +120,16 @@ public partial class Main
                 }
                 else if (kind is "entry" or "event" or "honor" or "honor-reaction" or "killing" or "infiltrator")
                 {
-                    GoldRequire(GenericDecisionActive && DecisionButton("Confirm choice").Disabled, kind + " has no explicit choice");
+                    GoldRequire(GenericDecisionActive && GenericDecisionConfirm().Disabled, kind + " has no explicit choice");
                     var option = Actions.First(a => a.Enabled && a.Type is not ("concede" or "wait") && a.Command is not null);
                     SelectCandidateOption(option);
-                    GoldRequire(!DecisionButton("Confirm choice").Disabled && View.Version == version, kind + " selected by default or committed early");
+                    GoldRequire(!GenericDecisionConfirm().Disabled && View.Version == version, kind + " selected by default or committed early");
                     await EventFrames(3);
                     GetViewport().GetTexture().GetImage().SavePng(System.IO.Path.Combine(directory, kind + ".png"));
                     var originalSeat = View.ViewerId; _session.SwitchPracticeSeat(); await EventFrames(8); Render();
                     GoldRequire(_candidateTray?.Visible != true && !_inspector.FindChildren("*", "CheckBox", true, false).Any(), kind + " leaked candidates to waiting seat");
                     _session.SwitchPracticeSeat(); await EventFrames(8); Render();
-                    GoldRequire(View.ViewerId == originalSeat && DecisionButton("Confirm choice").Disabled, kind + " kept another seat’s selection");
+                    GoldRequire(View.ViewerId == originalSeat && GenericDecisionConfirm().Disabled, kind + " kept another seat’s selection");
                     SelectCandidateOption(Actions.First(a => a.Enabled && a.Type is not ("concede" or "wait") && a.Command is not null));
                     CommitDecision(); await WaitDecisionPresentation(); await EventFrames(18); Render();
                     GoldRequire(View.Version > version, kind + " engine refused decision");
@@ -146,4 +146,9 @@ public partial class Main
         }
         catch (Exception e) { GD.PrintErr(e); GetTree().Quit(1); }
     }
+
+    // The generic decision's commit button. In a reaction window (an honor-change reaction) it is the window's "Choose a reaction" / "Play Reaction" button (named CommitAction, since 044b2424),
+    // elsewhere "Confirm choice".
+    private Button GenericDecisionConfirm() => HasContextualReactionDecline
+        ? StabilizationButtons(_root).Single(b => b.IsVisibleInTree() && b.Name == "CommitAction") : DecisionButton("Confirm choice");
 }

@@ -17840,7 +17840,7 @@
       "playable": true,
       "stats": {
         "chi": "2",
-        "cost": "2",
+        "cost": "4",
         "force": "2",
         "honor": "4",
         "ph": "2"
@@ -31010,6 +31010,36 @@
       "text": "Reaction: After the resolution of an action that bowed a Personality at a battlefield at this province or an adjacent province, target him and bow this card: Negate his next straightening (this turn).",
       "types": [
         "Region"
+      ]
+    },
+    {
+      "clans": [
+        "Unaligned"
+      ],
+      "deckTypes": [
+        "Dynasty"
+      ],
+      "id": "oracle-l5r-9857",
+      "keywords": [
+        "Jakla",
+        "Naga",
+        "Nonhuman",
+        "Pearl",
+        "Shugenja"
+      ],
+      "name": "Quelsa",
+      "playable": false,
+      "stats": {
+        "chi": "3",
+        "cost": "7",
+        "force": "6",
+        "honor": "-",
+        "ph": "0"
+      },
+      "supplemental": true,
+      "text": "Quelsa has +2F while he has a Spell.\nQuelsa attaches Spells paying 2 less Gold.",
+      "types": [
+        "Personality"
       ]
     },
     {
@@ -49833,7 +49863,7 @@
       ]
     }
   ],
-  "count": 2150,
+  "count": 2151,
   "schemaVersion": 1,
   "sourceArc": "Age of Conquest (Emperor)"
 }

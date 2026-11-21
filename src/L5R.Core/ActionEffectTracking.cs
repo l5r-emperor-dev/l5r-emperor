@@ -258,6 +258,10 @@ public sealed partial class MatchEngine
         bool Holds(int player) => AfterActionResolvedOptions(player).Length > 0;
         if (!Holds(0) && !Holds(1)) return false;
         var first = FirstReactionOpportunity(Holds);
+        // An action taken inside another settled window (a Ring put into play in the after-battle battleRecruit window, then Meeting the Keepers' "after an action from one of
+        // your Rings"): that window is set aside and given back when this one closes (ReactionsAreActions.cs). Overwriting it left a Battle-phase priority with no battle once
+        // both players passed here, and the game could not go on.
+        if (_state.PendingChoice is { } open && open.Type != "afterActionResolvedReaction" && SettledReactionWindows.Contains(open.Type)) SuspendOpenWindow();
         OpenAlternatingReactionWindow(new("afterActionResolvedReaction", first, null, "After that action's resolution: you may use a Reaction, or pass.", closesTo), first, "After-action-resolved window opened.");
         return true;
     }

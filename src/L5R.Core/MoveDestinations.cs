@@ -22,7 +22,9 @@ public sealed record MoveSpec(string Movers, string Destination)
     public const string AnyOther = "any-other-battlefield";
     /// <summary>Issue #622 (Back to the Front: "a battlefield he assigned to this turn"): any battlefield that exists, the current one included; the ability's own validation keeps the ones the mover was assigned to (IvoryMovement.cs).</summary>
     public const string AssignedThisTurn = "assigned-this-turn";
-    public bool ChoosesBattlefield => Destination is AdjacentUnresolved or AnyUnresolved or AnyOther or AssignedThisTurn;
+    /// <summary>Ring of Water ("a battlefield with one or more enemy units"): any battlefield still to be fought, the current one included, where the opposing player has a unit. Needs the acting player to say who the enemy is.</summary>
+    public const string EnemyBattlefield = "battlefield-with-enemy-units";
+    public bool ChoosesBattlefield => Destination is AdjacentUnresolved or AnyUnresolved or AnyOther or AssignedThisTurn or EnemyBattlefield;
 }
 
 public sealed partial class MatchEngine
@@ -46,10 +48,12 @@ public sealed partial class MatchEngine
     // The battlefields a chosen destination may name right now (empty for a destination that needs no choice, and when no battle is
     // under way). A battlefield is identified by the DEFENDER's province it is fought over, so adjacency is the defender's province line
     // (destroyed provinces slide together, AdjacentProvinces), and "unresolved" is a battlefield still to be fought this Attack Phase.
-    private int[] MoveDestinations(MoveSpec move)
+    private int[] MoveDestinations(MoveSpec move, int? actingPlayerId = null)
     {
         if (!move.ChoosesBattlefield || _state.CurrentBattleProvince is not int current) return [];
         var unresolved = _state.UnresolvedBattlefields;
+        if (move.Destination == MoveSpec.EnemyBattlefield)
+            return actingPlayerId is int enemyOf ? unresolved.Append(current).Distinct().Where(p => Army(1 - enemyOf, p).Any()).Order().ToArray() : [];
         if (move.Destination == MoveSpec.AnyOther) return P2OtherBattlefields(current); // issue #503 (EmperorP2Keirei.cs)
         if (move.Destination == MoveSpec.AssignedThisTurn) return IvoryExistingBattlefields(current); // issue #622 (IvoryMovement.cs)
         return move.Destination == MoveSpec.AdjacentUnresolved
@@ -62,7 +66,7 @@ public sealed partial class MatchEngine
     {
         if (ability.Move is not { } move) return;
         if (move.ChoosesBattlefield)
-            Require(command.Province is int province && MoveDestinations(move).Contains(province), move.Destination == MoveSpec.AdjacentUnresolved
+            Require(command.Province is int province && MoveDestinations(move, command.PlayerId).Contains(province), move.Destination == MoveSpec.EnemyBattlefield ? "Choose a battlefield with one or more enemy units." : move.Destination == MoveSpec.AdjacentUnresolved
                 ? "Choose an adjacent unresolved battlefield." : move.Destination == MoveSpec.AnyOther ? "Choose a different battlefield." : move.Destination == MoveSpec.AssignedThisTurn ? "Choose a battlefield he was assigned to this turn." : "Choose another unresolved battlefield.");
         else Require(command.Province is null, "This move names no battlefield.");
     }

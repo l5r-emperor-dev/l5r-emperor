@@ -38,7 +38,9 @@ internal static class GoldRulingsTests
             ("A Stain Cleansed destroys the card or the unit: a Personality's whole unit dies, an attachment alone goes and its Personality stays; the payment is exactly the quote and bows the chosen sources", StainDestroys),
             ("A Stain Cleansed's sign is one number: the scan governs (price = total - 2, floor 0), and the same rule with +2 prices Ebizo at 11", StainSignIsOneConstant),
             ("At Any Cost recruits your own dead Samurai for the recruit price into play at the current battlefield, and he may not be proclaimed even when a province recruit of him could be; he is a unit there at once", AtAnyCostRecruits),
-            ("At Any Cost keeps every recruit restriction: Unique and Singular, Honor Requirement (no Clan allegiance bypass), Loyal, and only your own dead Samurai; each lists disabled with the recruit path's own reason", AtAnyCostRestrictions),
+            ("At Any Cost keeps every recruit restriction: Unique and Singular, Honor Requirement (Clan allegiance waives it), Loyal, and only your own dead Samurai; each lists disabled with the recruit path's own reason", AtAnyCostRestrictions),
+            ("At Any Cost offers the Clan options for a Samurai of your Clan (issue #1230): discount 2 less, allegiance 2 more ignoring the Honor Requirement, both, or full cost; none for another Clan's; never Proclaim; an ability that recruits nothing refuses them", AtAnyCostClanModes),
+            ("Every recruit ability offers the Clan options (issue #1232); Proclaim follows its text in any phase: a province Personality, your own turn, no Clan discount, once per turn", RecruitAbilityClanModesAndProclaim),
             ("At Any Cost's entry effects run as for any recruit: Sensei discards your other Sensei, Hotako's Lion discount prices him and his Honor loss applies, and a dead Personality returns as a new card", AtAnyCostEntry),
             ("At Any Cost is a Battle action: it needs a unit at the battlefield, is payable only with the recruit price, and QuotePurchase of a dead card says so", AtAnyCostBattleAndPrice),
         ];
@@ -669,8 +671,87 @@ internal static class GoldRulingsTests
         more?.Invoke(rig);
         return rig;
     }
-    private static ActionOption RecruitOption(MatchEngine e, Rig r, int player = 0) => Options(e, player, RecruitAbility, r.Card.Id).Single();
+    // The full-cost way to pay; issue #1230 adds Clan discount and Clan allegiance as further offered options (AtAnyCostClanModes).
+    private static ActionOption RecruitOption(MatchEngine e, Rig r, int player = 0) => Options(e, player, RecruitAbility, r.Card.Id).Single(o => o.ChoiceLabel == "Full cost");
     private static CardInstance Dead(Rig r, string def, int owner = 0) => Add(r.S, def, owner, Zone.Dead);
+
+    private static void AtAnyCostClanModes()
+    {
+        var r = Recruit();
+        var genshin = Dead(r, Genshin); var doho = Dead(r, Doho); // a Crane Samurai (7 Gold, Honor Requirement 6) and a Mantis one (5 Gold)
+        var e = MatchEngine.FromTestState(r.S);
+        var options = Options(e, 0, RecruitAbility, r.Card.Id).ToArray();
+        ActionOption Mode(bool discount, bool allegiance) => options.Single(o => o.Enabled && o.Command!.ClanDiscount == discount && o.Command.ClanAllegiance == allegiance);
+        Eq(options.Length, 4, "four ways to pay, each its own offered option");
+        Eq(Price(Mode(false, false), genshin), 7, "full cost"); Eq(Price(Mode(true, false), genshin), 5, "Clan discount: 2 less");
+        Eq(Price(Mode(false, true), genshin), 9, "Clan allegiance: 2 more"); Eq(Price(Mode(true, true), genshin), 7, "both");
+        Check(Mode(false, false).TargetIds!.Contains(doho.Id) && !Mode(true, false).TargetIds!.Contains(doho.Id) && !Mode(false, true).TargetIds!.Contains(doho.Id),
+            "another Clan's Samurai is offered only at full cost");
+        Check(options.All(o => o.ChoiceLabel is not null), "each way to pay is labelled for the client's question after the target");
+        var honorBefore = Honor(e, 0);
+        Accept(e, Retarget(Mode(true, false), genshin.Id));
+        Eq(e.State.Cards[genshin.Id].Zone, Zone.Battlefield, "recruited with the Clan discount");
+        Check(e.State.Events.Last(x => x.Type == "payment").Message.Contains("paid 5 Gold"), "paid 5 Gold");
+        Check(e.State.PendingChoice?.Type != "proclaim" && Honor(e, 0) == honorBefore, "no Proclaim: he is not a Personality in a province");
+        // Below the Honor Requirement: only the allegiance ways to pay are legal.
+        var low = Recruit(); var lowGenshin = Dead(low, Genshin); low.S.Players[0].Honor = 5;
+        var le = MatchEngine.FromTestState(low.S);
+        var lowOptions = Options(le, 0, RecruitAbility, low.Card.Id).ToArray();
+        Check(lowOptions.Where(o => o.Enabled).All(o => o.Command!.ClanAllegiance) && lowOptions.Count(o => o.Enabled) == 2, "at 5 Honor only Clan allegiance (with or without the discount) recruits him");
+        Accept(le, Retarget(lowOptions.First(o => o.Enabled && o.Command!.ClanAllegiance && !o.Command.ClanDiscount), lowGenshin.Id));
+        Eq(le.State.Cards[lowGenshin.Id].Zone, Zone.Battlefield, "recruited by Clan allegiance below his Honor Requirement");
+        // An ability that recruits nothing does not accept the Clan options.
+        var other = Table(Phase.Action, actor: 0); var tale = Add(other, "oracle-l5r-7862", 0, Zone.Hand);
+        var oe = MatchEngine.FromTestState(other);
+        Check(Rejection(oe, new GameCommand("useAbility", 0, oe.Version, tale.Id, AbilityId: CardCatalog.Get("oracle-l5r-7862").Abilities![0], ClanDiscount: true)).Contains("Clan discount"), "a Clan option on another ability is refused");
+    }
+
+    // Issue #1232 (Mendon: "Recruit should always behave the same unless otherwise specified"; "If a personality is recruited out of the dynasty phase and a player proclaims them, then that
+    // would consume their once per turn use of Proclaim"). Proclaim's own text: "After you bring a Personality in your province with your Clan alignment into play without Clan discount, if it is
+    // your turn". Your Clan Needs You! (Battle Phase): a Crane veteran (8 Gold, Personal Honor 3, Honor Requirement 6) from a province, paying 6 less.
+    private static void RecruitAbilityClanModesAndProclaim()
+    {
+        (MatchEngine E, ActionOption[] Options, string Veteran) Rally(Action<MatchState>? more = null)
+        {
+            var s = GoldParityTests.Battle("oracle-l5r-1218"); // GoldParityTests.YourClanNeedsYou's table
+            var strategy = Add(s, "oracle-l5r-9687", 0, Zone.Hand);
+            var recruit = Add(s, "training-crane-veteran", 0, Zone.Province, province: 1); recruit.FaceUp = true;
+            s.Players[0].Provinces[1].CardId = recruit.Id;
+            Add(s, "training-nonhuman-personality", 1, Zone.Battlefield, province: 0);
+            s.Players[0].Honor = 10; more?.Invoke(s);
+            var e = MatchEngine.FromTestState(s);
+            return (e, Options(e, 0, "your-clan-needs-you", strategy.Id).Where(o => o.Enabled).ToArray(), recruit.Id);
+        }
+        static ActionOption Mode(ActionOption[] options, bool discount, bool allegiance) => options.Single(o => o.Command!.ClanDiscount == discount && o.Command.ClanAllegiance == allegiance);
+        var (e, options, veteran) = Rally();
+        Eq(options.Length, 4, "Your Clan Needs You! offers the four ways to pay, as At Any Cost does");
+        Eq(options[0].TargetGold![veteran].Cost, 2, "full cost: 8 less 6");
+        Eq(Mode(options, true, false).TargetGold![veteran].Cost, 0, "Clan discount: 2 less again"); Eq(Mode(options, false, true).TargetGold![veteran].Cost, 4, "Clan allegiance: 2 more");
+        // Full cost, on your own turn, in the Battle Phase: Proclaim is offered, and taking it spends the turn's Proclaim.
+        Accept(e, Retarget(Mode(options, false, false), veteran));
+        Eq(e.State.PendingChoice?.Type, "proclaim", "a full-cost recruit from a province on your own turn may be proclaimed outside the Dynasty Phase");
+        var honor = Honor(e, 0);
+        Accept(e, new GameCommand("proclaim", 0, e.Version));
+        Eq(Honor(e, 0), honor + 3, "Proclaim gains his Personal Honor");
+        Eq(e.State.Players[0].ProclaimUsedTurn, e.State.TurnNumber, "and uses the once-per-turn Proclaim");
+        // The Clan discount: no Proclaim.
+        var (de, dOptions, dVeteran) = Rally();
+        Accept(de, Retarget(Mode(dOptions, true, false), dVeteran));
+        Check(de.State.Cards[dVeteran].Zone == Zone.Battlefield && de.State.PendingChoice?.Type != "proclaim", "recruited with the Clan discount, he is not proclaimed");
+        // Clan allegiance below his Honor Requirement: recruited, and Proclaim is still offered.
+        var (ae, aOptions, aVeteran) = Rally(s => s.Players[0].Honor = 2);
+        Check(aOptions.Where(o => o.TargetIds!.Contains(aVeteran)).All(o => o.Command!.ClanAllegiance) && aOptions.Count(o => o.TargetIds!.Contains(aVeteran)) == 2, "below his Honor Requirement only the allegiance ways to pay are legal");
+        Accept(ae, Retarget(Mode(aOptions, false, true), aVeteran));
+        Eq(ae.State.PendingChoice?.Type, "proclaim", "Clan allegiance keeps Proclaim");
+        // Already proclaimed this turn: no second Proclaim.
+        var (pe, pOptions, pVeteran) = Rally(s => s.Players[0].ProclaimUsedTurn = s.TurnNumber);
+        Accept(pe, Retarget(Mode(pOptions, false, false), pVeteran));
+        Check(pe.State.Cards[pVeteran].Zone == Zone.Battlefield && pe.State.PendingChoice?.Type != "proclaim", "a player who has proclaimed this turn may not proclaim again");
+        // Not your turn (defending): no Proclaim.
+        var (te, tOptions, tVeteran) = Rally(s => s.ActivePlayerId = 1);
+        Accept(te, Retarget(Mode(tOptions, false, false), tVeteran));
+        Check(te.State.Cards[tVeteran].Zone == Zone.Battlefield && te.State.PendingChoice?.Type != "proclaim", "Proclaim needs it to be your turn");
+    }
 
     private static void AtAnyCostRecruits()
     {
@@ -735,12 +816,12 @@ internal static class GoldRulingsTests
         var singular = Recruit(more: x => Add(x.S, "training-singular-samurai", 0, Zone.Home)); Dead(singular, "training-singular-samurai");
         var sing = RecruitOption(MatchEngine.FromTestState(singular.S), singular);
         Check(!sing.Enabled && sing.Reason == "You already control this Singular card.", sing.Reason ?? "");
-        // Honor Requirement: Doji Genshin needs 6; the Crane has 8 -> fine, at 5 -> not, with the recruit path's own reason. No Clan allegiance bypass exists.
+        // Honor Requirement: Doji Genshin needs 6; the Crane has 8 -> fine, at 5 -> not at full cost, with the recruit path's own reason. Clan allegiance waives it (issue #1230, AtAnyCostClanModes).
         var honor = Recruit(); Dead(honor, Genshin);
         honor.S.Players[0].Honor = 5;
         var low = RecruitOption(MatchEngine.FromTestState(honor.S), honor);
         Check(!low.Enabled && low.Reason == "Family Honor is below the Honor Requirement; Clan allegiance may allow purchase.", low.Reason ?? "");
-        Check(Options(MatchEngine.FromTestState(honor.S), 0, RecruitAbility, honor.Card.Id).Count() == 1, "one offer only: no discount or allegiance variants");
+        Check(Options(MatchEngine.FromTestState(honor.S), 0, RecruitAbility, honor.Card.Id).Any(o => o.Enabled && o.Command!.ClanAllegiance), "Clan allegiance waives the Honor Requirement (issue #1230)");
         honor.S.Players[0].Honor = 6;
         Check(RecruitOption(MatchEngine.FromTestState(honor.S), honor).Enabled, "at exactly 6 it is legal");
         // Loyal: a Dragon-loyal Sensei cannot be recruited by the Crane.

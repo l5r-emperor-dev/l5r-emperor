@@ -10,7 +10,12 @@ public partial class Main
     // The draft never picks a player for them: Confirm waits until one is chosen.
 
     private static bool IsPlayerTarget(ActionOption o) =>
-        o is { Type: "equip" or "playStrategy" or "useAbility", Provinces: null, Movement: null, Attack: null, Command: { TargetPlayerId: not null, AbilityId: not null } };
+        o is { Type: "equip" or "playStrategy" or "useAbility", Provinces: null, Movement: null, Attack: null, Command: { TargetPlayerId: not null, AbilityId: not null } } && !NamesItsPlayer(o);
+
+    /// <summary>Issue #1240: Core labels each player's option by its outcome ("You Gain 2 Honor", "Opponent Loses 2 Honor": Armor of the Heavens) instead of the generic " · you" / " · your opponent"
+    /// suffix. That option is already a complete choice: it is shown as Core words it and never reopens a player picker.</summary>
+    private static bool NamesItsPlayer(ActionOption o) => o.Command?.TargetPlayerId is not null
+        && !o.Label.EndsWith(" · you", StringComparison.Ordinal) && !o.Label.EndsWith(" · your opponent", StringComparison.Ordinal);
 
     private ActionOption[] PlayerSiblings(ActionOption o) => Actions.Where(a => a.Enabled && IsPlayerTarget(a) && a.Type == o.Type && a.CardId == o.CardId && a.Command!.AbilityId == o.Command?.AbilityId
         && a.Command.PerformerId == o.Command?.PerformerId && a.Command.CostOption == o.Command?.CostOption).ToArray();

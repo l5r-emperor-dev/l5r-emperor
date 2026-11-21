@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Reactions tutorial (reactions) built from Mendon's script with corrections: Mantis (Kyuden Kitsune) vs Unicorn; Chrysanthemum Blossom on assignment, the engage window's announce-and-order procedure (R-039) with Naval Invasion, Khalimpeh-jiak and Surrounded! against Ryoko's Reaction, Armor of the Heavens reacting inside it, Strategic Strike as Naval Invasion's first Battle action, Lishan reacting to Surety of Purpose's announcement, and the lost battle. Framework: TutorialFoeScript.Reactions, PassNestedWindows, TutorialLookup.Announced. Log/panel label: cardless player abilities read 'Player ability' instead of 'Imperial Favor'.",
+  "validation": "tutorial-reactions 5/5 (Honor 14/16/18/24, Lishan 5F, Tomaru 3F, Ryoko and attackers destroyed); all tutorial tests 87/87; bash tools/check.sh --skip-client: All requested checks passed; tools/check-tutorial.sh: TUTORIAL_UI_CHECK completed; native lab play-through of all 26 reactions steps and of the imperial-favor lesson through real controls; dotnet format whitespace verify clean.",
+  "remaining": "Mendon to playtest the lesson.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1085",
+  "branch": "claude/1085-reactions-tutorial",
+  "updated": "2026-11-18T14:37:59.506080+00:00"
+}

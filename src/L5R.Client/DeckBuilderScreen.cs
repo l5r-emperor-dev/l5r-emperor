@@ -176,8 +176,8 @@ public partial class DeckBuilderScreen : Control
         var s = _canvas.Scale.X;
         if (Page == "decks") return;
         var rect = _setupSlot.Length == 0 ? new Rect2(_setupStrip.Position, new Vector2(_setupStrip.Size.X, _h - _setupStrip.Position.Y - 52)) : new Rect2(13, 155, SidebarWidth + 12, _h - 205);
-        DeckSkin.Frame().Draw(_lines.GetCanvasItem(), new Rect2(rect.Position * s, rect.Size * s));
-        if (_setupSlot.Length > 0) DeckSkin.Frame().Draw(_lines.GetCanvasItem(), new Rect2((MatLeft - 10) * s, 155 * s, (_w - MatLeft - 4) * s, (_h - 205) * s));
+        DeckSkin.SharedFrame.Draw(_lines.GetCanvasItem(), new Rect2(rect.Position * s, rect.Size * s));
+        if (_setupSlot.Length > 0) DeckSkin.SharedFrame.Draw(_lines.GetCanvasItem(), new Rect2((MatLeft - 10) * s, 155 * s, (_w - MatLeft - 4) * s, (_h - 205) * s));
     }
     private void BuildSetupStrip()
     {

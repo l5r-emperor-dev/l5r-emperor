@@ -13,12 +13,12 @@ internal static class ExperiencedVariantsTests
     public static void Run(TestRunner runner)
     {
         (string Name, Action Test)[] tests = [
-            ("Level: none 0, Inexperienced 0, Experienced 1, ExperiencedCoM 1, Experienced N is N; the highest form applies", Levels),
+            ("Level: none 0, Inexperienced -1, Experienced 1, ExperiencedCoM 1, Experienced N is N; the highest form applies", Levels),
             ("Base title: \" - inexperienced\", \" - exp\", \" - expN\" and \" Experienced[ N]\" are all removed; a plain title is unchanged", BaseTitles),
             ("Deck names: each level of one title is its own construction card, and an ExperiencedCoM card keeps its catalogue name", DeckNames),
             ("Deck construction accepts one Unique copy of each version of a title, and still refuses two of one", DeckConstruction),
             ("In play, ExperiencedCoM satisfies an Experienced keyword check, and removing Experienced removes it", KeywordInPlay),
-            ("Overlay: an Experienced version overlays the Inexperienced or the plain one; neither of those overlays the other; ExperiencedCoM overlays level 0 but not Experienced", OverlayLegality),
+            ("Overlay: an Experienced version overlays the Inexperienced or the plain one, the plain one overlays the Inexperienced one and not the reverse; ExperiencedCoM overlays level 0 but not Experienced", OverlayLegality),
             ("Published as printed: wave 128 carries O-Ushi and Tsuruchi with their Coils of Madness stats, keywords and abilities, and its manifest names them", PublishedShape),
             ("Hida O-Ushi: Limited, bows a target Personality with lower Force (either player's); equal or higher Force is refused and nothing changes; once per turn", OUshiBows),
             ("Hida O-Ushi: a Stalwart Personality's bowing is negated, and the action is still spent", OUshiStalwart),
@@ -49,7 +49,7 @@ internal static class ExperiencedVariantsTests
     private static void Levels()
     {
         Eq(Experienced.Level([]), 0, "no keyword");
-        Eq(Experienced.Level(["Unique", "Inexperienced"]), 0, "Inexperienced");
+        Eq(Experienced.Level(["Unique", "Inexperienced"]), -1, "Inexperienced is level -1 (Comprehensive Rules)");
         Eq(Experienced.Level(["Experienced"]), 1, "Experienced");
         Eq(Experienced.Level(["ExperiencedCoM"]), 1, "ExperiencedCoM");
         Eq(Experienced.Level(["Experienced CoM"]), 1, "Experienced CoM, spaced");
@@ -61,8 +61,8 @@ internal static class ExperiencedVariantsTests
         var pool = Pool().ToDictionary(c => c.Id);
         Eq(pool["oracle-l5r-10481"].ExperienceLevel, 1, "Bayushi Kachiko (ExperiencedCoM)");
         Eq(pool["oracle-l5r-10475"].ExperienceLevel, 1, "Isawa Tsuke (ExperiencedCoM)");
-        Eq(pool[OUshi].ExperienceLevel, 0, "Hida O-Ushi - inexperienced");
-        Eq(pool[Tsuruchi].ExperienceLevel, 0, "Tsuruchi - inexperienced");
+        Eq(pool[OUshi].ExperienceLevel, -1, "Hida O-Ushi - inexperienced");
+        Eq(pool[Tsuruchi].ExperienceLevel, -1, "Tsuruchi - inexperienced");
     }
 
     private static void BaseTitles()
@@ -161,15 +161,15 @@ internal static class ExperiencedVariantsTests
     {
         const string level = "The overlaying Personality must have a higher Experience Level.";
         // "X - exp" over "X - inexperienced", and over "X": the Experienced version is the plain card with the keyword (the catalogue's own - exp is not published yet).
-        Check(OverlayError(NitoshiBase, ["Experienced"], NitoshiInexperienced, [], out var a) is null && a == (1, 0), "Experienced overlays Inexperienced");
+        Check(OverlayError(NitoshiBase, ["Experienced"], NitoshiInexperienced, [], out var a) is null && a == (1, -1), "Experienced overlays Inexperienced");
         Check(OverlayError(NitoshiInexperienced, ["Experienced"], NitoshiBase, [], out var b) is null && b == (1, 0), "Experienced overlays the plain version");
-        // "X" and "X - inexperienced" are both level 0: neither overlays the other.
-        Eq(OverlayError(NitoshiBase, [], NitoshiInexperienced, [], out var c), level, "plain over Inexperienced"); Check(c == (0, 0), "both level 0");
+        // "X - inexperienced" is level -1, below "X" (level 0): the plain card overlays it, and it overlays nothing.
+        Check(OverlayError(NitoshiBase, [], NitoshiInexperienced, [], out var c) is null && c == (0, -1), "plain over Inexperienced");
         Eq(OverlayError(NitoshiInexperienced, [], NitoshiBase, [], out _), level, "Inexperienced over plain");
         // Inexperienced never overlays an Experienced version.
-        Eq(OverlayError(NitoshiInexperienced, [], NitoshiBase, ["Experienced"], out var d), level, "Inexperienced over Experienced"); Check(d == (0, 1), "0 over 1");
+        Eq(OverlayError(NitoshiInexperienced, [], NitoshiBase, ["Experienced"], out var d), level, "Inexperienced over Experienced"); Check(d == (-1, 1), "-1 over 1");
         // ExperiencedCoM is level 1: over level 0 it overlays, over Experienced (level 1) it does not, and Experienced 2 overlays it.
-        Check(OverlayError(NitoshiBase, ["ExperiencedCoM"], NitoshiInexperienced, [], out var f) is null && f == (1, 0), "ExperiencedCoM overlays level 0");
+        Check(OverlayError(NitoshiBase, ["ExperiencedCoM"], NitoshiInexperienced, [], out var f) is null && f == (1, -1), "ExperiencedCoM overlays level -1");
         Eq(OverlayError(NitoshiBase, ["ExperiencedCoM"], NitoshiBase, ["Experienced"], out var g), level, "ExperiencedCoM over Experienced"); Check(g == (1, 1), "1 over 1");
         Eq(OverlayError(NitoshiBase, ["Experienced"], NitoshiBase, ["ExperiencedCoM"], out _), level, "Experienced over ExperiencedCoM");
         Check(OverlayError(NitoshiBase, ["Experienced 2"], NitoshiBase, ["ExperiencedCoM"], out var h) is null && h == (2, 1), "Experienced 2 overlays ExperiencedCoM");
@@ -189,7 +189,7 @@ internal static class ExperiencedVariantsTests
         Check(AbilityCatalog.All[Bow] is { Timing: "Limited", Target: "personality-force-lt-self", UsesPerTurn: 1 }, "the bow is a Limited action");
         Check(AbilityCatalog.All[Arrows] is { Timing: "Open", Target: "none", UsesPerTurn: 1 }, "the tokens are an Open action");
         Check(AbilityCatalog.All[Attack] is { Timing: "Battle", Target: "attack", UsesPerTurn: 3 }, "the Attack is a Battle action, three times per turn");
-        Eq(Experienced.Level(oushi.Keywords), 0, "O-Ushi's level"); Eq(Experienced.Level(tsuruchi.Keywords), 0, "Tsuruchi's level");
+        Eq(Experienced.Level(oushi.Keywords), -1, "O-Ushi's level"); Eq(Experienced.Level(tsuruchi.Keywords), -1, "Tsuruchi's level");
         var manifest = File.ReadAllLines(Path.Combine(RepoRoot(), "tests", "L5R.Core.Tests", "PublishedWaves", "personality-wave-128.txt")).Where(l => l.Trim().Length > 0).ToArray();
         Check(manifest.SequenceEqual([OUshi, Tsuruchi]), $"the manifest: {string.Join(",", manifest)}");
     }

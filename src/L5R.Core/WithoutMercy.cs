@@ -44,6 +44,9 @@ public sealed partial class MatchEngine
     // window belongs to the player whose action it was, so priority goes back to them to take it (otherwise the opponent would act first and the grant would lapse).
     private int AfterActionWindowResumeTo(PendingChoice pending, int resumeTo)
     {
+        // The same goes for an entering-play window in a battle (Bayushi Wateru's Interrupt, issue #1150): the additional Battle action it grants is the recruiter's to take next.
+        if (pending.Type == "entryReaction" && _state.Phase == Phase.Battle && pending.CardId is { } entered && _state.Cards.TryGetValue(entered, out var enteredCard)
+            && _state.AdditionalActions.Any(g => g.PlayerId == enteredCard.OwnerId && Forfeitable(g) && GrantUsableNow(g))) return enteredCard.OwnerId;
         if (pending.Type != "afterActionResolvedReaction" || _state.LastResolvedAction is not { } facts) return resumeTo;
         return _state.AdditionalActions.Any(g => g.PlayerId == facts.PlayerId && Forfeitable(g) && GrantUsableNow(g)) ? facts.PlayerId : resumeTo;
     }

@@ -115,14 +115,17 @@ internal static class RequestedCreatedCardsTests
     {
         var s = Table(Phase.BattleSelection);
         s.CurrentBattleProvince = null; s.UnresolvedBattlefields = [0];
-        var samurai = Put(s, "training-crane-samurai", 0, Zone.Battlefield, province: 0);
+        var samurai = Put(s, "training-crane-samurai", 0, Zone.Battlefield, bowed: true, province: 0); // no "unbowed" printed: a bowed Samurai performs it (R-035, issue #1228)
         samurai.GrantedKeywords.Add(new("Samurai", "test-fixture", GrantDuration.Permanent));
         samurai.GrantedKeywords.Add(new("Paragon", "test-fixture", GrantDuration.Permanent));
+        var away = Put(s, "training-crane-samurai", 0, Zone.Home);
+        away.GrantedKeywords.Add(new("Samurai", "test-fixture", GrantDuration.Permanent));
         Put(s, "training-lion-samurai", 1, Zone.Battlefield, province: 0);
         var reward = Put(s, "oracle-l5r-2895", 0, Zone.Hand);
         var honor = s.Players[0].Honor;
         var e = Engine(s);
         Engage(e, 0);
+        Check(!Offers(e, 0, "grateful-reward-create").Any(a => a.Enabled && a.Command?.PerformerId == away.Id), "a Samurai at home is not at the current battlefield");
         var offer = Offers(e, 0, "grateful-reward-create").First(a => a.Enabled && a.Command?.PerformerId == samurai.Id);
         Accept(e, offer.Command!);
         var follower = e.State.Cards.Values.Single(c => c.DefinitionId == "oracle-l5r-10010");

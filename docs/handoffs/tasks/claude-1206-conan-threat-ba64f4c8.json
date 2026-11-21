@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "threat(home), the Read's second question (CONAN_STRATEGY_BRIEF.md 4.5), in shadow: Threat.Of/Read.ThreatNow project the opponent's straightened army against the unbowed home under the exchange (their worst attack, my best defence, Mendon's tiers, the Force gap); ThreatRecords.cs (L5R_TOURN_THREATS) and tools/bots/threats.py calibrate it; a bowed unit in the ledger keeps its full Force; rule read logs the threat once a turn and drives nothing.",
+  "validation": "6 threat and 7 read cases pass; bash tools/check.sh --skip-client passed; blocks 9400 (A/A 50.1%, fit) and 9600 (49.6%, held-out): threat as (cell, Force gap) Brier 0.110 against paper 0.130 and guard ratio 0.125, 0 cells of 200+ off; the cell alone 0.142 (worse than the baselines, stated in the note); block 9400 as T2+read: 1,456 of 1,456 games identical; battle Read repeats 0.149 against 0.213 on the new blocks; formatting check clean.",
+  "remaining": "The opportunity and race answers, the posture and replanning (4.5, 4.6), then family D rules reading the Read on fresh Mac blocks from 9700; Windows side's T2Rules and registry still unmerged.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
+  "branch": "claude/1206-conan-threat",
+  "updated": "2026-11-13T23:01:23.225137+00:00"
+}

@@ -108,7 +108,7 @@ public partial class Main
                 var button = Descendants(screen).OfType<Button>().Single(b => b.Text == "Continue" && b.IsVisibleInTree());
                 Native(button.GetGlobalRect().GetCenter()); break;
             case 6:
-                Require(!MatchDuelOpen && _root.GetParent() == this && _table.GetParent() == this, "returns to original table without reloading or replacing session");
+                Require(!MatchDuelOpen && _root.GetParent() == _rootCanvas && _table.GetParent() == this, "returns to original table without reloading or replacing session");
                 Require(_session.Snapshot!.View.Version == _matchProbeVersion && _session.ExportPracticeReplay() == _matchProbeReplay, "return changes no commands or rules state");
                 Require(View.PriorityPlayerId == 1 && View.Phase == Phase.Battle && View.PendingDuel is null, "engine priority restored to Lion in the battle");
                 Require(View.Players[1].Discard.Any(c => c.Definition?.Name == "Matsu Hachiro" && c.Zone == Zone.Dead), "loser remains destroyed");

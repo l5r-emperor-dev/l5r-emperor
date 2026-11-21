@@ -35,6 +35,7 @@ internal static class EmperorStrongholdBatch1Tests
         ("Keep of the Dead: the performing Commander moves to the current battlefield if enemy units are there (or he is assigned there) and his unit straightens if he moved -- Absent, only a Commander", KeepOfTheDeadMove),
         ("Koshin Keep: Reconnaissance after engaging; then, this battle, a Ranged Attack that does not destroy its target reduces its Force by the strength and allows one more Ranged Attack on the same card only", KoshinKeepRanged),
         ("Kyuden Otomo - exp: taking the Imperial Favor lets its controller discard it for a Favor token; a Courtier bows to add one; a token may be discarded in place of the Favor as a cost", KyudenOtomoTokens),
+        ("Kyuden Otomo - exp: Favor tokens on it never stop its controller lobbying; only holding the Imperial Favor itself does (Mendon, issue #1272)", KyudenOtomoLobby),
         ("Library of Rebirth: produces 4 Gold for a Spell during the Combat Segment even while bowed and without bowing; its Battle action straightens a performing Shugenja and grants an additional Battle action", LibraryGold),
         ("Library of Rebirth and Small Farm pay for The Swell of Strength in a battle: Equip (Battle) is offered for an unbowed opposed Water Shugenja, with the Library bowed or not", LibrarySwellOfStrength),
         ("The Swell of Strength: a Shugenja of another element may equip it in a battle, the bowed Library of Rebirth and a Small Farm pay for it, and only its Focus Effect is limited to Water Shugenja", SwellEquipByNonWaterShugenja),
@@ -409,6 +410,10 @@ internal static class EmperorStrongholdBatch1Tests
             var tokenOption = shunyaOptions.Single(o => o.Command?.CostOption == "favor-token" || o.Label.Contains("Favor token"));
             Check(tokenOption.Enabled, "the token option is offered enabled");
             Eq(shunyaOptions.Any(o => o.Enabled && o.Command?.CostOption is null), holdsFavor, "the ordinary option needs the Imperial Favor");
+            // Issue #1275: beside the token the Imperial Favor discard is the other way to pay -- labelled so the client asks one "How do you pay?" question -- while its command names no option.
+            var favorOption = shunyaOptions.Single(o => o.Command?.CostOption is null);
+            Eq(favorOption.AlternativeCost?.Label, "Discard the Imperial Favor", "the Favor discard is listed as a way to pay beside the token");
+            Eq(favorOption.AlternativeCost?.AbilityId, tokenOption.AlternativeCost?.AbilityId, "and grouped with the token option");
             var honor = es.State.Players[0].Honor;
             Accept(es, tokenOption.Command!);
             Eq(es.State.Players[0].Honor, honor + 2, "the action resolved");
@@ -419,10 +424,51 @@ internal static class EmperorStrongholdBatch1Tests
         var sn = Table(Phase.Action, 0); sn.PriorityPlayerId = 0; StrongholdOf(sn, 0, KyudenOtomo); Add(sn, Shunya, 0, Zone.Home);
         var en = MatchEngine.FromTestState(sn);
         Check(Options(en, 0, "shunya-honor").All(o => !o.Enabled), "no Favor and no token: unavailable");
+        var sf = Table(Phase.Action, 0); sf.PriorityPlayerId = 0; sf.FavorPlayerId = 0; StrongholdOf(sf, 0, KyudenOtomo); Add(sf, Shunya, 0, Zone.Home);
+        Check(Options(MatchEngine.FromTestState(sf), 0, "shunya-honor").Single().AlternativeCost is null, "with no token there is one way to pay and no cost question");
         // The token is the Stronghold's alone: another player's Otomo token does not pay for this player's action.
         var sx = Table(Phase.Action, 0); sx.PriorityPlayerId = 0; StrongholdOf(sx, 1, KyudenOtomo).Tokens.Add(new CardToken("tok-2", "Favor", "test-fixture", null, 0)); Add(sx, Shunya, 0, Zone.Home);
         var ex = MatchEngine.FromTestState(sx);
         Check(Options(ex, 0, "shunya-honor").All(o => !o.Enabled), "an opponent's Favor token is not yours to discard");
+    }
+
+    // Mendon (issue #1272): a player with Favor tokens on Kyuden Otomo may Lobby again; the only bar is holding the Imperial Favor itself (CR: Lobby takes the Favor "whether it is controlled by
+    // another player or by no player"). Tokens are not the Favor.
+    private static void KyudenOtomoLobby()
+    {
+        bool LobbyOffered(int? favor, int tokens)
+        {
+            var s = Table(Phase.Action, 0); s.PriorityPlayerId = 0;
+            var otomo = StrongholdOf(s, 0, KyudenOtomo);
+            for (var i = 0; i < tokens; i++) otomo.Tokens.Add(new CardToken("tok-" + i, "Favor", "test-fixture", null, 0));
+            s.FavorPlayerId = favor; s.Players[0].Honor = s.Players[1].Honor + 5;
+            Add(s, "training-crane-samurai", 0, Zone.Home);
+            return MatchEngine.FromTestState(s).QueryActions(0).Any(o => o.Type == "useAbility" && o.Enabled && o.Command?.AbilityId == "lobby");
+        }
+        Check(LobbyOffered(null, 2), "tokens on Otomo, nobody holds the Favor: Lobby is offered");
+        Check(LobbyOffered(1, 2), "tokens on Otomo, the opponent holds the Favor: Lobby is offered");
+
+        // The whole loop: Lobby, trade the Favor for a token, and on the next turn Lobby again.
+        var sl = Table(Phase.Action, 0); sl.PriorityPlayerId = 0;
+        var keep = StrongholdOf(sl, 0, KyudenOtomo); StrongholdOf(sl, 1, EternalVictory);
+        sl.Players[0].Honor = sl.Players[1].Honor + 5;
+        var first = Add(sl, "training-crane-samurai", 0, Zone.Home); var second = Add(sl, "training-crane-samurai", 0, Zone.Home);
+        var e = MatchEngine.FromTestState(sl);
+        Accept(e, e.QueryActions(0).First(o => o.Type == "useAbility" && o.Enabled && o.Command?.AbilityId == "lobby").Command! with { TargetId = first.Id });
+        Accept(e, Enabled(e, 0, "otomo-favor-token", keep.Id).Command!);
+        while (e.State.PendingChoice is not null) Accept(e, new GameCommand("declineReaction", e.State.PriorityPlayerId, e.Version));
+        Eq(e.State.Cards[keep.Id].Tokens.Count(t => t.Type == "Favor"), 1, "the Favor became a token");
+        var advanced = 0;
+        while (!(e.State.ActivePlayerId == 0 && e.State.Phase == Phase.Action && e.State.TurnNumber > sl.TurnNumber && e.State.PriorityPlayerId == 0) && advanced++ < 200)
+        {
+            var pass = e.QueryActions(e.State.PriorityPlayerId).FirstOrDefault(o => o.Enabled && o.Command?.Type is "pass" or "endPhase" or "declineReaction" or "passPriority")?.Command
+                ?? e.QueryActions(e.State.PriorityPlayerId).First(o => o.Enabled && o.Command is not null).Command!;
+            Accept(e, pass);
+        }
+        Check(e.State.ActivePlayerId == 0 && e.State.Phase == Phase.Action, "reached the Otomo player's next Action Phase");
+        Check(e.QueryActions(0).Any(o => o.Type == "useAbility" && o.Enabled && o.Command?.AbilityId == "lobby"), "next turn, with a Favor token on Otomo, Lobby is offered again");
+        Check(!LobbyOffered(0, 0), "holding the Imperial Favor: no Lobby");
+        Check(!LobbyOffered(0, 2), "holding the Imperial Favor and tokens: no Lobby");
     }
 
     // ---- Library of Rebirth with the real Swell of Strength (playtest report, issue #794) --------------------------------------------------------------------

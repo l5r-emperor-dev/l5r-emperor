@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Tactical Assault and every 'enemy card without attachments' action can now target an enemy attached Item or Spell (an attachment has no attachments of its own, as Togashi Hiroto already treats it); regression proves Blade of Perfection is a target. Adds an Akodo Furu case to The Honor of the Lion test (playable at Home in the Action Phase; that report is unreproduced).",
+  "validation": "Tactical Assault and Honor of the Lion tests; full tools/check.sh --skip-client",
+  "remaining": "None; ready for review.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1166",
+  "branch": "claude/1166-attached-item-targets",
+  "updated": "2026-11-03T10:28:34.516213+00:00"
+}

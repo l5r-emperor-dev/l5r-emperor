@@ -9,7 +9,7 @@ public partial class Main
     // bullet summary once everything is chosen. Only what the engine already offers is listed (performers, players and targets are the legal ones); the client never decides legality.
     private bool _performerPicked;
 
-    private bool PerformerStepActive => _chosen is { AlternativeCost: null, Command.AbilityId: not null } && !ReactionFlowOwnsControls && !_performerPicked && PerformerClicks().Count > 0;
+    private bool PerformerStepActive => _chosen is { Command.AbilityId: not null } && !ReactionFlowOwnsControls && !_performerPicked && PerformerClicks().Count > 0; // an alternative-cost draft too (issue #1202)
 
     private void PickPerformer(string id)
     {
@@ -36,6 +36,7 @@ public partial class Main
     private void FlowBack()
     {
         if (_chosen?.Command is not { } command) return;
+        if (_choicePicked) { _choicePicked = false; RenderInspector(); Highlight(); return; } // issue #1202: the most recent answer first
         if (command.TargetId is not null && (_chosen.TargetIds?.Length ?? 0) > 0) { ClearTarget(); return; }
         if (command.TargetPlayerId is not null && PlayerTargetActive && PlayerSiblings(_chosen).FirstOrDefault() is { } sibling)
         { Choose(sibling with { Command = sibling.Command! with { TargetPlayerId = null } }, keepTarget: true); return; }
@@ -44,7 +45,7 @@ public partial class Main
     }
 
     private bool FlowCanGoBack(ActionOption action) => action.Command is { } c
-        && (c.TargetId is not null && (action.TargetIds?.Length ?? 0) > 0 || c.TargetPlayerId is not null && PlayerTargetActive || c.Province is not null && IsProvinceTarget(action) || _performerPicked && PerformerClicks().Count > 0);
+        && (c.TargetId is not null && (action.TargetIds?.Length ?? 0) > 0 || c.TargetPlayerId is not null && PlayerTargetActive || c.Province is not null && IsProvinceTarget(action) || _performerPicked && PerformerClicks().Count > 0 || _choicePicked);
 
     // Short effect lines for the summary, "{P}" the performer and "{T}" the target. A card not listed falls back to the engine's own action text.
     private static readonly Dictionary<string, string[]> FlowEffects = new()
@@ -74,6 +75,7 @@ public partial class Main
             if (command.TargetId is not null) lines.Add("Target: " + Name(command.TargetId));
         }
         if (command.TargetPlayerId is { } player) lines.Add("Player: " + (player == View.ViewerId ? "you" : "your opponent"));
+        if (action.ChoiceLabel is { } chosenText) lines.Add("Use: " + chosenText);
         return lines.ToArray();
     }
 

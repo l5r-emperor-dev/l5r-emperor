@@ -39,20 +39,20 @@ public partial class DeckBuilderScreen
     {
         if (_list && !collection && _setupSlot.Length == 0) return MakeRow(card, false);
         var item = new Control(); var face = new DeckFace(card, Scans) { Copies = Draft.Count(card.Id), Selected = _compare.Contains(card.Id) || (_setupSlot.Length > 0 && Draft.Count(card.Id) == 1) }; item.AddChild(face);
-        face.MouseEntered += () => _ = Hover(card, face); face.MouseExited += HideHover; face.FocusEntered += () => _ = Hover(card, face); face.FocusExited += HideHover; face.TreeExiting += HideHover; face.Pressed += () => ShowComparison([card]);
+        face.MouseEntered += () => _ = Hover(card, face); face.MouseExited += HideHover; face.FocusEntered += () => _ = Hover(card, face); face.FocusExited += HideHover; face.TreeExiting += HideHover;
         var note = CatalogueArt.Label(card.Playable ? "" : "Not implemented", 13); note.HorizontalAlignment = HorizontalAlignment.Center; item.AddChild(note);
         if (_setupSlot.Length > 0)
         {
-            var selected = Draft.Count(card.Id) == 1; var select = CatalogueArt.Button(selected ? "Selected" : "Select", () =>
-            {
-                Draft.SelectSetup(card.Id); Dirty = true; HideHover(); BuildSetupStrip(); BuildSetupChoices(); UpdateStatus();
-            }); select.AccessibilityName = "Select " + card.Name; select.Disabled = selected; select.Icon = DeckSkin.Icon(selected ? "selected" : "radio"); select.AddThemeConstantOverride("h_separation", 12);
-            foreach (var state in new[] { "normal", "disabled", "hover" }) select.AddThemeStyleboxOverride(state, new StyleBoxEmpty());
-            select.AddThemeColorOverride("font_disabled_color", new Color("edca79")); select.AddThemeColorOverride("icon_disabled_color", Colors.White); select.AddThemeFontSizeOverride("font_size", 22); item.AddChild(select);
-            item.Resized += () => { var w = item.Size.X; Place(face, 0, 0, w, w * 1.4f + 8); Place(note, 0, w * 1.4f + 9, w, 18); Place(select, w / 2 - 75, w * 1.4f + 30, 150, 36); };
+            // Issue #1268: clicking the card itself chooses it for this setup slot; clicking another card switches to that one.
+            var selected = Draft.Count(card.Id) == 1;
+            face.AccessibilityName = (selected ? "Selected " : "Select ") + card.Name; face.TooltipText = selected ? "" : "Click to choose " + card.Name;
+            face.Pressed += () => { if (Draft.Count(card.Id) == 1) return; Draft.SelectSetup(card.Id); Dirty = true; HideHover(); BuildSetupStrip(); BuildSetupChoices(); UpdateStatus(); };
+            var chosen = CatalogueArt.Label(selected ? "Selected" : "", 22); chosen.HorizontalAlignment = HorizontalAlignment.Center; chosen.AddThemeColorOverride("font_color", new Color("edca79")); item.AddChild(chosen);
+            item.Resized += () => { var w = item.Size.X; Place(face, 0, 0, w, w * 1.4f + 8); Place(note, 0, w * 1.4f + 9, w, 18); Place(chosen, w / 2 - 75, w * 1.4f + 30, 150, 36); };
         }
         else
         {
+            face.Pressed += () => ShowComparison([card]);
             var ownedLabel = CatalogueArt.Label($"Owned: {MyCollection.Store.Count(card.Id)}", 16); ownedLabel.HorizontalAlignment = HorizontalAlignment.Center; item.AddChild(ownedLabel);
             var deckLabel = CatalogueArt.Label("In deck", 15); item.AddChild(deckLabel);
             var minus = CatalogueArt.Button("−", () => Adjust(card, -1)); minus.Disabled = Draft.Count(card.Id) == 0; minus.AccessibilityName = "Remove " + card.Name; item.AddChild(minus);

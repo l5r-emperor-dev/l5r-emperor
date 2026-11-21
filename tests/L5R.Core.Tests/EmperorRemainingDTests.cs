@@ -835,6 +835,16 @@ internal static class EmperorRemainingDTests
             performer.MovementLocks.Add(new MovementLock("test", s.TurnNumber, MovementKinds.Home));
             Check(!CanUse(MatchEngine.FromTestState(s), 0, "wall-of-honor-raise", card.Id, performer.Id), "a Personality that may not move home cannot pay the cost");
         }
+        {
+            // "Your performing opposed Personality" prints no "unbowed": a bowed Personality performs it (R-035, issue #1228).
+            var s = Table(Phase.Battle, 1); s.PriorityPlayerId = 0;
+            var card = Add(s, WallOfHonor, 0, Zone.Hand);
+            var performer = Add(s, "training-crane-samurai", 0, Zone.Battlefield, bowed: true, province: 0);
+            Add(s, "training-lion-samurai", 1, Zone.Battlefield, province: 0);
+            var e = MatchEngine.FromTestState(s);
+            Accept(e, Enabled(e, 0, "wall-of-honor-raise", card.Id, performer.Id).Command!);
+            Eq(e.State.Cards[performer.Id].Zone, Zone.Home, "the bowed performer moved home as the cost");
+        }
     }
 
     private static void LawsStrengthScenario()

@@ -24,7 +24,8 @@ internal static class ForgottenLegacyBatch3Tests
 
     public static void Run(TestRunner runner) => runner.Run("forgotten-legacy-batch-3", [
         ("Published shape: strategy-wave-54 is exactly the ten wired cards, each with its scan's stats, keywords and text, its ability ids, its art and its manifest line", PublishedShape),
-        ("A Game of Dice: costs nothing (the scan's Gold Cost 0) and makes this player's next End Phase draw two more cards", GameOfDiceDraws),
+        ("A Game of Dice: costs 3 Gold (the cost printed inside its Limited action is its Gold Cost) and makes this player's next End Phase draw two more cards", GameOfDiceDraws),
+        ("A Game of Dice: its 3 Gold is modified by the same effects as a centrally priced Strategy (Yoritomo Kanaye - exp, as against Mysterious Deaths)", GameOfDiceCostTerms),
         ("A Yojimbo's Duty: its Yojimbo is destroyed as the cost and a discarded Courtier or Shugenja enters play at home for his recruit cost less the Yojimbo's PRINTED Gold Cost plus 1; separately, its performer straightens and an additional Action-phase action is granted", YojimbosDutyScenario),
         ("Accidental Confession: an unbowed Courtier and the Imperial Favor (discarded) dishonor a target Personality and lock his assignment and movement to battlefields for the turn -- refused without the Favor", AccidentalConfessionScenario),
         ("Broken Alliance: destroys a target attachment for its Gold Cost minus two; separately, moves its performing Personality from home to an opposed current battlefield and straightens him -- refused when the battlefield is unopposed", BrokenAllianceScenario),
@@ -60,7 +61,7 @@ internal static class ForgottenLegacyBatch3Tests
         foreach (var id in Wave)
         {
             var card = CardCatalog.Get(id);
-            Check(card.Type == CardType.Strategy && card.GoldCost == 0, $"{card.Name}: a Strategy with the scan's Gold Cost 0");
+            Check(card.Type == CardType.Strategy && card.GoldCost == (card.Id == GameOfDice ? 3 : 0), $"{card.Name}: a Strategy with the scan's Gold Cost 0 (A Game of Dice prints its 3 inside the Limited action, which is its Gold Cost)");
             Check(card.Abilities!.SequenceEqual(expected[id]), $"{card.Name}: ability ids {string.Join(",", card.Abilities!)}");
             Check(card.Abilities!.All(AbilityCatalog.All.ContainsKey), $"{card.Name}: every ability id is defined");
             Check(File.Exists(Path.Combine(root, "src/L5R.Client/Content/Published", id + ".jpg")), $"{id}'s art is shipped");
@@ -78,13 +79,32 @@ internal static class ForgottenLegacyBatch3Tests
         var dice = Add(s, GameOfDice, 0, Zone.Hand);
         var e = MatchEngine.FromTestState(s);
         var gold = Enabled(e, 0, "game-of-dice-draw", dice.Id).Gold;
-        Check(gold is null || gold.Cost == 0, "it costs no Gold");
+        Eq(gold?.Cost, 3, "it costs 3 Gold, the amount printed inside its Limited action");
         Accept(e, Enabled(e, 0, "game-of-dice-draw", dice.Id).Command!);
         Eq(e.State.ExtraEndPhaseDraws[0], 2, "two extra End Phase draws are owed");
         var handBefore = e.State.Players[0].Hand.Count;
         Batch336Support.RunUntil(e, () => e.State.ActivePlayerId == 1 && e.State.Phase is Phase.Straighten or Phase.Events or Phase.Action);
         Eq(e.State.Players[0].Hand.Count, handBefore + 3, "the End Phase drew three: the usual one and the two additional ones");
         Eq(e.State.ExtraEndPhaseDraws[0], 0, "and owes no more");
+    }
+
+    private static void GameOfDiceCostTerms()
+    {
+        // The cost printed inside a Limited action is the card's Gold Cost, so an effect that changes what Strategies cost changes it exactly as it changes a card with a central cost.
+        const string MysteriousDeaths = "oracle-l5r-5468", Kanaye = "oracle-l5r-10470"; // Kanaye - exp: "Actions on your Strategies cost 1 less Gold."
+        int Quote(MatchState s, string card, string ability)
+        {
+            var e = MatchEngine.FromTestState(s);
+            var option = Enabled(e, 0, ability, card);
+            return e.QuoteAbilityGold(option.Command!)!.Cost;
+        }
+        var s = Table(Phase.Action, 0);
+        var dice = Add(s, GameOfDice, 0, Zone.Hand); var deaths = Add(s, MysteriousDeaths, 0, Zone.Hand);
+        Eq(Quote(s, dice.Id, "game-of-dice-draw"), 3, "A Game of Dice costs its 3");
+        Eq(Quote(s, deaths.Id, "mysterious-deaths-destroy"), 6, "Mysterious Deaths costs its printed 6");
+        Add(s, Kanaye, 0, Zone.Home);
+        Eq(Quote(s, dice.Id, "game-of-dice-draw"), 2, "Kanaye takes 1 off A Game of Dice");
+        Eq(Quote(s, deaths.Id, "mysterious-deaths-destroy"), 5, "and 1 off Mysterious Deaths, the same way");
     }
 
     private static void YojimbosDutyScenario()

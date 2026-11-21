@@ -17,7 +17,8 @@ public partial class Main
     }
     private static void DecisionRequire(bool ok, string message)
     { if (!ok) throw new InvalidOperationException("Decision review: " + message); }
-    private Button DecisionButton(string text) => StabilizationButtons(_root).Single(b => b.IsVisibleInTree() && b.Text == text);
+    private Button DecisionButton(string text) => StabilizationButtons(_root).SingleOrDefault(b => b.IsVisibleInTree() && b.Text == text)
+        ?? throw new InvalidOperationException($"No visible \"{text}\" button (pending: {View.PendingChoice?.Type}; visible: {string.Join(" | ", StabilizationButtons(_root).Where(b => b.IsVisibleInTree() && b.Text.Length > 0).Select(b => b.Text))})");
     private async Task PrepareDecisionReview(string kind, int? seat = null)
     {
         _decisionReviewCase = kind; ResetDecisionSelection();
@@ -69,6 +70,7 @@ public partial class Main
                 }
                 GD.Print("DECISION_CHOOSER_PASS: " + _captureMode); GetTree().Quit(); return;
             }
+            if (_captureMode.Contains("-otomo", StringComparison.Ordinal)) { await CaptureOtomoToken(); GD.Print("DECISION_CHOOSER_PASS: " + _captureMode); GetTree().Quit(); return; }
             if (_captureMode.EndsWith("-p25", StringComparison.Ordinal)) { await CaptureDecisionInfra(); GD.Print("DECISION_CHOOSER_PASS: " + _captureMode); GetTree().Quit(); return; }
             var kind = _captureMode.Contains("fukui-bowed") ? "fukui-bowed" : _captureMode.Contains("fukui") ? "fukui" : _captureMode.EndsWith("-kamina", StringComparison.Ordinal) ? "kamina" : "yumaru";
             var waiting = _captureMode.Contains("waiting");
@@ -82,20 +84,20 @@ public partial class Main
                         DecisionRequire(_decisionReviewCase == demo, "Next demo opened the wrong case");
                         if (demo != "yumaru")
                         {
-                            ChooseTarget(Actions.First(a => a.Enabled && a.AlternativeCost is not null && a.TargetIds is { Length: > 0 }).TargetIds![0]); await EventFrames(5);
-                            await SupportClick(DecisionButton("Review cost choices")); await EventFrames(8);
+                            ChooseTarget(Actions.First(a => a.Enabled && a.AlternativeCost is not null && a.TargetIds is { Length: > 0 }).TargetIds![0]); await EventFrames(8); // the target answered, the cost is the next question (issue #1202)
                         }
                         var labels = demo == "yumaru" ? new[] { "Move Yumaru home", "Move the targeted Personality home", "Move both home" } : new[] { "Bow the Ancestor", "Destroy the Ancestor" };
                         var scroll = (ScrollContainer)_inspector.GetParent();
                         foreach (var label in labels)
-                            DecisionRequire(scroll.GetGlobalRect().Encloses(DecisionButton(label).GetGlobalRect()), "Review choice clipped: " + label);
+                            DecisionRequire(scroll.GetGlobalRect().Grow(1).Encloses(DecisionButton(label).GetGlobalRect()), $"Review choice clipped: {label} (scroll {scroll.GetGlobalRect()}, button {DecisionButton(label).GetGlobalRect()}, scrollV {scroll.ScrollVertical})");
                         DecisionRequire(DecisionButton("Confirm choice").Disabled, "Review demo selected an answer implicitly");
                         await SupportCapture("-" + demo);
                         if (demo == "fukui-bowed")
                         {
                             await SupportClick(DecisionButton("Destroy the Ancestor"));
                             await SupportClick(DecisionButton("Back to target")); await EventFrames(8);
-                            await SupportClick(DecisionButton("Review cost choices")); await EventFrames(8);
+                            DecisionRequire(StabilizationText(_inspector).Contains("Choose a target to continue"), "Back returns to the target question");
+                            ChooseTarget(Actions.First(a => a.Enabled && a.AlternativeCost is not null && a.TargetIds is { Length: > 0 }).TargetIds![0]); await EventFrames(8);
                             DecisionRequire(DecisionButton("Confirm choice").Disabled, "Back retained the draft answer");
                         }
                         await SupportClick(DecisionButton("Restart demo")); await EventFrames(30);
@@ -138,16 +140,15 @@ public partial class Main
                 var grouped = StabilizationButtons(_inspector).Where(b => b.HasMeta("alternative_cost_group")).ToArray();
                 DecisionRequire(grouped.Length == 1, "Kamina's ways to pay were not grouped");
                 await SupportClick(grouped[0]); await EventFrames(5);
-                DecisionRequire(DecisionButton("Review cost choices").Disabled, "Cost review opened before a target was chosen");
+                DecisionRequire(StabilizationText(_inspector).Contains("Choose a target to continue") && !StabilizationButtons(_inspector).Any(b => b.Text == "Bow Kamina"), "Cost review opened before a target was chosen");
                 var ally = Actions.First(a => a.Enabled && a.AlternativeCost is not null && a.TargetIds is { Length: > 0 }).TargetIds![0];
-                ChooseTarget(ally); await EventFrames(5);
+                ChooseTarget(ally); await EventFrames(8); // the target answered, the cost is the next question (issue #1202)
                 DecisionRequire(_chosen?.Command?.CardIds is null, "The target step defaulted to a discard");
-                await SupportClick(DecisionButton("Review cost choices")); await EventFrames(8);
                 var hand = Self.Hand.Select(c => c.Id).ToArray();
                 DecisionRequire(hand.Length == 2, "The fixture hand changed");
                 var labels = new[] { "Bow Kamina" }.Concat(hand.Select(id => "Discard a card: " + FindCard(id)!.Definition!.Name)).ToArray();
                 var scroll = (ScrollContainer)_inspector.GetParent();
-                foreach (var label in labels) { scroll.EnsureControlVisible(DecisionButton(label)); await EventFrames(3); DecisionRequire(scroll.GetGlobalRect().Encloses(DecisionButton(label).GetGlobalRect()), "Review choice unreachable: " + label); } // a long hand scrolls; every choice must be reachable
+                foreach (var label in labels) { scroll.EnsureControlVisible(DecisionButton(label)); await EventFrames(3); DecisionRequire(scroll.GetGlobalRect().Grow(1).Encloses(DecisionButton(label).GetGlobalRect()), $"Review choice unreachable: {label} (scroll {scroll.GetGlobalRect()}, button {DecisionButton(label).GetGlobalRect()}, scrollV {scroll.ScrollVertical})"); } // a long hand scrolls; every choice must be reachable
                 DecisionRequire(DecisionButton("Confirm choice").Disabled, "Alternative cost has implicit default");
                 DecisionRequire(hand.All(id => _tiles.First(t => t.Card.Id == id).LegalTarget), "Hand cards are not marked as discard choices");
                 await SupportCapture("");
@@ -166,9 +167,8 @@ public partial class Main
                 // Issue #954: clicking the Personality starts its one usable ability; the grouped sidebar button is only the way in when that click is ambiguous.
                 DecisionRequire(grouped.Length == 1 || _chosen is { AlternativeCost: not null }, "Cost variants were not grouped and the click did not start the action");
                 if (grouped.Length == 1) { await SupportClick(grouped[0]); await EventFrames(5); }
-                DecisionRequire(DecisionButton("Review cost choices").Disabled, "Cost review opened before a target was chosen");
-                ChooseTarget(Actions.First(a => a.Enabled && a.AlternativeCost is not null && a.TargetIds is { Length: > 0 }).TargetIds![0]); await EventFrames(5);
-                await SupportClick(DecisionButton("Review cost choices")); await EventFrames(5);
+                DecisionRequire(StabilizationText(_inspector).Contains("Choose a target to continue") && !StabilizationButtons(_inspector).Any(b => b.Text == "Destroy the Ancestor"), "Cost review opened before a target was chosen");
+                ChooseTarget(Actions.First(a => a.Enabled && a.AlternativeCost is not null && a.TargetIds is { Length: > 0 }).TargetIds![0]); await EventFrames(8); // the target answered, the cost is the next question (issue #1202)
                 DecisionRequire(DecisionButton("Confirm choice").Disabled, "Alternative cost has implicit default");
                 DecisionRequire(DecisionButton("Bow the Ancestor").Disabled == (kind == "fukui-bowed"), "Incorrect disabled bow option");
                 var payBow = _captureMode.Contains("pay-bow");
@@ -185,5 +185,50 @@ public partial class Main
             GD.Print("DECISION_CHOOSER_PASS: " + _captureMode); GetTree().Quit();
         }
         catch (Exception e) { await SupportCapture("-failure"); GD.PushError(e.ToString()); GetTree().Quit(1); }
+    }
+
+    // Issue #1275: Kyuden Otomo - exp's Favor token paid in place of the Imperial Favor through the "How do you pay?" review, for each kind of Favor-discard action: a Personality's
+    // (Doji Shunya), a Strategy with a target and a Gold cost (The Heir's Wrath) and the Imperial Favor's own Limited action -- with the Favor held (both ways listed) and without it.
+    private async Task CaptureOtomoToken()
+    {
+        var holds = _captureMode.Contains("-otomo-favor", StringComparison.Ordinal);
+        foreach (var play in holds ? new[] { "shunya", "wrath", "cycle", "shunya-favor" } : new[] { "shunya", "wrath", "cycle" })
+        {
+            var payFavor = play == "shunya-favor";
+            await PrepareDecisionReview(holds ? "otomo-favor" : "otomo");
+            string Buttons() => string.Join(" | ", StabilizationButtons(_root).Where(b => b.IsVisibleInTree() && b.Text.Length > 0).Select(b => b.Text + (b.Disabled ? "(off)" : "")));
+            Button? Visible(Func<Button, bool> match) => StabilizationButtons(_root).FirstOrDefault(b => b.IsVisibleInTree() && !b.Disabled && match(b));
+            int Tokens() => Self.Stronghold.Tokens?.Count(t => t.Type == "Favor") ?? 0;
+            var version = View.Version; var hand = Self.Hand.Count();
+            var enemy = "otomo-review-enemy";
+            if (play.StartsWith("shunya", StringComparison.Ordinal)) SelectCard(FindCard("otomo-review-shunya")!);
+            else if (play == "wrath") SelectCard(FindCard("otomo-review-wrath")!);
+            else if (holds) SelectHomeReminder(View.ViewerId, null);
+            await EventFrames(6);
+            var grouped = StabilizationButtons(_root).Where(b => b.IsVisibleInTree() && b.HasMeta("alternative_cost_group") && (play != "cycle" || b.Text.Contains("draw a card"))).ToArray();
+            DecisionRequire(_chosen is not null || grouped.Length == 1, $"{play}: one entry for both ways to pay (got {grouped.Length}): {Buttons()}");
+            if (_chosen is null) { await SupportClick(grouped[0]); await EventFrames(6); }
+            if (_chosen?.Command is { TargetId: null } && _chosen.TargetIds is { Length: > 0 } targets) { ChooseTarget(targets.Contains(enemy) ? enemy : targets[0]); await EventFrames(6); }
+            DecisionRequire(StabilizationText(_sidebarHeader).Contains("HOW DO YOU PAY?"), $"{play}: the cost question did not open: {StabilizationText(_sidebarHeader)} / {Buttons()}");
+            var favorRow = StabilizationButtons(_inspector).FirstOrDefault(b => b.IsVisibleInTree() && b.Text.Contains("Discard the Imperial Favor"));
+            DecisionRequire(holds ? favorRow is { Disabled: false } : favorRow is null or { Disabled: true }, $"{play}: the Imperial Favor row is {(favorRow is null ? "missing" : favorRow.Disabled ? "disabled" : "enabled")}");
+            await SupportCapture("-" + play);
+            await SupportClick(Visible(b => b.Text.Contains(payFavor ? "Discard the Imperial Favor" : "Favor token")) ?? throw new InvalidOperationException($"{play}: no Favor token row: {Buttons()}")); await EventFrames(4);
+            for (var i = 0; i < 4 && DecisionButton("Confirm choice").Disabled; i++)
+            {
+                var gold = StabilizationButtons(_inspector).Where(b => b.IsVisibleInTree() && !b.Disabled && b.Text.StartsWith("Bow", StringComparison.Ordinal) && b.Text.Contains("Gold")).Skip(_sources.Count).FirstOrDefault();
+                if (gold is null) break;
+                await SupportClick(gold); await EventFrames(4);
+            }
+            DecisionRequire(!DecisionButton("Confirm choice").Disabled, $"{play}: Confirm stayed disabled: {Buttons()}");
+            await SupportCapture("-" + play + "-selected");
+            await SupportClick(DecisionButton("Confirm choice")); await WaitDecisionPresentation();
+            GD.Print($"OTOMO {play}: v{version}->v{View.Version} tokens={Tokens()} favor={View.FavorPlayerId} honor={Self.Honor} hand {hand}->{Self.Hand.Count()} notice={_notice.Text}");
+            DecisionRequire(View.Version == version + 1, $"{play}: the action did not play once (v{version} -> v{View.Version}): {StabilizationText(_sidebarHeader)} / {Buttons()}");
+            DecisionRequire(Tokens() == (payFavor ? 1 : 0), $"{play}: the wrong Favor token count");
+            DecisionRequire(View.FavorPlayerId == (holds && !payFavor ? View.ViewerId : null), $"{play}: the wrong Imperial Favor holder");
+            if (play == "wrath") DecisionRequire(FindCard(enemy) is null or { Zone: not (Zone.Home or Zone.Battlefield) }, "The Heir's Wrath did not destroy its target");
+            GD.Print("OTOMO_TOKEN_PASS: " + play);
+        }
     }
 }

@@ -1,0 +1,556 @@
+{
+  "version": 1,
+  "games": [
+    {
+      "file": "2026-11-11-lion-vs-mantis-tomaru-missed-ranged-kill.json",
+      "sha256": "75313251f2912d1c7aff1cdcf44126ef15299acb8f52a56bd95c36c74d5a74e4",
+      "commands": 109,
+      "turns": 7,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Eternal Victory Dojo",
+          "cards": 83,
+          "fingerprint": "413945d8cc48"
+        },
+        {
+          "stronghold": "Koshin Keep",
+          "cards": 96,
+          "fingerprint": "1127513f3267"
+        }
+      ],
+      "note": "",
+      "digest": false
+    },
+    {
+      "file": "practice-20261109-133956.json",
+      "sha256": "98d0f6437768a9c5808589d55792f363bc00ca033a0ac87ff5722ee4364a1d72",
+      "commands": 169,
+      "turns": 12,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Plains of the Maiden",
+          "cards": 84,
+          "fingerprint": "ff5b7c806a38"
+        },
+        {
+          "stronghold": "Halls of Memory",
+          "cards": 83,
+          "fingerprint": "29787b731e5e"
+        }
+      ],
+      "note": "",
+      "digest": false
+    },
+    {
+      "file": "practice-20261109-172814.json",
+      "sha256": "d845ea12c6d14d86ae784baa66d99833bf46d36016cef306b6ad9279739bab66",
+      "commands": 172,
+      "turns": 11,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Eternal Victory Dojo",
+          "cards": 83,
+          "fingerprint": "413945d8cc48"
+        },
+        {
+          "stronghold": "Steel Soul Dojo",
+          "cards": 83,
+          "fingerprint": "d6c23492dc06"
+        }
+      ],
+      "note": "",
+      "digest": false
+    },
+    {
+      "file": "practice-20261109-184403.json",
+      "sha256": "9d834322ca3c9b8fd7ee039ecb3f6e37719484979f8f60a43dce91270c67c7f6",
+      "commands": 163,
+      "turns": 11,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Library of Rebirth",
+          "cards": 89,
+          "fingerprint": "9a3d48342f91"
+        },
+        {
+          "stronghold": "Yasuki Palaces",
+          "cards": 84,
+          "fingerprint": "f9315058903e"
+        }
+      ],
+      "note": "",
+      "digest": false
+    },
+    {
+      "file": "practice-20261109-195056.json",
+      "sha256": "3f690e2e8c3246849035ba40147b761541e3d89249350a63a9efe9b1b024b2a8",
+      "commands": 439,
+      "turns": 29,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Yasuki Palaces",
+          "cards": 84,
+          "fingerprint": "f9315058903e"
+        },
+        {
+          "stronghold": "Eternal Victory Dojo",
+          "cards": 86,
+          "fingerprint": "3569b1c95f56"
+        }
+      ],
+      "note": "",
+      "digest": false
+    },
+    {
+      "file": "practice-20261109-201243.json",
+      "sha256": "967e85404d456e92f725e77c689d179d5296576c0bc243fe70f74230c116249f",
+      "commands": 189,
+      "turns": 13,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Shamate Keep",
+          "cards": 84,
+          "fingerprint": "fff03f9d737e"
+        },
+        {
+          "stronghold": "The Aerie",
+          "cards": 85,
+          "fingerprint": "b6b8d1478ef6"
+        }
+      ],
+      "note": "",
+      "digest": false
+    },
+    {
+      "file": "practice-20261110-173816.json",
+      "sha256": "a238bcce1331b2e9fd6428076116f88f63ae3da6c3dfc707e5d250a55362e414",
+      "commands": 144,
+      "turns": 11,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Eternal Victory Dojo",
+          "cards": 83,
+          "fingerprint": "413945d8cc48"
+        },
+        {
+          "stronghold": "Monastery of New Thought",
+          "cards": 88,
+          "fingerprint": "d30c76bab139"
+        }
+      ],
+      "note": "",
+      "digest": false
+    },
+    {
+      "file": "practice-20261111-111739.json",
+      "sha256": "75313251f2912d1c7aff1cdcf44126ef15299acb8f52a56bd95c36c74d5a74e4",
+      "commands": 109,
+      "turns": 7,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Eternal Victory Dojo",
+          "cards": 83,
+          "fingerprint": "413945d8cc48"
+        },
+        {
+          "stronghold": "Koshin Keep",
+          "cards": 96,
+          "fingerprint": "1127513f3267"
+        }
+      ],
+      "note": "",
+      "digest": false
+    },
+    {
+      "file": "practice-20261113-185919.json",
+      "sha256": "ff48fef5398d3f9ee812aa5cff3ae48da5a48c51bcb4e4a243e8aded36693bf1",
+      "commands": 195,
+      "turns": 12,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Plains of the Maiden",
+          "cards": 84,
+          "fingerprint": "ff5b7c806a38"
+        },
+        {
+          "stronghold": "Monastery of New Thought",
+          "cards": 88,
+          "fingerprint": "d30c76bab139"
+        }
+      ],
+      "note": "",
+      "digest": false
+    },
+    {
+      "file": "practice-20261113-191822.json",
+      "sha256": "cd8b2622714d7aaac59406335effca5d05432085a1a24676cd1b221e04b06376",
+      "commands": 219,
+      "turns": 14,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "The Towers of the Yogo",
+          "cards": 88,
+          "fingerprint": "33deca3173c9"
+        },
+        {
+          "stronghold": "Monastery of New Thought",
+          "cards": 88,
+          "fingerprint": "d30c76bab139"
+        }
+      ],
+      "note": "",
+      "digest": false
+    },
+    {
+      "file": "practice-20261113-221421.json",
+      "sha256": "5957a2c6de7c69f40ccd2b0c1d946cb977d6e995b6c4a41caf4bd9d5b61e2f80",
+      "commands": 190,
+      "turns": 14,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "The Towers of the Yogo",
+          "cards": 88,
+          "fingerprint": "33deca3173c9"
+        },
+        {
+          "stronghold": "Monastery of New Thought",
+          "cards": 88,
+          "fingerprint": "d30c76bab139"
+        }
+      ],
+      "note": "",
+      "digest": false
+    },
+    {
+      "file": "practice-20261113-223647.json",
+      "sha256": "79bb58220cd49dc74415ba9d971ad01dd54325d00a02d23a23763156f84d62d6",
+      "commands": 149,
+      "turns": 10,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Monastery of New Thought",
+          "cards": 88,
+          "fingerprint": "d30c76bab139"
+        },
+        {
+          "stronghold": "Library of Rebirth",
+          "cards": 89,
+          "fingerprint": "9a3d48342f91"
+        }
+      ],
+      "note": "",
+      "digest": false
+    },
+    {
+      "file": "practice-20261114-111401.json",
+      "sha256": "ba54b7a7f79e2c56536ae1c73a8388970c0483351a6fdb3d6a32bb06472d5561",
+      "commands": 129,
+      "turns": 12,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Plains of the Maiden",
+          "cards": 84,
+          "fingerprint": "ff5b7c806a38"
+        },
+        {
+          "stronghold": "Shinden Asahina",
+          "cards": 83,
+          "fingerprint": "5664e2ea9210"
+        }
+      ],
+      "note": "",
+      "digest": false
+    },
+    {
+      "file": "practice-20261114-173235.json",
+      "sha256": "ddb1b2a34a3c358773a2d230f3dc1cde8c6ec28ff17c3b31121837fec60637f0",
+      "commands": 210,
+      "turns": 12,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Plains of the Maiden",
+          "cards": 84,
+          "fingerprint": "ff5b7c806a38"
+        },
+        {
+          "stronghold": "Shinden Asahina",
+          "cards": 86,
+          "fingerprint": "659e5a17e1a4"
+        }
+      ],
+      "note": "",
+      "digest": false
+    },
+    {
+      "file": "practice-20261114-192911.json",
+      "sha256": "611b96d08dfc9e91682c0740ed63472f23ee23aecd59aa81ed154fdf99be0fbe",
+      "commands": 143,
+      "turns": 10,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Monastery of New Thought",
+          "cards": 88,
+          "fingerprint": "d30c76bab139"
+        },
+        {
+          "stronghold": "Shinden Asahina",
+          "cards": 86,
+          "fingerprint": "659e5a17e1a4"
+        }
+      ],
+      "note": "",
+      "digest": false
+    },
+    {
+      "file": "practice-20261115-094037.json",
+      "sha256": "7ca5f9a5a54f3a76702553553ac45761a5b0fd58db3b82d423a32949206cceea",
+      "commands": 143,
+      "turns": 10,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Plains of the Maiden",
+          "cards": 84,
+          "fingerprint": "ff5b7c806a38"
+        },
+        {
+          "stronghold": "Shinden Asahina",
+          "cards": 86,
+          "fingerprint": "659e5a17e1a4"
+        }
+      ],
+      "note": "",
+      "digest": false
+    },
+    {
+      "file": "practice-20261115-232319.json",
+      "sha256": "5614a95aeae34870786c730d5bc9ffe8a5866cdb934f9766a5e03bc61f655df9",
+      "commands": 208,
+      "turns": 14,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Plains of the Maiden",
+          "cards": 84,
+          "fingerprint": "ff5b7c806a38"
+        },
+        {
+          "stronghold": "Eternal Victory Dojo",
+          "cards": 86,
+          "fingerprint": "3569b1c95f56"
+        }
+      ],
+      "note": "",
+      "digest": false
+    },
+    {
+      "file": "practice-20261116-185851.json",
+      "sha256": "1d24f91eb8c5d791481e6b6d1a9a7f944e598eb51fa21dda96a842892ee67c77",
+      "commands": 240,
+      "turns": 16,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Kyuden Otomo",
+          "cards": 88,
+          "fingerprint": "8bf663877675"
+        },
+        {
+          "stronghold": "Halls of Memory",
+          "cards": 83,
+          "fingerprint": "29787b731e5e"
+        }
+      ],
+      "note": "",
+      "practice": {
+        "yourDeck": "Crane Favors",
+        "opponentDeck": "Lion Starter",
+        "botLevel": "Hard"
+      },
+      "digest": true
+    },
+    {
+      "file": "practice-20261117-094836.json",
+      "sha256": "50049bd2da73c736aed856ab3026ba7e0ecbdbcea8ba1e2e2ab5d849416a30be",
+      "commands": 214,
+      "turns": 12,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Kyuden Otomo",
+          "cards": 86,
+          "fingerprint": "53780e0a1495"
+        },
+        {
+          "stronghold": "Halls of Memory",
+          "cards": 83,
+          "fingerprint": "29787b731e5e"
+        }
+      ],
+      "note": "",
+      "practice": {
+        "yourDeck": "Crane Favors",
+        "opponentDeck": "Lion Starter",
+        "botLevel": "Hard"
+      },
+      "digest": true
+    },
+    {
+      "file": "practice-20261117-121926.json",
+      "sha256": "e5566b5577c2aed7b91f8c4f1a1509d65fc44c83620f238f9449174af66d5b82",
+      "commands": 286,
+      "turns": 15,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Kyuden Otomo",
+          "cards": 86,
+          "fingerprint": "53780e0a1495"
+        },
+        {
+          "stronghold": "Steel Soul Dojo",
+          "cards": 83,
+          "fingerprint": "d6c23492dc06"
+        }
+      ],
+      "note": "",
+      "practice": {
+        "yourDeck": "Crane Favors",
+        "opponentDeck": "Spider Conquer",
+        "botLevel": "Hard"
+      },
+      "digest": true
+    },
+    {
+      "file": "practice-20261118-093237.json",
+      "sha256": "4dc29c77d5dd5f9350055fc91e5cc246569a7f9e0769170ee3c49099b51c0b85",
+      "commands": 241,
+      "turns": 15,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Kyuden Otomo",
+          "cards": 83,
+          "fingerprint": "e9b33b0c3c7e"
+        },
+        {
+          "stronghold": "Monastery of New Thought",
+          "cards": 88,
+          "fingerprint": "d30c76bab139"
+        }
+      ],
+      "note": "",
+      "practice": {
+        "yourDeck": "Crane Favors",
+        "opponentDeck": "Dragon Destruction",
+        "botLevel": "Hard"
+      },
+      "digest": true
+    },
+    {
+      "file": "practice-20261119-105124.json",
+      "sha256": "b3ff381d99bd8d06274f1608fe2bb01750a2e17279b03b25a2d4423ddceb2167",
+      "commands": 154,
+      "turns": 10,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Pillars of Virtue",
+          "cards": 112,
+          "fingerprint": "b5739f4a681b"
+        },
+        {
+          "stronghold": "Halls of Memory",
+          "cards": 84,
+          "fingerprint": "641886035dc1"
+        }
+      ],
+      "note": "Went long because Mendon was playing for an Enlightenment victory. A player may make sub-optimal moves while chasing Enlightenment; the bot should not copy them.",
+      "practice": {
+        "yourDeck": "Dragon Enlightenment",
+        "opponentDeck": "Classic Lion",
+        "botLevel": "Easy"
+      },
+      "digest": true
+    },
+    {
+      "file": "practice-20261119-200432.json",
+      "sha256": "42d6885aaef87bd786d9975944f4c1972b58200e7aeaea914a03e0d601fceb83",
+      "commands": 154,
+      "turns": 10,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Monastery of New Thought",
+          "cards": 88,
+          "fingerprint": "d30c76bab139"
+        },
+        {
+          "stronghold": "Kyuden Otomo",
+          "cards": 83,
+          "fingerprint": "9e4e0c32a384"
+        }
+      ],
+      "note": "",
+      "practice": {
+        "yourDeck": "Dragon Destruction",
+        "opponentDeck": "Crane Favors",
+        "botLevel": "Hard"
+      },
+      "digest": true
+    },
+    {
+      "file": "practice-20261119-201928.json",
+      "sha256": "b9afa3737fab7411c5e0b0aae0bbc00598fcd30292cb3a56588b8bb10d29c6ba",
+      "commands": 219,
+      "turns": 14,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Monastery of New Thought",
+          "cards": 88,
+          "fingerprint": "d30c76bab139"
+        },
+        {
+          "stronghold": "Shinden Asahina",
+          "cards": 84,
+          "fingerprint": "b330186bc3a6"
+        }
+      ],
+      "note": "",
+      "practice": {
+        "yourDeck": "Dragon Destruction",
+        "opponentDeck": "Classic Crane",
+        "botLevel": "Hard"
+      },
+      "digest": true
+    }
+  ],
+  "retired": [
+    {
+      "file": "practice-20261109-141352.json",
+      "sha256": "824da5f7dcc89ab97a2fff363d63deba4ddf3430a7c5eb828aec2d5b6253ae29",
+      "reason": "command 45: the bot used a Battle action with a performer at home, illegal since #1196 (Battle action performers must be at the current battlefield), merged the day this game was played; retired 2026-11-16 (#1262)"
+    },
+    {
+      "file": "practice-20261113-183409.json",
+      "sha256": "283f7715ca79f6817bc8a89ce4fdd6728f8dd30863bacf7481f6f6afdeda0bfc",
+      "reason": "command 108: the bot's purchase of Yoritomo Nakoshi is refused (the card is no longer in a province): played at 18:34 UTC on 2026-11-13, before #1233 (every recruit offers Clan discount and allegiance; Proclaim on your own turn) merged at 22:14 UTC; retired 2026-11-16 (#1262)"
+    }
+  ]
+}

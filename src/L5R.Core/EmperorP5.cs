@@ -426,7 +426,7 @@ public sealed partial class MatchEngine
                     Require(_state.CurrentBattleProvince is int yutakaBattle && Army(1 - player.Id, yutakaBattle).Any(), "Yutaka would not be opposed at the current battlefield.");
                     var dark = TookDarkVirtueActionThisPhase(player.Id);
                     Require(id == EmperorP5Abilities.YutakaReturnDark ? dark : !dark, dark ? "You have taken a Dark Virtue action this phase: Yutaka pays 3 less Gold." : "You have not taken a Dark Virtue action this phase.");
-                    var quote = QuotePurchase(player.Id, source!.Id, fromDeadPile: true);
+                    var quote = QuotePurchase(player.Id, source!.Id, command.ClanDiscount, command.ClanAllegiance, fromDeadPile: true);
                     Require(quote.Error is null, quote.Error ?? "");
                     break;
                 }
@@ -434,7 +434,7 @@ public sealed partial class MatchEngine
             case EmperorP5Abilities.TokikoBattlefield:
                 if (command.TargetId is { } tokikoTarget && _state.Cards.ContainsKey(tokikoTarget))
                 {
-                    var quote = QuotePurchase(player.Id, tokikoTarget, fromDeadPile: true);
+                    var quote = QuotePurchase(player.Id, tokikoTarget, command.ClanDiscount, command.ClanAllegiance, fromDeadPile: true);
                     Require(quote.Error is null, quote.Error ?? "");
                 }
                 break;

@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Champion duels: a tie is challenged only by a Duelist against a non-Duelist (any other tie or higher stat is passed on); challenged by a lower duel stat the champion always accepts and Strikes at its first opportunity, in DuelOpponent (game duel screen) and TrainingOpponent scoring (tournaments).",
+  "validation": "New and updated ChallengeGuardTests pass; full L5R.AI.Tests 199/199; format check clean.",
+  "remaining": "Not measured in bot-vs-bot play against the previous champion; ChallengeGuard=false restores the old challenge behaviour (the accept-and-strike reply has no switch). Duel modifiers beyond table values are not counted.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1209",
+  "branch": "claude/1209-duel-ties-and-strikes",
+  "updated": "2026-11-10T13:23:05.784175+00:00"
+}

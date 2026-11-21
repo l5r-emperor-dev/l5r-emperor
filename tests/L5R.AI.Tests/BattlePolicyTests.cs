@@ -11,7 +11,8 @@ internal static class BattlePolicyTests
         ("Pass when won (rule 1): a winning defender or a province-destroying attacker passes instead of acting, unless the action gains or takes Honor", PassWhenWon),
         ("Pass when won (rule 1): a spare unit moves to an opposed battlefield, a needed one stays, and a threatening enemy Personality is still removed", WinningMoves),
         ("In-play abilities come before hand cards when the enemy has little to answer with (rule 1)", InPlayFirst),
-        ("Attack targets (rule 2): the highest Force the attack can destroy, ties to the highest unit gold, augments counted", AttackTargets),
+        ("Attack targets (rule 2): the highest Force the attack can destroy, ties to the most printed Battle actions, then the Personality, augments counted", AttackTargets),
+        ("Attack target step: the champion and the Contender take the largest card they can destroy, whatever order the targets are listed, and never their own", AttackTargetStep),
         ("Bow targets (rule 3): most attachments, then gold; without attachments a destroyer, a bow ability, then other Personalities", BowTargets),
         ("Losing defender (rule 4): sends a non-contributing unit home to save it, a fighting unit only when the Province still holds", LosingDefender),
         ("First-action reactions (rule 5): claimed only when the battle is not already won", EngageReactions),
@@ -290,17 +291,59 @@ internal static class BattlePolicyTests
 
     private static void AttackTargets()
     {
-        CardView T(string id, int force, int gold) => Unit(id, 1, force, def: CardCatalog.Cards.Values.First(d => d.Type == CardType.Personality && d.GoldCost == gold)) with { Force = force };
-        var a = T("a", 3, 4); var b = T("b", 3, 6); var c = T("c", 5, 8); var d = T("d", 2, 9);
-        var all = new List<CardView> { a, b, c, d };
-        var order = new[] { a, b, c, d }.OrderByDescending(t => BattlePolicy.AttackTargetScore(t, 4, all)).Select(t => t.Id).ToArray();
-        Check(order[0] == "b" && order[1] == "a" && order[2] == "d" && order[3] == "c", "strength 4: the Force 3 targets first (higher gold wins), then Force 2, and the Force 5 target it cannot destroy last: " + string.Join(",", order));
-        var pumped = new[] { a, b, c, d }.OrderByDescending(t => BattlePolicy.AttackTargetScore(t, 6, all)).First().Id;
-        Check(pumped == "c", "an augment that lifts the attack to 6 makes the Force 5 target the best");
-        var follower = new CardView("fol", Person(1), 1, Zone.Battlefield, true, false, 0, "a", 1);
-        Check(BattlePolicy.UnitGold(a, [a, follower]) == a.Definition!.GoldCost + follower.Definition!.GoldCost, "attachments and followers add to the unit's printed gold");
+        static int Battles(CardDefinition d) => d.Abilities?.Count(id => AbilityCatalog.All.TryGetValue(id, out var ab) && ab.Timing is "Battle" or "BattleOrOpen") ?? 0;
+        CardView T(string id, int force, CardDefinition def, bool bowed = false) => new(id, def, 1, Zone.Battlefield, true, bowed, 0, null, force);
+        var people = CardCatalog.Cards.Values.Where(d => d.Type == CardType.Personality).ToArray();
+        var plain = people.First(d => Battles(d) == 0);
+        var busy = people.OrderByDescending(Battles).First();
+        var busier = people.First(d => Battles(d) > 0 && Battles(d) < Battles(busy));
+        Check(Battles(busy) > Battles(busier) && Battles(busier) > 0, "the catalogue has Personalities with different numbers of printed Battle actions");
+        var all = new List<CardView>();
+        double Score(CardView t, int strength) => BattlePolicy.AttackTargetScore(t, strength, all);
+        string First(int strength, params CardView[] targets) => targets.OrderByDescending(t => Score(t, strength)).First().Id;
+
+        // The largest Force the Attack can destroy comes first, whatever else the cards print; what it cannot destroy comes last.
+        var big = T("big", 3, plain); var small = T("small", 2, busy); var tooBig = T("too-big", 5, busy);
+        Check(First(4, small, big, tooBig) == "big", "strength 4: the Force 3 target before the Force 2 one with more Battle actions, and the Force 5 one it cannot destroy last");
+        Check(First(6, small, big, tooBig) == "too-big", "an augment that lifts the attack to 6 makes the Force 5 target the best");
+        Check(new[] { small, big, tooBig }.OrderByDescending(t => Score(t, 1)).First().Id == "small", "when nothing can be destroyed the weakest is nearest to falling");
+
+        // Same Force: the card with the most printed Battle actions it could still use.
+        var few = T("few", 3, busier); var many = T("many", 3, busy); var none = T("none", 3, plain);
+        Check(First(4, none, few, many) == "many" && First(4, many, none, few) == "many", "a tie in Force goes to the card with the most printed Battle actions");
+        Check(First(4, none, few) == "few", "a printed Battle action beats none");
+        Check(First(4, T("bowed-many", 3, busy, bowed: true), few) == "few", "a bowed card cannot use its Battle actions, so they do not count");
+        var spentIds = busy.Abilities!.Where(id => AbilityCatalog.All.TryGetValue(id, out var ab) && ab.Timing is "Battle" or "BattleOrOpen").ToArray();
+        Check(First(4, many with { SpentAbilityIds = spentIds }, few) == "few", "Battle actions a card has already used this turn do not count");
+
+        // Still tied: the Personality over the Follower.
+        var follower = CardCatalog.Cards.Values.First(d => d.Type == CardType.Follower && Battles(d) == 0);
+        var person = T("person", 3, plain); var attached = T("follower", 3, follower);
+        Check(First(4, attached, person) == "person" && First(4, person, attached) == "person", "an equal Personality and Follower: the Personality");
         var attack = FindAbility((id, ab, i) => ab.Target == "attack" && BattlePolicy.AttackStrength(id) is 4);
         Check(BattlePolicy.AttackStrength(attack) == 4, "the attack's printed strength is read from its label");
+    }
+
+    // The engine's own "choose the Attack's target" step: the champion and the Contender both take the largest card they can destroy, never one of their own, and leave the order the targets are listed in out of it.
+    private static void AttackTargetStep()
+    {
+        var attack = FindAbility((id, ab, i) => ab.Target == "attack" && BattlePolicy.AttackStrength(id) is 4);
+        var shooterDef = CardCatalog.Cards.Values.OrderBy(d => d.Type == CardType.Personality ? 0 : 1).First(d => d.Abilities?.Contains(attack) == true);
+        CardView Foe(string id, int force) => Unit(id, 1, force);
+        var shooter = Unit("shooter", 0, 3, def: shooterDef);
+        var view = Battle(8, 6, 7, ownExtra: [shooter], enemyExtra: [Foe("foe-5", 5), Foe("foe-4", 4), Foe("foe-3", 3)]);
+        ActionOption Step(string target) => new("chooseAttackTarget", "Attack", true, null, new("chooseAttackTarget", 0, view.Version, CardId: "shooter", TargetId: target), target);
+        var none = new ActionOption("chooseAttackTarget", "Attack no target", true, null, new("chooseAttackTarget", 0, view.Version, CardId: "shooter", Choice: "none"), "shooter");
+        foreach (var (name, bot) in new[] { ("champion", new BotContext()), ("Contender", BotContext.Contender()) })
+        {
+            foreach (var order in new[] { new[] { "foe-5", "foe-4", "foe-3" }, new[] { "foe-3", "foe-4", "foe-5" } })
+            {
+                var chosen = TrainingOpponent.Choose(view, order.Select(Step).Append(none).ToArray(), bot).Command;
+                Check(chosen?.Type == "chooseAttackTarget" && chosen.TargetId == "foe-4", $"{name}: strength 4 destroys the Force 4 card, not the Force 5 one it cannot or the Force 3 one it need not ({chosen?.TargetId}, listed {string.Join(",", order)})");
+            }
+            var own = TrainingOpponent.Choose(view, [Step("own-main"), Step("foe-4"), none], bot).Command;
+            Check(own?.TargetId == "foe-4", $"{name}: never one of its own cards while a card of the opponent's is on offer ({own?.TargetId})");
+        }
     }
 
     private static void BowTargets()

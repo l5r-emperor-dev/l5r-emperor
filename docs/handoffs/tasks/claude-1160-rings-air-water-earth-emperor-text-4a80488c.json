@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Rings of Air, Water and Earth rewired to their Emperor Edition scans: Air recruits after a third Spell/Kiho action of different titles in a turn and straightens a performing Personality's unit; Water recruits after a fourth Battle action of different titles in a battle and moves a performing Personality home or to an enemy battlefield, straightening his unit if he moved; Earth also needs none of the winner's Personalities destroyed. Added Kiho/non-Kiho counting regressions for Air and the Void.",
+  "validation": "bash tools/check.sh --skip-client (results recorded in the PR)",
+  "remaining": "Favor-action and Terrain-played/destroyed counters are still recorded but no longer read by any Ring; Void/Air counting grants for the next/current battle like the other Rings.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1160",
+  "branch": "claude/1160-rings-air-water-earth-emperor-text",
+  "updated": "2026-11-03T00:23:09.125254+00:00"
+}

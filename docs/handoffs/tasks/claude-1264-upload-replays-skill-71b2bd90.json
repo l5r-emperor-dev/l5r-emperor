@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Repository skill upload-replays (.claude/skills, mirrored to .agents/skills): find new exports, copy unchanged into replays/games, stage 1, index and replay, retire refused games with the reason, ask for notes, PR, merge after every check passes. Listed in docs/REPO_SKILLS.md and replays/README.md (AGENTS.md is at its 12,000-byte budget and already points to REPO_SKILLS.md).",
+  "validation": "sync_skills.py --check clean; tools/hooks and tools/collaboration unit tests pass",
+  "remaining": "None; ready for review. Export additions (deck names, bot level, final-state checksum) follow in their own PR.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1264",
+  "branch": "claude/1264-upload-replays-skill",
+  "updated": "2026-11-16T12:05:29.360066+00:00"
+}

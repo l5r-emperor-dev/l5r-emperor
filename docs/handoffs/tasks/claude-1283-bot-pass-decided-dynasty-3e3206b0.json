@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Bot (Easy, Moderate, Hard) passes on Dynasty purchases in its own Dynasty Phase when the game is settled: the opponent wins by Honor or Enlightenment when their next turn begins, or the bot is at -20 or lower Honor / has a marked Dishonor loss. Not when the Dynasty Phase is before the Attack Phase this turn. The engine publishes PlayerView.WinsWhenTurnBegins from the same tests StartTurn uses (Hotaka-adjusted threshold, Enlightenment exclusions).",
+  "validation": "New AI tests decided-game 6/6 at all three levels (3 fail with the rule disabled); new Core test phase-order/WinsWhenTurnBeginsScenario passes and plays the turn out to the flagged player's win; bash tools/check.sh --skip-client: All requested checks passed; dotnet format whitespace verify clean.",
+  "remaining": "Other Dynasty actions (discarding province cards) are unchanged; only purchases are passed, as requested.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1283",
+  "branch": "claude/1283-bot-pass-decided-dynasty",
+  "updated": "2026-11-18T09:48:31.907144+00:00"
+}

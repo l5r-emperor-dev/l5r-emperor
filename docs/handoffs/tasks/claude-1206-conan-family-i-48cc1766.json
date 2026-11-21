@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Family I (Favor, hand, opponent's turn; Hand.cs, readI/riHand): screens formulation 1 -2, formulation 2 (riHand) +11 p .09 at Contender speed; sequential test under Hard null at the cap (30 gained, 35 lost in 1,455, LLR -2.34). Opt-in, off by default.",
+  "validation": "bash tools/check.sh --skip-client passed; hand 3/3 (Release); SPRT chunks 11600-11603 recorded in docs/bots/experiments/2026-11-15-conan-family-i.md",
+  "remaining": "Formulation 3 (riBoard, board-read discard, opponent-choice descriptor fixes) on claude/1206-conan-family-i3, screening on block 11800; step 4 on 11700.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
+  "branch": "claude/1206-conan-family-i",
+  "updated": "2026-11-15T13:24:42.642866+00:00"
+}

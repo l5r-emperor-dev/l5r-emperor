@@ -62,16 +62,20 @@ public partial class Main
         var pending = GenericDecisionActive ? View.PendingChoice : null;
         var own = pending is null || pending.PlayerId == View.ViewerId && View.PriorityPlayerId == View.ViewerId;
         var contextualDecline = pending is not null && HasContextualReactionDecline;
-        var options = pending is null ? AlternativeCosts(_chosen!) : Actions.Where(a => a.Type is not ("concede" or "wait") && a.Type != "orderSeppuku" &&
+        var options = pending is null ? OneRowPerCost(AlternativeCosts(_chosen!)) : Actions.Where(a => a.Type is not ("concede" or "wait") && a.Type != "orderSeppuku" &&
             !(contextualDecline && a.Type == "declineReaction")).ToArray();
+        // Issue #1202: a draft with a way to pay asks one thing at a time -- the performer, the target, then how to pay. Once the first two are answered the cost is the next question.
+        if (pending is null && _chosen is { Command: { } asked } && !_reviewingAlternativeCost && !_alternativeCostConfirmed && !PerformerStepActive
+            && !(asked.TargetId is null && options.Any(a => a.TargetIds is { Length: > 0 }))) _reviewingAlternativeCost = true;
         _guide.Visible = false;
-        var heading = Palette.Text(pending is null ? (_reviewingAlternativeCost || _alternativeCostConfirmed ? "HOW DO YOU PAY?" : "CHOOSE A TARGET") : own ? "YOUR CHOICE" : "OPPONENT’S CHOICE", 27, title: true);
+        var heading = Palette.Text(pending is null ? (_reviewingAlternativeCost || _alternativeCostConfirmed ? "HOW DO YOU PAY?" : PerformerStepActive ? "CHOOSE A PERFORMER" : "CHOOSE A TARGET") : own ? "YOUR CHOICE" : "OPPONENT’S CHOICE", 27, title: true);
         if (!contextualDecline)
         {
             heading.HorizontalAlignment = HorizontalAlignment.Center; _sidebarHeader.AddChild(heading);
             _sidebarHeader.AddChild(new HSeparator());
         }
         if (pending?.Type is "beforeBattleOrder" or "beforeBattleOptional" or "encircledOrder" or "encircledSelect") RenderBattleFacts(true);
+        if (pending is not null && BattleTracker.InBattle(View.Phase) && View.BattleActions is { Length: > 0 }) RenderBattleActionPanel(); // issue #1169
         var sourceId = pending?.CardId ?? _chosen?.CardId;
         var source = sourceId is null ? null : FindCard(sourceId);
         var prompt = pending?.Prompt is { } rawPrompt ? BattleActionText.WithoutIds(rawPrompt) : null;
@@ -80,13 +84,13 @@ public partial class Main
         else if (prompt is not null) _inspector.AddChild(Palette.Wrapped(prompt, 19, Palette.Paper));
         if (pending is null && _chosen?.Command is { } draft)
         {
-            _inspector.AddChild(Palette.Wrapped(_reviewingAlternativeCost ? "Choose one cost to pay." : "Review the performer and target.", 22, Palette.Paper));
+            if (_reviewingAlternativeCost || !PerformerStepActive) _inspector.AddChild(Palette.Wrapped(_reviewingAlternativeCost ? "Choose one cost to pay." : "Choose a target.", 22, Palette.Paper));
             if (_reviewingAlternativeCost && AlternativeCostCards().Count > 0)
             {
                 _inspector.AddChild(Palette.Wrapped("Pay by the first option, or discard a card instead: select a card below, or click a highlighted card in your hand.", 17, Palette.PaperDim));
                 Highlight(); // the hand cards that may be discarded light up as soon as the review opens
             }
-            if (draft.PerformerId is { } performer && FindCard(performer) is { } card)
+            if (!PerformerStepActive && draft.PerformerId is { } performer && FindCard(performer) is { } card)
                 _inspector.AddChild(Palette.Wrapped("Performer: " + card.Definition?.Name, 17, Palette.PaperDim));
             if (draft.TargetId is { } target && FindCard(target) is { } targetCard)
                 _inspector.AddChild(Palette.Wrapped("Target: " + targetCard.Definition?.Name, 17, Palette.PaperDim));
@@ -98,17 +102,7 @@ public partial class Main
                 var (required, ready) = RenderGoldPanel(draftAction);
                 AddConfirm(CommitButtonLabel(draftAction), required, ready, () => draftCommand with { SourceIds = required > 0 ? _sources.ToArray() : [] }, "Cancel action"); return true;
             }
-            var performers = Actions.Where(a => a.Enabled && a.CardId == draftAction.CardId && a.AlternativeCost?.AbilityId == draftAction.AlternativeCost!.AbilityId)
-                .Select(a => a.AlternativeCost!.PerformerId).Distinct().ToArray();
-            if (performers.Length > 1)
-            {
-                _inspector.AddChild(Palette.Wrapped("Choose a performer: click a highlighted card on the table, or select it below.", 17, Palette.PaperDim));
-                var performerPicker = NewChoiceList(); // issue #635
-                foreach (var id in performers) performerPicker.AddItem(id is null ? "No performer" : FindCard(id)?.Definition?.Name ?? "Performer", id);
-                performerPicker.Selected = Array.IndexOf(performers, draftCommand.PerformerId);
-                performerPicker.ItemSelected += i => Choose(Actions.First(a => a.Enabled && a.CardId == draftAction.CardId && a.AlternativeCost?.AbilityId == draftAction.AlternativeCost!.AbilityId && a.AlternativeCost?.PerformerId == performers[(int)i]));
-                _inspector.AddChild(performerPicker);
-            }
+            if (PerformerStepActive) { RenderPerformerStep(); return true; } // the first question, on its own: nothing is pre-selected
             var targets = options.SelectMany(a => a.TargetIds ?? []).Distinct().ToArray();
             if (targets.Length > 0)
             {
@@ -117,9 +111,8 @@ public partial class Main
                 foreach (var id in targets) picker.AddItem(FindCard(id)?.Definition?.Name ?? "Target", id);
                 picker.Selected = Array.IndexOf(targets, draftCommand.TargetId); picker.ItemSelected += i => ChooseTarget(targets[(int)i]); _inspector.AddChild(picker);
             }
-            var next = SidebarSkin.Button("Review cost choices", () => { _reviewingAlternativeCost = true; _decisionSelection = null; RenderInspector(); }, true);
-            next.Disabled = !DecisionCanSubmit || targets.Length > 0 && draftCommand.TargetId is null; // the cost choice confirms a command, which needs the picked target
-            _decisionActions.AddChild(next);
+            if (targets.Length > 0 && draftCommand.TargetId is null) _inspector.AddChild(Palette.Wrapped("Choose a target to continue.", 13, Palette.Error));
+            AddFlowBack(draftAction); // back to the performer question
             _decisionActions.AddChild(SidebarSkin.Button("Cancel action", CancelChoice)); return true;
         }
         if (!own)
@@ -146,7 +139,8 @@ public partial class Main
                 _decisionSelection = option;
                 if (contextualDecline) confirm.Text = CommitButtonLabel(option);
                 if (pending is not null) { _chosen = null; _sources.Clear(); }
-                if (QuoteFor(option) is not null) { _chosen = option; ResuggestSources(); RenderInspector(); return; }
+                // A priced way to pay keeps the draft's target (the engine lists one command per way, not per target) and its chosen amount (issue #1275).
+                if (QuoteFor(option) is not null) { _chosen = pending is null ? Reviewed(option, _chosen) : option; ResuggestSources(); RenderInspector(); return; }
                 foreach (var row in rows)
                 {
                     var selected = ReferenceEquals(row.Option, option);
@@ -163,17 +157,45 @@ public partial class Main
         }
         if (_decisionSelection is not null && !options.Contains(_decisionSelection)) _decisionSelection = null;
         confirm.Disabled = _decisionSelection is null || !DecisionCanSubmit;
-        if (_decisionSelection is { } selectedPayment && QuoteFor(selectedPayment) is not null)
+        if (_decisionSelection is { } selectedPayment && QuoteFor(pending is null ? Reviewed(selectedPayment, _chosen) : selectedPayment) is not null)
         {
-            var (_, ready) = RenderGoldPanel(selectedPayment);
+            var (_, ready) = RenderGoldPanel(pending is null ? Reviewed(selectedPayment, _chosen) : selectedPayment);
             confirm.Disabled |= !ready;
         }
         _decisionActions.AddChild(confirm);
-        if (pending is null) _decisionActions.AddChild(SidebarSkin.Button("Back to target", () => { _reviewingAlternativeCost = false; _decisionSelection = null; RenderInspector(); }));
+        if (pending is null) AddCostBack();
         else if (_decisionSelection is not null) _decisionActions.AddChild(SidebarSkin.Button("Clear selection", () => { _decisionSelection = null; RenderInspector(); Highlight(); }));
         if (!DecisionReviewMode || !DecisionCanSubmit)
             _decisionActions.AddChild(Palette.Wrapped(DecisionCanSubmit ? "Select one option, then confirm." : "Your choice is paused until the connection is ready.", 14, Palette.PaperDim));
         return true;
+    }
+
+    /// <summary>
+    /// One row per way to pay (issue #1202). Core lists each cost option once per performer, per player ("you" / "your opponent") and per target; the ones it disabled beside an enabled option of the same
+    /// way are not another way to pay, so the player is not shown "Bow the Courtier" twice. A way that is disabled everywhere stays, with its reason.
+    /// </summary>
+    private static ActionOption[] OneRowPerCost(ActionOption[] options)
+    {
+        string Key(ActionOption a) => a.AlternativeCost?.Id + "|" + string.Join("+", a.Command?.CardIds ?? []) + "|" + (a.AlternativeCost?.Label ?? a.Label);
+        var enabledKeys = options.Where(a => a.Enabled).Select(Key).ToHashSet();
+        var seenDisabled = new HashSet<string>();
+        return options.Where(a => a.Enabled || !enabledKeys.Contains(Key(a)) && seenDisabled.Add(Key(a))).ToArray();
+    }
+
+    /// <summary>A way to pay as the draft asks it: the engine-listed option with the draft's target and chosen Gold amount.</summary>
+    private static ActionOption Reviewed(ActionOption option, ActionOption? draft) => draft?.Command is not { } asked || option.Command is not { } command ? option
+        : option with { Command = command with { TargetId = asked.TargetId ?? command.TargetId, GoldAmount = asked.GoldAmount ?? command.GoldAmount } };
+
+    /// <summary>Back from the cost question to the most recent answer: the target, else the performer. Nothing to go back to when the draft asked for neither.</summary>
+    private void AddCostBack()
+    {
+        var hasTarget = _chosen?.Command?.TargetId is not null && (_chosen.TargetIds?.Length ?? 0) > 0;
+        if (!hasTarget && !_performerPicked) return;
+        _decisionActions.AddChild(SidebarSkin.Button(hasTarget ? "Back to target" : "Back to performer", () =>
+        {
+            _reviewingAlternativeCost = false; _decisionSelection = null;
+            if (hasTarget) ClearTarget(); else { _performerPicked = false; RenderInspector(); Highlight(); }
+        }));
     }
 
     private void AddDecisionSource(CardView source, string? prompt)
@@ -221,9 +243,15 @@ public partial class Main
                 ResuggestSources(); RenderInspector(); Highlight(); return;
             }
             if (draft.TargetId is { } target && selected.TargetIds?.Contains(target) != true) return;
-            var reviewed = selected with { Command = command with { TargetId = draft.TargetId } };
-            // Gold still goes through the existing engine-quoted panel when the ability has both kinds of cost.
-            if (QuoteFor(reviewed) is not null) { _reviewingAlternativeCost = false; Choose(reviewed, keepTarget: true); _alternativeCostConfirmed = true; RenderInspector(); return; }
+            var reviewed = Reviewed(selected, _chosen);
+            // Issue #1275: the Gold of a priced way to pay is chosen in this review (its panel gates Confirm), so the action is sent now. Re-choosing it here reset the
+            // draft, cleared the chosen Gold and reopened this question, so Confirm never played the card.
+            if (QuoteFor(reviewed) is { } quote)
+            {
+                var amount = AmountFor(reviewed, quote);
+                if (!PaymentSelectionReady(amount, quote)) return;
+                _ = Submit(reviewed.Command! with { SourceIds = amount > 0 ? _sources.ToArray() : [] }); return;
+            }
             _ = Submit(reviewed.Command!);
         }
     }

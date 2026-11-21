@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Collection printing list: corrected 15 names that matched no library card (five typos, Armor/Begone/Conflagration etc., three Experienced swords); regression test pins the remaining 16 printings the library lacks (#1164).",
+  "validation": "L5R.Client.Collection.Tests pass incl. new list-vs-library test.",
+  "remaining": "None; ready for review. 16 printings (Experienced/flavour versions, Earth's Embrace, Exquisite Gifts, Frozen in Place, Into the Wastes, The Asahina's Shame, Oblivious) have no library card.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1164",
+  "branch": "claude/1164-printing-list-names",
+  "updated": "2026-11-03T09:49:07.229060+00:00"
+}

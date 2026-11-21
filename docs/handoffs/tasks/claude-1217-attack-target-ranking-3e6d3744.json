@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Bot Attack targeting: largest opponent card the Attack can destroy (augments counted); ties to most printed Battle actions, then Personality. The champion and Contender now rank the engine's attack-target step too (it was gated on UseBattlePolicy), never choosing their own card.",
+  "validation": "bash tools/check.sh --skip-client passed; new tests AttackTargets and AttackTargetStep fail on the old code (champion picked the unkillable Force 5 card) and pass now.",
+  "remaining": "Opponent's once-per-turn use of a Battle action is not visible, so every printed Battle action counts. Bot strength not re-measured in the arena. Hard (Conan) inherits the change.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1217",
+  "branch": "claude/1217-attack-target-ranking",
+  "updated": "2026-11-11T13:38:55.092646+00:00"
+}

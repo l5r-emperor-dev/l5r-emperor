@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Bowed performers: the CR and R-035 allow a bowed performer unless the text says unbowed. Wall of Honor's engine rule already did; an audit of all 280 abilities with an unbowed performer category found three printed without 'unbowed' (Two Hands, Grateful Reward, Elite Training), now bowed-allowed. Client: an ability's modes (abilities sharing one use, no target, a performer -- Wall of Honor's increase/decrease and 13 other groups) are one play: click the card, click the performer on the table, then choose the mode. Shared: engine and client.",
+  "validation": "bash tools/check.sh --skip-client: all passed. New engine cases (Wall of Honor bowed performer; bowed performers for Two Hands, Grateful Reward, Elite Training) -- the latter three fail on the old code. tools/check-direct-play-ui.sh: DIRECT_PLAY_PASS with a new Wall of Honor scenario (card click, bowed Lishan clicked on the table, Decrease, Confirm; resolves). check-variant-steps-ui, check-table-click-ui, check-support-cards, check-reaction-flow-ui: passed.",
+  "remaining": "Not playtested by a person. The mode question (increase or decrease) is a sidebar choice after the performer; no table control exists for it.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1228",
+  "branch": "claude/1228-wall-of-honor-bowed-performer",
+  "updated": "2026-11-13T19:03:31.669205+00:00"
+}

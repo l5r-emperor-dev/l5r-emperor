@@ -1,4 +1,5 @@
 using Godot;
+using L5R.AI;
 using L5R.Core;
 namespace L5R.Client;
 
@@ -11,6 +12,9 @@ public partial class PracticeSetupScreen : Control
     public string? StorageDirectory;
     /// <summary>The player profile the remembered deck choices belong to (captures use a throwaway one).</summary>
     public string Profile = "default";
+    /// <summary>Issue #1214: how hard the practice opponent plays; remembered with the deck choices.</summary>
+    public BotLevel Difficulty { get; private set; } = BotLevel.Easy;
+    public OptionButton DifficultyMenu { get; private set; } = null!;
     public string Page { get; private set; } = "setup";
     public int ActiveSlot { get; private set; }
     public PracticeChoice[] Choices { get; private set; } = [];
@@ -87,12 +91,14 @@ public partial class PracticeSetupScreen : Control
     {
         var config = new ConfigFile();
         for (var i = 0; i < Choices.Length; i++) config.SetValue("practice", "slot" + i, Remembered(Choices[i]));
+        config.SetValue("practice", "difficulty", Difficulty.ToString());
         config.Save(SelectionFile);
     }
     private void RestoreSelection()
     {
         var config = new ConfigFile();
         if (config.Load(SelectionFile) != Error.Ok) return;
+        Difficulty = BotLevels.Parse(config.GetValue("practice", "difficulty", "").AsString());
         for (var i = 0; i < Choices.Length; i++)
         {
             var value = config.GetValue("practice", "slot" + i, "").AsString();
@@ -100,6 +106,7 @@ public partial class PracticeSetupScreen : Control
             else if (value.StartsWith("path:", StringComparison.Ordinal) && System.IO.File.Exists(value[5..]) && Read(value[5..]) is { Deck: not null } restored) Choices[i] = restored;
         }
     }
+    public void SetDifficulty(BotLevel level) { Difficulty = level; SaveSelection(); if (Page == "browser") BuildBrowser(); else ShowSetup(); }
     public void Select(PracticeChoice choice) { Choices[ActiveSlot] = choice; SaveSelection(); _notice = ""; if (Page == "browser") BuildBrowser(); else ShowSetup(); }
     public void ShowSetup()
     {
@@ -107,10 +114,24 @@ public partial class PracticeSetupScreen : Control
         Text("Choose your deck and your practice opponent.", 350, 68, 980, 38, 25, align: HorizontalAlignment.Center);
         for (var i = 0; i < 2; i++) BuildDeckPanel(i, i == 0 ? 155 : 842);
         Button("Open deck builder", () => { ActiveSlot = 0; Edit(null); }, 40, 835, 300, 55).Bare = true;
-        Text("Opponent: Practice AI", 645, 843, 420, 40, 26, align: HorizontalAlignment.Center);
+        Text("Difficulty", 400, 826, 170, 52, 26, align: HorizontalAlignment.Right);
+        DifficultyDropDown(590, 826, 260, 52, 24);
         StartButton = Button("START PRACTICE", Start, 1250, 822, 385, 72, true); StartButton.Disabled = Choices.Any(c => !c.Review.Ready); StartButton.QueueRedraw();
         if (_notice.Length > 0) Text(_notice, 360, 897, 1240, 32, 18, color: PracticeArt.Amber);
         Text("Saved decks · Local Practice", 1150, 902, 480, 25, 15, color: Palette.PaperDim, align: HorizontalAlignment.Right);
+    }
+    // The one Difficulty setting (issue #1214), offered on the setup page and, issue #1248, in the deck browser's Your match box: both pages read and write the same remembered value.
+    private void DifficultyDropDown(float x, float y, float w, float h, int fontSize)
+    {
+        DifficultyMenu = Put(_page, new OptionButton { AccessibilityName = "Difficulty", FitToLongestItem = false }, x, y, w, h);
+        DifficultyMenu.AddThemeFontSizeOverride("font_size", fontSize);
+        DifficultyMenu.GetPopup().AddThemeFontSizeOverride("font_size", 24); DifficultyMenu.GetPopup().AddThemeConstantOverride("v_separation", 12);
+        // The drop-down's own arrow is not part of this theme: a small gold triangle on the right says it is a list to choose from.
+        var arrow = new Control { MouseFilter = MouseFilterEnum.Ignore }; Put(DifficultyMenu, arrow, w - 46, 0, 30, h);
+        arrow.Draw += () => arrow.DrawColoredPolygon([new Vector2(5, h / 2 - 5), new Vector2(25, h / 2 - 5), new Vector2(15, h / 2 + 7)], Palette.Gold);
+        foreach (var level in Enum.GetValues<BotLevel>()) DifficultyMenu.AddItem(level.Label(), (int)level);
+        DifficultyMenu.Selected = (int)Difficulty;
+        DifficultyMenu.ItemSelected += index => SetDifficulty((BotLevel)DifficultyMenu.GetItemId((int)index));
     }
     private void BuildDeckPanel(int slot, float x)
     {
@@ -171,9 +192,11 @@ public partial class PracticeSetupScreen : Control
             Text($"Dynasty {c.Review.Dynasty} · Fate {c.Review.Fate}", 178, 142, 320, 30, 21, parent: summary);
             Text(selected ? "Choosing this deck" : "Change deck  ›", 178, 177, 315, 31, 21, color: selected ? PracticeArt.Ready : Palette.Paper, parent: summary);
         }
-        var ready = Choices.All(c => c.Review.Ready); Text(ready ? "Both decks are ready." : "Review your deck before playing.", 1110, 680, 485, 45, 24, color: ready ? PracticeArt.Ready : PracticeArt.Amber, align: HorizontalAlignment.Center);
-        Button("Edit selected deck", () => Edit(Choices[ActiveSlot]), 1135, 731, 459, 48);
-        StartButton = Button("START PRACTICE", Start, 1115, 792, 504, 67, true); StartButton.Disabled = !ready;
+        Text("Difficulty", 1100, 643, 180, 42, 24, align: HorizontalAlignment.Right);
+        DifficultyDropDown(1296, 643, 300, 42, 22);
+        var ready = Choices.All(c => c.Review.Ready); Text(ready ? "Both decks are ready." : "Review your deck before playing.", 1110, 702, 485, 30, 21, color: ready ? PracticeArt.Ready : PracticeArt.Amber, align: HorizontalAlignment.Center);
+        Button("Edit selected deck", () => Edit(Choices[ActiveSlot]), 1135, 740, 459, 44);
+        StartButton = Button("START PRACTICE", Start, 1115, 795, 504, 63, true); StartButton.Disabled = !ready;
     }
     private void Inspect(CatalogueData.Card card)
     {

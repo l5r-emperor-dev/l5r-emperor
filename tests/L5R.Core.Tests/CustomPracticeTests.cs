@@ -71,6 +71,17 @@ internal static class CustomPracticeTests
                 Check(MatchEngine.Replay(e.ExportReplay()).State.WinnerId == 1);
                 var broken = e.ExportReplay() with { CustomDecks = null }; try { MatchEngine.Replay(broken); } catch (ArgumentException) { return; } throw new Exception("Missing replay deck accepted");
             }),
+            ("A replay carrying its final digest must reach that state: replayed it does; a different digest or a dropped last command is refused (issue #1266)", () => {
+                var e = MatchEngine.CreateCustomMatch(91, Crane, Lion); Check(e.Execute(new GameCommand("concede", 0, e.Version)).Accepted);
+                var record = e.ExportReplay() with { FinalDigest = e.Digest() };
+                Check(MatchEngine.Replay(record).Digest() == record.FinalDigest, "the recorded state is reached");
+                Check(MatchEngine.Setup(record).Version == 0 && MatchEngine.Setup(record).Digest() != record.FinalDigest, "Setup stops before the first command and checks no digest");
+                foreach (var tampered in new[] { record with { FinalDigest = "d1:" + new string('0', 32) }, record with { Commands = [] } })
+                {
+                    try { MatchEngine.Replay(tampered); throw new Exception("a replay that ends elsewhere was accepted"); } catch (ArgumentException) { }
+                }
+                Check(e.Clone().Digest() == e.Digest() && MatchEngine.CreateCustomMatch(92, Crane, Lion).Digest() != MatchEngine.CreateCustomMatch(91, Crane, Lion).Digest(), "the digest follows the match");
+            }),
             ("Legacy preset replays still load without custom metadata", () => { var e = MatchEngine.CreatePublishedMatch(8); Check(e.ExportReplay().CustomDecks is null); Check(MatchEngine.Replay(e.ExportReplay()).GetView(0).Scenario == PublishedContent.Scenario); })
         ];
         runner.Run("custom-practice", tests);

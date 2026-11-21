@@ -22,7 +22,7 @@ PROFILE = "ring-wave-1"
 
 ABILITIES: dict[int, list[str]] = {
     6333: ["ring-of-air-recruit", "ring-of-air-straighten"],
-    6339: ["ring-of-water-recruit", "ring-of-water-move-home"],
+    6339: ["ring-of-water-recruit", "ring-of-water-move-home", "ring-of-water-move-battlefield"],
     6338: ["ring-of-void-recruit", "ring-of-void-draw"],
     10531: ["false-ring-of-air-recruit", "false-ring-of-air-force"],
     10535: ["false-ring-of-water-recruit", "false-ring-of-water-attack"],
@@ -31,13 +31,16 @@ ABILITIES: dict[int, list[str]] = {
 }
 EFFECTS: dict[int, str] = {}
 
-# Ring of Earth and Ring of Fire's own local catalogue "text" field does not match their actual
+# Ring of Air, Water, Earth, Void and Fire's own local catalogue "text" field does not match their actual
 # scanned printing at all -- it carries a DIFFERENT printing's text entirely (an Interrupt-timing
 # Earth ability, a duel-based Fire ability), the same class of scan/scrape mismatch issue #195
 # already flagged for Ring of Fire specifically. Hand-transcribed directly from each card's own scan
-# (assets/reference/oracle/emperor-edition/webp/oracle-l5r-{6334,6335}-printing-1-image-1.webp),
+# (assets/reference/oracle/emperor-edition/webp/oracle-l5r-{6333,6334,6335,6338,6339}-printing-1-image-1.webp),
 # omitting the printed italic flavor line to match every other Ring's own Text field convention.
 TEXT_OVERRIDE: dict[int, str] = {
+    6333: "After you resolve your third or later Spell or Kiho action in one turn from cards with different titles: You may put this card into play from your hand.\nBattle/Open: Bow this card or discard it from your hand, and choose your performing Personality: Straighten his unit.",
+    6339: "After you resolve your fourth or later Battle action in one battle from cards with different titles: You may put this card into play from your hand.\nBattle: Bow this card or discard it from your hand, and choose your performing Personality: Move him home or to a battlefield with one or more enemy units. If he moved, straighten his unit.",
+    6338: "After you resolve your fourth or later non-Kiho action from Strategies in one phase: You may put this card into play from your hand.\nOpen: Bow this card or discard it from your hand: If any player has more cards in his hand than you do, or if this card is in play, draw a card.",
     6334: "After the resolution of a battle that you won, if there were ever any enemy units at that battlefield and none of your Personalities were destroyed during the battle: You may put this card into play from your hand.\nBattle: Even if you control no units at the current battlefield, bow this card or discard it from your hand: Give a province +3 or -3 strength.",
     6335: "After the resolution of a battle at a province, if you destroyed one or more provinces or enemy cards in that resolution: You may put this card into play from your hand.\nBattle: Bow this card or discard it from your hand, destroy your performing Personality, and target an enemy Personality with equal or lower Chi: Destroy him.",
 }

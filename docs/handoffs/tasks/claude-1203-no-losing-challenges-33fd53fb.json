@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Champion bot no longer issues a challenge when the challenged Personality's duel stat (Chi, Force or Personal Honor as the ability prints it) is higher than the challenger's; ties allowed. Switch BotContext.ChallengeGuard (on by default).",
+  "validation": "New ChallengeGuardTests pass; full L5R.AI.Tests 196 cases pass (the michi-stall case passes when run from the repo root); format check clean.",
+  "remaining": "Not measured in bot-vs-bot play against the previous champion; ChallengeGuard=false gives the old behaviour for a paired comparison. Duel modifiers beyond the table value are not counted.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1203",
+  "branch": "claude/1203-no-losing-challenges",
+  "updated": "2026-11-09T20:45:35.005312+00:00"
+}

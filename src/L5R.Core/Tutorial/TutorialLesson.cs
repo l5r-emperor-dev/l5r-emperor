@@ -1,12 +1,15 @@
 namespace L5R.Core;
 
 /// <summary>A card that starts in play at home, face up (a Border Keep, a bowed Bamboo Harvesters). <paramref name="Attachments"/> are cards already attached to it (a Personality's Item);
-/// <paramref name="ChiToken"/> is a token on it that changes its Chi by that amount (a -1C token).</summary>
-internal sealed record TutorialHomeCard(string DefinitionId, bool Bowed = false, string[]? Attachments = null, int ChiToken = 0);
+/// <paramref name="ChiToken"/> is a token on it that changes its Chi by that amount (a -1C token); <paramref name="FireTokens"/> is how many +1F Fire tokens it carries.</summary>
+internal sealed record TutorialHomeCard(string DefinitionId, bool Bowed = false, string[]? Attachments = null, int ChiToken = 0, int FireTokens = 0);
 
 /// <summary>One side of a lesson's table. The deck is the pinned deck of <see cref="Clan"/> (<c>content/published/lion-crane-v1.json</c>) unless <see cref="Deck"/> names another; the cards in
-/// <see cref="DynastyTop"/> and <see cref="FateTop"/> are put on top in that order, whether or not the deck holds them. A catalogue card outside the pinned decks takes the place of the deck's last card.</summary>
-internal sealed record TutorialSide(string Clan, string StrongholdId, string[] DynastyTop, string[] FateTop, TutorialHomeCard[] Home, int? Honor = null, PublishedDeck? Deck = null);
+/// <see cref="DynastyTop"/> and <see cref="FateTop"/> are put on top in that order, whether or not the deck holds them. A catalogue card outside the pinned decks takes the place of the deck's last card.
+/// <see cref="DynastyDiscard"/> starts in the Dynasty discard pile and <see cref="FateDiscard"/> in the Fate discard pile; each of <see cref="Regions"/> is attached to that Province (counted from 0);
+/// each of <see cref="DestroyedProvinces"/> is already destroyed (the Rings lesson opens with one Province left).</summary>
+internal sealed record TutorialSide(string Clan, string StrongholdId, string[] DynastyTop, string[] FateTop, TutorialHomeCard[] Home, int? Honor = null, PublishedDeck? Deck = null,
+    string[]? DynastyDiscard = null, (int Province, string DefinitionId)[]? Regions = null, string[]? FateDiscard = null, int[]? DestroyedProvinces = null);
 
 /// <summary>The table a lesson starts from. Provinces are filled and face down, hands are empty and the match stops before the first turn (<see cref="MatchEngine.TutorialBeginTurn"/>);
 /// a lesson that needs more (a Ring already in play, a destroyed Province, a hand) does it from its steps' <see cref="TutorialStep.Then"/>.
@@ -17,9 +20,11 @@ internal sealed record TutorialSetup(TutorialSide You, TutorialSide Foe, int Fir
 /// <summary>What the opponent does when a step lets it play: which Personalities it recruits with the Clan Discount, which cards it recruits at full cost (a Holding, whatever is free),
 /// and the abilities it uses on a target (<c>(ability id, definition id of the card it targets)</c>). Anything else it declines or passes.
 /// <see cref="AttackProvince"/>: it declares an attack on its own turn, sends every Personality it has at home against that Province of yours and fights that battle. <see cref="Performers"/>: for an ability
-/// several of its cards could perform (one granted by its Stronghold), the card (by definition id) that performs it, matched by position with <see cref="Abilities"/>.</summary>
+/// several of its cards could perform (one granted by its Stronghold), the card (by definition id) that performs it, matched by position with <see cref="Abilities"/>. <see cref="Attackers"/>: when set, only these
+/// Personalities (by definition id) join that attack. <see cref="Reactions"/>: Reactions (ability id, and the definition id of the card it targets, if any) the opponent always announces and plays when offered,
+/// even in a battle on your turn; every other Reaction it declines.</summary>
 internal sealed record TutorialFoeScript(string[] RecruitWithDiscount, string[] Recruit, (string Ability, string Target)[] Abilities, FoePurchase[]? Purchases = null, string[]? Discard = null,
-    int? AttackProvince = null, string[]? Performers = null)
+    int? AttackProvince = null, string[]? Performers = null, string[]? Attackers = null, (string Ability, string? Target)[]? Reactions = null)
 {
     public static readonly TutorialFoeScript Passive = new([], [], []);
 }
@@ -36,7 +41,7 @@ internal sealed record TutorialLesson(string Id, string Title, TutorialSetup Set
 /// <summary>Every lesson, in the order the menu suggests. The menu never locks one.</summary>
 internal static class TutorialLessons
 {
-    public static readonly TutorialLesson[] All = [TutorialLessonOne.Lesson, TutorialLessonDynasty.Lesson, TutorialLessonRecruiting.Lesson, TutorialLessonSpells.Lesson, TutorialLessonAttachments.Lesson];
+    public static readonly TutorialLesson[] All = [TutorialLessonOne.Lesson, TutorialLessonDynasty.Lesson, TutorialLessonRecruiting.Lesson, TutorialLessonSpells.Lesson, TutorialLessonAttachments.Lesson, TutorialLessonKeywords.Lesson, TutorialLessonKeywords2.Lesson, TutorialLessonTraitsActions.Lesson, TutorialLessonCostEffect.Lesson, TutorialLessonAttacks.Lesson, TutorialLessonDuels.Lesson, TutorialLessonDishonor.Lesson, TutorialLessonReactions.Lesson, TutorialLessonFavor.Lesson, TutorialLessonRings.Lesson];
     public static TutorialLesson Default => All[0];
     public static TutorialLesson Get(string id) => All.Single(l => l.Id == id);
 }

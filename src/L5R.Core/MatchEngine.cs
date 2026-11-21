@@ -38,6 +38,9 @@ public sealed partial class MatchEngine
     public int ActivePlayerId => _state.ActivePlayerId;
     public int PriorityPlayerId => _state.PriorityPlayerId;
     public bool HasPendingChoice => _state.PendingChoice is not null;
+    public int? PendingChoicePlayerId => _state.PendingChoice?.PlayerId; // issue #1206: a lookahead playout picks the seat to ask without building a view
+    public Phase Phase => _state.Phase;
+    public int TurnNumber => _state.TurnNumber;
     public static MatchEngine CreateStarterMatch(ulong seed = 20260906) => Create(seed, "starter");
     public static MatchEngine CreateEconomyScenario(ulong seed = 20260906) => Create(seed, "economy");
     public static MatchEngine CreatePublishedMatch(ulong seed = 20260906) => Create(seed, PublishedContent.Scenario);
@@ -87,17 +90,38 @@ public sealed partial class MatchEngine
     public ReplayRecord ExportReplay() => new(ContentVersion, _scenario, _seed, _commands.Select(Copy).ToArray(), _customDecks?.Select(CustomPractice.CopyDeck).ToArray(), _state.IdleBattlePasses);
     public static MatchEngine Replay(ReplayRecord replay)
     {
-        if (replay.ContentVersion != ContentVersion) throw new ArgumentException("Replay content version is not supported.");
-        var engine = replay.Scenario == CustomPractice.Scenario
-            ? replay.CustomDecks is { Length: 2 } decks ? CreateCustomMatch(replay.Seed, decks[0], decks[1]) : throw new ArgumentException("Custom replay is missing its two deck snapshots.")
-            : Create(replay.Seed, replay.Scenario);
-        if (replay.IdleBattlePasses) engine.AllowIdleBattlePasses(); // match setup, before the first command (issue #894)
+        var engine = Setup(replay);
         foreach (var command in replay.Commands)
         {
             var result = engine.Execute(command);
             if (!result.Accepted) throw new ArgumentException($"Invalid replay command: {result.Error}");
         }
+        if (replay.FinalDigest is { } digest && digest != engine.Digest()) throw new ArgumentException("Replay ends in a different state than the one recorded.");
         return engine;
+    }
+
+    /// <summary>The match a replay records, set up and before its first command (its seed, scenario or two deck snapshots, idle battle passes); for tools that step through
+    /// the commands themselves. Replay is Setup and every command.</summary>
+    public static MatchEngine Setup(ReplayRecord replay)
+    {
+        if (replay.ContentVersion != ContentVersion) throw new ArgumentException("Replay content version is not supported.");
+        var engine = replay.Scenario == CustomPractice.Scenario
+            ? replay.CustomDecks is { Length: 2 } decks ? CreateCustomMatch(replay.Seed, decks[0], decks[1]) : throw new ArgumentException("Custom replay is missing its two deck snapshots.")
+            : Create(replay.Seed, replay.Scenario);
+        if (replay.IdleBattlePasses) engine.AllowIdleBattlePasses(); // match setup, before the first command (issue #894)
+        return engine;
+    }
+
+    /// <summary>A short digest of the match's lasting facts (issue #1266): the version, turn, phase and winner, each player's Honor, and every card's definition, owner, zone,
+    /// province, face and bow, in card id order. Built from these facts rather than the whole state, so a new state field does not change it; two replays that reach it
+    /// played the same match. "d1:" names this definition.</summary>
+    public string Digest()
+    {
+        var text = new System.Text.StringBuilder($"v{_state.Version} t{_state.TurnNumber} p{_state.Phase} w{_state.WinnerId}\n");
+        foreach (var player in _state.Players.OrderBy(p => p.Id)) text.Append($"h{player.Id}:{player.Honor}\n");
+        foreach (var card in _state.Cards.Values.OrderBy(c => c.Id, StringComparer.Ordinal))
+            text.Append($"{card.Id} {card.DefinitionId} o{card.OwnerId} {card.Zone} {card.ProvinceIndex} {(card.FaceUp ? "u" : "d")}{(card.Bowed ? "b" : "s")}\n");
+        return "d1:" + Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(text.ToString())))[..32];
     }
 
     private static MatchEngine Create(ulong seed, string scenario)
@@ -353,7 +377,9 @@ public sealed partial class MatchEngine
         ApplyCore(command);
         if (_honorReplayCommand is not null) return; // an Honor-change window just closed: Execute runs the command it set aside again.
         var resumed = ResumeIdleSuspendedWindow() || _state.SuspendedWindows.Count < suspendedBefore;
-        if (resumed) SettleReactionWindow(); // issue #644: a window given back after a Reaction of its own is not offered to a player with nothing to react with: a window given back after a Reaction of its own is not offered to a player with nothing to react with
+        // issue #644: a window given back after a Reaction of its own is not offered to a player with nothing to react with. When settling closes it, the window it was set
+        // aside over is given back the same way (Meeting the Keepers' search inside the after-action window inside the after-battle battleRecruit window: Mendon, 2026-11-19).
+        for (var depth = 0; resumed && depth < 8; depth++) { SettleReactionWindow(); resumed = ResumeIdleSuspendedWindow(); }
         FinishSpentBeforeBattleItem();
         FinishTwistOfFateAction(twistWasActive);
         OpenAssignedReactionWindow(); // Chrysanthemum Blossom (issue #492 group G): "After this Personality is assigned".
@@ -1153,6 +1179,7 @@ public sealed partial class MatchEngine
     {
         var pending = _state.PendingChoice!;
         Emit("reactionPassed", $"{Player(_state.PriorityPlayerId).Name} passed the reaction opportunity.", _state.PriorityPlayerId);
+        if (pending.Type == "engageReaction") NoteBattlePass(_state.PriorityPlayerId); // issue #1169: a pass in the Engage window is part of the battle's record
         _state.ConsecutivePasses++;
         if (_state.ConsecutivePasses == 2) CloseReactionWindow(pending);
         else
@@ -1222,6 +1249,7 @@ public sealed partial class MatchEngine
     private void Pass()
     {
         Emit("passed", $"{Player(_state.PriorityPlayerId).Name} passed.", _state.PriorityPlayerId);
+        NoteBattlePass(_state.PriorityPlayerId); // issue #1169
         // Twist of Fate (Emperor Edition remaining-cards pass, issue #492, group D): passing the additional action ends it, and the Dynasty Phase carries on.
         if (_state.TwistOfFateActive) { EndTwistOfFateAction(); return; }
         switch (_state.Phase)
@@ -1445,7 +1473,7 @@ public sealed partial class MatchEngine
         if (OpenEngageWindow(battlefield))
         {
             if (firstOpportunity is int claimant) ClaimFirstOpportunity(claimant, claimant == _state.ActivePlayerId ? "Grant" : "Defender", null);
-            Emit("battleStarted", $"Battle at {label}: engaged.");
+            Emit("battleStarted", $"Battle at {label}: engaged."); _state.BattleActions = []; NoteBattleEngage(label); // issue #1169
             return;
         }
         if (firstOpportunity == _state.ActivePlayerId)
@@ -1456,7 +1484,7 @@ public sealed partial class MatchEngine
             Emit("firstOpportunity", $"{Player(_state.ActivePlayerId).Name} has the first opportunity to take a Battle action or pass ({BattleSteps.ReasonEngageGrant}).", _state.ActivePlayerId);
         }
         MarkCombatSegmentBegan(); // Issue #503 (EmperorP5.cs): no Engage window, so the Combat Segment begins now (Headbutt).
-        Emit("battleStarted", $"Battle at {label}: {(firstOpportunity == _state.ActivePlayerId ? "attacker" : "defender")} acts first.");
+        Emit("battleStarted", $"Battle at {label}: {(firstOpportunity == _state.ActivePlayerId ? "attacker" : "defender")} acts first."); _state.BattleActions = []; NoteBattleEngage(label); // issue #1169
     }
     private void ResolveBattle()
     {
@@ -1710,10 +1738,9 @@ public sealed partial class MatchEngine
             if (destroyedDefenders > 0 || destroyedProvince) AttackerDestructionBonus(attacker, a);
             // Ring recruitment (issue #194): checked with this resolution's own facts, before the
             // per-battle flags below reset. False Ring of Air and Ring of Earth require an outright
-            // win; Ring of Water and Ring of Fire do not (see the tie branch below).
+            // win (Ring of Earth also needs none of the winner's Personalities destroyed during the battle); Ring of Fire does not (see the tie branch below).
             GrantRingRecruit(Player(attacker), d.Length > 0, "false-ring-of-air-recruit");
-            GrantRingRecruit(Player(attacker), d.Length > 0, "ring-of-earth-recruit");
-            CheckRingOfWaterRecruit(Player(attacker), destroyedDefenders > 0 || destroyedProvince);
+            GrantRingRecruit(Player(attacker), d.Length > 0 && !Player(attacker).PersonalityDestroyedThisBattle, "ring-of-earth-recruit");
             GrantRingRecruit(Player(attacker), destroyedDefenders > 0 || destroyedProvince, "ring-of-fire-recruit");
         }
         else if (defenderWon)
@@ -1722,8 +1749,7 @@ public sealed partial class MatchEngine
             destroyedByPlayer[defender] = destroyedAttackers; losers.Add(attacker);
             if (!RehonorWinners(d)) { GainHonor(defender, ResolutionHonor(defender, attacker, destroyedAttackers * 2), "Battle victory"); CheckEarthFlowsBonus(defender, d); }
             GrantRingRecruit(Player(defender), a.Length > 0, "false-ring-of-air-recruit");
-            GrantRingRecruit(Player(defender), a.Length > 0, "ring-of-earth-recruit");
-            CheckRingOfWaterRecruit(Player(defender), destroyedAttackers > 0);
+            GrantRingRecruit(Player(defender), a.Length > 0 && !Player(defender).PersonalityDestroyedThisBattle, "ring-of-earth-recruit");
             GrantRingRecruit(Player(defender), destroyedAttackers > 0, "ring-of-fire-recruit");
         }
         else if (a.Length > 0 && d.Length > 0)
@@ -1741,10 +1767,8 @@ public sealed partial class MatchEngine
             if (!attackerHadDishonorable) GainHonor(attacker, ResolutionHonor(attacker, defender, destroyedD), "Tied battle");
             if (!defenderHadDishonorable) GainHonor(defender, ResolutionHonor(defender, attacker, destroyedA), "Tied battle");
             if (destroyedD > 0) AttackerDestructionBonus(attacker, a);
-            // Ring of Water/Fire (issue #194): no "win" requirement, unlike False Ring of Air/Ring of
+            // Ring of Fire (issue #194): no "win" requirement, unlike False Ring of Air/Ring of
             // Earth -- a tie still counts as "a battle resolves" for both players independently.
-            CheckRingOfWaterRecruit(Player(attacker), destroyedD > 0);
-            CheckRingOfWaterRecruit(Player(defender), destroyedA > 0);
             GrantRingRecruit(Player(attacker), destroyedD > 0, "ring-of-fire-recruit");
             GrantRingRecruit(Player(defender), destroyedA > 0, "ring-of-fire-recruit");
         }
@@ -1773,7 +1797,9 @@ public sealed partial class MatchEngine
         // Conqueror (core rules Glossary): only relevant when the attacker won -- the attacking army
         // (a) is untouched in that branch (only defenders are destroyed), so candidates read off it
         // here are still accurate even if the choice must be deferred to the attacker.
-        var conquerorCandidates = attackerWon ? a.Where(c => c.Zone == Zone.Battlefield && Keyword(c, "Conqueror")).Select(c => c.Id).ToArray() : [];
+        // Conquest is not Repeatable (issue #1147, ruling R-091): once per turn across every battlefield, so a Conqueror already kept unbowed this turn leaves none to choose.
+        var conquestUsed = Player(attacker).ConquestTurn == _state.TurnNumber;
+        var conquerorCandidates = attackerWon && !conquestUsed ? a.Where(c => c.Zone == Zone.Battlefield && Keyword(c, "Conqueror")).Select(c => c.Id).ToArray() : [];
         // The Plain of Glass (issue #503, EmperorP5.cs): "You may use the rulebook Conquest ability twice per turn during the same battle" -- two Conquerors of the battle.
         if (PlainOfGlassConquestTwice(attacker) && conquerorCandidates.Length == 2) { FinishBattleResolution(attacker, provinceIndex, a, conquerorCandidates[0], conquerorCandidates[1]); return; }
         if (conquerorCandidates.Length > 1)
@@ -1804,6 +1830,7 @@ public sealed partial class MatchEngine
     private void FinishBattleResolution(int attacker, int provinceIndex, CardInstance[] a, string? conquerorUnbowedId, string? secondConquerorId = null)
     {
         P5.FirstConquerorId = null; // issue #503: The Plain of Glass's pending first choice is spent
+        if (conquerorUnbowedId is not null) Player(attacker).ConquestTurn = _state.TurnNumber; // issue #1147: the turn's Conquest is spent
         var willNotBow = _state.ResolutionWillNotBowPlayerIds.ToArray();
         Wave737NatsuMarksUnbowed(a); // Natsu-Togumara's Guidance (issue #737, Wave737.cs): "battle resolution does not bow cards in that Personality's unit."
         // Hiruma Hikazu (The Shadow's Embrace pass, issue #476 batch 1): the Personalities with unbowed Followers in his army, read before anything bows.
@@ -1868,7 +1895,7 @@ public sealed partial class MatchEngine
         // Force redirection (issue #216) is "for the duration of the battle," same reasoning.
         _state.ForceRedirects.Clear();
         // Ring of Water's own recruitment condition (issue #194) is battle-scoped, same reasoning.
-        foreach (var p in _state.Players) { p.TerrainPlayedThisBattle = false; p.TerrainDestroyedThisBattle = false; }
+        foreach (var p in _state.Players) { p.TerrainPlayedThisBattle = false; p.TerrainDestroyedThisBattle = false; p.PersonalityDestroyedThisBattle = false; }
         if (_state.WinnerId is not null) return;
         // Overconfident (issue #223): a chance to react to anything this battle's own resolution
         // (DestroyUnits, above) just killed, before the battle actually closes out. Deferred here,
@@ -2153,10 +2180,13 @@ public sealed partial class MatchEngine
             // lets the Defender take an additional Battle action.
             NoteForthrightnessStrategyAction(command.PlayerId, card);
             ResolveForthrightnessWatches(command.PlayerId, card);
+            var unscopedGrantUsed = !_state.AdditionalActions.Any(g => g.PlayerId == command.PlayerId && GrantUsableNow(g) && g.ScopeCardIds is not null && g.ScopeCardIds.Contains(card.Id)) && ConsumeAdditionalActionGrant(command.PlayerId, null); // an additional Battle action already held (Bayushi Wateru's Interrupt, issue #1150) is spent by this Terrain, before Crowded Streets grants its own
             var terrainGrant = CrowdedStreetsDefenderGrant(command.PlayerId, card);
             // Plain of Gold (Emperor Edition Stronghold pass, issue #486 batch 2): "Take an additional Battle action to play it" -- a grant scoped to this very card is spent by its play, and the
             // player keeps priority only while he holds another.
             var scopedGrantUsed = _state.AdditionalActions.Any(g => g.PlayerId == command.PlayerId && GrantUsableNow(g) && g.ScopeCardIds is not null && g.ScopeCardIds.Contains(card.Id)) && ConsumeAdditionalActionGrant(command.PlayerId, card.Id);
+            // A Terrain played as the additional Battle action Bayushi Wateru's Interrupt grants (issue #1150) spends that grant too, and the player keeps priority only while he holds another.
+            scopedGrantUsed = scopedGrantUsed || unscopedGrantUsed;
             var scopedStays = scopedGrantUsed && _state.AdditionalActions.Any(g => g.PlayerId == command.PlayerId && Forfeitable(g));
             if (OpenEntryReactionWindow(command.PlayerId, card, terrainGrant || scopedStays ? command.PlayerId : 1 - command.PlayerId)) return;
             NextAction(command.PlayerId, terrainGrant || scopedStays);
@@ -2539,6 +2569,7 @@ public sealed partial class MatchEngine
         if (InPlay(card)) QueueOverconfidentDraw(card);
         // Fair Warning (issue #453, batch 2): "after the next time this turn he ... is destroyed" -- a destruction while in play.
         if (InPlay(card)) FireDestroyedWatches(card);
+        if (InPlay(card) && _state.Phase == Phase.Battle && Definition(card).Type == CardType.Personality) Player(card.OwnerId).PersonalityDestroyedThisBattle = true; // Ring of Earth: "none of your Personalities were destroyed during the battle"
         card.Zone = Definition(card).Type == CardType.Personality ? Zone.Dead
             : Definition(card).Type is CardType.Follower or CardType.Item or CardType.Spell or CardType.Strategy or CardType.Ring ? Zone.FateDiscard
             : Zone.DynastyDiscard;
@@ -2953,21 +2984,23 @@ public sealed partial class MatchEngine
         _state.TurnNumber++; _state.ActivePlayerId = 1 - _state.ActivePlayerId;
         StartTurn();
     }
+    private bool MeetsHonorVictory(PlayerState player) => player.Honor >= HonorVictoryThreshold(player.Id);
+    private bool MeetsEnlightenmentVictory(PlayerState player) =>
+        !EnlightenmentBarred(player.Id) && RingElements.All(e => _state.Cards.Values.Any(c => c.OwnerId == player.Id && InPlay(c) && Definition(c).Type == CardType.Ring && Keyword(c, e) && !Keyword(c, "Fudo") && CountsForEnlightenment(c)));
     private void StartTurn()
     {
         foreach (var each in _state.Players) each.ProclaimedCardId = null; // a new turn: every Personality may be Proclaimed again (SeedsOfDecayBatch2.cs ProclaimRejection)
         var player = Player(_state.ActivePlayerId);
         _state.PriorityPlayerId = player.Id;
         // Akodo Hotaka (issue #453, batch 2) lowers the 40 his controller needs (HonorVictoryThreshold).
-        if (player.Honor >= HonorVictoryThreshold(player.Id)) { Win(player.Id, "Honor victory at the start of the turn"); return; }
+        if (MeetsHonorVictory(player)) { Win(player.Id, "Honor victory at the start of the turn"); return; }
         // Enlightenment victory (issue #194): begins their turn with all five REAL elemental Rings
         // (Fire/Water/Air/Earth/Void) in play -- checked by Keyword, not a fixed card id, since more
         // than one printing of a given Ring exists. Every False Ring carries its own matching
         // elemental keyword too (e.g. False Ring of Air prints "Air"), so this alone is not enough
         // to exclude them -- but all five False Rings also carry "Fudo", which no real Ring does,
         // so that keyword is the actual False-Ring exclusion.
-        if (!EnlightenmentBarred(player.Id) && RingElements.All(e => _state.Cards.Values.Any(c => c.OwnerId == player.Id && InPlay(c) && Definition(c).Type == CardType.Ring && Keyword(c, e) && !Keyword(c, "Fudo") && CountsForEnlightenment(c))))
-        { Win(player.Id, "Enlightenment victory"); return; }
+        if (MeetsEnlightenmentVictory(player)) { Win(player.Id, "Enlightenment victory"); return; }
         player.TurnsTaken++;
         PromoTurnBegins(player); // issue #653 (PromoEmperorEvents.cs): Losing the Way
         RestrictionsTurnBegin(); // P11 (CardRestrictions.cs): delayed Celestial entries, expired restrictions
@@ -3096,8 +3129,10 @@ public sealed partial class MatchEngine
             }
             // An Event already face up (refilled face up by Border Keep's cycle or the Kharmic replacement) was never
             // revealed here, but Events resolve only in the Events Phase: it resolves now instead of staying stuck
-            // (rules lead ruling, docs/decisions/2026-09-22-suspicions-owner-events-phase.md).
+            // (rules lead ruling, docs/decisions/2026-09-22-suspicions-owner-events-phase.md). A Region refilled face up is the same: it attaches now and the Province refills, instead of sitting
+            // in the Province as an ordinary face-up card that never attaches.
             else if (Definition(card).Type == CardType.Event && ResolveEvent(player, province, card)) return;
+            else if (Definition(card).Type == CardType.Region && ResolveRegion(player, province, card)) return;
         }
         if (RunAfterProvincesRevealed(player)) return; // P5 (ProvinceRevealEvents.cs): Events that stay face up in their province fire now; a decision pauses the phase
         AdvanceStraightenHolds(StraightenPoint.EventsRevealEnds);

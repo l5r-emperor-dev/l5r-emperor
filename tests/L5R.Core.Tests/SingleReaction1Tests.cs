@@ -1204,7 +1204,7 @@ internal static partial class SingleReaction1Tests
             foreach (var d in new[] { 0, 1, 2 }) { var c = Add(s, "training-focus-strategy", actor, Zone.FateDeck); s.Players[actor].FateDeck.Insert(0, c.Id); }
             top = s.Players[actor].FateDeck.Take(3).ToArray();
             var e = MatchEngine.FromTestState(s);
-            if (act) Accept(e, Use(e, ringOwner, "ring-of-void-recruit", ring.Id));
+            if (act) { e = Batch336Support.GrantVoid(e, ringOwner, ring.Id); Accept(e, Use(e, ringOwner, "ring-of-void-recruit", ring.Id)); }
             return e;
         }
         foreach (var o in new[] { 0, 1 })
@@ -1227,7 +1227,7 @@ internal static partial class SingleReaction1Tests
             var quiet = Rig(o, o, false, out var w3, out _);
             NeverOpened(quiet, o, ability, w3.Id, command with { CardId = w3.Id });
             var bowedSpell = Batch336Support.Edit(Rig(o, o, false, out var w4, out _), st => st.Cards[w4.Id].Bowed = true);
-            Accept(bowedSpell, Use(bowedSpell, o, "ring-of-void-recruit", bowedSpell.State.Cards.Values.First(c => c.DefinitionId == ringOfVoid).Id));
+            bowedSpell = Batch336Support.GrantVoid(bowedSpell, o, bowedSpell.State.Cards.Values.First(c => c.DefinitionId == ringOfVoid).Id); Accept(bowedSpell, Use(bowedSpell, o, "ring-of-void-recruit", bowedSpell.State.Cards.Values.First(c => c.DefinitionId == ringOfVoid).Id));
             Check(!CanUse(bowedSpell, o, ability, w4.Id), "a bowed Spell cannot pay its cost");
         }
     }

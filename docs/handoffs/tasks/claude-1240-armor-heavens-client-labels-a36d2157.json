@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Client follow-up to #1241: a 'choose a player' option Core labels by outcome (Armor of the Heavens: You Gain 2 Honor, Opponent Loses 2 Honor, ...) is shown with Core's words on the reaction button, its duplicate caption is dropped, and choosing it no longer reopens the Choose a player picker (NamesItsPlayer in Main.PlayerTargets.cs). New native capture published-reaction-flow-armor added to tools/check-reaction-flow-ui.sh.",
+  "validation": "bash tools/check.sh --client-only exit 0; tools/check-reaction-flow-ui.sh (incl. new armor-seat1: four named buttons, Opponent Loses 2 Honor took the opponent from 7 to 5 Honor), check-direct-play-ui, check-table-click-ui, check-province-target-ui, check-variant-steps-ui all exit 0. Screenshots reviewed at 1920x1080. Not played by a human.",
+  "remaining": "None; ready for review.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1240",
+  "branch": "claude/1240-armor-heavens-client-labels",
+  "updated": "2026-11-14T19:56:13.124503+00:00"
+}

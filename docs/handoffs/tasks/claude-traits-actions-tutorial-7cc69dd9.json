@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Traits and Actions tutorial: Mantis against Crane, from Mendon's script (Border Keep, Minori, Dainagon, Chiisai, the six steps of an action, one attack with Naval Invasion, Unorthodox Attack, Munefusa, Back to the Front).",
+  "validation": "TutorialTraitsActionsTests (5 cases) pass; full check.sh result in the PR.",
+  "remaining": "Not hand-played in the client.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1035",
+  "branch": "claude/traits-actions-tutorial",
+  "updated": "2026-10-31T14:57:34.478542+00:00"
+}

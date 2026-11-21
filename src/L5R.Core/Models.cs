@@ -404,6 +404,8 @@ public sealed class PlayerState
     public string? ProclaimedCardId { get; set; }
     /// <summary>The turn this player last bought a Personality from a province (issue #639): the next purchase that turn is no longer the one that defaults to Proclaim.</summary>
     public int PersonalityPurchaseTurn { get; set; } = -1;
+    /// <summary>The turn this player last used the rulebook Conquest ability (issue #1147, ruling R-091): it is not Repeatable, so once a Conqueror is kept unbowed no other may be that turn, at any battlefield.</summary>
+    public int ConquestTurn { get; set; } = -1;
     /// <summary>True once this player has bought, overlaid or discarded a province card since the current Dynasty Phase began; reset when a Dynasty Phase begins. Lets a client confirm an End Dynasty that would do neither. Derived from commands, so replay recomputes it.</summary>
     public bool DynastyActionTaken { get; set; }
     public bool DishonorLossPending { get; set; }
@@ -415,6 +417,17 @@ public sealed class PlayerState
     // actions in one turn." Incremented at each Favor-consuming ability's own execution case
     // (shunya-honor, favor-cycle, favor-battle); reset every StartTurn.
     public int FavorActionsThisTurn { get; set; }
+    // Ring of the Void's own recruitment condition (issue #1157): non-Kiho actions from Strategies resolved in the phase named by the "turn:phase" stamp.
+    public int StrategyActionsThisPhase { get; set; }
+    public string? StrategyActionsPhase { get; set; }
+    // Ring of Air and Ring of Water's recruitment conditions (Emperor Edition scans): the titles of the cards whose Spell/Kiho actions (this turn) or Battle actions (this battle) this player
+    // has resolved, each list valid for the stamp beside it ("turn" / "battle number"); a repeat of an already-counted title is not a further action of a different title.
+    public string? SpellKihoActionsStamp { get; set; }
+    public List<string> SpellKihoActionTitles { get; set; } = [];
+    public string? BattleActionsStamp { get; set; }
+    public List<string> BattleActionTitles { get; set; } = [];
+    // Ring of Earth's recruitment condition: one of this player's Personalities was destroyed while in play during this battle; cleared when the battle ends.
+    public bool PersonalityDestroyedThisBattle { get; set; }
     // Moshi Madoka - exp (Gempukku pass, issue #461): "If you have attached a card from your hand this turn" -- set wherever a card leaves the hand to become an attachment, reset every StartTurn.
     public bool AttachedFromHandThisTurn { get; set; }
     // Emperor Edition remaining-cards pass (issue #492), group F. Alter History: "until the game ends, he may ignore Honor Requirements when bringing Personalities into play". Benefices of the Emperor:
@@ -1010,6 +1023,8 @@ public sealed partial class MatchState
     public GameCommand? PendingAnnouncedAction { get; set; }
     // Issue #917 (ResolutionArea.cs): the cards in the resolution area, oldest first (a Reaction played in response sits above the action it answers).
     public List<ResolutionEntry> ResolutionArea { get; set; } = [];
+    // Issue #1169 (BattleActionLog.cs): every action and pass of the battle in progress, oldest first; emptied when the next battle starts, so the last one stays reviewable after it resolves.
+    public List<BattleActionRecord> BattleActions { get; set; } = [];
     // Entrenched Position (Forgotten Legacy pass, issue #467 batch 3): set by its Reaction inside an "announceReaction" window; the announced action then resolves negated
     // (ResolveNegatedAction: taken, its costs paid, no effects) when the window closes. Cleared as it is read.
     public bool AnnouncedActionNegated { get; set; }
@@ -1412,7 +1427,10 @@ public sealed record ActionOption(string Type, string Label, bool Enabled, strin
     // Engine-selected preview cards for a complete pending answer; private candidates are only offered to the decider.
     string[]? DecisionCandidateIds = null, string? DecisionLabel = null,
     // The destination rule of an ability that moves cards (MoveSpec.Home / CurrentBattlefield, or a rule that needs a chosen battlefield); null for every other action. Lets a client offer a drag without reading card text.
-    string? MoveTo = null)
+    string? MoveTo = null,
+    // Issue #1202: set when Command.Choice is a decision the player makes AFTER the target ("which ability of this Holding to copy"): its player-facing text. A client lists the options that share a target
+    // as one question, asked once the target is chosen, instead of one list entry per Holding and per thing to copy.
+    string? ChoiceLabel = null)
 {
     /// <summary>
     /// Issue #1028: true when this option's own fields say the player must supply more than a confirm (a target, a province choice list, a slot, a movement or attack choice, an
@@ -1453,7 +1471,9 @@ public sealed record CardView(string Id, CardDefinition? Definition, int OwnerId
     // Issue #611: the Personality's match-unique, public "Unit N" number, assigned when it first enters play; 0 for a card that has not (and for hidden cards).
     int UnitNumber = 0,
     // P21 (issue #697): the card a Zone.Underneath card sits under (null for the cards under the Stronghold and for any other card). A face-down under-card is redacted for the other seat.
-    string? UnderHostId = null);
+    string? UnderHostId = null,
+    // The card's printed abilities that have used up their uses this turn (public: both players watched them being used); null when none. A bot reads it to see which Battle actions a card still has.
+    string[]? SpentAbilityIds = null, CardRestrictionView[]? Restrictions = null);
 /// <summary>What Dark Experiments does to the province it marks (permanent) and to each Holding that enters play from it; the board marker shows these values.</summary>
 public static class DarkExperimentsMark
 {
@@ -1509,6 +1529,8 @@ public sealed record PlayerView(int Id, string Name, string Clan, int Honor, int
     public HandLimitView? HandLimit { get; init; }
     /// <summary>True once this player bought, overlaid or discarded a province card since the current Dynasty Phase began (public; absent/false in older payloads).</summary>
     public bool DynastyActionTaken { get; init; }
+    /// <summary>Issue #1283: true while this player would win by Honor or Enlightenment the moment their next turn begins, by the same tests the turn start applies (public inputs only).</summary>
+    public bool WinsWhenTurnBegins { get; init; }
     /// <summary>True only in the owning seat's own view, while Plans Within Plans lets this player take a Limited action in place of an Open one right now. Lets a client treat that out-of-phase Limited action as the one being played.</summary>
     public bool PlansWithinPlansArmed { get; init; }
 }
@@ -1616,9 +1638,17 @@ public sealed record MatchView(string ContentVersion, string Scenario, long Vers
     // Issue #917 (ResolutionArea.cs): the resolution area, oldest first, PUBLIC and identical for both seats; null when empty so a payload outside an open action is unchanged. Declared last.
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public ResolutionEntryView[]? ResolutionArea { get; init; }
+    // Issue #1169 (BattleActionLog.cs): the battle's actions and passes, oldest first, PUBLIC except that a face-down target is named only to its owner; null outside a battle that has had any.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public BattleActionView[]? BattleActions { get; init; }
 }
 /// <summary>Engine-private record of one face-down province card a player looked at (MatchState.ProvinceSights). Turn is the turn number it was looked at.</summary>
 public sealed record ProvinceSight(int ViewerId, int OwnerId, int Province, string CardId, string DefinitionId, int Turn);
 /// <summary>PRIVATE to the looking player: what the face-down card in a province is (its owner's province Province).</summary>
 public sealed record ProvinceSightView(int OwnerId, int Province, string DefinitionId, CardDefinition Definition);
-public sealed record ReplayRecord(string ContentVersion, string Scenario, ulong Seed, GameCommand[] Commands, Deck[]? CustomDecks = null, bool IdleBattlePasses = false);
+/// <param name="Practice">issue #1266: what the player called the two decks and the bot level, for people reading the replay; never read by the engine.</param>
+/// <param name="FinalDigest">issue #1266: MatchEngine.Digest() of the match when it was exported; Replay refuses a replay whose commands no longer reach it.</param>
+public sealed record ReplayRecord(string ContentVersion, string Scenario, ulong Seed, GameCommand[] Commands, Deck[]? CustomDecks = null, bool IdleBattlePasses = false,
+    PracticeLabels? Practice = null, string? FinalDigest = null);
+/// <summary>Labels a practice export carries for its readers (issue #1266): the deck names as the player chose them and the bot level. Names only, never paths.</summary>
+public sealed record PracticeLabels(string? YourDeck, string? OpponentDeck, string? BotLevel);

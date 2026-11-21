@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "A Game of Dice costs 3 (the cost inside its Limited action is its Gold Cost) and is priced like any Strategy, checked against Mysterious Deaths with Kanaye; Ikoma Shika's cost corrected to 4 in the library and deck pool (stat-corrections.json)",
+  "validation": "forgotten-legacy-batch-3 13/13; tools/content unittest OK; local full check blocked by another session's uncommitted Rings edits in the shared checkout (RingOfTheVoid, Kikugoro, akumas-power failures are in files this branch does not touch), so CI is the full run",
+  "remaining": "None; ready for review.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/812",
+  "branch": "claude/game-of-dice-cost",
+  "updated": "2026-11-02T19:40:59.175394+00:00"
+}

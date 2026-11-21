@@ -21,12 +21,309 @@ public sealed class BotContext
     private int _favorTakenTurn = -1;
     private int _borderRefreshTurn = -1;
 
+    /// <summary>Issue #1185: the planning bot. True builds a turn plan (intent, Gold shape, purchase slate; TrainingOpponent.Planner.cs) and rebuilds it whenever the table changes. OFF by default: the champion plays as before.</summary>
+    private readonly bool _usePlanner = false; public bool UsePlanner { get => NegFlag("noplanner", _usePlanner); init => _usePlanner = value; }
+
+    /// <summary>Issue #1185 (slice 3): ability triage. Targets are ranked by what they can still do (unspent printed abilities, unspent Tacticians, Force), printed abilities in play go before hand cards, and no Gold or card is spent on a battle already comfortably won. Works with or without <see cref="UsePlanner"/>. OFF by default.</summary>
+    private readonly bool _usePlannerTriage = false; public bool UsePlannerTriage { get => NegFlag("notriage", _usePlannerTriage); init => _usePlannerTriage = value; }
+
+    // What each performer has used this turn, remembered from the battle's public action list (the view says nothing about a card's once-per-turn abilities). Keyed by performer NAME,
+    // as the list names them: two same-named cards are treated as one, the cautious reading.
+    private int _spentTurn = -1;
+    private readonly HashSet<string> _spent = new(StringComparer.Ordinal);
+    public void NoteBattleActions(MatchView view)
+    {
+        if (view.BattleActions is not { Length: > 0 } actions) return;
+        if (view.TurnNumber != _spentTurn) { _spent.Clear(); _spentTurn = view.TurnNumber; }
+        foreach (var a in actions) if (a.Performer is not null) _spent.Add(a.Performer + "|" + a.AbilityId);
+    }
+    public bool SpentThisTurn(int turn, string performerName, string abilityId) => turn == _spentTurn && _spent.Contains(performerName + "|" + abilityId);
+
+    /// <summary>Issue #1185 ablation switches, meaningful only with <see cref="UsePlanner"/>. PlannerReserve: Gold is kept untapped for Battle tricks (before this turn's attack, and at the end of the turn when an attack on the bot is likely). PlannerDiscard: Mendon's discard rule instead of the champion's.</summary>
+    private readonly bool _plannerReserve = true; public bool PlannerReserve { get => Flag("reserve", _plannerReserve); init => _plannerReserve = value; }
+
+    /// <summary>
+    /// The Contender (issue #1185): the planning bot, as one named configuration, for the bot-vs-bot tournament against the champion. It keeps the parts that paired testing found harmless: the
+    /// purchase slate (Gold shape, bodies, Proclaim, clear-the-row buying) and triage's target ranking and printed-abilities-first ordering. The parts that paired testing found to LOSE games stay
+    /// off until they are fixed, each behind its own switch so a tournament can turn one on at a time: <paramref name="attack"/> (the swing-based attack estimate; about -14 games in 364),
+    /// <paramref name="discard"/> (the interview's discard rule; about -11), <paramref name="reserve"/> (Gold held for Battle tricks; no measurable effect) and <paramref name="wonCap"/> (no spending on a
+    /// comfortably won battle; about -3, not significant). See docs/bots/CONTENDER.md for the evidence and how to run it. The champion on main is unchanged.
+    /// </summary>
+    public static BotContext Contender(bool attack = false, bool discard = false, bool reserve = false, bool wonCap = false, IEnumerable<string>? rules = null) => Contender(attack, discard, reserve, wonCap, new HashSet<string>(Expand(rules ?? TunedRules), StringComparer.Ordinal));
+
+    private static BotContext Contender(bool attack, bool discard, bool reserve, bool wonCap, HashSet<string> rules)
+    {
+        RuleRegistry.Check(rules); // issue #1206 (step 1 item 1): an unknown or misspelt name fails here instead of silently playing the baseline
+        return new()
+        {
+            Rules = rules,
+            UseSureReactions = rules.Contains("surereact"),
+            UseTradeAttacks = rules.Contains("trades"),
+            UseBattlePolicy = rules.Contains("battlepolicy"),
+            UsePlanner = !rules.Contains("noplanner"),
+            UsePlannerTriage = !rules.Contains("notriage"),
+            TriageTargets = !rules.Contains("notargets"),
+            TriagePrintedFirst = !rules.Contains("noprinted"),
+            PlannerAttack = attack || rules.Contains("pattack"),
+            PlannerDiscard = discard || rules.Contains("pdiscard"),
+            PlannerReserve = reserve || rules.Contains("reserve"),
+            TriageWonCap = wonCap
+        };
+    }
+    /// <summary>A rule list may name a set: <c>t2</c> stands for <see cref="T2Rules"/>, so an arm is written "t2,read,readA" instead of spelling the yardstick out.</summary>
+    public static IEnumerable<string> Expand(IEnumerable<string> rules) => rules.SelectMany(r => r == "t2" ? T2Rules : [r]);
+    /// <summary>Issue #1185 tuning: the Contender's default rules (TrainingOpponent.Contender2.cs), the set that won the most on unseen games (blocks 5000-5001). Ablation there showed that
+    /// slate, selfharm, econT2 and battlepolicy+trades each LOST games, so they stay off; lobby and openbow are kept (dropping both lost games). spreadwide and conf, from Mendon's battle grill,
+    /// gained 24 and 19 games on dev blocks 7000 and 7100 and were neutral on the holdout decks; selfplayer, presdepth (pdh=100), keepup, nofoeboost and raid, from Mendon's practice games,
+    /// gained 13 games on each dev block and 15 on the holdout decks (docs/bots/experiments/2026-11-09-grill-rules.md). Passing <c>rules</c> replaces this set.</summary>
+    public static readonly string[] TunedRules = ["econ", "presence", "lobby", "shinden", "openbow", "ownprov", "selflock", "surereact", "selfboost", "nostraighten", "provaim", "spreadwide", "conf", "selfplayer", "presdepth", "pdh=100", "keepup", "nofoeboost", "raid", "pdstrong", "defwin", "nobowgift"];
+    /// <summary>Issue #1206 (docs/bots/CONAN_STRATEGY_BRIEF.md step 0): the Contender frozen as the campaign's yardstick, T2, the 22 rules as they stood on 2026-11-13. This list never changes
+    /// (RuleRegistryTests fails if it does); <see cref="TunedRules"/> may move on with the practice bot. The tournament arm is <c>t2</c>, and a rule list may say <c>t2</c> for the set.</summary>
+    public static readonly string[] T2Rules = ["econ", "presence", "lobby", "shinden", "openbow", "ownprov", "selflock", "surereact", "selfboost", "nostraighten", "provaim", "spreadwide", "conf", "selfplayer", "presdepth", "pdh=100", "keepup", "nofoeboost", "raid", "pdstrong", "defwin", "nobowgift"];
+    /// <summary>Conan (issue #1206): the Contender with battle lookahead (TrainingOpponent.Lookahead.cs). It searches only when the caller also supplies <see cref="Sampler"/>.</summary>
+    public static BotContext Conan(IEnumerable<string>? rules = null) => Contender(rules: [.. rules ?? TunedRules, .. ConanRules]);
+    public static readonly string[] ConanRules = ["look"];
+    /// <summary>Issue #1214: what Conan plays with for a person: the Contender's tuned rules plus <c>look</c> and the searches of the defence, its shapes and the planned attack (lkDef, lkVar, lkPlan), the best-measured
+    /// state (71-73% against the Contender on blocks 7000, 7200 and 7300; docs/bots/experiments/2026-11-10-conan-vs-contender.md). Experimental rules stay off. The caller must still supply <see cref="Sampler"/>.</summary>
+    public static readonly string[] HardRules = ["lkDef", "lkVar", "lkPlan"];
+    public static BotContext Hard() => Conan(rules: [.. TunedRules, .. HardRules]);
+    /// <summary>Issue #1206: a copy of the match with every card hidden from this seat redealt (MatchEngine.Sample), for a given seed; null: no lookahead. The caller supplies it, so the bot
+    /// still never reads the real match: what it plays forward is a world consistent with its own view.</summary>
+    public Func<ulong, MatchEngine>? Sampler { get; set; }
+    /// <summary>Issue #1206: one line per lookahead decision (the candidates' values and the choice), for reviewing games.</summary>
+    public List<string> LookLog { get; } = [];
+    /// <summary>Issue #1206 (the strategy brief, rule "read"): the Read in shadow mode, rebuilt when its key changes and logged; nothing decides on it yet.</summary>
+    public Read? CurrentRead { get; private set; }
+    public List<string> ReadLog { get; } = [];
+    internal void NoteRead(MatchView view)
+    {
+        var key = Read.KeyOf(view);
+        if (CurrentRead?.Key == key) return;
+        CurrentRead = Read.Of(view);
+        if (ReadLog.Count < 2000 && CurrentRead.Battles().Any()) ReadLog.Add(CurrentRead.ToString());
+        // the game's course, once a turn, for the race's rates (section 4.5, question 3)
+        if (History.Count == 0 || History[^1].Turn != view.TurnNumber)
+        {
+            var me = view.Players.Single(p => p.Id == view.ViewerId); var them = view.Players.Single(p => p.Id != view.ViewerId);
+            History.Add((view.TurnNumber, me.Honor, them.Honor, me.Provinces.Count(p => !p.Destroyed), them.Provinces.Count(p => !p.Destroyed)));
+        }
+        // the three questions and the posture (section 4.5) on my own turn at the attack declaration and at the first Dynasty decision; a rebuild that changes the posture or the best attack is logged with what preceded it (4.6)
+        if (view.ActivePlayerId == view.ViewerId && (view.Phase == Phase.AttackDeclaration || view.Phase == Phase.Dynasty && _answersTurn != view.TurnNumber))
+        {
+            if (view.Phase == Phase.Dynasty) _answersTurn = view.TurnNumber;
+            var before = CurrentAnswers; CurrentAnswers = Questions.Of(CurrentRead, TrendNow());
+            if (ReadLog.Count < 2000)
+            {
+                var change = before is null ? "first" : before.Posture != CurrentAnswers.Posture || before.Opportunity.Best.Label != CurrentAnswers.Opportunity.Best.Label ? $"replan from {before.Posture}/{before.Opportunity.Best.Label}" : "same";
+                ReadLog.Add($"T{view.TurnNumber} {view.Phase} answers ({change}{(change.StartsWith("replan") && view.Events.Length > 0 ? " after: " + view.Events[^1].Message : "")}): {CurrentAnswers}");
+            }
+        }
+    }
+    private int _answersTurn = -1;
+    /// <summary>Issue #1206 (family A): the Read's answers for the current decision, by view version.</summary>
+    internal (long Version, Answers Answers)? ReadAnswersCache { get; set; }
+    /// <summary>Family A in shadow: the opportunity's attack or hold and its shape beside what the bot chose; a difference is logged.</summary>
+    public List<string> AttackLog { get; } = [];
+    internal void NoteAttack(MatchView view, Answers answers, GameCommand chosen)
+    {
+        if (AttackLog.Count >= 2000) return;
+        var best = answers.Opportunity.Best;
+        // the position in a line: my unbowed home Forces, theirs, each side's Provinces with Strength, the clocks; then the options by score
+        var me = view.Players.Single(p => p.Id == view.ViewerId); var them = view.Players.Single(p => p.Id != view.ViewerId);
+        string Forces(PlayerView p) => string.Join(",", p.Home.Where(c => c.Definition?.Type == CardType.Personality).OrderByDescending(c => c.UnitForce ?? c.Force).Select(c => (c.UnitForce ?? Math.Max(0, c.Force)) + (c.Bowed ? "*" : "")));
+        string Provs(PlayerView p) => string.Join(",", p.Provinces.Where(q => !q.Destroyed).Select(q => "s" + q.Strength));
+        var position = $"me [{Forces(me)}] P[{Provs(me)}] H{me.Honor} hand {me.HandCount} | them [{Forces(them)}] P[{Provs(them)}] H{them.Honor} hand {them.HandCount} | clocks {answers.Clocks}";
+        var options = string.Join(" || ", answers.Opportunity.Options.OrderByDescending(o => o.Score).Take(4).Select(o => o.ToString()));
+        if (view.Phase == Phase.AttackDeclaration)
+        {
+            var chose = chosen.Type == "declareAttack" ? "declare" : chosen.Type == "pass" ? "hold" : chosen.Type;
+            var would = best.IsHold ? "hold" : "declare";
+            if (chose is "declare" or "hold") AttackLog.Add($"T{view.TurnNumber} declare {(chose == would ? "same" : "DIFFERS")}: chose {chose}, read {would} ({answers.Opportunity.Gate}{(answers.Opportunity.Gate.Length > 0 ? "; " : "")}posture {answers.Posture}: {answers.Why}) | {position} | {options}");
+            return;
+        }
+        var mine = chosen.Assignments ?? [];
+        var same = !best.IsHold && mine.Count == best.Assignment.Count && mine.All(kv => best.Assignment.TryGetValue(kv.Key, out var p) && p == kv.Value);
+        string Shape(IReadOnlyDictionary<string, int> a) => a.Count == 0 ? "nobody" : string.Join(",", a.GroupBy(v => v.Value).OrderBy(g => g.Key).Select(g => $"P{g.Key + 1}<-{g.Count()}"));
+        AttackLog.Add($"T{view.TurnNumber} assign {(same ? "same" : "DIFFERS")}: chose {Shape(mine)}, read {(best.IsHold ? "hold" : Shape(best.Assignment))} | {position} | {options}");
+    }
+    /// <summary>Issue #1206 (family C): the Guard's plan for an attack assignment at the current decision, by view version and assignment.</summary>
+    internal (long Version, string Key, GuardPlan Plan)? ReadGuardPlan { get; set; }
+    /// <summary>Family C in shadow: what the Guard would have kept back from the attack chosen; a difference is logged.</summary>
+    public List<string> GuardLog { get; } = [];
+    internal void NoteGuard(MatchView view, GuardPlan plan, IReadOnlyDictionary<string, int> chosen)
+    {
+        if (GuardLog.Count >= 2000) return;
+        string Shape(IReadOnlyDictionary<string, int> a) => a.Count == 0 ? "nobody" : string.Join(",", a.GroupBy(v => v.Value).OrderBy(g => g.Key).Select(g => $"P{g.Key + 1}<-{g.Count()}"));
+        var me = view.Players.Single(p => p.Id == view.ViewerId); var them = view.Players.Single(p => p.Id != view.ViewerId);
+        GuardLog.Add($"T{view.TurnNumber} {view.Phase} {(plan.Stands ? "same" : "DIFFERS")}: chose {Shape(chosen)}, read {Shape(plan.Assignments)} kept {plan.Kept.Length} ({plan.Why}) | P{me.Provinces.Count(p => !p.Destroyed)}v{them.Provinces.Count(p => !p.Destroyed)} H{me.Honor}/{them.Honor} | {string.Join(" || ", plan.Log)}");
+    }
+    /// <summary>Issue #1206 (family E): the Fight's plan for the current decision, by view version.</summary>
+    internal (long Version, FightPlan Plan)? ReadFightPlan { get; set; }
+    /// <summary>Family E in shadow: what the Fight would do at each Battle priority beside what the bot chose; a difference is logged.</summary>
+    public List<string> FightLog { get; } = [];
+    internal void NoteFight(MatchView view, FightPlan plan, string chose, string position)
+    {
+        if (FightLog.Count >= 2000) return;
+        var would = plan.Pick ?? "pass";
+        FightLog.Add($"T{view.TurnNumber} P{(view.BattleStep?.BattlefieldProvince ?? view.CurrentBattleProvince ?? -1) + 1} {(chose == would ? "same" : "DIFFERS")}: chose {chose}, read {would} ({plan.Why}) | {position} | {plan.Standing}; {plan.Reach} | {string.Join(" || ", plan.Log)}");
+    }
+    /// <summary>Issue #1206 (family B): the Cavalry fork's plan for the current decision, by view version (null: the fork does not apply).</summary>
+    internal (long Version, ForkPlan? Plan)? ReadForkPlan { get; set; }
+    /// <summary>Family I in shadow: the Favor, the hand-replacing Event and the hand-limit discard as the Read would decide them beside what the bot did.</summary>
+    public List<string> HandLog { get; } = [];
+    internal void NoteHand(MatchView view, string kind, bool same, string chose, string would, string why)
+    {
+        if (HandLog.Count >= 2000) return;
+        var me = view.Players.Single(p => p.Id == view.ViewerId); var them = view.Players.Single(p => p.Id != view.ViewerId);
+        HandLog.Add($"T{view.TurnNumber} {view.Phase} {kind} {(same ? "same" : "DIFFERS")}: chose {chose}, read {would} ({why}) | P{me.Provinces.Count(p => !p.Destroyed)}v{them.Provinces.Count(p => !p.Destroyed)} H{me.Honor}/{them.Honor}");
+    }
+    /// <summary>Family G in shadow: what the route gate would say at the attack declaration beside what the bot did; a difference is logged.</summary>
+    public List<string> RouteLog { get; } = [];
+    internal void NoteRoute(MatchView view, Answers answers, RoutePlan plan, string chosenType)
+    {
+        if (RouteLog.Count >= 2000) return;
+        var me = view.Players.Single(p => p.Id == view.ViewerId); var them = view.Players.Single(p => p.Id != view.ViewerId);
+        var chose = chosenType == "declareAttack" ? "declare" : "pass";
+        var would = plan.Declare is null ? "(silent)" : plan.Declare.Value ? "declare" : "pass";
+        var same = plan.Silent || would == chose;
+        RouteLog.Add($"T{view.TurnNumber} {view.Phase} {(same ? "same" : "DIFFERS")}: chose {chose}, read {would} ({plan.Why}) | posture {answers.Posture}, clocks {answers.Clocks} | P{me.Provinces.Count(p => !p.Destroyed)}v{them.Provinces.Count(p => !p.Destroyed)} H{me.Honor}/{them.Honor} | {answers.Opportunity}");
+    }
+    /// <summary>Issue #1206 (family F): the Purchase's reading of the row at this Dynasty decision, by view version.</summary>
+    internal (long Version, PurchasePlan Plan)? ReadPurchasePlan { get; set; }
+    /// <summary>Family F in shadow: what the Read would buy next beside what the bot bought; a difference is logged.</summary>
+    public List<string> PurchaseLog { get; } = [];
+    internal void NotePurchase(MatchView view, PurchasePlan plan, GameCommand chosen, string? chosenName)
+    {
+        if (PurchaseLog.Count >= 2000) return;
+        var me = view.Players.Single(p => p.Id == view.ViewerId); var them = view.Players.Single(p => p.Id != view.ViewerId);
+        var chose = chosen.Type == "purchase" ? chosenName ?? chosen.CardId ?? "a card" : chosen.Type;
+        var would = plan.Silent ? "(silent)" : plan.Choice!.Name;
+        var same = plan.Silent || chosen.Type == "purchase" && (string.Equals(chosen.CardId, plan.Choice!.Id, StringComparison.Ordinal) || chosenName is not null && string.Equals(chosenName, plan.Choice.Name, StringComparison.Ordinal));
+        PurchaseLog.Add($"T{view.TurnNumber} {view.Phase} {(same ? "same" : plan.Moot ? "MOOT" : "DIFFERS")}: chose {chose}, read {would} (line {plan.Line}: {plan.Why}) | P{me.Provinces.Count(p => !p.Destroyed)}v{them.Provinces.Count(p => !p.Destroyed)} H{me.Honor}/{them.Honor} | {string.Join(" || ", plan.Log)}");
+    }
+    /// <summary>Family B in shadow: what the fork would declare at each of the seat's declarations beside what the bot chose; a difference is logged.</summary>
+    public List<string> ForkLog { get; } = [];
+    internal void NoteFork(MatchView view, ForkPlan plan, GameCommand chosen)
+    {
+        if (ForkLog.Count >= 2000) return;
+        static string Shape(IEnumerable<KeyValuePair<string, int>> a) => a.Any() ? string.Join(",", a.GroupBy(p => p.Value).OrderBy(g => g.Key).Select(g => $"P{g.Key + 1}<-{g.Count()}")) : "nobody";
+        var would = Shape(view.Phase == Phase.InfantryDeclaration ? plan.Infantry : plan.Cavalry);
+        var chose = chosen.Type == "attack" && chosen.Assignments is { Count: > 0 } a ? Shape(a) : "nobody";
+        ForkLog.Add($"T{view.TurnNumber} {view.Phase} {(chose == would ? "same" : "DIFFERS")}: chose {chose}, read {would} ({plan.Why}; {plan.Option} / {plan.FollowUp}) | {string.Join(" || ", plan.Log)}");
+    }
+    /// <summary>Issue #1206 (family D): the Read's defence plan for the current decision, by view version.</summary>
+    internal (long Version, DefencePlan Plan)? ReadDefencePlan { get; set; }
+    /// <summary>Family D in shadow: what the Read's defence would assign beside what the bot chose; a difference is logged (the step 3 shadow run reads these).</summary>
+    public List<string> DefenceLog { get; } = [];
+    internal void NoteDefence(MatchView view, DefencePlan? plan, GameCommand chosen)
+    {
+        if (plan is null || plan.Why == "nobody attacks" || DefenceLog.Count >= 2000) return;
+        var chose = chosen.Type == "pass" || chosen.Assignments is not { Count: > 0 } ? "nobody" : string.Join(",", chosen.Assignments.GroupBy(a => a.Value).Select(g => $"P{g.Key + 1}<-{g.Count()}"));
+        var would = plan.Nobody ? "nobody" : string.Join(",", plan.Assignments.GroupBy(a => a.Value).Select(g => $"P{g.Key + 1}<-{g.Count()}"));
+        var same = chose == would && (plan.Nobody || chosen.Assignments is { } a && a.Count == plan.Assignments.Count && a.All(kv => plan.Assignments.TryGetValue(kv.Key, out var p) && p == kv.Value));
+        DefenceLog.Add($"T{view.TurnNumber} {(same ? "same" : "DIFFERS")}: chose {chose}, read {would} ({plan.Why}) | {string.Join(" || ", plan.Log)}");
+    }
+    /// <summary>Issue #1206 (section 4.5): the Read's three answers and the posture, last computed on this seat's own turn. Shadow: nothing reads it to decide.</summary>
+    public Answers? CurrentAnswers { get; private set; }
+    /// <summary>Once a turn: (turn, my Honor, their Honor, my Provinces, their Provinces), for the race's rates.</summary>
+    public List<(int Turn, int MyHonor, int TheirHonor, int MyProvinces, int TheirProvinces)> History { get; } = [];
+    /// <summary>Honor and Provinces per turn over the last four turns the seat saw (two of its own), or nothing when the game is too young.</summary>
+    public Trend TrendNow() => TrendOf(History);
+    public static Trend TrendOf(List<(int Turn, int MyHonor, int TheirHonor, int MyProvinces, int TheirProvinces)> history)
+    {
+        if (history.Count < 3) return Trend.None;
+        var now = history[^1]; var from = history[Math.Max(0, history.Count - 5)]; var turns = Math.Max(1, (now.Turn - from.Turn) / 2.0); // each side moves once a round
+        return new((now.MyHonor - from.MyHonor) / turns, (now.TheirHonor - from.TheirHonor) / turns, (from.TheirProvinces - now.TheirProvinces) / turns, (from.MyProvinces - now.MyProvinces) / turns);
+    }
+    /// <summary>Issue #1206 (lkPlan): the attack the search chose at this turn's attack declaration (the infantry assignment and its shape's name); the infantry declaration carries it out.</summary>
+    internal (int Turn, Dictionary<string, int> Assignment, string Label)? PlannedAttack { get; set; }
+    /// <summary>Issue #1206: past this moment the bot abandons the decision it is making and throws <see cref="BotDeadlineException"/> (the arena's per-game cutoff, and a search's own time limit
+    /// inside its playouts). Null: no limit.</summary>
+    public DateTime? Deadline { get; set; }
+    /// <summary>Issue #1206: the wall time, in milliseconds, of each lookahead search this seat made: the thinking a player waits for.</summary>
+    public List<double> ThinkMs { get; } = [];
+    /// <summary>Issue #1206 (lkB): the playout decisions the current search has made, against its work budget.</summary>
+    internal int LookWork { get; set; }
+    /// <summary>Issue #1206 (lkClock): the opponent's Honor when this seat first searched in each turn, for the rate at which it climbs.</summary>
+    internal Dictionary<int, int> SeenHonor { get; } = [];
+    /// <summary>Issue #1185 tuning: the Contender's further rules, each named and switched on separately (see TrainingOpponent.Contender2.cs). Empty: none.</summary>
+    public HashSet<string> Rules { get; init; } = new(StringComparer.Ordinal);
+    public bool Has(string rule)
+    {
+        if (!Rules.Contains(rule) || rule == Masked) return false;
+        Consulted?.Add(rule);
+        return true;
+    }
+    /// <summary>A numeric knob given as a rule "name=value" (tuning sweeps); the default when absent, or when the knob is the one masked for a fire count.</summary>
+    public double Knob(string name, double fallback)
+    {
+        foreach (var rule in Rules)
+            if (rule.Length > name.Length + 1 && rule.StartsWith(name, StringComparison.Ordinal) && rule[name.Length] == '=' && double.TryParse(rule[(name.Length + 1)..], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var v))
+            {
+                if (rule == Masked) return fallback;
+                Consulted?.Add(rule);
+                return v;
+            }
+        return fallback;
+    }
+    // ---- Issue #1206 (strategy brief step 1 item 1): fire counters. With CountFires on, a decision records the rules it consulted and found on (Consulted), then TrainingOpponent.CountFires
+    // decides it again once per consulted rule with that rule alone masked (Masked); the rule fires when the choice differs. Off, none of this is touched and the bot plays identically.
+    public bool CountFires { get; set; }
+    internal string? Masked { get; set; }
+    internal HashSet<string>? Consulted { get; set; }
+    /// <summary>Decisions in which the rule (or knob token) was consulted and on.</summary>
+    public Dictionary<string, int> Active { get; } = new(StringComparer.Ordinal);
+    /// <summary>Decisions the rule changed: masked, the bot chose something else.</summary>
+    public Dictionary<string, int> Fires { get; } = new(StringComparer.Ordinal);
+    public int CountedDecisions { get; set; }
+    /// <summary>Decisions whose counting the deadline cut short (their later rules are uncounted).</summary>
+    public int FiresCut { get; set; }
+    private bool Flag(string name, bool on) { if (!on) return false; if (Rules.Contains(name)) { if (name == Masked) return false; Consulted?.Add(name); } return true; }
+    private bool NegFlag(string name, bool on) { if (on) return true; if (Rules.Contains(name)) { if (name == Masked) return true; Consulted?.Add(name); } return false; }
+    /// <summary>What a re-decision may change and the real decision must keep: the plan and its history, the planned attack, the Read's per-version caches, the logs' lengths.</summary>
+    internal readonly record struct Snapshot(TurnPlan? Plan, string? PlanKey, string? PlanGroup, int Plans, int PlanLines, int LookLines, int Thinks, (int Turn, Dictionary<string, int> Assignment, string Label)? PlannedAttack,
+        (long Version, Answers Answers)? AnswersCache, (long Version, DefencePlan Plan)? DefenceCache, (long Version, FightPlan Plan)? FightCache, (long Version, string Key, GuardPlan Plan)? GuardCache, (long Version, ForkPlan? Plan)? ForkCache, (long Version, PurchasePlan Plan)? PurchaseCache, int LookWork);
+    internal Snapshot Save() => new(Plan, PlanKey, PlanGroup, PlanHistory.Count, PlanLog.Count, LookLog.Count, ThinkMs.Count, PlannedAttack, ReadAnswersCache, ReadDefencePlan, ReadFightPlan, ReadGuardPlan, ReadForkPlan, ReadPurchasePlan, LookWork);
+    internal void Restore(Snapshot s)
+    {
+        Plan = s.Plan; PlanKey = s.PlanKey; PlanGroup = s.PlanGroup; Trim(PlanHistory, s.Plans); Trim(PlanLog, s.PlanLines); Trim(LookLog, s.LookLines); Trim(ThinkMs, s.Thinks);
+        PlannedAttack = s.PlannedAttack; ReadAnswersCache = s.AnswersCache; ReadDefencePlan = s.DefenceCache; ReadFightPlan = s.FightCache; ReadGuardPlan = s.GuardCache; ReadForkPlan = s.ForkCache; ReadPurchasePlan = s.PurchaseCache; LookWork = s.LookWork;
+    }
+    /// <summary>Drops the current plan so the next decision plans afresh (a re-decision under a mask must not reuse the real plan).</summary>
+    internal void ForgetPlan() { Plan = null; PlanKey = null; PlanGroup = null; }
+    private static void Trim<T>(List<T> list, int count) { if (list.Count > count) list.RemoveRange(count, list.Count - count); }
+    /// <summary>PlannerAttack: the swing-based battle estimate decides whether and where to attack (slice 2); off leaves the champion's attack rules and only the purchase slate planned.</summary>
+    private readonly bool _plannerAttack = true; public bool PlannerAttack { get => Flag("pattack", _plannerAttack); init => _plannerAttack = value; }
+    /// <summary>The three triage rules, each separately switchable (all on by default with <see cref="UsePlannerTriage"/>): TriageTargets ranks enemy targets by what they can still do; TriagePrintedFirst
+    /// scores printed abilities in play above hand cards; TriageWonCap stops spending resources on a comfortably won battle; TriageSpareKills exempts abilities that DESTROY from that cap
+    /// (a kill is permanent and shrinks their defence next turn; a bow is not). Off by default.</summary>
+    private readonly bool _triageTargets = true; public bool TriageTargets { get => NegFlag("notargets", _triageTargets); init => _triageTargets = value; }
+    private readonly bool _triagePrintedFirst = true; public bool TriagePrintedFirst { get => NegFlag("noprinted", _triagePrintedFirst); init => _triagePrintedFirst = value; }
+    public bool TriageWonCap { get; init; } = true;
+    public bool TriageSpareKills { get; init; } = false;
+    private readonly bool _plannerDiscard = true; public bool PlannerDiscard { get => Flag("pdiscard", _plannerDiscard); init => _plannerDiscard = value; }
+
+    internal TurnPlan? Plan { get; private set; }
+    internal string? PlanKey { get; private set; }
+    internal string? PlanGroup { get; private set; }
+    /// <summary>Every plan made this match, in order (the trigger that made it is in each): a tournament report or a test can see when the bot re-thought.</summary>
+    internal List<TurnPlan> PlanHistory { get; } = [];
+    /// <summary>One line per plan made this match: the turn, what made the bot re-think, its intent, the Gold and its shape, and the purchase slate. For tests and tournament reports.</summary>
+    public List<string> PlanLog { get; } = [];
+    internal void NotePlan(TurnPlan plan, string key, string group)
+    {
+        Plan = plan; PlanKey = key; PlanGroup = group; PlanHistory.Add(plan);
+        PlanLog.Add($"T{plan.Turn} {plan.Trigger}: {plan.Intent}, Gold {plan.Gold} [{string.Join("+", plan.Sources)}], slate [{string.Join(",", plan.Slate)}] ({plan.Why}){(plan.Attack is { } a ? $", attack Province {a.Province + 1} {(a.Raze ? "raze" : "win")} net {a.Estimate.Net} reserve {a.Estimate.Reserve}" : "")}");
+    }
+
     /// <summary>Issue #788: false (the default while the arena results are inconclusive; see docs/parked) plays the bot as it was before the six battle changes (no pass-when-won, target priorities, send-home rule, reaction rule or Border Keep refresh). The arena uses it to measure the change.</summary>
-    public bool UseBattlePolicy { get; init; } = false;
+    private readonly bool _useBattlePolicy = false; public bool UseBattlePolicy { get => Flag("battlepolicy", _useBattlePolicy); init => _useBattlePolicy = value; }
 
     /// <summary>Issue #870 (Mendon's playtest note): Honor the player loses for using an ability is weighed by the deck's Honor tier (a high-Honor deck hardly ever pays it), Honor gain is worth more to a high-Honor deck, and an
     /// Attack that cannot destroy its target is valued only for the rest of its action. An Attack that swings the battle from losing to winning is exempt from the Honor penalty. False plays the bot as it was before.</summary>
     public bool UseHonorAware { get; init; } = true;
+    /// <summary>Never issue a challenge when the challenged Personality's duel stat is higher than the challenger's; ties are allowed. On for the champion; a switch so arms can be compared with and without it.</summary>
+    public bool ChallengeGuard { get; init; } = true;
 
     /// <summary>Issue #902 (Mendon's bot notes): general prudence. An effect that hits both sides is played only when the opponent loses clearly more; a bow is aimed at an unbowed card or not played; a claim on the first action of a battle is made only by an Attacker with units on both sides; and in the first turns, while it is still building its economy, Gold is kept for the Dynasty phase instead of spent on cards from the hand. False plays the bot as it was before.</summary>
     public bool UsePrudence { get; init; } = true;
@@ -44,7 +341,7 @@ public sealed class BotContext
     public bool UseEquipPolicy { get; init; } = true;
 
     /// <summary>Issue #788 (Mendon): true lets the bot attack when it cannot raze a Province but can destroy the defending army (or trade favourably in a tie). OFF by default: the arena found it lost more than it won (docs/parked/2026-10-09-what-makes-a-good-l5r-bot.md).</summary>
-    public bool UseTradeAttacks { get; init; } = false;
+    private readonly bool _useTradeAttacks = false; public bool UseTradeAttacks { get => Flag("trades", _useTradeAttacks); init => _useTradeAttacks = value; }
 
     /// <summary>Issue #818 (Mendon's eleven bot changes, 2026-10-10): buy-everything and discard-by-affordability in the Dynasty Phase, the catch-up recruit, the overlay limit, lobbying and defending with the Imperial Favor, the attack and attacker-pass rules, Honor attacks, equips that count Force removed, Shinden / optional bows, and never declining an optional destroy or bow. ON by default; the arena switches it off to measure it.</summary>
     public bool UseSpec818 { get; init; } = true;
@@ -65,7 +362,7 @@ public sealed class BotContext
     public bool UseBodiesFirst { get; init; } = false;
 
     /// <summary>Issue #963 (bot loop, round 4): a Reaction that helps, penalizes, bows or destroys is always played when it is worth anything, instead of being declined by a deterministic roll (30% to 90% chance to play). Off: the roll.</summary>
-    public bool UseSureReactions { get; init; } = false;
+    private readonly bool _useSureReactions = false; public bool UseSureReactions { get => Flag("surereact", _useSureReactions); init => _useSureReactions = value; }
 
     /// <summary>The route(s) to victory the bot's own decklist supports (<see cref="DeckArchetype"/>); the caller supplies it, as with <see cref="DeckAveragePersonalHonor"/>. Null: no archetype rule applies.</summary>
     public DeckArchetype? Archetype { get; set; }
@@ -191,3 +488,6 @@ public sealed class BotContext
         }
     }
 }
+
+/// <summary>Issue #1206: thrown when a bot runs past <see cref="BotContext.Deadline"/>.</summary>
+public sealed class BotDeadlineException(string message) : Exception(message);

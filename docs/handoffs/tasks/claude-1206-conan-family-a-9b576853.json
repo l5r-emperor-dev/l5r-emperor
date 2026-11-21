@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Step 3, family A: rule readA (and raShape, the shape only), the attack declaration and infantry shape read from the Read's opportunity; shadow log AttackLog with the position; three exchange faults fixed (an ability that bows its performer bows it in the projection, a performer keyword needs an unbowed unit present, attacking/defending targets by role); their last Province sends everything; a they-win-next-turn race; weak units stay home. Screened null twice on block 9800 and shelved with the evidence; the family A note ends with three readings for Mendon.",
+  "validation": "8 read, 6 threat, 8 questions, 7 defence, 2 read-a cases pass (the Phoenix table is a regression case); bash tools/check.sh --skip-client passed; decision set 12/50 against T2's 9/50 (A 4/9 v 2/9, G 1/5), nothing lost; shadow rounds on seed 9800 judged 3/10, 3/10, 7/10; screens on block 9800 (A/A 47.9%): readA 47.6% (+144/-149), readA+raShape 46.8% (+54/-70); attack measures move +3 points under readA, the counter-attack and Personalities lost move against it.",
+  "remaining": "Mendon's reading of docs/bots/experiments/2026-11-14-conan-family-a.md: continue families E, C, B, F, G, I; or test the families together; or step 4 first. Refit Calibration on a fresh block (threat and battle records) after the exchange fix. Windows side's T2Rules and registry still unmerged. Next fresh Mac blocks from 9900.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
+  "branch": "claude/1206-conan-family-a",
+  "updated": "2026-11-14T01:38:17.684771+00:00"
+}

@@ -594,6 +594,10 @@ public sealed partial class MatchEngine
         _state.PendingChoice = null;
         P3AfterDeferredAction(playerId, sourceCardId); // issue #503: an action that ended in a search or a look has ended (a Reaction lockout ends)
         if (origin == "event") { ResumeEventAfterDeferral(playerId, sourceCardId); return; }
+        // Issue #1294: the action has resolved, so it counts toward the Rings' entry conditions like any other (Martial Instruction is a Kiho action for Ring of Air). Its timing is the one
+        // its source's actions carry; in the Battle phase only a Battle action can have been taken.
+        if (_state.Cards.TryGetValue(sourceCardId, out var deferredSource))
+            NoteResolvedActionCounts(Player(playerId), _state.Phase == Phase.Battle ? "Battle" : "Open", deferredSource);
         if (bowedBefore is not null && OpenBowReactionWindow(playerId, bowedBefore.ToHashSet(StringComparer.Ordinal), 1 - playerId)) return;
         if (OpenOverconfidentDrawWindow(1 - playerId)) return;
         NextAction(playerId, TfStrategiesAKeepsPriority(playerId, sourceCardId) || SearchPlayKeepsPriority(playerId)); // Death of the Winds (issue #622) and Gozu (issue #667): the player takes the additional action it granted

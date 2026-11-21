@@ -44,6 +44,8 @@ public partial class Main
             TutorialGlow.PhaseBar => Visible(_timeline),
             TutorialGlow.BattleBar => Visible(_battleProgressStrip),
             TutorialGlow.Honor => _clanPlaques.TryGetValue(View.ViewerId, out var plaque) && IsInstanceValid(plaque) && plaque.IsVisibleInTree() ? plaque.HonorGlobalRect : null,
+            // the Imperial Favor's reminder tile on your side, while you hold it (the Imperial Favor lesson)
+            TutorialGlow.Favor => Visible(_homeReminders.FirstOrDefault(r => IsInstanceValid(r) && r.IsFavor && r.OwnerId == View.ViewerId)),
             TutorialGlow.Hand => _tiles.Where(t => IsInstanceValid(t) && t.IsVisibleInTree() && t.Card is { Zone: Zone.Hand } c && c.OwnerId == View.ViewerId).Select(t => t.GetGlobalRect())
                 .Aggregate((Rect2?)null, (all, r) => all is { } a ? a.Merge(r) : r),
             _ => null

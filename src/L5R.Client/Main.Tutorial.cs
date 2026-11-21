@@ -34,6 +34,7 @@ public partial class Main
     private void TutorialBack()
     {
         if (_session.Tutorial is null || PresentationBusy || PlayShowcaseBusy) return;
+        if (MatchDuelOpen) { RestoreMatchTable(); DisposeMatchDuel(); } // the lesson goes back to a scene before this duel
         ResetTutorialTable();
         _session.TutorialBack();
     }
@@ -82,6 +83,8 @@ public partial class Main
         }
         var coach = lesson.Coach;
         SyncTutorialGlow(coach.Glow ?? []); SyncTutorialShow(coach.ShowDefinitionId); SyncTutorialDeal(coach);
+        if (_coachPanel.StepId != coach.StepId && coach.ShowDeadOf is int deadOf) Callable.From(() => ShowFallenGallery(deadOf)).CallDeferred(); // the note talks about that player's dead
+        else if (_coachPanel.StepId != coach.StepId && IsInstanceValid(_fallenWindow)) _closeFallenGallery?.Invoke(); // a later note never sits under a Dead pile gallery left open (it would cover the note's buttons)
         if (_coachPanel.StepId != coach.StepId || !_coachPanel.Visible) _coachPanel.Present(coach);
         _coachPanel.Show(); LayoutTutorialCoach();
     }
@@ -111,6 +114,8 @@ public partial class Main
 
     private void TutorialContinue()
     {
+        // A played-out lesson that was lost offers itself again (the Rings lesson's "Restart Tutorial").
+        if (_session.Tutorial is { LostFreePlay: true } lost) { _coachPanel?.Hide(); StartTutorial(lost.LessonId); return; }
         _session.TutorialContinue();
         if (_session.Tutorial is { Finished: true } done) { _coachPanel?.Hide(); ShowMainMenu(); _titleMenu?.ShowTutorialFor(done.LessonId); }
     }
@@ -174,7 +179,7 @@ public partial class Main
             foreach (var token in (OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith("--tutorial-script="))?["--tutorial-script=".Length..] ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries))
             {
                 await RunTutorialUiToken(token);
-                GD.Print($"TUTORIAL_DUMP after {token}: step={_session.Tutorial?.Coach.StepId} {TutorialControls()} notice={_status.Text}");
+                GD.Print($"TUTORIAL_DUMP after {token}: lesson={_session.Tutorial?.LessonId} step={_session.Tutorial?.Coach.StepId} {TutorialControls()} notice={_status.Text}");
             }
             if (capture is null) { GetTree().Quit(); return; }
         }
@@ -205,6 +210,12 @@ public partial class Main
             if (tile is null) { GD.Print("TUTORIAL_UI no tile in play for " + arg); return; }
             SelectCard(tile.Card);
         }
+        else if (verb == "selectlast") // the last of your cards with this name, when two copies are in play and the first was already used (the Imperial Favor lesson's second Daidoji Sosuke)
+        {
+            var tile = _tiles.LastOrDefault(t => IsInstanceValid(t) && t.Card.Definition?.Name == arg && t.Card.OwnerId == View.ViewerId && t.Card.Zone is Zone.Home or Zone.Battlefield);
+            if (tile is null) { GD.Print("TUTORIAL_UI no tile in play for " + arg); return; }
+            SelectCard(tile.Card);
+        }
         else if (verb == "hover") // the pointer moves over one of the table's cards (hover:Bayushi Waru)
         {
             var tile = _tiles.FirstOrDefault(t => IsInstanceValid(t) && t.Card.Definition?.Name == arg) ?? throw new InvalidOperationException("no tile to hover for " + arg);
@@ -229,6 +240,11 @@ public partial class Main
             foreach (var pressed in new[] { true, false })
                 GetViewport().PushInput(new InputEventMouseButton { Position = at, GlobalPosition = at, ButtonIndex = MouseButton.Left, Pressed = pressed, ButtonMask = pressed ? MouseButtonMask.Left : 0 }, true);
             await CoverageFrames(); await CoverageFrames();
+        }
+        else if (verb == "duelcontinue") // the duel screen's own Continue, which hands back to the table
+        {
+            var button = _matchDuel?.FindChildren("*", "Button", true, false).OfType<Button>().FirstOrDefault(b => b.Text == "Continue" && b.IsVisibleInTree()) ?? throw new InvalidOperationException("the duel screen has no Continue to press");
+            button.EmitSignal(BaseButton.SignalName.Pressed);
         }
         else if (verb == "wait") await ToSignal(GetTree().CreateTimer(double.Parse(arg)), SceneTreeTimer.SignalName.Timeout);
         else if (verb == "shot") GetViewport().GetTexture().GetImage().SavePng(ProjectSettings.GlobalizePath("res://../../artifacts/tutorial/" + arg + ".png"));
@@ -265,7 +281,7 @@ public partial class Main
         }
         else if (verb == "back") // the coach's Back button, then the step it should land on
         {
-            var button = _coachPanel?.FindChild("TutorialBack", true, false) as Button ?? throw new InvalidOperationException("no Back button on the coach");
+            var button = (_duelCoach is { } onDuel && IsInstanceValid(onDuel) ? onDuel : _coachPanel)?.FindChild("TutorialBack", true, false) as Button ?? throw new InvalidOperationException("no Back button on the coach");
             for (var wait = 0; wait < 80 && !button.IsVisibleInTree(); wait++) await ToSignal(GetTree().CreateTimer(.25), SceneTreeTimer.SignalName.Timeout);
             button.EmitSignal(BaseButton.SignalName.Pressed);
             for (var i = 0; i < 8; i++) await CoverageFrames();
@@ -280,7 +296,7 @@ public partial class Main
         }
         else if (verb == "mouse") // a real pointer click at the centre of the coach's button (mouse:next is the Next Tutorial beside it), through the GUI input path
         {
-            var button = _coachPanel?.FindChild(arg == "next" ? "TutorialNext" : "TutorialContinue", true, false) as Button ?? throw new InvalidOperationException("no coach button");
+            var button = (_duelCoach is { } onDuel && IsInstanceValid(onDuel) ? onDuel : _coachPanel)?.FindChild(arg == "next" ? "TutorialNext" : "TutorialContinue", true, false) as Button ?? throw new InvalidOperationException("no coach button");
             for (var wait = 0; wait < 80 && !button.IsVisibleInTree(); wait++) await ToSignal(GetTree().CreateTimer(.25), SceneTreeTimer.SignalName.Timeout); // the button waits out card and battle presentations
             var at = button.GetGlobalRect().GetCenter();
             GetViewport().PushInput(new InputEventMouseMotion { Position = at, GlobalPosition = at });
@@ -360,6 +376,10 @@ public partial class Main
         ["redirect"] = "click:Use Shiba Sansesuke;click:Play Reaction",
         ["defend"] = "select:Isawa Tomohiro;selectprovince:0/0;select:Natsumi;selectprovince:0/0;select:Shiba Sansesuke;selectprovince:0/0;click:Confirm assignments",
         // Attachments (issue #1077): Equip (Limited) of a Follower, two Items and a Follower again, the attack, and the abilities on your own unbowed attachments in the battle.
+        // Keywords (issue #1078): seppuku, one Personality at a time.
+        ["seppuku-1"] = "select:Doji Dainagon;click:Seppuku",
+        ["seppuku-2"] = "select:Asahina Konomi;click:Seppuku",
+        ["seppuku-3"] = "select:Daidoji Kenshi;click:Seppuku",
         ["equip-elite"] = "select:Seppun Heavy Elite;click:Bayushi Waru;selecthome:Geisha House;click:Attach",
         ["equip-blade"] = "select:Nightingale Blade;click:Bayushi Hurunayi;select:The Towers of the Yogo;click:Attach",
         ["equip-light-armor"] = "select:Light Armor;click:Bayushi Hurunayi;selecthome:Large Farm;click:Attach",
@@ -369,6 +389,55 @@ public partial class Main
         ["soshi-bow"] = "select:Soshi House Guard;click:Natsumi;click:Use Soshi House Guard",
         ["towers-bow"] = "select:Bayushi Hurunayi;click:Isawa Tomohiro;click:Use Bayushi Hurunayi",
         ["blade-bow"] = "select:Nightingale Blade;click:Isawa Tomohiro;click:Use Nightingale Blade",
+        // Dishonor: Jekku paid with the Small Farm, Kaiu Iemasa's own ability, the Slanderer, and The Heir's Wrath discarding the Imperial Favor.
+        ["jekku"] = "select:Yasuki Jekku;click:Mirumoto Gobashi;selecthome:Small Farm;click:Use Yasuki Jekku",
+        ["iemasa"] = "select:Kaiu Iemasa;click:Use Kaiu Iemasa",
+        ["slanderer"] = "select:Slanderer;click:Togashi Meiyu;click:Use Slanderer",
+        ["heirs-wrath"] = "select:The Heir's Wrath;click:Togashi Meiyu;select:Yasuki Palaces;click:Play The Heir's Wrath",
+        // Reactions: the attack, the engage window's announce-and-order procedure (R-039), Naval Invasion's first Battle action and the pass that ends the battle.
+        ["rx-declare"] = "click:Declare an attack",
+        ["rx-assign"] = "select:Tsuruchi Tomaru;selectprovince:1/0;select:Yoritomo Nakoshi;selectprovince:1/0;click:Confirm assignments",
+        ["rx-engage"] = "click:Fight at province 1",
+        ["rx-announce-naval"] = "click:Announce: Naval Invasion",
+        ["rx-announce-jiak"] = "click:Announce: Engage, bow this card",
+        ["rx-announce-surrounded"] = "click:Tsuruchi Tomaru · Announce: After engaging",
+        ["rx-announce-done"] = "click:Done announcing",
+        ["rx-order-surrounded"] = "click:Resolve Surrounded! next",
+        ["rx-order-jiak"] = "click:Resolve Khalimpeh-jiak next",
+        ["rx-order-naval"] = "click:Resolve Naval Invasion",
+        ["rx-resolve-surrounded"] = "click:Play Surrounded!;click:Play Reaction",
+        ["rx-resolve-jiak"] = "click:Use Khalimpeh-jiak;click:Utaku Lishan ·;click:Play Reaction",
+        ["rx-resolve-naval"] = "click:Use ability · Yoritomo Nakoshi;click:Use ability",
+        ["rx-strike"] = "select:Strategic Strike;select:Utaku Ryoko;click:Confirm attack",
+        ["rx-pass"] = "click:Pass battle action",
+        // Cost and Effect: Mysterious Deaths paid without the Merchant's District, the District's draw, the attack, Revenge, Kasumi's Towers ability and At Any Cost with the Clan Discount.
+        ["ce-deaths-play"] = "select:Mysterious Deaths;selecthome:Prosperous Village;selecthome:Border Keep;click:Play Mysterious Deaths",
+        ["ce-district"] = "select:The Merchant's District;click:Use The Merchant's District",
+        ["ce-declare"] = "click:Declare an attack",
+        ["ce-assign"] = "select:Shosuro Koshiba;selectprovince:1/0;select:Bayushi Kasumi;selectprovince:1/0;click:Confirm assignments",
+        ["ce-engage"] = "click:Fight at province 1",
+        ["ce-revenge"] = "select:Revenge;select:Unparalleled Sword;click:Play Revenge",
+        ["ce-towers"] = "select:Bayushi Kasumi;click:Mirumoto Gobashi;click:Use Bayushi Kasumi",
+        ["ce-any-cost-play"] = "select:At Any Cost;click:Shosuro Koshiba;click:Clan discount: 2 less Gold;selecthome:Geisha House;click:Play At Any Cost",
+        ["ce-resolve"] = "click:Pass battle action",
+        ["rg-declare"] = "click:Declare an attack",
+        ["rg-assign"] = "select:Togashi Hizumi;selectprovince:1/2;click:Confirm assignments",
+        ["rg-engage"] = "click:Fight at province 3",
+        ["rg-hizumi"] = "click:Give the current battlefield's province -4 strength;click:Use Togashi Hizumi",
+        ["rg-pass"] = "click:Pass battle action",
+        ["rg-fire-play"] = "select:Ring of Fire;click:Play Reaction",
+        // Imperial Favor: Lobby, the Favor's two abilities (one paid with the Favor, one with a Kyuden Otomo token), Dazzling Attire, Sosuke twice, Dainagon's Open Lobby and Kyuden Otomo's Reaction.
+        ["lobby-nara"] = "select:Kakita Nara;click:Lobby · bow a Personality;click:Kakita Nara ·;click:Use ability",
+        ["favor-cycle"] = "select:The Empress' Address;click:Discard Favor and a card;click:The Empress' Address;click:Discard the Imperial Favor;click:Confirm choice",
+        ["dazzling-attire"] = "select:Dazzling Attire;click:Use Dazzling Attire",
+        ["sosuke-sword"] = "select:Daidoji Sosuke;click:Mirumoto Yumaru;click:Discard the Imperial Favor;click:Confirm choice",
+        ["dainagon-lobby"] = "select:Doji Dainagon;click:Use Doji Dainagon",
+        ["otomo-token"] = "click:Use Kyuden Otomo;click:Play Reaction",
+        ["sosuke-hiroto"] = "selectlast:Daidoji Sosuke;click:Togashi Hiroto;click:Discard a Favor token instead;click:Confirm choice",
+        ["pass-dragon"] = "click:Pass action",
+        ["favor-defend"] = "select:Daidoji Sosuke;selectprovince:0/0;click:Confirm assignments",
+        ["favor-home"] = "click:Discard Favor · move an enemy attacker home;click:Mirumoto Gobashi;click:Discard a Favor token instead;click:Confirm choice",
+        ["favor-resolve"] = "click:Pass battle action",
     };
 
 
@@ -592,9 +661,21 @@ public partial class Main
         for (var guard = 0; guard < 400 && _session.Tutorial is { Finished: false } lesson; guard++)
         {
             if (lesson.Coach.StepId == stepId) return true;
+            // a duel's entrance, cards and verdict play out as a player would watch them, and a table move waits for the duel screen to hand back to the table
+            for (var wait = 0; wait < 120 && (_matchDuelPreparing || _matchDuelReturning || _matchDuel is { } open && (open.Screen.PresentationBusy || lesson.Coach.Button is null && open.Screen.CanContinue)); wait++) await ToSignal(GetTree().CreateTimer(.25), SceneTreeTimer.SignalName.Timeout);
             if (lesson.Coach.Button is not null) { _session.TutorialContinue(); await CoverageFrames(); continue; }
-            if (!TutorialUiScripts.TryGetValue(lesson.Coach.StepId, out var script)) return false;
             var before = lesson.Coach.StepId;
+            if (!TutorialUiScripts.TryGetValue(before, out var script))
+            {
+                // `--tutorial-auto`: a step with no clicks scripted (the Duels lesson's, which are made on the duel screen) takes the one move it offers, through the session as the screen would.
+                if (!OS.GetCmdlineUserArgs().Contains("--tutorial-auto")) return false;
+                await WaitTutorialRest();
+                var move = _session.Snapshot?.Actions.FirstOrDefault(a => a.Enabled && a.Command is { } c && c.Type != "concede" && !a.Label.StartsWith("Keep") && (before != "duelist" || c.TargetId is not null && a.Label.Contains("Stain")));
+                if (move?.Command is not { } command) return false;
+                await _session.Submit(command);
+                for (var wait = 0; wait < 60 && _session.Tutorial is { Finished: false } waiting && waiting.Coach.StepId == before; wait++) await ToSignal(GetTree().CreateTimer(.25), SceneTreeTimer.SignalName.Timeout);
+                continue;
+            }
             await WaitTutorialRest();
             foreach (var token in script.Split(';')) await RunTutorialUiToken(token);
             for (var wait = 0; wait < 60 && _session.Tutorial is { Finished: false } still && still.Coach.StepId == before; wait++) await ToSignal(GetTree().CreateTimer(.25), SceneTreeTimer.SignalName.Timeout);

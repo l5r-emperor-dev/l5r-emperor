@@ -147,7 +147,7 @@ Right-click the downloaded ZIP > Extract All. Open the extracted folder and
 double-click Start Review.cmd. Keep the game folder and all its files together.
 No Godot, .NET SDK, Git or source build is required. Once downloaded, it runs offline.
 If Windows shows an unsigned-app warning, check that this is the package you
-downloaded from our private GitHub repository; ask Claude for help if unsure.
+downloaded from the linked GitHub release; ask Claude for help if unsure.
 
 WHAT TO TRY
 {steps}

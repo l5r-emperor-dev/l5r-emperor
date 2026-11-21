@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Conquest is used once per player per turn across all battlefields (R-091): PlayerState.ConquestTurn is stamped when a Conqueror is kept unbowed, and later battles that turn offer no Conqueror. The Plain of Glass keeps its two uses at one battle, which spend the turn. The win requirement is unchanged (Mendon: no change).",
+  "validation": "New suite conquest-per-turn 2/2 (fails 0/2 without the engine change); bash tools/check.sh --skip-client passed; dotnet format whitespace --verify-no-changes clean on changed files.",
+  "remaining": "None; ready for review. No client change: the existing conquerorChoice prompt is simply not opened once the turn's Conquest is spent.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1147",
+  "branch": "claude/1147-conquest-per-turn",
+  "updated": "2026-10-29T22:54:31.754949+00:00"
+}

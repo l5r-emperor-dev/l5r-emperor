@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Contender tuning in progress (issue #1185): tournament game logs, deck card table, c2 arm with named rules (econ, border, presence, lean, selfharm, slate, purpose, lobby, cycle, shinden), all off by default; champion unchanged.",
+  "validation": "Baseline contender vs champion 180-184 (49.5%) on dev block 3000; rule experiments running. Bot-vs-bot only; no human playtest.",
+  "remaining": "Work in progress: tuning loop toward 80% vs the champion; not pushed; no PR yet.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1185",
+  "branch": "claude/1185-contender-tuning",
+  "updated": "2026-11-08T00:11:47.360054+00:00"
+}

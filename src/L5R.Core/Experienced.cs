@@ -9,12 +9,12 @@ public static class Experienced
 
     /// <summary>Returns zero without Experienced, one for Experienced (and for the Coils of Madness form
     /// "ExperiencedCoM"), and the printed number for Experienced N. If more than one form is present, the
-    /// highest level applies. "Inexperienced" is not a level of the keyword: such a card is level 0, so an
-    /// Experienced version of its title may overlay it and it may overlay nothing.</summary>
+    /// highest level applies. "Inexperienced" refers to an experience level of -1 (Comprehensive Rules, Glossary:
+    /// Experienced/Inexperienced), so a version of its title with no experience keyword may overlay it and it may overlay nothing.</summary>
     public static int Level(IEnumerable<string>? keywords)
     {
-        var level = 0;
-        foreach (var raw in keywords ?? [])
+        var level = 0; var list = keywords?.ToArray() ?? [];
+        foreach (var raw in list)
         {
             var keyword = raw.Trim();
             if (keyword.Equals("Experienced", StringComparison.OrdinalIgnoreCase) || IsCoilsOfMadnessForm(keyword)) level = Math.Max(level, 1);
@@ -22,10 +22,10 @@ public static class Experienced
                 && int.TryParse(keyword[12..].Trim(), out var parsed) && parsed > 0)
                 level = Math.Max(level, parsed);
         }
-        return level;
+        return level == 0 && IsInexperienced(list) ? -1 : level;
     }
 
-    /// <summary>True for a card that prints the Inexperienced keyword (level 0, like a card with no version keyword at all).</summary>
+    /// <summary>True for a card that prints the Inexperienced keyword (level -1, below a card with no version keyword at all).</summary>
     public static bool IsInexperienced(IEnumerable<string>? keywords) =>
         (keywords ?? []).Any(k => k.Trim().Equals("Inexperienced", StringComparison.OrdinalIgnoreCase));
 
@@ -72,7 +72,7 @@ public static class Experienced
         if (level == 1 && !keywordList.Any(k => k.Trim().Equals("Experienced", StringComparison.OrdinalIgnoreCase))) return title;
         return level switch
         {
-            0 => title,
+            <= 0 => title,
             1 => $"{title} Experienced",
             _ => $"{title} Experienced {level}"
         };

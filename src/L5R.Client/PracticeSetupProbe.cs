@@ -1,4 +1,5 @@
 using Godot;
+using L5R.AI;
 using L5R.Core;
 namespace L5R.Client;
 
@@ -24,6 +25,14 @@ public partial class PracticeSetupProbe : Node
             _screen.StartMatch = (a, b) => { session.StartCustomPractice(a, b); _started = true; };
             await Wait(2); await Capture("A-presets");
             Check(!_screen.StartButton.Disabled, "presets ready before start"); Click(Button("Change deck")); await Wait(1); await Capture("B-browser");
+            // Issue #1248: the deck browser's Your match box has the same Difficulty drop-down; a change there is the setup page's value too, and is remembered.
+            Check(_screen.Page == "browser" && _screen.DifficultyMenu.IsVisibleInTree() && _screen.DifficultyMenu.GetGlobalRect().Position.X > _screen.Canvas.Position.X + 1070 * _screen.Canvas.Scale.X, "the deck browser offers Difficulty in its Your match box");
+            Click(_screen.DifficultyMenu); await Wait(.5); await Capture("B-difficulty-open"); Check(_screen.DifficultyMenu.GetPopup().Visible, "the browser's drop-down opens its list");
+            _screen.DifficultyMenu.GetPopup().Hide(); _screen.DifficultyMenu.Select(1); _screen.DifficultyMenu.EmitSignal(OptionButton.SignalName.ItemSelected, 1); await Wait(.3);
+            Check(_screen.Difficulty == BotLevel.Moderate && _screen.Page == "browser" && _screen.DifficultyMenu.Selected == 1, "Moderate chosen in the browser, which stays open"); await Capture("B-moderate");
+            KeyPress(Key.Escape); await Wait(.4); Check(_screen.Page == "setup" && _screen.DifficultyMenu.Selected == 1, "the setup page shows the browser's choice");
+            _screen.DifficultyMenu.Select(0); _screen.DifficultyMenu.EmitSignal(OptionButton.SignalName.ItemSelected, 0); await Wait(.3);
+            Click(Button("Change deck")); await Wait(.5); Check(_screen.DifficultyMenu.Selected == 0 && _screen.Difficulty == BotLevel.Easy, "and the browser shows the setup page's choice");
             Click(Walk(_screen).OfType<Button>().First(b => b.AccessibilityName.ToString().StartsWith("Crane — Court and Steel ·"))); await Wait(.5);
             await Capture("B-selected"); Check(!_started && session.Snapshot is null, "browsing does not start or replace match"); KeyPress(Key.Escape); await Wait(.5); await Capture("A-saved-deck");
             Click(Walk(_screen).OfType<Button>().First(b => b.TooltipText.StartsWith("Inspect "))); await Wait(.3); Check(Walk(_screen).OfType<AcceptDialog>().Any(d => d.Visible), "Stronghold inspection opens full original face"); await Capture("stronghold-inspection"); KeyPress(Key.Escape); await Wait(.3);
@@ -32,13 +41,19 @@ public partial class PracticeSetupProbe : Node
             Check(_screen.StartButton.Disabled, "incomplete draft cannot start"); await Capture("C-inline-draft");
             Click(Button("Edit deck")); await Wait(2); Check(Walk(GetTree().Root).OfType<DeckBuilderScreen>().Single().Page == "editor", "edit opens the selected draft in existing builder"); await Capture("edit-draft");
             var builder = Walk(GetTree().Root).OfType<DeckBuilderScreen>().Single(); builder.OpenPracticeDeck(crane, "Crane — Repaired deck"); builder.SaveDraft(); await Wait(.2); builder.ShowDecks(); await Wait(.2);
-            Click(Walk(builder).OfType<Button>().Single(b => b.Text == "Back to menu")); await Wait(.5); Check(!_screen.StartButton.Disabled && _screen.Choices[0].Name == "Crane — Repaired deck", "saved repair selected on return");
+            Click(Walk(builder).OfType<Button>().Single(b => b.AccessibilityName == "Back to menu" && b.IsVisibleInTree())); await Wait(.5); Check(!_screen.StartButton.Disabled && _screen.Choices[0].Name == "Crane — Repaired deck", "saved repair selected on return");
             GetWindow().Size = new Vector2I(1280, 720); await Wait(.5); await Capture("A-1280"); Click(Button("Change deck")); await Wait(.3); await Capture("B-1280");
             Search("nonesuch"); await Wait(.3); Check(Walk(_screen).OfType<Label>().Any(l => l.Text == "No matching decks."), "empty filtered list has feedback"); Search(""); await Wait(.3); KeyPress(Key.Escape); await Wait(.3);
             GetWindow().Size = new Vector2I(1672, 941); await Wait(.4);
             // A selected file can be removed or changed outside the application.
             File.Delete(_screen.Choices[0].Path!); Click(_screen.StartButton); await Wait(.3); Check(!_started && _screen.StartButton.Disabled, "deleted selected file is revalidated before launch"); await Capture("C-missing-file");
-            _screen.Browse(0); _screen.Select(PracticeSetupScreen.Preset("Crane")); _screen.ShowSetup(); await Wait(.3); Click(_screen.StartButton); await Wait(.3);
+            _screen.Browse(0); _screen.Select(PracticeSetupScreen.Preset("Crane")); _screen.ShowSetup(); await Wait(.3);
+            // Issue #1214: the opponent's difficulty starts Easy (the Champion, as before), is chosen on the setup page with three buttons, and says what each level is.
+            Check(_screen.Difficulty == BotLevel.Easy && Enumerable.Range(0, _screen.DifficultyMenu.ItemCount).Select(i => _screen.DifficultyMenu.GetItemText(i)).SequenceEqual(["Easy", "Moderate", "Hard"]), "one drop-down offers Easy, Moderate and Hard, Easy first");
+            await Capture("A-closed"); Check(!Walk(_screen).OfType<Label>().Any(l => l.Text.Contains("Champion") || l.Text.Contains("Contender") || l.Text.Contains("Conan")), "no internal bot name is shown");
+            Click(_screen.DifficultyMenu); await Wait(.5); await Capture("A-dropdown"); Check(_screen.DifficultyMenu.GetPopup().Visible || _screen.DifficultyMenu.ButtonPressed, "clicking the drop-down opens its list");
+            _screen.DifficultyMenu.GetPopup().Hide(); _screen.DifficultyMenu.Select(2); _screen.DifficultyMenu.EmitSignal(OptionButton.SignalName.ItemSelected, 2); await Wait(.3); Check(_screen.Difficulty == BotLevel.Hard, "Hard chosen from the list"); await Capture("A-hard");
+            Click(_screen.StartButton); await Wait(.3);
             Check(_started && session.Snapshot?.View.Scenario == CustomPractice.Scenario, "native Start creates selected custom match"); Check(session.Snapshot!.View.ViewerId == 0 && session.Snapshot.View.Players[0].Name == "Practice reviewer", "player seat and name preserved");
             // The last choices are remembered from session to session: a preset for one side, a saved deck for the other; a deck that has since gone falls back to the default.
             _screen.Browse(0); _screen.Select(PracticeSetupScreen.Preset("Lion"));
@@ -46,6 +61,7 @@ public partial class PracticeSetupProbe : Node
             _screen.QueueFree(); await Wait(.2);
             _screen = new PracticeSetupScreen { StorageDirectory = storage }; AddChild(_screen); _screen.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect); await Wait(.5);
             Check(_screen.Choices[0].Name.StartsWith("Lion") && _screen.Choices[1].Path == path, "the last deck choices come back in a new session");
+            Check(_screen.Difficulty == BotLevel.Hard, "the chosen difficulty comes back in a new session");
             _screen.QueueFree(); await Wait(.2); File.Delete(path);
             _screen = new PracticeSetupScreen { StorageDirectory = storage }; AddChild(_screen); _screen.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect); await Wait(.5);
             Check(_screen.Choices[0].Name.StartsWith("Lion") && _screen.Choices[1].Name.StartsWith("Lion") && _screen.Choices[1].Path is null, "a remembered deck that no longer exists falls back to that side's default");

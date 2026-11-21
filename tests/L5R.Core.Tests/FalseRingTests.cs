@@ -74,7 +74,7 @@ internal static class FalseRingTests
             Check(AbilityCatalog.All[recruit].Costs is null or { Length: 0 }, recruit + ": the put-into-play declares no bow");
         // The only abilities in the catalogue that bow their source with a hand alternative are the TRUE Rings (printed: "bow this card or discard it from your hand").
         var withHandAlternative = AbilityCatalog.All.Where(p => p.Value.Costs?.Any(c => c.UnlessInHand) == true).Select(p => p.Key).OrderBy(k => k, StringComparer.Ordinal).ToArray();
-        Eq(string.Join(",", withHandAlternative), "ring-of-air-straighten,ring-of-earth-lower,ring-of-earth-raise,ring-of-fire-destroy,ring-of-void-draw,ring-of-water-move-home");
+        Eq(string.Join(",", withHandAlternative), "ring-of-air-straighten,ring-of-earth-lower,ring-of-earth-raise,ring-of-fire-destroy,ring-of-void-draw,ring-of-water-move-battlefield,ring-of-water-move-home");
     }
 
     // ---- the second ability ---------------------------------------------------------------------------------------
@@ -250,14 +250,14 @@ internal static class FalseRingTests
         Check(raise.Enabled, raise.Reason ?? "offered enabled from the hand");
         Accept(e, raise.Command! with { Province = 0 });
         Eq(e.State.Cards[earth.Id].Zone, Zone.FateDiscard, "discarded instead of bowed");
-        // Ring of Air (Battle/Open): "straighten your target Personality or attachment".
+        // Ring of Air (Battle/Open): "choose your performing Personality: Straighten his unit".
         var t = MatchEngine.CreateEconomyScenario().State; t.Phase = Phase.Action; t.ActivePlayerId = 0; t.PriorityPlayerId = 0;
         var air = Add(t, "oracle-l5r-6333", 0, Zone.Hand);
         var bowed = Add(t, "training-crane-samurai", 0, Zone.Home, bowed: true);
         var ea = MatchEngine.FromTestState(t);
         var straighten = Option(ea, air, "ring-of-air-straighten")!;
         Check(straighten is not null && straighten.Enabled, straighten?.Reason ?? "offered from the hand");
-        Accept(ea, straighten!.Command! with { TargetId = bowed.Id });
+        Accept(ea, straighten!.Command! with { PerformerId = bowed.Id });
         Check(!ea.State.Cards[bowed.Id].Bowed && ea.State.Cards[air.Id].Zone == Zone.FateDiscard);
         // Ring of the Void (Limited): "bow this card or discard it from your hand: Draw a card".
         var v = MatchEngine.CreateEconomyScenario().State; v.Phase = Phase.Action; v.ActivePlayerId = 0; v.PriorityPlayerId = 0;

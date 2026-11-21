@@ -12,6 +12,8 @@ public static partial class TrainingOpponent
     /// <summary>The battle rules applied on top of an action's ordinary score. Only the actions a player takes in a battle (an ability, a Strategy, an attachment) are affected.</summary>
     private static double Adjust(Ctx x, ActionOption action, GameCommand command, double score)
     {
+        if (DuelReply(x, action) is { } reply) return reply; // challenged by a lower duel stat: accept and strike at once
+        if (LosingChallenge(x, action, command)) return BarredScore; // a challenge to a Personality with a higher duel stat is not issued (a tie still is)
         score = HonorAwareScore(x, action, command, score); // issue #870 (TrainingOpponent.Honor.cs): the Honor an ability costs or gains, and an Attack that cannot destroy its target
         score = PrudenceScore(x, action, command, score); // issue #902 (TrainingOpponent.Prudence.cs): mutual effects, early economy, the first-action claim
         if (action.Type is "useAbility" or "playStrategy" && PhaseUseAdjust(x, action, command, action.Type == "useAbility" ? AbilityIntent.Of(command.AbilityId) : StrategyIntent(x.Card(command.CardId)), score) is { } phase) return phase; // issue #998
@@ -326,7 +328,9 @@ public static partial class TrainingOpponent
     {
         var strength = AttackStrengthFor(x, source);
         var all = x.Cards.Values.ToArray();
-        return ids.Select(x.Card).OfType<CardView>().OrderByDescending(c => BattlePolicy.AttackTargetScore(c, strength, all)).ThenBy(c => c.Id, StringComparer.Ordinal).FirstOrDefault();
+        var candidates = ids.Select(x.Card).OfType<CardView>().ToArray();
+        if (candidates.Any(c => c.OwnerId != x.Self.Id)) candidates = candidates.Where(c => c.OwnerId != x.Self.Id).ToArray(); // an opponent's card, whenever the Attack may take one
+        return candidates.OrderByDescending(c => BattlePolicy.AttackTargetScore(c, strength, all)).ThenBy(c => c.Id, StringComparer.Ordinal).FirstOrDefault();
     }
 
     /// <summary>The printed strength of the source's Attack (a card with several uses the largest) plus every augment the bot could still apply, none that has been spent this turn.</summary>
@@ -345,9 +349,10 @@ public static partial class TrainingOpponent
     private static double AttackTargetChoiceScore(Ctx x, GameCommand command)
     {
         if (command.TargetId is null) return 50;
-        if (!x.Memory.UseBattlePolicy || x.Card(command.TargetId) is not { } target) return 100;
+        if (!(x.Memory.UseBattlePolicy || x.Memory.UseHonorAware) || x.Card(command.TargetId) is not { } target) return 100;
         var strength = AttackStrengthFor(x, x.Card(command.CardId));
-        return 100 + BattlePolicy.AttackTargetScore(target, strength, x.Cards.Values) / 100.0;
+        var score = BattlePolicy.AttackTargetScore(target, strength, x.Cards.Values) / 100.0;
+        return target.OwnerId == x.Self.Id ? 40 : 100 + score; // never one of its own cards while an opponent's is on offer
     }
 
     /// <summary>Rule 3: the bow target, best first among those the ability can legally take.</summary>

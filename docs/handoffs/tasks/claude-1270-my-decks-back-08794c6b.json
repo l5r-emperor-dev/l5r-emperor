@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "My decks page: a '‹  Back' button (as on Card Library and Practice) now sits under the title where the 'Saved on this device · plain-text files you can share' caption was; the caption moved to the bottom-right, replacing the old bottom 'Back to menu' button. Back keeps the accessibility name 'Back to menu' and the same action.",
+  "validation": "Client build clean. bash tools/check-deck-builder.sh: DECK BUILDER PASS incl. new check 'My decks: Back near the top, device caption at the bottom (#1270)'. bash tools/check-practice-setup.sh: PRACTICE SETUP PASS (its edit/save return clicks the new Back). Captures saved-decks.png (1672x941) and small-saved-decks.png (1280x800) inspected; caption kept clear of the corner ornament.",
+  "remaining": "Mendon to try it by hand.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1270",
+  "branch": "claude/1270-my-decks-back",
+  "updated": "2026-11-16T14:01:22.199725+00:00"
+}

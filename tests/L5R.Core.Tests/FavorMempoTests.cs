@@ -171,7 +171,7 @@ internal static class FavorMempoTests
         Eq(h.ExtraUsesForTest(1, "lobby"), 0, "Lobby (Political, no Favor keyword) gains none");
         Eq(h.ExtraUsesForTest(1, "baiko-favor"), 0, "a Political Open that takes the Favor is no Favor ability");
         Eq(h.ExtraUsesForTest(1, "baiko-shame"), 1, "a card's printed Favor ability gains one");
-        Eq(h.ExtraUsesForTest(1, "ring-of-air-straighten"), 0, "an unlimited ability has nothing to add to");
+        Eq(h.ExtraUsesForTest(1, "elite-sentry-straighten"), 0, "an unlimited ability has nothing to add to");
         var (plain, _, _, _) = BattleRig(mempo: false);
         Eq(plain.ExtraUsesForTest(1, "favor-battle"), 0, "no Mempo, no extra use");
     }

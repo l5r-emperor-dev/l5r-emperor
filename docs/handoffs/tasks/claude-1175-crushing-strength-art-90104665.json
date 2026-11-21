@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Crushing Strength (oracle-l5r-1589) face now uses the Honor and Treachery printing (printing 3, image 1) instead of the out-of-set Celestial scan, per Mendon. Current Oracle master downloaded (PNG), converted to JPEG, encoded to WebP 85; new pack catalogue-art-issue1175-20261107-r1 (+1 image).",
+  "validation": "ensure_catalogue_art install + verify-only OK; test_catalogue_art passes; face compared visually.",
+  "remaining": "Release must be public before merge; no native playtest. The face names Honor and Treachery in its text; wired text unchanged.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1175",
+  "branch": "claude/1175-crushing-strength-art",
+  "updated": "2026-11-07T10:14:48.269058+00:00"
+}

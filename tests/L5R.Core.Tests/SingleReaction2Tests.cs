@@ -324,6 +324,9 @@ internal static partial class SingleReaction2Tests
     private static readonly Lay[] Lays = [new("battle: actor attacks", Phase.Battle, 1), new("battle: actor defends", Phase.Battle, 0), new("action: actor active", Phase.Action, 1), new("action: reactor active", Phase.Action, 0)];
     private static string where = "";
     private static MatchState Setup(Lay l) { where = l.Name; var s = Table(l.Phase, l.Active); s.PriorityPlayerId = 1; return s; }
+    // Ring of Air: "choose your performing Personality: Straighten his unit" (the performer is chosen, there is no target).
+    private static GameCommand AirStraighten(MatchEngine e, int player, string ringId, string performerId) =>
+        Batch336Support.Options(e, player, "ring-of-air-straighten", ringId, performerId).First(a => a.Enabled).Command! with { PerformerId = performerId };
     private static GameCommand Offer(MatchEngine e, int player, string ability, string cardId, string targetId, string? performerId = null)
     {
         try { return Batch336Support.Offer(e, player, ability, cardId, targetId, performerId); }
@@ -1106,7 +1109,7 @@ internal static partial class SingleReaction2Tests
                 var ring = Add(s, ringOfAir, actor, Zone.Home);
                 var bowedMan = Put(s, "training-crane-samurai", actor, l, bowed: true); var bowedMan2 = Put(s, "training-crane-samurai", actor, l, bowed: true);
                 var e = MatchEngine.FromTestState(s);
-                Accept(e, Offer(e, actor, "ring-of-air-straighten", ring.Id, bowedMan.Id));
+                Accept(e, AirStraighten(e, actor, ring.Id, bowedMan.Id));
                 Check(e.State.Cards[ring.Id].Bowed, "the Ring bowed as its cost");
                 ToAfter(e);
                 if (actor == 1)
@@ -1121,12 +1124,12 @@ internal static partial class SingleReaction2Tests
                 Settle(e);
                 Check(!e.State.Cards[bowedMan.Id].Bowed && e.State.Cards[bowedMan2.Id].Bowed, "only the first use has happened");
                 if (e.State.PriorityPlayerId != 0) Accept(e, new GameCommand("pass", e.State.PriorityPlayerId, e.Version));
-                Accept(e, Offer(e, 0, "ring-of-air-straighten", ring.Id, bowedMan2.Id));
+                Accept(e, AirStraighten(e, 0, ring.Id, bowedMan2.Id));
                 Check(!e.State.Cards[bowedMan2.Id].Bowed, l.Name + ": the Ring's ability was usable an additional time this turn");
                 // Control: without Itoku's reaction the Ring cannot be used a second time.
                 var ctl = SetupFor(l, 0); var ring2 = Add(ctl, ringOfAir, 0, Zone.Home); var m1 = Put(ctl, "training-crane-samurai", 0, l, bowed: true); var m2 = Put(ctl, "training-crane-samurai", 0, l, bowed: true);
                 var ce = MatchEngine.FromTestState(ctl);
-                Accept(ce, Offer(ce, 0, "ring-of-air-straighten", ring2.Id, m1.Id)); Settle(ce);
+                Accept(ce, AirStraighten(ce, 0, ring2.Id, m1.Id)); Settle(ce);
                 Check(!CanUse(ce, 0, "ring-of-air-straighten", ring2.Id), "control: a bowed Ring is spent for the turn");
                 Check(m2.Id.Length > 0);
                 // A Ring bowed by an unrelated cost opens nothing: the opponent's Personality's bow does not bow the Ring.

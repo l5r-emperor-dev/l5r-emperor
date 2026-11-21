@@ -576,6 +576,16 @@ internal static class EmperorRulingR2Tests
         var e4 = MatchEngine.FromTestState(s4);
         Accept(e4, Enabled(e4, 0, "honor-lion-boost", st4.Id, homeLion.Id).Command!);
         Eq(PhBonus(e4, homeLion.Id), 2, "usable as an Open action, from home");
+        // A real printed Lion (Akodo Furu, reported unplayable): the same Open play from home, for the active player and for the other player.
+        foreach (var active in new[] { 0, 1 })
+        {
+            var s5 = MatchEngine.CreatePublishedMatch().State; s5.Phase = Phase.Action; s5.ActivePlayerId = active; s5.PriorityPlayerId = 0;
+            var furu = Add(s5, "oracle-l5r-9823", 0, Zone.Home);
+            var st5 = Add(s5, LionHonor, 0, Zone.Hand);
+            var e5 = MatchEngine.FromTestState(s5);
+            Check(CanUse(e5, 0, "honor-lion-boost"), $"Akodo Furu at home may perform it (player {active} active)");
+            Accept(e5, Enabled(e5, 0, "honor-lion-boost", st5.Id, furu.Id).Command!);
+        }
     }
 
     // ---- The Loyalty of the Scorpion ---------------------------------------------------------------------------------------------------------------------

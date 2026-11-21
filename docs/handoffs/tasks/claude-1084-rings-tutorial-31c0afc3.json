@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Rings and Enlightenment tutorial (lesson id rings, 19 steps), now the last lesson after Imperial Favor: Dragon Enlightenment vs Scorpion, the five Rings' Emperor entry conditions, the Enlightenment Victory, Hizumi destroying a province so Ring of Fire enters play, then a played-out finish against the Hard practice opponent with win (all tutorials complete, Tutorial Menu) and loss (Restart Tutorial) notes. Framework: TutorialStep.FreePlay, TutorialSide.FateDiscard/DestroyedProvinces, coach Restart/FreePlay; the client runs the Hard bot during free play. A new note now closes a Dead pile gallery left open (it covered Dishonor's Next Tutorial).",
+  "validation": "check.sh --skip-client passed; check-tutorial.sh passed; tutorial suites all pass (tutorial-rings 5/5 incl. an Enlightenment win and a loss/restart, plus every lesson's Next leads to the next built lesson); lab play of rings to rg-survive with capture; in-game Next Tutorial click verified for first-turn, dynasty-deck, recruiting, spells, attachments, cost-effect, special-dishonor, reactions, imperial-favor; the lab could not play keywords, keywords-2, traits-actions, special-attacks and special-duels to their last note (their click scripts fail earlier), so those are verified at engine level only.",
+  "remaining": "Mendon's playtest of the free-play ending against the Hard bot (not exercised in the lab: the bot is off in capture mode). Lab click scripts for keywords, keywords-2, traits-actions, special-attacks and special-duels need repair.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1084",
+  "branch": "claude/1084-rings-tutorial",
+  "updated": "2026-11-19T16:31:41.769450+00:00"
+}

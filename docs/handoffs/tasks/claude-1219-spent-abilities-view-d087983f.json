@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "CardView.SpentAbilityIds: a face-up card in play's printed abilities with no uses left this turn, public in both seats' views. The bots' attack-target tie-break counts only Battle actions not spent.",
+  "validation": "bash tools/check.sh --skip-client passed; new core test shows both seats see a spent ability and it clears next turn; AI test shows spent Battle actions do not count.",
+  "remaining": "Client does not display spent abilities yet. Arena strength not re-measured.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1219",
+  "branch": "claude/1219-spent-abilities-view",
+  "updated": "2026-11-11T14:32:04.280613+00:00"
+}

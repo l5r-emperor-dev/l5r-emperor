@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Planning bot (#1185), UsePlanner default off: Gold-shape purchase slate (bodies, Holdings capped, Proclaim value), clear-the-row buying, swing-based attack estimate, Gold reserve for Battle tricks (this turn's attack; at turn end for a likely attack on the bot), and Mendon's discard rule (keep what can be bought next turn; discard a 4+ Holding that blocks a Personality early or when digging, or a card too dear for all production). Tournament arm 'planner'; champion unchanged.",
+  "validation": "AI tests planner/SlateAndRebuilds, SwingAttack, DiscardRule, ClearTheRowAndReserve pass. Dev smoke tournaments, 364 games each on fresh seed blocks (soundness checks, not promotion evidence), challenger win rate: slice 1 50.5%; slices 1-2 46.7%; reweight 42.6%; plus Proclaim value 48.4%; plus first discard rule 44.2% (p=0.03 worse); plus corrected discard, clear-the-row and reserve 40.8% (148-215, p=0.0005 worse). Bot stalls/illegal/exceptions 0 in all runs; the last run had 1 game out of time.",
+  "remaining": "NOT ready to merge: the planner is currently worse than the champion in simulation. Suspected causes: off-plan purchases are capped at one score so the champion's variant ordering (Proclaim vs Clan discount) is lost (proclaims stay 20% below the champion in every run); the end-of-turn Gold reserve and keeping cards may be costing purchases and tempo. Later slices (Action-phase sequencing, contingency branches, threat triage, post-battle replan) not built; no pre-registered decisive run; check.sh not run; local only.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1185",
+  "branch": "claude/1185-planning-bot",
+  "updated": "2026-11-07T21:25:19.632900+00:00"
+}

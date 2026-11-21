@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "CI Mac routing: Alfredo's Studio is primary; route-mac moves the macOS row to mendon-mac-m5 after two Studio timeouts in a row (within 24h), with a 60-minute limit and full-history checkout so later fetches are incremental. MAC_RUNNER variable overrides. Backup runner documented; installer added.",
+  "validation": "Router script run locally against live run history: picks studio (last Studio timeout 25 min, one 20-min cancel correctly not counted); MAC_RUNNER=studio/m5 overrides give the expected runner/timeout/depth. zizmor: no findings. check_policy.py passes. The PR's own run exercises route-mac on the Studio.",
+  "remaining": "The m5 branch of the router has not run live; it activates only after two Studio timeouts or MAC_RUNNER=m5. Delete the leftover tmp_pack in the runner checkout (Mendon asked, after merge).",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1303",
+  "branch": "claude/1303-mac-fallback",
+  "updated": "2026-11-20T12:20:29.491348+00:00"
+}

@@ -16,7 +16,7 @@ public partial class CatalogueProbe : Node
             _screen = new CatalogueScreen(); AddChild(_screen); _screen.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
             await Wait(2); Check(_screen.Scans.PackAvailable, "complete local artwork pack present");
             Check(_screen.Data.Cards.SelectMany(c => c.Printings).All(_screen.Scans.HasArtwork), "every printing including pinned game faces has WebP artwork");
-            Check(_screen.Data.Cards.Length == 2156, "full reference catalogue");
+            Check(_screen.Data.Cards.Length == 2157, "full reference catalogue"); // 2157 since the library audit added Quelsa (4631c598)
             Check(_screen.Data.Cards.All(c => c.Printings.Length > 0), "every card has indexed scan variants");
             Check(_screen.Data.Filter(playable: true).All(c => c.Playable), "support comes from Core");
             Check(_screen.Data.Filter(clans: ["Crane"], types: ["Personality"]).All(c => c.Clans.Contains("Crane") && c.Types.Contains("Personality")), "combined clan and type filters");
@@ -74,8 +74,9 @@ public partial class CatalogueProbe : Node
             Check(_screen.Browser.ExcludedClans.Count == 0 && _screen.Browser.Types.Active, "removable clan tag checks only the clans again");
             {
                 var bar = _screen.Browser; bool Imp(CatalogueData.Card c) => c.Types.Contains("Personality") && c.Keywords.Contains("Imperial");
+                bool Keep(CatalogueData.Card c) => c.Types.Contains("Stronghold") && c.Name.StartsWith("Journey's End Keep");
                 bar.Reset(); bar.OnlyClans("Imperial"); await Wait(.2);
-                Check(bar.Results.Length > 0 && bar.Results.All(Imp), "Imperial clan box shows only Imperial Personalities, whatever their Clan");
+                Check(bar.Results.Length > 0 && bar.Results.All(c => Imp(c) || Keep(c)) && bar.Results.Any(Keep), "Imperial clan box shows Imperial Personalities, whatever their Clan, and the Journey's End Keeps");
                 bar.ExcludedClans.Clear(); bar.ExcludedClans.Add("Imperial"); bar.Refresh(); await Wait(.2);
                 Check(_screen.Data.Cards.Where(c => Imp(c) && c.Clans.Contains("Crane")).All(c => bar.Results.Contains(c)), "unchecking Imperial keeps Imperial Personalities that have another Clan");
                 bar.Reset(); bar.Sets.Only("Embers of War"); bar.ExcludedClans.Add("Lion"); bar.Search.Text = "a"; bar.Refresh(); await Wait(.2);

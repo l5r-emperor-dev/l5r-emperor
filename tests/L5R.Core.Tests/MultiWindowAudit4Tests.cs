@@ -407,15 +407,15 @@ internal static partial class MultiWindowAudit4Tests
                 Accept(g, Offered(g, me, "ring-of-air-recruit", new(ring)));
                 Eq(Now(g, ring).Zone, Zone.Home, "put into play from the hand");
             }
-        // Two Favor actions in the Action phase grant it for the NEXT battle: not usable in the Action phase, usable once that battle begins.
+        // A third Spell or Kiho action of a new title in the Action phase grants it for the NEXT battle: not usable in the Action phase, usable once that battle begins.
         foreach (var me in new[] { 0, 1 })
         {
-            var s = Table(Phase.Action, me); s.PriorityPlayerId = me; s.FavorPlayerId = me; s.Players[me].FavorActionsThisTurn = 1; s.BattleNumber = 0;
+            var s = Table(Phase.Action, me); s.PriorityPlayerId = me; s.Players[me].SpellKihoActionsStamp = s.TurnNumber.ToString(); s.Players[me].SpellKihoActionTitles = ["Spell A", "Spell B"]; s.BattleNumber = 0;
             var ring = Add(s, "training-ring-of-air", me, Zone.Hand);
-            var shunya = Add(s, "training-honor-personality", me, Zone.Home);
+            var kiho = Add(s, "training-kiho-strategy", me, Zone.Hand);
             var e = MatchEngine.FromTestState(s);
-            Accept(e, Use(e, me, "shunya-honor", shunya.Id));
-            Check(e.State.AdditionalActions.Any(g => g.ScopeCardIds?.Contains(ring.Id) == true), "the second Favor action grants the recruit");
+            Accept(e, Use(e, me, "training-plain-open", kiho.Id));
+            Check(e.State.AdditionalActions.Any(g => g.ScopeCardIds?.Contains(ring.Id) == true), "the third Spell or Kiho action of a new title grants the recruit");
             Check(!Options(e, me, "ring-of-air-recruit", ring.Id).Any(o => o.Enabled), "not usable in the Action phase");
             Reject(e, Use(e, me, "ring-of-air-recruit", ring.Id));
             var later = e.State; later.Phase = Phase.Battle; later.BattleNumber = 1; later.CurrentBattleProvince = 0; later.UnresolvedBattlefields = [0]; later.PriorityPlayerId = me;

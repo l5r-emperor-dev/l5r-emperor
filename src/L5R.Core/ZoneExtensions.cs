@@ -64,9 +64,9 @@ public sealed partial class MatchEngine
 
     /// <summary>"Recruit a card in your province": the entry sequence of an action taken from a province. The card leaves its province, enters play at home (or the given battlefield), bowed if asked, the
     /// province is refilled and the entering windows open (returns true when one did). The Gold is the ability's own rule (GoldCostRule.TargetRecruit(modifier, floor)), already paid.</summary>
-    internal bool RecruitFromProvince(PlayerState player, CardInstance card, bool bowed = false, int? battlefield = null, int? proclaimResumesTo = null)
+    internal bool RecruitFromProvince(PlayerState player, CardInstance card, bool bowed = false, int? battlefield = null, int? proclaimResumesTo = null, bool clanDiscount = false, bool clanAllegiance = false)
     {
-        var quote = QuotePurchase(player.Id, card.Id);
+        var quote = QuotePurchase(player.Id, card.Id, clanDiscount, clanAllegiance); // issue #1232: the Clan discount / allegiance the action's command chose (its Proclaim eligibility too)
         Require(quote.Error is null, quote.Error ?? "");
         var opened = Definition(card).Type == CardType.Personality
             ? BringProvincePersonalityIntoPlay(player, card, quote, battlefield, Definition(card).Name, proclaimResumesTo)

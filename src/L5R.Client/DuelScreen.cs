@@ -55,9 +55,11 @@ public partial class DuelScreen : Control
         CreateCinema();
         Resized += Layout; Layout();
     }
+    private static string ActionsKey(SessionSnapshot snapshot) => string.Join("|", snapshot.Actions.Select(a => $"{a.Type}/{a.Label}/{(a.Enabled ? 1 : 0)}"));
     public void Present(SessionSnapshot snapshot)
     {
-        if (Snapshot?.View is { } previous && previous.Version == snapshot.View.Version && previous.ViewerId == snapshot.View.ViewerId && previous.Scenario == snapshot.View.Scenario) return;
+        // The same engine version with different offered actions is an update too: a lesson turns a duel's options on and off between its notes without the engine moving.
+        if (Snapshot is { } shown && shown.View is { } previous && previous.Version == snapshot.View.Version && previous.ViewerId == snapshot.View.ViewerId && previous.Scenario == snapshot.View.Scenario && ActionsKey(shown) == ActionsKey(snapshot)) return;
         var changedSeat = Snapshot?.View.ViewerId != snapshot.View.ViewerId;
         _previousZones = (Snapshot?.View.Players.SelectMany(p => p.Hand.Concat(p.Focused ?? []).Concat(p.Discard)) ?? []).ToDictionary(c => c.Id, c => c.Zone);
         _focusChoiceTarget = null; _focusChoiceScrollX = 0;
@@ -188,6 +190,8 @@ public partial class DuelScreen : Control
 
         if (stage == "Focusing")
         {
+            // The deck is also a pile on the table, which a panel at the left of the screen can cover (a lesson's coach card, a small window): selecting it by button works wherever it is drawn.
+            if (Legal.Any(a => a.Type == "focus" && a.Command!.Choice == "deck")) Button("Focus from deck", () => SelectPile(Snapshot!.View.ViewerId, Zone.FateDeck));
             SubmitButton("Strike", Legal.FirstOrDefault(a => a.Type == "strike")?.Command);
             var discard = Legal.Where(a => a.Command!.Choice == "discard").ToArray();
             if (discard.Length > 0)

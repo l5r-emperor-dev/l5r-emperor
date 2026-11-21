@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Collection export puts copies recorded against no printing in the Count of the card's first template row instead of appending a duplicate row (#1162).",
+  "validation": "L5R.Client.Collection.Tests: 93 assertions pass incl. new first-row merge and round trip.",
+  "remaining": "None; ready for review. Eight cards the printing list lacks (Lion/Unicorn Celestial Sword exp, Hantei sword exp, five others) still export as trailing rows.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1162",
+  "branch": "claude/1162-collection-export-counts",
+  "updated": "2026-11-03T09:11:30.623529+00:00"
+}

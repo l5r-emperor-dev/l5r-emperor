@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Practice exports now carry practice labels (deck names from the setup screen, bot level; sanitised plain names) and finalDigest (MatchEngine.Digest of the end state). MatchEngine.Replay refuses a replay that ends elsewhere; MatchEngine.Setup sets a replay's match up without commands (decision set, human-compare, ReplayCheck use it). Stage 1 and ReplayCheck read both fields; the index shows the labels.",
+  "validation": "bash tools/check.sh (client included) passed; custom-practice digest test; client transport 24/24; replay unit tests 8/8; 16 corpus replays plain and legal; conan-positions 49 reached",
+  "remaining": "None; ready for review. Older exports (no labels, no digest) stay valid.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1266",
+  "branch": "claude/1266-replay-export-labels",
+  "updated": "2026-11-16T12:14:32.700839+00:00"
+}

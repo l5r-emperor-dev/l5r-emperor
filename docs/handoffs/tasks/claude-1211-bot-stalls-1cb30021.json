@@ -1,0 +1,9 @@
+{
+  "lane": "rules",
+  "summary": "Bot decisions could stall for minutes or hours: the cavalry last stand's reach search (on by default, so the in-game Champion too) and the Contender's purchase-planner Payable were exponential. Cavalry reach now tries only minimal Cavalry groups with remembered results and a step limit (best defence so far kept past it); Payable searches counts of equal-value sources. Both exact; behaviour unchanged (a zero-cost card still counts as unpayable, as before; that is a separate question).",
+  "validation": "Regression tests cavalry-defense/LastStandIsBounded (0.4 s; old code still running after 5 min) and planner/ManySources (<0.1 s; old code still running after 120 s). Randomised equivalence vs the old searches: 0 mismatches in 3,000 and 4,000 cases. Arena Contender vs Champion block 7000 x2 against unfixed origin/main: 0 of 728 games differ; longest game 509 s -> 68 s. bash tools/check.sh --skip-client passed on the Conan branch carrying the same code.",
+  "remaining": "None; ready for review. Follow-up for Mendon: the payment check treats a card costing 0 or less as unpayable (Events, clan-discounted 2-cost Personalities), so the planner never slates them; fixing it changed 41 of 728 games, net -1.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1211",
+  "branch": "claude/1211-bot-stalls",
+  "updated": "2026-11-10T17:44:15.204377+00:00"
+}

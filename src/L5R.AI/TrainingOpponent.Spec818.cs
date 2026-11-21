@@ -104,6 +104,8 @@ public static partial class TrainingOpponent
 
     // ---- Attack force (item 6) -----------------------------------------------------------------------------------------------------------------------------------------
 
+    private static readonly Regex ConditionalBonus = new(@"\bopposed\b|\bbowed\b", RegexOptions.IgnoreCase);
+
     private static readonly Regex CreatedForce = new(@"\b(?:create|creates)\b[^.:]*?\b(\d+)\s?F\b", RegexOptions.IgnoreCase);
 
     /// <summary>Item 6: the Force each card in the bot's hand could add to a battle ("+N F" for its own side, or a card it creates with Force), one entry per card.</summary>
@@ -115,6 +117,7 @@ public static partial class TrainingOpponent
             foreach (var (_, ability, intent) in BattlePolicy.Printed(c))
             {
                 if (ability.Timing is not ("Battle" or "BattleOrOpen") || intent.Side == TargetSide.Enemy) continue;
+                if (Rule(x, "phantom") && ConditionalBonus.IsMatch(ability.Label ?? "")) continue; // issue #1185 tuning: an opposed or bowed performer is not there against an undefended Province
                 var created = CreatedForce.Match(AbilityIntent.EffectText(ability.Label ?? ""));
                 best = Math.Max(best, Math.Max(ForceBonus(ability), created.Success ? int.Parse(created.Groups[1].Value) : 0));
             }

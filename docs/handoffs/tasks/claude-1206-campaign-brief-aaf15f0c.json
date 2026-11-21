@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Conan improvement campaign brief (docs/bots/CONAN_CAMPAIGN_BRIEF.md): the operating prompt for an autonomous session to take Conan from 71% to 80% vs the Contender. Reviews Conan's state, the game-AI literature (PIMC, ISMCTS, ensemble determinization, learned value functions, SPRT, league-style pools), the comprehensive rules and Mendon's seven practice replays; prescribes a four-tier iterative adversarial loop (decision tests plus oracle, paired screens on fresh blocks, SPRT vs a frozen pool with exploiters, fixed-sample confirmation), an ordered hypothesis backlog and ten regression positions from the replays. Documentation only; no code or bot behaviour changes.",
+  "validation": "Documentation only: no tests apply. Facts in the brief were checked against docs/bots/*.md, the L5R-conan tuning branch results (artifacts/bots/vc-*.json, summary.txt) and the human-compare logs in L5R-contender.",
+  "remaining": "None for this PR. The brief proposes SPRT acceptance as an amendment to the fixed-sample rule in docs/bots/README.md; that decision is for the campaign session to record in docs/decisions/ with Mendon's approval.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1206",
+  "branch": "claude/1206-campaign-brief",
+  "updated": "2026-11-10T23:51:27.539679+00:00"
+}
