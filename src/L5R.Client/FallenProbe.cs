@@ -113,7 +113,7 @@ public partial class FallenProbe : Control
                     if(!Mathf.IsEqualApprox(_tiles[i].VisualFaceAngle,expected))throw new Exception("Dishonor/bow composition failed");
                     if(!_tiles[i]._HasPoint(_tiles[i].FaceCornersInCanvas().Select(p=>_tiles[i].GetGlobalTransform().AffineInverse()*p).Aggregate(Vector2.Zero,(a,b)=>a+b)/4))throw new Exception("Rotated card hit test failed");
                 }
-                if(_tiles[4].TokenRail?.ContentScale>=1||_tiles[4].TokenRail?.GrantSeal is null)throw new Exception("Crowded dishonorable card lost its rail/grant");
+                if(_tiles[4].TokenRail?.IconsWithinCardHeight()!=true||_tiles[4].TokenRail?.GrantSeal is null)throw new Exception("Crowded dishonorable card lost its rail/grant");
                 if(!Mathf.IsZeroApprox(_tiles[5].VisualFaceAngle))throw new Exception("Reading face is inverted");
                 if(FallenArt.TurnsOnTable(_tiles[2].Card with {Definition=null})||FallenArt.TurnsOnTable(_tiles[2].Card with {Zone=Zone.Dead}))throw new Exception("Hidden or dead card inverted");
             }

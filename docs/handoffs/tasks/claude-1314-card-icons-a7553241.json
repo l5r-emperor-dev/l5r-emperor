@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Replaced the status/restriction rail and the token rail with separate icons outside the card (#1314): permanent-change seal, one icon per restriction kind, one per token group; five per column up to the card height, more columns outward; follow bowing; each icon explains itself on hover and selects its card on click. Icon art unchanged. Stacked on #1311.",
+  "validation": "Client build 0 errors; native probes pass: check-status-rails (13 combos x 11 card types, 151 stacks), check-token-rails (5 modes + battle), check-restriction-rails (incl. ACTION_LOCK_PASS), check-permanent-grants, check-fallen, check-stat-tokens; screenshots inspected (upright columns, bowed rows, attachment companions).",
+  "remaining": "Mendon to judge in game. Not hand-played. Merge after #1311 (base retargets to main).",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1314",
+  "branch": "claude/1314-card-icons",
+  "updated": "2026-11-22T23:54:28.989305+00:00"
+}

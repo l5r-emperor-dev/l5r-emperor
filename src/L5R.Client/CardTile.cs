@@ -158,7 +158,7 @@ public partial class CardTile : Button
         AdvanceStatFeedback(delta);
         // The rail cap must stay under the pointer. Enlarging its parent moves this
         // small target into/out of the card face and repeatedly restarts the tooltip.
-        var inspecting = (Hovered || HasFocus() && !DecisionSelected) && TokenRail?.Restrictions?.IsHovered() != true && TokenRail?.GrantSeal?.IsHovered() != true && RestrictionSeal?.IsHovered() != true && CopySeal?.IsHovered() != true;
+        var inspecting = (Hovered || HasFocus() && !DecisionSelected) && TokenRail?.IconHovered != true && RestrictionSeal?.IsHovered() != true && CopySeal?.IsHovered() != true;
         var targetLift = inspecting ? Card.Zone is Zone.Hand or Zone.Resolving ? 40f : ProjectToScreen is null ? 4f : 0f : DecisionSelected ? 18f : 0f;
         var targetScale = inspecting ? Card.Zone is Zone.Hand or Zone.Resolving ? 1.22f : 1.06f : 1f;
         // An attachment lies under its Personality: selecting or focusing it must not lift it over the very card it is attached to (only a deliberate hover does).

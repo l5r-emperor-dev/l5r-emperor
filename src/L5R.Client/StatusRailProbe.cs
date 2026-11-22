@@ -94,6 +94,7 @@ public partial class StatusRailProbe : Control
     }
 
     private static float Thickness(Rect2 body) => Math.Min(body.Size.X, body.Size.Y);
+    private static Vector2[] IconCorners(Control c) => new[] { Vector2.Zero, new Vector2(c.Size.X, 0), c.Size, new Vector2(0, c.Size.Y) }.Select(p => c.GetGlobalTransform() * p).ToArray();
     private static float OverlapArea(Vector2[] a, Vector2[] b) => Geometry2D.IntersectPolygons(a, b).Sum(p => Math.Abs(Enumerable.Range(0, p.Length).Sum(i => p[i].Cross(p[(i + 1) % p.Length]))) / 2);
 
     private void Validate()
@@ -106,21 +107,20 @@ public partial class StatusRailProbe : Control
             if (combo.Statuses.Length > 0 && !statuses) throw new Exception($"{where}: an in-play status was not presented");
             if (!(tokens || statuses || seal)) { if (tile.TokenRail is not null) throw new Exception($"{where}: rail with nothing to show"); continue; }
             var rail = tile.TokenRail ?? throw new Exception($"{where}: status/seal not presented");
-            if (rail.TokenTrackVisible != tokens) throw new Exception($"{where}: token track visible={rail.TokenTrackVisible} with tokens={tokens}");
-            var expectedTracks = Math.Max(1, (tokens ? 1 : 0) + (statuses ? 1 : 0));
-            if (CardTokenRail.Tracks(card) != expectedTracks || Math.Abs(CardTokenRail.WidthFor(card) - (CardTokenRail.Width * expectedTracks + (expectedTracks - 1) * 2)) > .01f)
-                throw new Exception($"{where}: layout reserves {CardTokenRail.WidthFor(card)} for {expectedTracks} track(s)");
-            var center = rail.Body.GetCenter();
-            if (!tokens && rail._HasPoint(center)) throw new Exception($"{where}: empty token track still takes the pointer");
-            if (!tokens && rail.FocusMode != FocusModeEnum.None) throw new Exception($"{where}: empty token track still takes focus");
-            if (statuses)
+            // #1314: one icon per status kind and token group, the seal first; five to a column, more columns outward.
+            var expectedIcons = RestrictionRail.Groups(card).Length + CardTokenRail.Groups(card).Length;
+            if (rail.Icons.Length != expectedIcons) throw new Exception($"{where}: {rail.Icons.Length} icons for {expectedIcons} statuses/token groups");
+            if (rail.Icons.Count(i => i.Restriction is not null) != RestrictionRail.Groups(card).Length) throw new Exception($"{where}: a status kind has no icon");
+            var expectedColumns = Math.Max(1, (expectedIcons + (seal ? 1 : 0) + CardTokenRail.PerColumn - 1) / CardTokenRail.PerColumn);
+            if (CardTokenRail.Tracks(card) != expectedColumns || Math.Abs(CardTokenRail.WidthFor(card) - (CardTokenRail.Width * expectedColumns + (expectedColumns - 1) * CardTokenRail.Gap)) > .01f)
+                throw new Exception($"{where}: layout reserves {CardTokenRail.WidthFor(card)} for {expectedColumns} column(s)");
+            if (!rail.IconsWithinCardHeight()) throw new Exception($"{where}: icons run past the card's height");
+            if (rail.MouseFilter != MouseFilterEnum.Ignore || rail.FocusMode != FocusModeEnum.None) throw new Exception($"{where}: the stack itself takes the pointer");
+            foreach (var icon in rail.Icons)
             {
-                var track = rail.Restrictions ?? throw new Exception($"{where}: status track missing");
-                if (Math.Abs(Thickness(track.Body) - Thickness(rail.Body)) > .5f) throw new Exception($"{where}: status track thickness differs from one track");
-                var inner = rail.Body.Grow(.5f).Encloses(track.Body);
-                if (tokens == inner) throw new Exception($"{where}: status track {(tokens ? "inside the token track" : "outside the card edge with no token track")}");
-                if (tokens && rail.Body.Intersects(track.Body)) throw new Exception($"{where}: status track overlaps tokens");
-                if (seal && !tokens && rail.GrantSeal is { } grant && new Rect2(grant.Position, grant.Size).Intersects(track.Body.Grow(-.5f))) throw new Exception($"{where}: seal covers the status track");
+                if (string.IsNullOrWhiteSpace(icon.GetMeta("flat_tooltip").AsString())) throw new Exception($"{where}: icon has no explanation");
+                foreach (var face in _tiles)
+                    if (OverlapArea(IconCorners(icon), face.FaceCornersOnViewport()) > .25f) throw new Exception($"{where}: icon covers card {face.Card.Id}");
             }
             if (seal && rail.GrantSeal is null) throw new Exception($"{where}: permanent-change seal missing");
             foreach (var other in _tiles)
@@ -140,8 +140,7 @@ public partial class StatusRailProbe : Control
                 // Native input on the first status-only combo: clicking the status track still selects its card.
                 if (_combo == 0 && !_clickSent)
                 {
-                    var track = _tiles.First(t => t.Card.Id == "holding").TokenRail!.Restrictions!;
-                    var point = track.GetGlobalTransform() * track.Body.GetCenter();
+                    var point = _tiles.First(t => t.Card.Id == "holding").TokenRail!.Icons.First(i => i.Restriction is not null).CenterOnViewport();
                     GetWindow().GrabFocus(); GetViewport().WarpMouse(point);
                     GetViewport().PushInput(new InputEventMouseMotion { Position = point, GlobalPosition = point }, true);
                     GetViewport().PushInput(new InputEventMouseButton { Position = point, GlobalPosition = point, ButtonIndex = MouseButton.Left, Pressed = true }, true);
@@ -149,12 +148,12 @@ public partial class StatusRailProbe : Control
                     GetViewport().PushInput(new InputEventMouseMotion { Position = new Vector2(5, 5), GlobalPosition = new Vector2(5, 5) }, true);
                     _clickSent = true; return;
                 }
-                if (_combo == 0 && _clicks != 1) throw new Exception($"Status-track click selects its card exactly once: {_clicks}");
+                if (_combo == 0 && _clicks != 1) throw new Exception($"Status-icon click selects its card exactly once: {_clicks}");
                 RenderingServer.ForceDraw(); GetViewport().GetTexture().GetImage().SavePng($"{_output}/{Combos[_combo].Name}.png");
             }
             if (++_combo >= Combos.Length)
             {
-                GD.Print($"STATUS_RAIL_PASS: {Combos.Length} status combinations × {_tiles.Count} in-play card fixtures; {_checked} rails checked; no token track without tokens; status track inner and one track wide; seal kept; token controls keep two tracks; native status-track click.");
+                GD.Print($"STATUS_RAIL_PASS: {Combos.Length} status combinations × {_tiles.Count} in-play card fixtures; {_checked} rails checked; one icon per status kind and token group; columns of five within the card height; icons explain themselves; seal kept; native status-icon click.");
                 GetTree().Quit(); return;
             }
             Build(Combos[_combo]);

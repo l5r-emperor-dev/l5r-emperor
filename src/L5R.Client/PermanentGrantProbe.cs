@@ -119,8 +119,7 @@ public partial class PermanentGrantProbe : Control
                 {
                     if(tile.TokenRail?.GrantSeal is null)throw new Exception("Missing seal: "+tile.Card.Id);
                     if(tile.PublicStatusLabels.Any(x=>x.Contains("Berserker")))throw new Exception("Permanent grant still covers printed face");
-                    if(CardTokenRail.Groups(tile.Card).Length==4&&tile.TokenRail.ContentScale<.99f)throw new Exception("Four tokens should retain normal density");
-                    if(CardTokenRail.Groups(tile.Card).Length>=5&&tile.TokenRail.ContentScale>=1)throw new Exception("Crowded rail failed to compact");
+                    if(!tile.TokenRail.IconsWithinCardHeight())throw new Exception("Icons run past the card's height: "+tile.Card.Id);
                 }
                 CardChangePanel.LastCardId=null;
                 GetViewport().NotifyMouseEntered();
