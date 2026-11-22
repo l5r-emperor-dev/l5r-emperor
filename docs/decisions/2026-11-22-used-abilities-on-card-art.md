@@ -4,7 +4,7 @@
 
 **Decision.** Nothing is added outside a card to show which printed abilities are used: cards already carry two rails. Instead:
 
-- A spent ability gets a 75%-transparent grey box over its printed paragraph on the scan. It clears when the ability can be used again (turn start, or any effect that restores a use).
+- A spent ability gets a 60%-transparent grey box over its printed paragraph on the scan. It clears when the ability can be used again (turn start, or any effect that restores a use).
 - An ability usable more than once (Tsuruchi Tomaru, twice per turn) shows a small "1X", "2X"... in the card's clan colour once used; the grey box appears when the last use is spent.
 - Once-per-game abilities stay grey for the rest of the game once used. Border Keep's first-turn ability greys when its owner's first turn ends, used or not.
 - Abilities on attachments grey on the attachment itself.

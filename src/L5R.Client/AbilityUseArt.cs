@@ -6,7 +6,7 @@ namespace L5R.Client;
 
 /// <summary>
 /// Issue #1309: marks used printed abilities on the card art itself. Nothing is drawn outside the card.
-/// A spent ability gets a 75%-transparent grey box over its printed paragraph; a multi-use ability shows "1X", "2X"... in the clan colour;
+/// A spent ability gets a 60%-transparent grey box over its printed paragraph; a multi-use ability shows "1X", "2X"... in the clan colour;
 /// a printed Tactician who has performed his Tactical action(s) this turn gets the box over the keyword.
 /// The engine decides what is spent (CardView.AbilityUses / TacticalUses); this class only draws it.
 /// Rectangles come from Content/ability-regions.json (artwork file -> pixel boxes in the scan), made by tools/content/ability_regions.
@@ -14,7 +14,7 @@ namespace L5R.Client;
 public static class AbilityUseArt
 {
     public const string RegionsPath = "res://Content/ability-regions.json";
-    public static readonly Color Shade = new(.5f, .5f, .5f, .25f);
+    public static readonly Color Shade = new(.5f, .5f, .5f, .40f);
     public const string TacticianUsedText = "This personality has used tactical advantage this turn.";
 
     public sealed record Region(string Key, string[] Ids, Rect2 Box);
