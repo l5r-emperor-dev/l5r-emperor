@@ -91,12 +91,21 @@ public partial class Main
         // A visible province card that disappears without entering another public zone
         // was returned to the Dynasty deck (Border Keep). Its known face may travel
         // back, but the deck never supplies an identity or an ordering to this layer.
+        // One turned face-down where it stands (Know Their Minds: the engine's "provinceTurnedFaceDown") also leaves the view, as the province's hidden card:
+        // it flips over in place instead, so it is not mistaken for a card discarded and replaced.
+        var turnedDown = View.Events.Where(e => e.Type == "provinceTurnedFaceDown" && e.Sequence > lastSeen && e.CardId is not null).Select(e => e.CardId!).ToHashSet();
         foreach (var card in old.Values.Where(c => c.Zone == Zone.Province && c.Definition is not null && !next.ContainsKey(c.Id)))
         {
             if (!before.Cards.TryGetValue(card.Id, out var from)) continue;
-            var pile = TablePiles.First(p => p.OwnerId == card.OwnerId && p.PileZone == Zone.DynastyDeck);
             var texture = CardTile.Artwork(card.Definition!);
             if (texture is null) continue;
+            if (turnedDown.Contains(card.Id))
+            {
+                var flip = new CardFlight { From = from, Destination = () => from, Face = TablePile.DynastyBack, Back = texture, Delay = stagger++ * .075 };
+                _root.AddChild(flip); _flights.Add(flip);
+                continue;
+            }
+            var pile = TablePiles.First(p => p.OwnerId == card.OwnerId && p.PileZone == Zone.DynastyDeck);
             var flight = new CardFlight { From = from, Destination = () => PileCorners(pile), Face = TablePile.DynastyBack, Back = texture, Delay = stagger++ * .075 };
             _root.AddChild(flight); _flights.Add(flight);
         }

@@ -1,0 +1,9 @@
+{
+  "lane": "ui",
+  "summary": "Know Their Minds: the Personality it turns face-down now flips over in its province on the table instead of flying to the Dynasty deck (which read as a discard and refill). Client motion only; the engine already turned it face-down in place.",
+  "validation": "Native card-motion check (tools/check-card-motion-ui.sh) gains a Know Their Minds step driven by the real engine: passes with the fix; fails without it ('a card flew to the Dynasty deck'), reproducing the report. Client builds with 0 errors. Engine unchanged (DeciderChoiceTests already cover the face-down rule).",
+  "remaining": "None; ready for review. Reduced motion draws no table flights, so it shows the face-down card without animation as before.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1308",
+  "branch": "claude/1308-ktm-face-down",
+  "updated": "2026-11-22T21:07:40.447378+00:00"
+}
