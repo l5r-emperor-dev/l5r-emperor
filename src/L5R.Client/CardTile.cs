@@ -289,9 +289,13 @@ public partial class CardTile : Button
         var color = AbilityUseArt.ClanColor(def.Clan);
         foreach (var (box, text) in counters)
         {
+            // Left of the ability's first line, in the margin and over the outer border if needed; never over printed text or off the card.
+            var room = (box.Position.X - 8) * scale.X;
             var size = Math.Max(11, (int)(48 * scale.Y)); // readable on the table, still smaller than the printed title
             var width = Palette.Title.GetStringSize(text, fontSize: size).X;
-            var pill = new Rect2(box.End.X * scale.X - width - 6 * scale.X, box.Position.Y * scale.Y - size * .55f, width + 8 * scale.X, size * 1.1f);
+            while (size > 8 && width + 8 * scale.X > room) width = Palette.Title.GetStringSize(text, fontSize: --size).X;
+            var lineMid = (box.Position.Y + Math.Min(box.Size.Y, 34) / 2) * scale.Y;
+            var pill = new Rect2(room - width - 8 * scale.X, lineMid - size * .55f, width + 8 * scale.X, size * 1.1f);
             DrawRect(pill, new Color("efe4c8") with { A = .92f });
             DrawRect(pill, color, false, Math.Max(1, 2 * scale.Y));
             DrawString(Palette.Title, new Vector2(pill.Position.X + 4 * scale.X, pill.End.Y - size * .25f), text, HorizontalAlignment.Left, -1, size, color);
