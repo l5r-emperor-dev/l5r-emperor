@@ -119,14 +119,13 @@ public sealed partial class MatchEngine
             card.Protections.Select(p => new GrantedEffectView("Action protection", "Effects of actions this card performs will not be negated.", p.Source, p.Duration)).Concat(MechBGrantedEffects(card)).Concat(PromoGrantedEffects(card)).ToArray(), // issue #501: Only a Shadow's trait
             IsCopyCard(card), card.CopyOfCardId, CopyOfDefinition(card), CopyConditionsText(card), // issue #501 item 32 (EmperorMechBCopies.cs)
             card.OriginalOwnerId is int realOwner && realOwner != card.OwnerId ? realOwner : null, // issue #501: the owner of a card another player controls
-            card.UnitNumber, card.Zone == Zone.Underneath ? card.HostCardId : null, SpentPrintedAbilities(card, def), RestrictionViews(card));
+            card.UnitNumber, card.Zone == Zone.Underneath ? card.HostCardId : null, SpentPrintedAbilities(card, def), RestrictionViews(card), PrintedActionViews(card, def));
     }
 
     /// <summary>The printed abilities of a face-up card in play whose uses this turn are used up (never an Unlimited one); null when there are none.</summary>
     private string[]? SpentPrintedAbilities(CardInstance card, CardDefinition def)
     {
-        if (!card.FaceUp || card.Zone is not (Zone.Home or Zone.Battlefield) || def.Abilities is not { Length: > 0 } ids) return null;
-        var spent = ids.Where(id => AbilityCatalog.All.TryGetValue(id, out var ability) && ability.UsesPerTurn != AbilityUseLimit.Unlimited && AbilityUseSpent(card.AbilityUses, ability, ability.UsageKey ?? id)).ToArray();
+        var spent = (PrintedActionBranches(card, def) ?? []).Where(a => a.Spent).SelectMany(a => a.AbilityIds).ToArray();
         return spent.Length == 0 ? null : spent;
     }
 

@@ -141,7 +141,8 @@ public partial class Main
         _playLeft = MatPadding + holdingWidth + MatGap;
         WorldWidth = _playLeft + _playWidth + MatPadding + (_persistentWidth > 0 ? MatGap + _persistentWidth : 0);
         var enemy = View.Players.Single(p => p.Id != View.ViewerId);
-        var provinceHeight = MatHeader + PlaneHeight(CardHeight) + ProvinceThresholdArt.Footer + MatPadding;
+        var provinceActionHeight = View.Players.SelectMany(p => p.Provinces).Select(ProvinceActionsHeight).DefaultIfEmpty(0).Max();
+        var provinceHeight = MatHeader + PlaneHeight(CardHeight) + ProvinceThresholdArt.Footer + MatPadding + provinceActionHeight;
         // Restore the original table-facing Home rows and compact province
         // spacing. The defending court touches its province through B's neck;
         // Home remains outside that court, on the table-facing side as well.
@@ -162,7 +163,7 @@ public partial class Main
         _selfHomeY = enemyBandBottom + MatGap;
         if (!enemyDefends) _battleY = _selfHomeY + _homeHeights[Self.Id] + MatGap;
         _selfProvinceY = _selfHomeY + _homeHeights[Self.Id] + MatGap + MatHeader + (!enemyDefends ? courtBand : 0);
-        _worldHeight = Math.Max(_selfProvinceY + PlaneHeight(CardHeight) + ProvinceThresholdArt.Footer + MatPadding,
+        _worldHeight = Math.Max(_selfProvinceY + PlaneHeight(CardHeight) + ProvinceThresholdArt.Footer + MatPadding + provinceActionHeight,
             _selfHomeY + MatRowsHeight(_holdingRows[Self.Id], Self)) + MatPadding;
         _worldHeight = Math.Max(_worldHeight, _selfHomeY + _persistentHeights[Self.Id] + MatPadding);
 

@@ -12,6 +12,7 @@ public partial class Main
         var name = Palette.Wrapped(card.Definition!.Name, 27); name.AddThemeFontOverride("font", SidebarSkin.Bold);
         name.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill; title.AddChild(name); title.AddChild(ActionLockStatus.Icon(56));
         _inspector.AddChild(Palette.Wrapped($"{card.Definition.Clan} · {card.Definition.Type}", 18, Palette.PaperDim));
+        if (PrintedActionStrip.VisibleOn(card)) _inspector.AddChild(PrintedActionStrip.Explanation(card));
         if (CreatedCopyStatus.VisibleOn(card)) _inspector.AddChild(CreatedCopyStatus.Explanation(card));
         _inspector.AddChild(new HSeparator());
         if (RestrictionRail.HasEffects(card)) _inspector.AddChild(Palette.Wrapped(RestrictionRail.Describe(card), 17, Palette.Paper));

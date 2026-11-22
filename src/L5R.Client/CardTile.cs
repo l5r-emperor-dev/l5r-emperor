@@ -136,6 +136,7 @@ public partial class CardTile : Button
 
     public override void _Ready()
     {
+        if (PrintedActionStrip.VisibleOn(Card)) { ActionStrip = new PrintedActionStrip { CardAnchor = this }; AddChild(ActionStrip); }
         if (CreatedCopyStatus.VisibleOn(Card)) { CopySeal = new CreatedCopySeal { CardAnchor = this }; AddChild(CopySeal); }
         if (!UprightPreview && !RestrictionRail.HasEffects(Card) && ActionLockStatus.VisibleOn(Card))
         {
@@ -158,7 +159,7 @@ public partial class CardTile : Button
         AdvanceStatFeedback(delta);
         // The rail cap must stay under the pointer. Enlarging its parent moves this
         // small target into/out of the card face and repeatedly restarts the tooltip.
-        var inspecting = (Hovered || HasFocus() && !DecisionSelected) && TokenRail?.Restrictions?.IsHovered() != true && TokenRail?.GrantSeal?.IsHovered() != true && RestrictionSeal?.IsHovered() != true && CopySeal?.IsHovered() != true;
+        var inspecting = (Hovered || HasFocus() && !DecisionSelected) && TokenRail?.Restrictions?.IsHovered() != true && TokenRail?.GrantSeal?.IsHovered() != true && RestrictionSeal?.IsHovered() != true && CopySeal?.IsHovered() != true && ActionStrip?.IsHovered() != true;
         var targetLift = inspecting ? Card.Zone is Zone.Hand or Zone.Resolving ? 40f : ProjectToScreen is null ? 4f : 0f : DecisionSelected ? 18f : 0f;
         var targetScale = inspecting ? Card.Zone is Zone.Hand or Zone.Resolving ? 1.22f : 1.06f : 1f;
         // An attachment lies under its Personality: selecting or focusing it must not lift it over the very card it is attached to (only a deliberate hover does).
@@ -187,6 +188,9 @@ public partial class CardTile : Button
     public Func<string, string?>? TokenSourceName { get; set; }
     public CardTokenRail? TokenRail { get; private set; }
     public CreatedCopySeal? CopySeal { get; private set; }
+    public PrintedActionStrip? ActionStrip { get; private set; }
+    public CardTile[] ActionStripCompanions { get; set; } = [];
+    public float ActionStripBottomPadding { get; set; }
     public ActionLockSeal? RestrictionSeal { get; private set; }
 
     private Vector2 ProjectFacePoint(Vector2 point, Vector2 face)

@@ -174,7 +174,8 @@ public partial class Main
         ApplyTableCamera();
     }
 
-    private bool CameraBlocked => MatchDuelOpen || LookPanelOpen || SearchPanelOpen || CopyPanelOpen || PracticeVisible || MenuVisible || !GetWindow().HasFocus() || (_fullscreenGate?.Visible ?? false)
+    // Tagged no-OS-mouse acceptance probes do not depend on desktop focus. Normal games/reviews do.
+    private bool CameraBlocked => MatchDuelOpen || LookPanelOpen || SearchPanelOpen || CopyPanelOpen || PracticeVisible || MenuVisible || (!GetWindow().HasFocus() && !(ProbeWithoutOsMouse && IsMouseInputCapture)) || (_fullscreenGate?.Visible ?? false)
         || GetChildren().OfType<Window>().Any(w => w.Visible)
         || _expandedUnits.Count > 0;
 
