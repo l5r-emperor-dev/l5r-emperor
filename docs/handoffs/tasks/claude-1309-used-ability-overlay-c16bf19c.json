@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Used printed abilities are marked on the card art (Mendon's design, issue #1309; replaces the #1278 strip). Core: CardView.AbilityUses (uses this turn vs effective limit, spent, permanent for once-per-game and Border Keep first-turn) and CardView.TacticalUses (per-Tactician Tactical actions vs cap). Client: 25%-opaque grey box over a spent ability's printed paragraph, clan-coloured NX counter for multi-use abilities, grey box on a printed Tactician keyword, red grant seal / + TACTICIAN band for a granted one with the hover text. Boxes for 1,082 cards (1,201 abilities, 64 Tactician keywords) in Content/ability-regions.json from tools/content/ability_regions/build.py (Windows OCR + 38 hand-checked overrides).",
+  "validation": "Core: ability-use-view 5/5 (twice-per-turn counts, Border Keep permanence, face-down hidden, Tactician both seats, every extra-use source raises the limit) and ability-region-coverage 1/1. Every card's boxes visually reviewed on contact sheets (1,082 cards; ~135 faults found, fixed by a block-based locator and overrides, re-reviewed). Native AbilityUseProbe at 1920x1080: 7 assertions pass, screenshot inspected. Client builds, 0 warnings; dotnet format clean. bash tools/check.sh --skip-client: all requested checks passed.",
+  "remaining": "Mendon to judge the grey box (subtle at table zoom by design) and counter placement in play. Not hand-played; the probe uses crafted views. Granted abilities from Strategies keep the existing grant panel. #1278 strip not merged; Alfredo's PR left open for him to close.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1309",
+  "branch": "claude/1309-used-ability-overlay",
+  "updated": "2026-11-22T21:35:47.728357+00:00"
+}

@@ -129,3 +129,5 @@ interpretation this register's decision docs already settled.
 - [Every recruit offers the Clan options; Proclaim on your own turn](2026-11-13-recruit-clan-options-and-proclaim.md) — accepted ruling R-096: all recruit abilities offer Clan discount/allegiance; Proclaim in any phase for a province Personality on your own turn, once per turn.
 
 - [Lobby barred only by holding the Favor; Otomo token rail](2026-11-16-otomo-favor-tokens-and-lobby.md) — accepted ruling R-097: a player holding the Imperial Favor may not Lobby; Kyuden Otomo's Favor tokens never bar it and show on the Stronghold's token rail.
+
+- [Used printed abilities are marked on the card art](2026-11-22-used-abilities-on-card-art.md) — accepted (Mendon): grey box over a used ability's printed paragraph, clan-coloured "NX" counter for multi-use abilities, Tactician marked on the keyword or its grant marker; nothing outside the card. Replaces the #1278 strip.

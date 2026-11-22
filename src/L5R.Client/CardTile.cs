@@ -260,12 +260,43 @@ public partial class CardTile : Button
             DrawColoredPolygon(LocalFaceCorners(spread).Select(p => p + new Vector2(.6f, .8f + _lift * .5f)).ToArray(), new Color(.008f, .006f, .004f, .055f));
         DrawColoredPolygon(corners.Select(p => p + new Vector2(0, .7f)).ToArray(), new Color("a29174"));
         DrawColoredPolygon(corners, Colors.White, new Vector2[] { Vector2.Zero, Vector2.Right, Vector2.One, Vector2.Down }, texture);
+        DrawAbilityUses();
         DrawInteractionEdge();
         DrawStatInlays();
         DrawEmphasis(texture);
         DrawPublicStatus();
         DrawDishonorMarker();
         if (DecisionSelected) DrawDiscardSelection();
+    }
+
+    // Issue #1309: used printed abilities marked on the scan itself (grey box, clan-coloured "NX" counter); never outside the card.
+    private void DrawAbilityUses()
+    {
+        if (Card.Definition is not { } def || AbilityUseArt.For(def) is not { } regions) return;
+        var (shaded, counters) = AbilityUseArt.Marks(Card);
+        if (shaded.Length == 0 && counters.Length == 0) return;
+        var face = FaceSize();
+        var scale = face / regions.Size;
+        Vector2 Map(Vector2 scan) => ProjectFacePoint(scan * scale, face);
+        foreach (var box in shaded)
+        {
+            var b = box.Grow(5);
+            DrawColoredPolygon([Map(b.Position), Map(new Vector2(b.End.X, b.Position.Y)), Map(b.End), Map(new Vector2(b.Position.X, b.End.Y))], AbilityUseArt.Shade);
+        }
+        if (counters.Length == 0) return;
+        var origin = ProjectFacePoint(Vector2.Zero, face);
+        DrawSetTransformMatrix(new Transform2D(ProjectFacePoint(Vector2.Right, face) - origin, ProjectFacePoint(Vector2.Down, face) - origin, origin));
+        var color = AbilityUseArt.ClanColor(def.Clan);
+        foreach (var (box, text) in counters)
+        {
+            var size = Math.Max(11, (int)(48 * scale.Y)); // readable on the table, still smaller than the printed title
+            var width = Palette.Title.GetStringSize(text, fontSize: size).X;
+            var pill = new Rect2(box.End.X * scale.X - width - 6 * scale.X, box.Position.Y * scale.Y - size * .55f, width + 8 * scale.X, size * 1.1f);
+            DrawRect(pill, new Color("efe4c8") with { A = .92f });
+            DrawRect(pill, color, false, Math.Max(1, 2 * scale.Y));
+            DrawString(Palette.Title, new Vector2(pill.Position.X + 4 * scale.X, pill.End.Y - size * .25f), text, HorizontalAlignment.Left, -1, size, color);
+        }
+        DrawSetTransformMatrix(Transform2D.Identity);
     }
 
     private void DrawDiscardSelection()
@@ -305,8 +336,10 @@ public partial class CardTile : Button
         {
             var rect = new Rect2(face.X * .035f, face.Y * .395f + i * face.Y * .08f, face.X * .93f, face.Y * .074f);
             var dishonorable = shown[i] == "Dishonorable";
+            // Issue #1309: a granted Tactician who has performed his Tactical action(s) this turn turns red.
+            var tacticianUsed = shown[i].StartsWith("+ Tactician", StringComparison.Ordinal) && AbilityUseArt.TacticianSpent(Card) && !AbilityUseArt.PrintedTactician(Card);
             var statusHeading = shown[i].ToUpperInvariant();
-            DrawStyleBox(Palette.Box(dishonorable ? new Color("492924") : new Color("202f33"), dishonorable ? new Color("b37c67") : Palette.Gold, 0, 1), rect);
+            DrawStyleBox(Palette.Box(tacticianUsed ? new Color("7a1717") : dishonorable ? new Color("492924") : new Color("202f33"), tacticianUsed ? new Color("e05a4a") : dishonorable ? new Color("b37c67") : Palette.Gold, 0, 1), rect);
             var size = Math.Max(11, (int)(face.Y * .06f));
             while (size > 8 && Palette.Title.GetStringSize(statusHeading, fontSize: size).X > rect.Size.X - 6) size--;
             DrawString(Palette.Title, rect.Position + new Vector2(3, rect.Size.Y * .80f), statusHeading, HorizontalAlignment.Center, rect.Size.X - 6, size, Palette.Paper);

@@ -1,0 +1,481 @@
+{
+ "_comment": "Issue #1309: hand-checked boxes (scan pixels x0,y0,x1,y1) where the printed text differs from the stored card text or the paragraph is ambiguous. Keyed by artwork file, then ability usage key. Always wins over the automatic match.",
+ "cards": {
+  "oracle-l5r-10034.jpg": {
+   "abilities": {
+    "hachis-revenge-bow": [
+     132,
+     777,
+     617,
+     835
+    ]
+   }
+  },
+  "oracle-l5r-10037.jpg": {
+   "abilities": {
+    "second-city-port-straighten": [
+     162,
+     744,
+     590,
+     810
+    ]
+   }
+  },
+  "oracle-l5r-10060.jpg": {
+   "abilities": {
+    "michitsu-destroy": [
+     221,
+     738,
+     531,
+     803
+    ]
+   }
+  },
+  "oracle-l5r-10332.jpg": {
+   "abilities": {
+    "brothers-great-lake-bow": [
+     134,
+     779,
+     614,
+     812
+    ]
+   }
+  },
+  "oracle-l5r-10410.jpg": {
+   "abilities": {
+    "unseen-assassin-strike": [
+     95,
+     719,
+     654,
+     786
+    ]
+   }
+  },
+  "oracle-l5r-10497.jpg": {
+   "abilities": {
+    "w827-panku-madness": [
+     152,
+     756,
+     597,
+     782
+    ],
+    "w827-panku-take": [
+     82,
+     801,
+     667,
+     961
+    ]
+   }
+  },
+  "oracle-l5r-10528.jpg": {
+   "abilities": {
+    "justice-of-crane-dishonor": [
+     90,
+     741,
+     660,
+     841
+    ]
+   }
+  },
+  "oracle-l5r-10541.jpg": {
+   "abilities": {
+    "w9501-blade": [
+     92,
+     752,
+     657,
+     802
+    ]
+   }
+  },
+  "oracle-l5r-10574.jpg": {
+   "abilities": {
+    "w739-hidden-store": [
+     135,
+     760,
+     616,
+     827
+    ]
+   }
+  },
+  "oracle-l5r-10641.jpg": {
+   "abilities": {
+    "wl1-yuko-honor": [
+     198,
+     867,
+     551,
+     900
+    ]
+   }
+  },
+  "oracle-l5r-10706.jpg": {
+   "abilities": {
+    "wl-study-the-wheel-kharmic": [
+     95,
+     669,
+     666,
+     740
+    ]
+   }
+  },
+  "oracle-l5r-10758.jpg": {
+   "abilities": {
+    "pe-ruby-dojo-dishonor": [
+     130,
+     747,
+     621,
+     851
+    ]
+   }
+  },
+  "oracle-l5r-10845.jpg": {
+   "abilities": {
+    "w740-kalen-attack": [
+     143,
+     754,
+     607,
+     854
+    ],
+    "w740-kalen-attack2": [
+     165,
+     861,
+     583,
+     899
+    ]
+   }
+  },
+  "oracle-l5r-10873.jpg": {
+   "abilities": {
+    "w735-sorrow-battle": [
+     139,
+     860,
+     610,
+     893
+    ],
+    "w735-sorrow-limited": [
+     139,
+     860,
+     610,
+     893
+    ]
+   }
+  },
+  "oracle-l5r-10889.jpg": {
+   "abilities": {
+    "wlpa-sujikaro-melee": [
+     206,
+     740,
+     543,
+     774
+    ]
+   }
+  },
+  "oracle-l5r-1107.jpg": {
+   "abilities": {
+    "border-keep-exp-cycle": [
+     97,
+     856,
+     652,
+     951
+    ]
+   }
+  },
+  "oracle-l5r-1950.jpg": {
+   "abilities": {
+    "pe-den-of-iniquity-shame": [
+     96,
+     759,
+     655,
+     926
+    ]
+   }
+  },
+  "oracle-l5r-2070.jpg": {
+   "abilities": {
+    "dainagon-lobby": [
+     155,
+     732,
+     589,
+     799
+    ]
+   }
+  },
+  "oracle-l5r-2118.jpg": {
+   "abilities": {
+    "makoto-favor": [
+     111,
+     754,
+     640,
+     820
+    ],
+    "makoto-duel": [
+     86,
+     833,
+     663,
+     899
+    ]
+   }
+  },
+  "oracle-l5r-224.jpg": {
+   "abilities": {
+    "kamina-boost": [
+     89,
+     733,
+     655,
+     799
+    ]
+   }
+  },
+  "oracle-l5r-2286.jpg": {
+   "abilities": {
+    "tsuji-bow": [
+     134,
+     782,
+     614,
+     816
+    ],
+    "kuronada-destroy": [
+     135,
+     828,
+     616,
+     894
+    ],
+    "mihato-move": [
+     186,
+     906,
+     563,
+     972
+    ]
+   }
+  },
+  "oracle-l5r-2721.jpg": {
+   "abilities": {
+    "promo-fudo-charge": [
+     132,
+     939,
+     616,
+     968
+    ],
+    "promo-fudo-negate": [
+     145,
+     827,
+     605,
+     923
+    ],
+    "promo-fudo-destroy": [
+     146,
+     984,
+     602,
+     1005
+    ]
+   }
+  },
+  "oracle-l5r-4148.jpg": {
+   "abilities": {
+    "kaiu-village-weapon": [
+     52,
+     706,
+     661,
+     803
+    ],
+    "kaiu-village-armor": [
+     83,
+     817,
+     665,
+     908
+    ]
+   }
+  },
+  "oracle-l5r-4397.jpg": {
+   "abilities": {
+    "tamasine-create": [
+     113,
+     733,
+     638,
+     831
+    ],
+    "tamasine-boost": [
+     108,
+     845,
+     645,
+     1002
+    ]
+   }
+  },
+  "oracle-l5r-4416.jpg": {
+   "abilities": {
+    "jakuei-favor": [
+     92,
+     754,
+     659,
+     817
+    ],
+    "jakuei-bow-favor": [
+     83,
+     833,
+     666,
+     928
+    ]
+   }
+  },
+  "oracle-l5r-6095.jpg": {
+   "abilities": {
+    "public-records-look": [
+     143,
+     744,
+     607,
+     855
+    ]
+   }
+  },
+  "oracle-l5r-6559.jpg": {
+   "abilities": {
+    "p5-seek-stain-secret": [
+     160,
+     762,
+     590,
+     896
+    ]
+   }
+  },
+  "oracle-l5r-680.jpg": {
+   "abilities": {
+    "bamboo-exp-draw": [
+     134,
+     822,
+     614,
+     933
+    ]
+   }
+  },
+  "oracle-l5r-6818.jpg": {
+   "abilities": {
+    "tsukimi-reflexes": [
+     101,
+     779,
+     648,
+     903
+    ],
+    "tsukimi-attack": [
+     153,
+     924,
+     595,
+     990
+    ]
+   }
+  },
+  "oracle-l5r-7512.jpg": {
+   "abilities": {
+    "stormless-fury-attach": [
+     91,
+     684,
+     663,
+     780
+    ],
+    "stormless-fury-bow": [
+     98,
+     796,
+     654,
+     892
+    ]
+   }
+  },
+  "oracle-l5r-793.jpg": {
+   "abilities": {
+    "irezu-move": [
+     89,
+     866,
+     660,
+     958
+    ],
+    "irezu-duel-enter": [
+     150,
+     754,
+     602,
+     846
+    ]
+   }
+  },
+  "oracle-l5r-8030.jpg": {
+   "abilities": {
+    "distant-reaches-bow": [
+     145,
+     706,
+     606,
+     764
+    ]
+   }
+  },
+  "oracle-l5r-8106.jpg": {
+   "abilities": {
+    "w821-governor-honor": [
+     84,
+     848,
+     666,
+     876
+    ],
+    "w821-governor-force": [
+     107,
+     894,
+     625,
+     955
+    ]
+   }
+  },
+  "oracle-l5r-8475.jpg": {
+   "abilities": {
+    "thunders-wrath-bow": [
+     104,
+     684,
+     648,
+     750
+    ],
+    "thunders-wrath-attack": [
+     79,
+     762,
+     670,
+     896
+    ]
+   }
+  },
+  "oracle-l5r-8545.jpg": {
+   "abilities": {
+    "w859-korimi-draw": [
+     154,
+     799,
+     596,
+     865
+    ]
+   }
+  },
+  "oracle-l5r-8721.jpg": {
+   "abilities": {
+    "tranquil-garden-ring": [
+     108,
+     744,
+     644,
+     876
+    ]
+   }
+  },
+  "oracle-l5r-9292.jpg": {
+   "abilities": {
+    "w829-farm-honor": [
+     121,
+     744,
+     627,
+     769
+    ]
+   }
+  },
+  "oracle-l5r-9811.jpg": {
+   "abilities": {
+    "sosuke-tariffs": [
+     78,
+     738,
+     673,
+     866
+    ]
+   }
+  }
+ }
+}
