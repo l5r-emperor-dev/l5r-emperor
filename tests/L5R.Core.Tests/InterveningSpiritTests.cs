@@ -15,6 +15,7 @@ internal static class InterveningSpiritTests
             ("Intervening Spirit: with no unit at the battlefield, the Attacker and the Defender are each offered it from home and it moves and straightens their Personality into the battle", MovesFromHomeForAttackerAndDefender),
             ("Intervening Spirit: an Ancestor moved by a Water Shugenja grants an additional Battle action that keeps priority and is then spent on another Battle action", WaterAncestorBonusIsUsable),
             ("Intervening Spirit: no additional action unless both halves hold -- a non-Water Shugenja, or a Spirit Personality that is not an Ancestor", BonusNeedsWaterAndAncestor),
+            ("Intervening Spirit: an Ancestor created in play (Kitsu Akai's Lion Ancestor, the Ancestor Spirit scan) moved by a Water Shugenja earns the additional Battle action, for the Attacker and the Defender, from home or from another battlefield", CreatedAncestorsEarnTheBonus),
             ("Intervening Spirit: with no enemy unit at the battlefield it is not offered as playable (it used to be offered and then refused); if the enemy is gone when it resolves it does nothing instead of refusing (issue #967)", NeedsEnemyWhenAnnouncedFizzlesAtResolution),
         ];
         runner.Run("intervening-spirit", tests);
@@ -134,5 +135,46 @@ internal static class InterveningSpiritTests
         resolve.Invoke(e, [new GameCommand("useAbility", 0, e.Version, CardId: r.Card.Id, TargetId: r.Mover.Id, AbilityId: Ability), false]);
         Eq(e.State.Cards[r.Mover.Id].Zone, Zone.Home, "resolved with nobody opposing: he stays home");
         Check(e.State.Events.Any(ev => ev.Type == "abilityFizzled" && ev.CardId == r.Card.Id), "the fizzle is in the log");
+    }
+
+    // No deck card carries the Ancestor keyword: Ancestors enter play only as created cards (Kitsu Akai's Lion Ancestor; the Ancestor Spirit scan of Our Ancestors' Call and
+    // Seeds of Decay). So the bonus is proven on created instances, the first made by Kitsu Akai's own Limited action exactly as in a game.
+    private static void CreatedAncestorsEarnTheBonus()
+    {
+        var water = PersonalityWith("Shugenja", "Water").Id;
+        foreach (var attacks in new[] { true, false })
+        {
+            var role = attacks ? "Attacker" : "Defender";
+            var s = MatchEngine.CreateEconomyScenario().State;
+            foreach (var p in s.Players) { foreach (var id in p.Hand.ToArray()) s.Cards.Remove(id); p.Hand.Clear(); }
+            s.Phase = Phase.Action; s.ActivePlayerId = 0; s.PriorityPlayerId = 0;
+            var akai = Add(s, "oracle-l5r-4371", 0, Zone.Home);
+            var e = MatchEngine.FromTestState(s);
+            var create = e.QueryActions(0).First(o => o.Enabled && o.Command?.AbilityId == "kitsu-akai-create" && o.CardId == akai.Id);
+            Accept(e, create.Command!);
+            var st = e.State;
+            var lion = st.Cards.Values.Single(c => c.DefinitionId == "oracle-l5r-9785");
+            Eq(lion.Zone, Zone.Home, $"{role}: Kitsu Akai's Lion Ancestor is at home");
+            // A second, clan-aligned Ancestor Spirit, bowed at another battlefield still to resolve.
+            var spirit = Add(st, "user-scan-ancestor-spirit", 0, Zone.Battlefield, bowed: true, province: 1);
+            st.Phase = Phase.Battle; st.ActivePlayerId = attacks ? 0 : 1; st.PriorityPlayerId = 0; st.CurrentBattleProvince = 0; st.UnresolvedBattlefields = [0, 1];
+            var host = Add(st, water, 0, Zone.Home);
+            var first = Add(st, Spirit, 0, Zone.Attached, parent: host.Id);
+            var second = Add(st, Spirit, 0, Zone.Attached, parent: host.Id);
+            Add(st, "training-lion-veteran", 1, Zone.Battlefield, province: 0);
+            Eq(st.Cards.Values.Count(c => c.OwnerId == 0 && c.Zone == Zone.Battlefield && c.ProvinceIndex == 0), 0, "precondition: no unit at the current battlefield");
+            var b = MatchEngine.FromTestState(st);
+            var offer = Offer(b, 0, first);
+            Check(offer.TargetIds!.Contains(lion.Id) && offer.TargetIds!.Contains(spirit.Id), $"{role}: both created Ancestors are targets");
+            Accept(b, offer.Command! with { TargetId = lion.Id });
+            Eq(b.State.Cards[lion.Id].Zone, Zone.Battlefield, $"{role}: the Lion Ancestor moved"); Eq(b.State.Cards[lion.Id].ProvinceIndex, (int?)0);
+            Eq(b.State.AdditionalActions.Count(g => g.PlayerId == 0), 1, $"{role}: the Lion Ancestor earned the additional Battle action");
+            Eq(b.State.PriorityPlayerId, 0, $"{role}: kept priority");
+            Accept(b, Offer(b, 0, second).Command! with { TargetId = spirit.Id });
+            Eq(b.State.Cards[spirit.Id].ProvinceIndex, (int?)0, $"{role}: the Ancestor Spirit moved from the other battlefield");
+            Check(!b.State.Cards[spirit.Id].Bowed, $"{role}: and was straightened");
+            Eq(b.State.AdditionalActions.Count(g => g.PlayerId == 0), 1, $"{role}: the first grant was spent and the second Ancestor earned another");
+            Eq(b.State.PriorityPlayerId, 0, $"{role}: so the actor still has priority");
+        }
     }
 }
