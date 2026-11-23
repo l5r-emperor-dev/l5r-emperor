@@ -142,11 +142,12 @@ public partial class TokenRailProbe : Control
             }
             if (_stage == 1)
             {
-                // A small icon is a small target: on a just-opened window the first native hover can be missed. Re-hover a few times before failing.
+                // A small icon is a small target: on a just-opened window the first native hover can be missed. Wait, re-hovering only if needed, before failing.
                 if (!_perspective && ReadingTooltip.LastText?.Contains(" token ×") != true)
                 {
-                    if (++_hoverRetries > 4) throw new Exception("Native token tooltip did not open");
-                    GetViewport().WarpMouse(point); GetViewport().PushInput(new InputEventMouseMotion { Position = point, GlobalPosition = point, Relative = Vector2.One }, true);
+                    if (++_hoverRetries > 4) throw new Exception("Native token tooltip did not open: last=" + ReadingTooltip.LastText + " hovered=" + (GetViewport().GuiGetHoveredControl() is CardIcon hi ? hi.CardAnchor.Card.Id + "/" + hi.TooltipText.Length + "/" + hi.IsVisibleInTree() + "/" + (hi == first) : GetViewport().GuiGetHoveredControl()?.GetType().Name) + " focus=" + GetWindow().HasFocus());
+                    // Re-send motion only if the pointer left the icon; a motion event restarts Godot's tooltip timer.
+                    if (GetViewport().GuiGetHoveredControl() is not CardIcon) { GetViewport().WarpMouse(point); GetViewport().PushInput(new InputEventMouseMotion { Position = point, GlobalPosition = point, Relative = Vector2.One }, true); }
                     _clock = 0; return;
                 }
                 GetViewport().PushInput(new InputEventMouseButton { Position = point, GlobalPosition = point, ButtonIndex = MouseButton.Left, Pressed = true }, true);
