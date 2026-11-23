@@ -1,0 +1,98 @@
+name: Friends pack (macOS)
+
+# Issue #1317: the Mac half of a friends pack. The friends-pack skill builds the Windows ZIP on Windows, publishes the
+# release, then runs this workflow so a Mac signs, packages and uploads the matching Mac ZIP for the same commit.
+# A Mac package needs Apple's codesign, so it runs on the repository's own Mac runners. It builds only a commit that is
+# on main, and only the release's own target commit, so the two downloads always come from the same source.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Friends-pack release tag (its target commit is built), e.g. friends-main-20261123-83ace6c8-r1
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: friends-pack-macos-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: package (macOS)
+    runs-on: [self-hosted, macOS, ARM64, l5r-mac]
+    # A fresh export imports every scan and exports two architectures; the backup Mac's first fetch is slow too.
+    timeout-minutes: 120
+    permissions:
+      contents: write # upload the Mac ZIP to the friends-pack release
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Find the release's commit
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          # The release is normally still a draft, which the by-tag endpoint cannot see: read the list instead.
+          sha=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '.[] | select(.tag_name == env.TAG) | .target_commitish')
+          if ! [[ "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Release $TAG must target a full commit SHA (found '$sha')."; exit 1
+          fi
+          status=$(gh api "repos/$GITHUB_REPOSITORY/compare/$sha...main" --jq .status)
+          if [ "$status" != ahead ] && [ "$status" != identical ]; then
+            echo "::error::$sha is not on main (compare status: $status)."; exit 1
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "short=${sha:0:8}" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ steps.release.outputs.sha }}
+          # Same rule as check.yml: the backup Mac keeps full history so a fetch stays incremental (docs/SELF_HOSTED_RUNNER.md).
+          fetch-depth: ${{ runner.name == 'mendon-mac-m5' && '0' || '1' }}
+      - name: Prepare local Python environment
+        run: |
+          python3 -c "import sys; assert sys.version_info >= (3, 12), 'Python 3.12+ required'"
+          python3 -m venv "$RUNNER_TEMP/l5r-python"
+          echo "$RUNNER_TEMP/l5r-python/bin" >> "$GITHUB_PATH"
+      - name: Install pinned project tools and export templates
+        run: python tools/bootstrap.py --install --with-templates
+      - name: Export, sign and validate the Mac build
+        env:
+          GH_TOKEN: ${{ github.token }} # the first export downloads the pinned artwork pack from its release
+        run: bash tools/export.sh macos
+      - name: Package the friends pack and start it from the unzipped package
+        run: python tools/package-share-build.py --platform macos
+      - name: Upload to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+          SHORT: ${{ steps.release.outputs.short }}
+        run: |
+          asset="artifacts/share/L5R-Emperor-macOS-$SHORT.zip"
+          cp artifacts/share/L5R-Emperor-Play-macOS.zip "$asset"
+          local_sha=$(shasum -a 256 "$asset" | cut -d' ' -f1)
+          gh release upload "$TAG" "$asset" --repo "$GITHUB_REPOSITORY" --clobber
+          name=$(basename "$asset")
+          export NAME="$name"
+          remote=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '.[] | select(.tag_name == env.TAG) | .assets[] | select(.name == env.NAME) | .digest')
+          if [ "$remote" != "sha256:$local_sha" ]; then
+            echo "::error::Uploaded asset digest '$remote' does not match sha256:$local_sha."; exit 1
+          fi
+          {
+            echo "Uploaded \`$(basename "$asset")\` to $TAG"
+            echo "- bytes: $(stat -f %z "$asset")"
+            echo "- sha256: \`$local_sha\`"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Keep the export logs of a failed run
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: friends-pack-macos-logs
+          path: artifacts/checks/*.log
+          if-no-files-found: ignore
+          retention-days: 7

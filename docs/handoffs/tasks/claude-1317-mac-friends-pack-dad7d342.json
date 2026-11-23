@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Friends pack gains a macOS download: package-share-build.py --platform macos (ditto, signature re-verify, packaged smoke start), a manual friends-pack-macos.yml workflow on the self-hosted Mac runners that builds a release's main commit and uploads the Mac ZIP with a digest check, and a friends-pack skill that always builds Windows locally plus the parallel Mac build into one draft-then-published pre-release.",
+  "validation": "Windows packaging re-run on the existing export: same 197 entries and identical file CRCs; only the READ ME title changed. --platform macos on Windows stops with a clear message. zizmor 1.30.1 pedantic offline: no findings across .github/workflows. Release-list jq queries tested against the live 83ace6c8 release. sync_skills --check clean; tools/collaboration, hooks, quality and security unittest suites pass (security needs zizmor on PATH). The Mac path itself runs only on a Mac: first exercised by the post-merge friends-pack build.",
+  "remaining": "Run the friends-pack skill after merge to exercise the Mac workflow end to end; fix anything it finds in a follow-up.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1317",
+  "branch": "claude/1317-mac-friends-pack",
+  "updated": "2026-11-23T10:27:10.425331+00:00"
+}

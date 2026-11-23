@@ -42,6 +42,9 @@ on the same PR/ref. Fork PRs do not execute the desktop workflow on this Mac.
   caches reside under the runner directory. Each job installs/validates
   the pinned project tools and runs the same full check script as hosted macOS.
 - Runner updates remain automatic. Credentials and binaries are outside Git.
+- The manual **Friends pack (macOS)** workflow (`friends-pack-macos.yml`, issue #1317) also runs on either Mac
+  (label `l5r-mac`): it exports, signs, packages and uploads the Mac download of a friends pack. It is
+  started by the `friends-pack` skill, never by a push or pull request, and builds only a commit on `main`.
 
 ## Backup runner: `mendon-mac-m5`
 
