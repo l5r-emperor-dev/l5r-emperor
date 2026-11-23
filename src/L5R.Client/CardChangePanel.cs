@@ -63,6 +63,9 @@ public partial class CardChangePanel : PanelContainer
             {
                 var text = Palette.Wrapped(entry.Text, compact ? 17 : 20); text.AddThemeConstantOverride("line_spacing", compact ? 3 : 0); words.AddChild(text);
             }
+            // Issue #1309: the granted Tactician has performed his Tactical action(s) this turn.
+            if (entry.Kind == "Keyword" && entry.Name == "Tactician" && AbilityUseArt.TacticianSpent(card))
+                words.AddChild(Palette.Wrapped(AbilityUseArt.TacticianUsedText, compact ? 15 : 20, new Color("e05a4a")));
             if (!commonSource) words.AddChild(Source(entry, sourceName, compact ? 14 : 17, inspectSource));
             if (i < entries.Length - 1) rows.AddChild(Divider());
         }
@@ -134,6 +137,8 @@ public partial class PermanentGrantSeal : Button
     public required CardTile CardAnchor { get; init; }
     private CanvasLayer? _focusLayer;
     internal bool HasFocusPanel => IsInstanceValid(_focusLayer);
+    private bool TacticianUsed => AbilityUseArt.TacticianSpent(CardAnchor.Card) && !AbilityUseArt.PrintedTactician(CardAnchor.Card)
+        && (CardAnchor.Card.GrantedKeywords ?? []).Any(k => k.Keyword == "Tactician" && CardChanges.IsPermanent(k.Duration));
     public PermanentGrantSeal()
     {
         Flat = true; FocusMode = FocusModeEnum.All; MouseFilter = MouseFilterEnum.Stop;
@@ -146,6 +151,7 @@ public partial class PermanentGrantSeal : Button
         var count = CardChanges.Marked(CardAnchor.Card).Length;
         var kind = CardChanges.Entries(CardAnchor.Card).Any(e => e.Copied) ? "granted/copied" : "permanent";
         TooltipText = $"{CardAnchor.Card.Definition?.Name} · {count} {kind} change{(count == 1 ? "" : "s")}";
+        if (TacticianUsed) TooltipText += "\n" + AbilityUseArt.TacticianUsedText;
         Pressed += () => { CloseFocusPanel(); CardAnchor.EmitSignal(BaseButton.SignalName.Pressed); };
         FocusEntered += ShowFocusPanel;
     }
@@ -157,7 +163,9 @@ public partial class PermanentGrantSeal : Button
     {
         // Approved A's single-grant cap contains no baked quantity. Crop the original art,
         // not a hand-drawn approximation; add the current aggregate count separately.
-        DrawTextureRectRegion(CardChangeArt.A, new Rect2(Vector2.Zero, Size), new Rect2(95, 719, 88, 86));
+        // Issue #1309: a permanently granted Tactician who has performed his Tactical action(s) this turn turns the seal red.
+        var red = TacticianUsed ? new Color(1f, .35f, .3f) : Colors.White;
+        DrawTextureRectRegion(CardChangeArt.A, new Rect2(Vector2.Zero, Size), new Rect2(95, 719, 88, 86), red);
         var count = CardChanges.Marked(CardAnchor.Card).Length;
         if (count > 1)
         {

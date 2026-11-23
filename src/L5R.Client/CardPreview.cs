@@ -48,6 +48,7 @@ public static class CardPreview
         body.AddChild(Palette.Wrapped(def.Name, 22, Palette.Paper));
         if (CreatedCopyStatus.VisibleOn(card)) body.AddChild(CreatedCopyStatus.Explanation(card));
         if (RestrictionRail.HasEffects(card)) body.AddChild(Palette.Wrapped(RestrictionRail.Describe(card), 16, Palette.Paper));
+        if (AbilityUseArt.TacticianSpent(card)) body.AddChild(Palette.Wrapped(AbilityUseArt.TacticianUsedText, 16, new Color("e05a4a"))); // issue #1309
         if (card.ActionLocked && !RestrictionRail.HasEffects(card))
         {
             var status = new HBoxContainer(); status.AddThemeConstantOverride("separation", 10); body.AddChild(status);
