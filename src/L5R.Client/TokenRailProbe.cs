@@ -12,6 +12,7 @@ public partial class TokenRailProbe : Control
     private int _clicks, _stage;
     private bool _restrictions;
     private bool _small, _perspective, _comparison, _bowedAttachments;
+    private int _hoverRetries;
     private TableSurface? _surface;
     private Control? _host;
     public override void _Ready()
@@ -129,10 +130,9 @@ public partial class TokenRailProbe : Control
                     if (OverlapArea(rail.CornersOnViewport(), new[] { attack.Body.Position, new Vector2(attack.Body.End.X, attack.Body.Position.Y), attack.Body.End, new Vector2(attack.Body.Position.X, attack.Body.End.Y) }) > .25f) throw new Exception("Rail covers attack tab");
                 foreach (var face in _cards)
                     if (OverlapArea(rail.CornersOnViewport(), VisibleFace(face)) > .25f) throw new Exception($"Rail {rail.CardAnchor.Card.Id} covers {face.Card.Id}");
-                if (!_restrictions && (rail.CardAnchor.Card.Id is "p-0" or "p-1") && rail.ContentScale < .99f) throw new Exception("Uncrowded rail unexpectedly shrunk");
-                if (rail.CardAnchor.Card.Id is "p-2" or "p-3" && rail.ContentScale >= 1) throw new Exception("Crowded tokens failed to compact");
+                if (!rail.IconsWithinCardHeight()) throw new Exception($"Icons run past the card's height: {rail.CardAnchor.Card.Id}");
             }
-            var first = rails[0]; var point = first.GetGlobalTransform() * first.Body.GetCenter(); if (_surface is not null) point = _surface.ProjectCanvas(point);
+            var first = rails[0].Icons.First(i => i.Token is not null); var point = first.CenterOnViewport(); // #1314: hover one token icon
             if (_stage == 0)
             {
                 ReadingTooltip.LastText = null;
@@ -142,13 +142,20 @@ public partial class TokenRailProbe : Control
             }
             if (_stage == 1)
             {
-                if (!_perspective && ReadingTooltip.LastText?.Contains("Tokens") != true) throw new Exception("Native token tooltip did not open");
+                // A small icon is a small target: on a just-opened window the first native hover can be missed. Wait, re-hovering only if needed, before failing.
+                if (!_perspective && ReadingTooltip.LastText?.Contains(" token ×") != true)
+                {
+                    if (++_hoverRetries > 4) throw new Exception("Native token tooltip did not open: last=" + ReadingTooltip.LastText + " hovered=" + (GetViewport().GuiGetHoveredControl() is CardIcon hi ? hi.CardAnchor.Card.Id + "/" + hi.TooltipText.Length + "/" + hi.IsVisibleInTree() + "/" + (hi == first) : GetViewport().GuiGetHoveredControl()?.GetType().Name) + " focus=" + GetWindow().HasFocus());
+                    // Re-send motion only if the pointer left the icon; a motion event restarts Godot's tooltip timer.
+                    if (GetViewport().GuiGetHoveredControl() is not CardIcon) { GetViewport().WarpMouse(point); GetViewport().PushInput(new InputEventMouseMotion { Position = point, GlobalPosition = point, Relative = Vector2.One }, true); }
+                    _clock = 0; return;
+                }
                 GetViewport().PushInput(new InputEventMouseButton { Position = point, GlobalPosition = point, ButtonIndex = MouseButton.Left, Pressed = true }, true);
                 GetViewport().PushInput(new InputEventMouseButton { Position = point, GlobalPosition = point, ButtonIndex = MouseButton.Left, Pressed = false }, true);
                 GetViewport().PushInput(new InputEventMouseMotion { Position = new Vector2(5, 5), GlobalPosition = new Vector2(5, 5) }, true);
                 _stage = 2; _clock = 0; return;
             }
-            if (_clicks != 1) throw new Exception($"Native rail click selects owner exactly once: {_clicks}");
+            if (_clicks != 1) throw new Exception($"Native token-icon click selects owner exactly once: {_clicks}");
             Input.ParseInputEvent(new InputEventMouseMotion { Position = new Vector2(5, 5) });
             RenderingServer.ForceDraw(); GetViewport().GetTexture().GetImage().SavePng(_output);
             GD.Print(_comparison ? "SOURCE_COMPARISON_PASS: 1 native host; owner click; source artwork beside native renderer." : "TOKEN_RAIL_PASS: 10 hosts; 1/4/5/6 groups; ×12; bowed; attachment ownership; hidden/out-of-play suppression; Blood effect grouping; native owner click."); GetTree().Quit();

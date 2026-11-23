@@ -90,7 +90,7 @@ public partial class Main
     private async Task ClickLockSeal(CardTile tile)
     {
         DeselectCard();
-        var point = tile.TokenRail?.Restrictions is { } track ? (tile.ProjectToScreen?.Invoke(track.GetGlobalTransform() * track.Body.GetCenter()) ?? track.GetGlobalTransform() * track.Body.GetCenter()) : tile.RestrictionSeal!.CenterOnViewport(); PushCaptureMouse(new InputEventMouseMotion { Position = point, GlobalPosition = point }); await EventFrames(8);
+        var point = tile.TokenRail?.Icons.FirstOrDefault(i => i.Restriction is not null) is { } icon ? icon.CenterOnViewport() : tile.RestrictionSeal!.CenterOnViewport(); PushCaptureMouse(new InputEventMouseMotion { Position = point, GlobalPosition = point }); await EventFrames(8);
         PushCaptureMouse(new InputEventMouseButton { Position = point, GlobalPosition = point, ButtonIndex = MouseButton.Left, Pressed = true });
         PushCaptureMouse(new InputEventMouseButton { Position = point, GlobalPosition = point, ButtonIndex = MouseButton.Left, Pressed = false }); await EventFrames(12);
     }
@@ -121,7 +121,7 @@ public partial class Main
                 GD.Print("ACTION_LOCK_REVIEW_READY: Hotako has restricted Shizuka; inspect attachment or advance turn."); return;
             }
             var hero = _tiles.Single(t => t.Card.Id == _lockHero); var version = View.Version;
-            SupportRequire((hero.TokenRail?.Restrictions is not null || hero.RestrictionSeal is not null) && FindCard(_lockItem)!.ActionLocked, "Public lock not presented on Personality or attachment");
+            SupportRequire((hero.TokenRail?.Icons.Any(i => i.Restriction is not null) == true || hero.RestrictionSeal is not null) && FindCard(_lockItem)!.ActionLocked, "Public lock not presented on Personality or attachment");
             await ClickLockSeal(hero);
             SupportRequire(_selected?.Id == _lockHero && View.Version == version, "Seal click must only inspect the locked card");
             SupportRequire(StabilizationText(_inspector).Contains("perform actions"), "Inspector restriction missing");
@@ -140,7 +140,7 @@ public partial class Main
             await SupportClick(_tiles.Single(t => t.Card.Id == _lockItem));
             SupportRequire(StabilizationText(_inspector).Contains("perform actions"), "Attachment inspection lost the public restriction"); await SupportCapture("-attachment");
             _session.SwitchPracticeSeat(); await EventFrames(20);
-            hero = _tiles.Single(t => t.Card.Id == _lockHero); SupportRequire((hero.TokenRail?.Restrictions is not null || hero.RestrictionSeal is not null) && hero.Card.ActionLocked, "Other seat lost public seal");
+            hero = _tiles.Single(t => t.Card.Id == _lockHero); SupportRequire((hero.TokenRail?.Icons.Any(i => i.Restriction is not null) == true || hero.RestrictionSeal is not null) && hero.Card.ActionLocked, "Other seat lost public seal");
             await ClickLockSeal(hero); SupportRequire(_selected?.Id == _lockHero, "Other seat cannot inspect restriction"); await SupportCapture("-opponent");
             _session.SwitchPracticeSeat(); await EventFrames(12);
             _expandedUnits.Clear(); RenderBoard(); await AdvanceLockTurn(); await EventFrames(20);
@@ -148,7 +148,7 @@ public partial class Main
             await PrepareLockReview(crowded: true); AssertRestrictionCrowding(); await SupportCapture("-crowded-upright");
             await PrepareLockReview(crowded: true, bowed: true); AssertRestrictionCrowding(); await SupportCapture("-crowded-bowed");
             _expandedUnits.Add(_lockHero); RenderBoard(); await EventFrames(15); await SupportCapture("-bowed-detail");
-            SupportRequire(_tiles.Where(t => ActionLockStatus.VisibleOn(t.Card) && !t.UprightPreview).All(t => t.TokenRail?.Restrictions is not null || t.RestrictionSeal is not null), "Bowed or crowded Personality lost its marker");
+            SupportRequire(_tiles.Where(t => ActionLockStatus.VisibleOn(t.Card) && !t.UprightPreview).All(t => t.TokenRail?.Icons.Any(i => i.Restriction is not null) == true || t.RestrictionSeal is not null), "Bowed or crowded Personality lost its marker");
             GD.Print("ACTION_LOCK_PASS: real Hotako lock, native seal input, disabled action, both seats, attachments, expiry, bowed/dishonorable crowded rendering"); GetTree().Quit();
         }
         catch (Exception e) { await SupportCapture("-failure"); GD.PushError(e.ToString()); GetTree().Quit(1); }

@@ -362,7 +362,7 @@ public partial class Main
         { _matSections.Emphasize(null, hover: true); HideTableTooltip(); return; }
         Control? hovered = token ?? _matSections.IconAt(_lastTableMouse) ?? TableHovered;
         if (token is null)
-            while (hovered is not null && !hovered.HasMeta("flat_tooltip") && hovered is not (CardTile or PermanentGrantSeal or CardTokenRail)) hovered = hovered.GetParent() as Control;
+            while (hovered is not null && !hovered.HasMeta("flat_tooltip") && hovered is not (CardTile or PermanentGrantSeal)) hovered = hovered.GetParent() as Control;
         var provinceHover = hovered?.HasMeta("province_marker") == true ? hovered.GetMeta("province_marker").AsString()
             : hovered is CardTile provinceCard && provinceCard.Card.Zone is L5R.Core.Zone.Province or L5R.Core.Zone.Region
                 ? View.Players.SelectMany(p => p.Provinces.Where(q => ProvincePresentation.Cards(q).Any(c => c.Id == provinceCard.Card.Id)).Select(q => $"province:{p.Id}:{q.Index}")).FirstOrDefault() : null;
@@ -371,7 +371,6 @@ public partial class Main
         if (hovered is null || _tableTooltip is not null || (_tableHoverTime += delta) < .5) return;
         _tableTooltip = token is not null ? token._MakeCustomTooltip(token.Explanation) :
             hovered is PermanentGrantSeal grant ? grant.CreateReadingPreview() :
-            hovered is CardTokenRail rail ? rail.CreateReadingPreview() :
             hovered is HomeReminder reminder ? reminder.CreateReadingPreview() :
             hovered is CardTile card ? card.CreateReadingPreview() : ReadingTooltip.Create(hovered, hovered.GetMeta("flat_tooltip").AsString());
         _root.AddChild(_tableTooltip);
