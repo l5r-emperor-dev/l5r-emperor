@@ -5788,6 +5788,10 @@ public sealed partial class MatchEngine
             // the destination must actually have enemy presence for the move to be legal at all.
             if (id == "trusting-instinct-move")
             { if (!(Army(1 - player.Id, _state.CurrentBattleProvince!.Value).Any())) return "Trusting Instinct only moves your Personality to a battlefield where he would be opposed."; }
+            // Intervening Spirit: "if any enemy units are there" -- tested when the action is announced, so with nobody opposing it is not offered as playable
+            // (it was offered and then refused on submit, issue #1312). Resolution tests it again and fizzles (issue #967's shape).
+            if (id == "intervening-spirit-move")
+            { if (_state.CurrentBattleProvince is not int spiritProvince) return "There is no battle in progress."; if (!(Army(1 - player.Id, spiritProvince).Any())) return "Intervening Spirit may only move a Personality into a battlefield with enemy units present."; }
             // Your Clan Needs You! (issue #295): "If any enemy units are at the current battlefield" --
             // its own printed entry condition, checked here alongside every other id-specific presence
             // Require in this same actingAsBattle block.
@@ -8238,7 +8242,9 @@ public sealed partial class MatchEngine
                 break;
             case "intervening-spirit-move":
                 {
-                    Require(Army(1 - player.Id, _state.CurrentBattleProvince!.Value).Any(), "Intervening Spirit may only move a Personality into a battlefield with enemy units present.");
+                    // Announced only where enemy units stand (ValidateAbility); if a reaction removed them before this resolves, the action does nothing rather than refusing
+                    // the window's close (issue #967).
+                    if (!Army(1 - player.Id, _state.CurrentBattleProvince!.Value).Any()) { FizzleMove(player, source!); break; }
                     var wasAtBattle = AtBattle(target!);
                     MoveToBattlefield(target!, _state.CurrentBattleProvince!.Value);
                     if (!wasAtBattle) StraightenUnit(target!);
