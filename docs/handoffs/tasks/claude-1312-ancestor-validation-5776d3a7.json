@@ -1,0 +1,9 @@
+{
+  "lane": "rules",
+  "summary": "Intervening Spirit (#1312 follow-up): validated the Water bonus on real Ancestors. No deck card carries the Ancestor keyword; Ancestors enter play only as created cards. New test creates Kitsu Akai's Lion Ancestor through his own Limited action, plus an Ancestor Spirit bowed at another battlefield, and moves each with a Water Shugenja's Intervening Spirit as Attacker and Defender: each earns an additional Battle action, priority is kept, the grants chain. Test only; no engine change.",
+  "validation": "intervening-spirit 5/5; the new case fails when the Ancestor check is broken (mutation) and passes intact. bash tools/check.sh --skip-client: all requested checks passed.",
+  "remaining": "Rules question still open for Mendon: Spirit Personalities that are not Ancestors get no bonus, as printed.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1312",
+  "branch": "claude/1312-ancestor-validation",
+  "updated": "2026-11-22T23:47:28.458896+00:00"
+}

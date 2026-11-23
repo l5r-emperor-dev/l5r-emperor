@@ -1,0 +1,9 @@
+{
+  "lane": "rules",
+  "summary": "Intervening Spirit (#1312): tested as a Home Battle action for the Attacker and the Defender with no presence at the battlefield (free and bowed Personality, Shugenja at home) -- it works. Fixed two defects: with no enemy unit at the battlefield it was offered as playable and then refused on submit (now not offered); if the enemy left during a reaction window resolution refused instead of fizzling (now fizzles, issue #967's shape). Water Shugenja + Ancestor target grants an additional Battle action that keeps priority and is spendable.",
+  "validation": "New InterveningSpiritTests (4 cases) pass; the no-enemy case fails without the fix. battle-absent-moves 8/8. bash tools/check.sh --skip-client: see PR.",
+  "remaining": "Rules question for Mendon: the printed bonus says Ancestor; no deck-playable Personality has the Ancestor keyword (the six Spirit Personalities do not), only the created Lion Ancestor. Spirit-only targets get no bonus as printed; unchanged pending a ruling.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1312",
+  "branch": "claude/1312-intervening-spirit",
+  "updated": "2026-11-22T23:21:48.237718+00:00"
+}

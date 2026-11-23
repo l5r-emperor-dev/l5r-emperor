@@ -26,6 +26,27 @@ public partial class Main
         await _session.Submit(Actions.Single(a => a.Type == "endDynasty" && a.Enabled).Command!);
         return ids;
     }
+    // Know Their Minds (a player report: "a Personality is discarded instead of turned face down"): the engine leaves it face-down in its province, but the view
+    // replaces its id with the province's hidden card, and the table motion used to read that as a card returned to the Dynasty deck and fly its face there.
+    private async Task CaptureTurnedFaceDown()
+    {
+        var state = SupportFixture().State;
+        foreach (var province in state.Players[1].Provinces) if (province.CardId is { } hidden) state.Cards[hidden].FaceUp = false;
+        var target = SupportFixtureCard(state, "training-lion-samurai", 1, Zone.Province, 0); target.FaceUp = true;
+        SupportFixtureCard(state, "oracle-l5r-4487", 0, Zone.Hand);
+        var samurai = SupportFixtureCard(state, "training-crane-samurai", 0, Zone.Home); samurai.GrantedKeywords.Add(new("Samurai", "card-motion-fixture", GrantDuration.Permanent));
+        var engine = (MatchEngine)typeof(MatchEngine).GetMethod("FromTestState", BindingFlags.NonPublic | BindingFlags.Static)!.Invoke(null, [state])!;
+        await LoadSupportFixture(engine, 0);
+        var option = Actions.First(a => a.Enabled && a.Command?.AbilityId == "know-their-minds-choose" && a.Command.PerformerId == samurai.Id);
+        await _session.Submit(option.Command! with { TargetPlayerId = 1 });
+        await WaitFor(() => _flights.Count > 0, "Turned face-down: no table motion", 10);
+        SupportRequire(View.Players[1].Provinces[0].Card is { Definition: null, FaceUp: false }, "Turned face-down: the province does not show a face-down card");
+        SupportRequire(!VisibleCards(View).Any(c => c.Id == target.Id), "Turned face-down: the card is still visible");
+        var deck = PileCorners(TablePiles.First(p => p.OwnerId == 1 && p.PileZone == Zone.DynastyDeck));
+        SupportRequire(_flights.All(f => f.Destination()[0].DistanceTo(deck[0]) > 1), "Turned face-down: a card flew to the Dynasty deck");
+        SupportRequire(_flights.Any(f => f.Face == TablePile.DynastyBack && f.Back is not null && f.Destination()[0].DistanceTo(f.From[0]) < 1), "Turned face-down: no flip in place");
+        await EventFrames(10); await SupportCapture("-turned-face-down");
+    }
     private (string CardId, bool Flip)[] StartedAmong(string[] ids) => _playsStarted.Where(b => ids.Contains(b.CardId)).ToArray();
     private async Task CaptureCardMotion()
     {
@@ -79,7 +100,8 @@ public partial class Main
             await WaitFor(() => StartedAmong(ids).Length == 3 && !PlayShowcaseBusy, "Reduced: Region/Celestial/Event not all shown", 30);
             SupportRequire(!_root.GetChildren().OfType<CardFlip>().Any() && StartedAmong(ids).All(b => !b.Flip), "Reduced: a flip was drawn");
             _preferences.ReducedMotion = false; _preferences.FlipDynastyCards = false; ApplyPreferences(false);
-            GD.Print("CARD_MOTION_PASS: Flip Off shows only entering Event/Region/Celestial; Flip On turns every revealed card over on the table, in turn; Paused holds entries not flips; reduced motion skips the turn.");
+            await CaptureTurnedFaceDown();
+            GD.Print("CARD_MOTION_PASS: Flip Off shows only entering Event/Region/Celestial; Flip On turns every revealed card over on the table, in turn; Paused holds entries not flips; reduced motion skips the turn; a Personality turned face-down flips in its province instead of flying to the Dynasty deck.");
             GetTree().Quit();
         }
         catch (Exception e) { try { await SupportCapture("-failure"); } catch { } GD.PushError(e.ToString()); GetTree().Quit(1); }
