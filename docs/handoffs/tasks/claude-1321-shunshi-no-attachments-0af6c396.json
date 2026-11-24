@@ -1,0 +1,9 @@
+{
+  "lane": "rules",
+  "summary": "Iuchi Shunshi (#1321): validated that only a Personality without attachments can be targeted. New test: an attached Follower, Item or Spell, or a Follower/Weapon/Armor attachment token, on either player's Personality, removes him from the target list, and a command naming him directly is refused and locks nothing. Bare Personalities, Shunshi himself, and a Personality with only a Force token stay targetable. Test only; the engine already behaved correctly.",
+  "validation": "emperor-personality-batch3 Shunshi cases pass; the new case fails with RequireNoAttachments switched off (mutation). bash tools/check.sh --skip-client: see PR.",
+  "remaining": "None; ready for review.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1321",
+  "branch": "claude/1321-shunshi-no-attachments",
+  "updated": "2026-11-24T10:53:57.227636+00:00"
+}
