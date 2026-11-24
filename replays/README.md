@@ -13,7 +13,7 @@ Agents follow the repository skill `upload-replays` (`.claude/skills/upload-repl
 2. From the repository root: `bash -c 'source tools/env.sh && dotnet run -c Release --project tools/ReplayCheck -- --write-index'` adds them to the index and replays them.
 3. Optionally add a `note` to each new entry, then commit `games/` and `index.json` together.
 
-`dotnet run -c Release --project tools/ReplayCheck -- --decks` prints the plays by deck and the games each deck of the bot's pool still needs for bot training (5 played by Mendon, 10 played by the bot at Hard; the reasoning is in `tools/ReplayCheck/DeckTable.cs`).
+`dotnet run -c Release --project tools/ReplayCheck -- --decks` prints the plays by Stronghold (every Stronghold in the game, grouped by clan, with a clan summary) and the games each Stronghold the bot's pool plays still needs for bot training (5 played by Mendon, 10 played by the bot at Hard; the reasoning is in `tools/ReplayCheck/DeckTable.cs`).
 
 ## What the checks prove (`.github/workflows/replays.yml`)
 

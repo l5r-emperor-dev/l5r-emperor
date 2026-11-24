@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Bot pool gains Allan Unicorn, Crane Favors, Dragon Enlightenment and Asahina Crane (the unnamed Shinden Asahina list the bot played 14-15 Nov) in preloaded-decks.json; they never enter the bot tournament's held-out set (JoinedAfterHoldout), so the held-out three are unchanged. ReplayCheck --decks now prints one row per Stronghold in the game (52), grouped by clan, with the pool decks that play it, plus a clan summary; upload-replays step 8 always reports both tables.",
+  "validation": "bash tools/check.sh --skip-client: all requested checks passed. L5R.AI.Tests --filter archetype: 5/5. Shipped-deck test now covers 19 decks and the practice review (all Ready). ReplayCheck --decks output checked by hand.",
+  "remaining": "None; ready for review. New decks are also written once into players' My Decks folders (existing files are never overwritten).",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1335",
+  "branch": "claude/1335-bot-pool-strongholds",
+  "updated": "2026-11-24T14:51:51.216406+00:00"
+}

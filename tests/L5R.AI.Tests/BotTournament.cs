@@ -76,8 +76,11 @@ internal static class BotTournament
         int[] Honor, int[] ProvincesLeft, int[] Personalities, Dictionary<string, int>[] Actions, double[]? ThinkMs = null,
         Dictionary<string, int>? Fires = null, Dictionary<string, int>? Active = null, int Counted = 0, int FiresCut = 0);
 
-    /// <summary>The held-out decks are fixed by a hash of the name, not chosen by hand: the three lowest SHA-256 values of the 12 pool names.</summary>
-    public static string[] HoldoutNames(IEnumerable<string> names) => names.OrderBy(n => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("l5r-bot-holdout:" + n)))).Take(3).ToArray();
+    /// <summary>The held-out decks are fixed by a hash of the name, not chosen by hand: the three lowest SHA-256 values of the pool names. Decks added to the
+    /// pool after issue #1335 never enter the held-out set (Allan Unicorn would otherwise displace Allan Lion MCA), so earlier dev and holdout results stay comparable.</summary>
+    public static readonly string[] JoinedAfterHoldout = ["Allan Unicorn", "Crane Favors", "Dragon Enlightenment", "Asahina Crane"];
+
+    public static string[] HoldoutNames(IEnumerable<string> names) => names.Except(JoinedAfterHoldout).OrderBy(n => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("l5r-bot-holdout:" + n)))).Take(3).ToArray();
 
     private static ActionOption[] Clone(ActionOption[] a) => JsonSerializer.Deserialize<ActionOption[]>(JsonSerializer.Serialize(a))!;
 
