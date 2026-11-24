@@ -9,6 +9,10 @@ src/L5R.Client/Content/ability-regions.json:
 3. Each OCR line is matched to a paragraph of the card's text; each ability group to a paragraph by its label (or by
    order when every action paragraph is accounted for). The word "Tactician" is found in the keyword line.
 4. overrides.json supplies hand-checked boxes where the printed text differs from the stored text; it always wins.
+5. Issue #1329: every printed keyword of a Personality is found in its keyword line ("kw": keyword -> box, the box running over
+   the bullet that separates it from its neighbour so nothing is left behind when it is covered), with the paper colour
+   right around each one ("kc"), so the client can cover a keyword while the Personality has lost it. A keyword the OCR
+   cannot read is reported, not fatal: that card simply shows the keyword.
 
 `--sheet N` also renders contact sheets (12 cards each) under artifacts/ability-regions for a visual review.
 Cards still unresolved are listed and fail the run, so a newly wired card cannot ship without a box.
@@ -203,6 +207,64 @@ def locate(card: dict, ocr: dict) -> tuple[dict, list[str]]:
     return result, problems
 
 
+def letters(text: str) -> str:
+    return re.sub(r"[^A-Z]", "", text.upper())
+
+
+def locate_keywords(card: dict, ocr: dict) -> tuple[dict, list[str]]:
+    """Issue #1329: each printed keyword's box on the keyword line, widened over its separating bullet."""
+    wanted = card.get("keywords") or []
+    if not wanted:
+        return {}, []
+    height = ocr["h"]
+    rows = [r for r in rows_of(ocr) if height * .45 < r["box"][1] < height * .97 and is_keyword_row(r["t"])]
+    found: dict[str, list[int]] = {}
+    for keyword in wanted:
+        parts = [letters(p) for p in keyword.split() if letters(p)]
+        best = None
+        for row in rows:
+            words = [w for w in row["w"] if letters(w[0])]
+            for i in range(len(words) - len(parts) + 1):
+                span = words[i:i + len(parts)]
+                score = difflib.SequenceMatcher(None, "".join(parts), "".join(letters(w[0]) for w in span)).ratio()
+                if score >= .8 and (best is None or score > best[0]):
+                    best = (score, words, i, i + len(parts))
+        if best is None:
+            continue
+        _, words, start, end = best
+        box = union([[w[1], w[2], w[1] + w[3], w[2] + w[4]] for w in words[start:end]])
+        # Cover the bullet too: up to the next keyword's first letter, or back from the previous keyword's last letter when this one ends the line.
+        if end < len(words):
+            box[2] = words[end][1] - 2
+        elif start > 0:
+            box[0] = words[start - 1][1] + words[start - 1][3] + 2
+        found[keyword] = box
+    missing = [k for k in wanted if k not in found]
+    return found, missing
+
+
+def paper_colour(image, box: list[int]) -> str:
+    """The paper colour right around one keyword, its watermark tint included: the average of thin strips above, below and at its ends."""
+    x0, y0, x1, y1 = box
+    strips = [(x0, y0 - 7, x1, y0 - 1), (x0, y1 + 1, x1, y1 + 7), (x0 - 8, y0, x0 - 2, y1), (x1 + 2, y0, x1 + 8, y1)]
+    pixels = []
+    for a, b, c, d in strips:
+        a, b, c, d = max(0, a), max(0, b), min(image.width, c), min(image.height, d)
+        if c > a and d > b:
+            pixels += list(image.crop((a, b, c, d)).get_flattened_data())
+    pixels.sort(key=lambda p: sum(p))
+    # Leave out the darkest quarter (ink of the neighbouring letters and rules) and the brightest specks; average the paper between.
+    paper = pixels[len(pixels) // 4: len(pixels) * 9 // 10] or [(239, 228, 200)]
+    channel = lambda c: round(sum(p[c] for p in paper) / len(paper))
+    return "#%02x%02x%02x" % (channel(0), channel(1), channel(2))
+
+
+def keyword_colours(name: str, boxes: dict[str, list[int]]) -> dict[str, str]:
+    from PIL import Image
+    image = Image.open(CLIENT / "Content" / "Published" / name).convert("RGB")
+    return {keyword: paper_colour(image, box) for keyword, box in boxes.items()}
+
+
 def apply_override(card: dict, result: dict, override: dict) -> None:
     by_key = {r["k"]: r for r in result["a"]}
     for key, box in override.get("abilities", {}).items():
@@ -212,6 +274,8 @@ def apply_override(card: dict, result: dict, override: dict) -> None:
     result["a"] = [by_key[k] for k in order if k in by_key]
     if "tactician" in override:
         result["t"] = override["tactician"]
+    for keyword, box in override.get("keywords", {}).items():
+        result.setdefault("kw", {})[keyword] = box
 
 
 def sheets(cards: list[dict], regions: dict, count: int) -> None:
@@ -250,20 +314,30 @@ def main() -> int:
     overrides = json.loads((HERE / "overrides.json").read_text(encoding="utf-8"))["cards"]
     regions: dict[str, dict] = {}
     unresolved: list[str] = []
+    keywords_unread: list[str] = []
     for card in cards:
         name = Path(card["art"]).name
         result, problems = locate(card, ocr[name])
+        keyword_boxes, unread = locate_keywords(card, ocr[name])
+        if keyword_boxes:
+            result["kw"] = keyword_boxes
+        keywords_unread.extend(f"{name} {card['name']}: {k}" for k in unread)
         if name in overrides:
             apply_override(card, result, overrides[name])
             covered = {r["k"] for r in result["a"]}
             problems = [p for p in problems if not (p.split(":")[0] in covered or (p.startswith("Tactician") and "t" in result))]
         if problems:
             unresolved.append(f"{name} {card['name']}: " + "; ".join(problems))
+        if result.get("kw"):
+            result["kc"] = keyword_colours(name, result["kw"])
         regions[name] = result
     OUT.write_text(json.dumps({"version": 1, "source": "tools/content/ability_regions/build.py", "cards": dict(sorted(regions.items()))}, separators=(",", ":")) + "\n", encoding="utf-8")
     if args.sheet:
         sheets(cards, regions, args.sheet)
-    print(f"{len(regions)} cards, {sum(len(r['a']) for r in regions.values())} ability boxes, {sum('t' in r for r in regions.values())} Tactician boxes -> {OUT.relative_to(ROOT)}")
+    wanted = sum(len(c.get("keywords") or []) for c in cards)
+    print(f"{len(regions)} cards, {sum(len(r['a']) for r in regions.values())} ability boxes, {sum('t' in r for r in regions.values())} Tactician boxes, "
+          f"{sum(len(r.get('kw', {})) for r in regions.values())} of {wanted} printed keywords -> {OUT.relative_to(ROOT)}")
+    (WORK / "keywords-unread.txt").write_text("".join(k + chr(10) for k in keywords_unread), encoding="utf-8")
     for line in unresolved:
         print("UNRESOLVED " + line)
     return 1 if unresolved else 0

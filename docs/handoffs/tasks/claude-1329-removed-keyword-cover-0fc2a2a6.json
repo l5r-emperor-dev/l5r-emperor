@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "A Personality's removed printed keyword (Clan alignment, Ninja, any other) is covered on the card art while removed: a feathered box in the paper colour sampled around that keyword, carrying the scan UVs so the card's paper shader grades it like the paper. Core: CardView.RemovedPrintedKeywords (public, printed order). Tool: ability_regions places every printed keyword of every playable Personality (3,929 of 3,936) and samples paper colours; existing ability/Tactician boxes unchanged.",
+  "validation": "bash tools/check.sh (full, with client): all requested checks passed. New ability-use-view test (removed printed keywords incl. Clan alignment reach both seats in printed order; unprinted and face-down none) and ability-region-coverage pass. Native AbilityUseProbe 1920x1080: 9 assertions pass incl. clan/Ninja/two-keyword covers; screenshots and zooms inspected (covers invisible after UV fix). Sample sheet of 8 random cards: every box on the right word. dotnet format clean.",
+  "remaining": "7 keywords the OCR could not read keep showing (listed in artifacts/ability-regions/keywords-unread.txt). Not hand-played.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1329",
+  "branch": "claude/1329-removed-keyword-cover",
+  "updated": "2026-11-24T11:59:42.307269+00:00"
+}

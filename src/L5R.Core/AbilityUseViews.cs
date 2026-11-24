@@ -66,6 +66,14 @@ public sealed partial class MatchEngine
     private TacticalUseView? TacticalUseView(CardInstance card, CardDefinition def) =>
         card.FaceUp && InPlay(card) && def.Type == CardType.Personality && Keyword(card, "Tactician")
             ? new TacticalUseView(TacticalActionsThisTurn(card.Id), TacticalCap(card)) : null;
+
+    /// <summary>Issue #1329: the printed keywords of a face-up card that are removed now (permanently or for a while), in printed order; null when none.</summary>
+    private static string[]? RemovedPrintedKeywordsView(CardInstance card, CardDefinition def)
+    {
+        if (!card.FaceUp || card.RemovedKeywords.Count == 0 || def.Keywords is not { Length: > 0 } printed) return null;
+        var removed = printed.Where(k => card.RemovedKeywords.Contains(k, StringComparer.Ordinal)).ToArray();
+        return removed.Length == 0 ? null : removed;
+    }
 }
 
 /// <summary>Tactical actions a Tactician performed this turn against his cap (one, or three for Moto Taigo). Public.</summary>
@@ -78,7 +86,11 @@ public sealed record TacticalUseView(int Used, int Cap);
 public static class AbilityRegionCards
 {
     public sealed record Group(string Key, string[] Ids);
-    public sealed record Row(CardDefinition Card, Group[] Groups, bool PrintedTactician);
+    public sealed record Row(CardDefinition Card, Group[] Groups, bool PrintedTactician)
+    {
+        /// <summary>Issue #1329: a Personality's printed keywords, each located on the scan so it can be covered while removed.</summary>
+        public string[] Keywords => Card.Type == CardType.Personality ? Card.Keywords ?? [] : [];
+    }
 
     public static readonly CardType[] InPlayTypes = [CardType.Stronghold, CardType.Holding, CardType.Personality, CardType.Follower, CardType.Item, CardType.Spell, CardType.Celestial, CardType.Region, CardType.Ring];
 
@@ -93,5 +105,5 @@ public static class AbilityRegionCards
 
     public static IEnumerable<Row> Rows() => CardCatalog.PlayableFromDecks.Where(c => InPlayTypes.Contains(c.Type))
         .Select(c => new Row(c, Groups(c.Abilities ?? []), c.Type == CardType.Personality && (c.Keywords ?? []).Contains("Tactician")))
-        .Where(r => r.Groups.Length > 0 || r.PrintedTactician).OrderBy(r => r.Card.Id, StringComparer.Ordinal);
+        .Where(r => r.Groups.Length > 0 || r.PrintedTactician || r.Keywords.Length > 0).OrderBy(r => r.Card.Id, StringComparer.Ordinal);
 }

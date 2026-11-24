@@ -135,3 +135,5 @@ interpretation this register's decision docs already settled.
 - [Card markers are separate icons outside the card](2026-11-22-card-marker-icons.md) — accepted (Mendon): the status and token rails become individual icons (seal, restriction kinds, token groups) stacked five to the card height along its edge, more columns outward, explained on hover; icon art unchanged.
 
 - [Every card shown to a player is held until they click](2026-11-24-shown-cards-held.md) — accepted (Mendon): cards the opponent shows, cards seen in another hand and face-down province cards looked at are each held on screen with a caption until Proceed, whatever the Paused Animation setting.
+
+- [A removed printed keyword is covered on the card art](2026-11-24-removed-keyword-cover.md) — accepted (Mendon): while a Personality has lost a printed keyword (Clan alignment, Ninja, any other) it is painted over in the surrounding paper colour so it appears not to be there.

@@ -13,6 +13,7 @@ var cards = AbilityRegionCards.Rows().Select(c => new
     art = c.Card.ArtworkKey,
     text = c.Card.Text,
     tactician = c.PrintedTactician,
+    keywords = c.Keywords, // issue #1329: every printed keyword of a Personality, located so it can be covered while removed
     groups = c.Groups.Select(g => new { key = g.Key, ids = g.Ids, labels = g.Ids.Select(id => AbilityCatalog.All[id].Label).ToArray() }).ToArray(),
 }).ToArray();
 File.WriteAllText(args[0], JsonSerializer.Serialize(cards));

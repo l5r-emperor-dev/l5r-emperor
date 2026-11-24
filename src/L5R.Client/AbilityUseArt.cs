@@ -18,7 +18,8 @@ public static class AbilityUseArt
     public const string TacticianUsedText = "This personality has used tactical advantage this turn.";
 
     public sealed record Region(string Key, string[] Ids, Rect2 Box);
-    public sealed record CardRegions(Vector2 Size, Region[] Abilities, Rect2? Tactician);
+    /// <summary>Issue #1329: Keywords maps each printed keyword to its box on the keyword line (bullet included) and the paper colour right around it.</summary>
+    public sealed record CardRegions(Vector2 Size, Region[] Abilities, Rect2? Tactician, IReadOnlyDictionary<string, (Rect2 Box, Color Paper)>? Keywords = null);
 
     private static Dictionary<string, CardRegions>? _regions;
 
@@ -40,7 +41,10 @@ public static class AbilityUseArt
             static Rect2 Box(JsonElement b) => new(b[0].GetSingle(), b[1].GetSingle(), b[2].GetSingle() - b[0].GetSingle(), b[3].GetSingle() - b[1].GetSingle());
             var abilities = v.TryGetProperty("a", out var a) ? a.EnumerateArray().Select(r => new Region(r.GetProperty("k").GetString()!, r.GetProperty("ids").EnumerateArray().Select(i => i.GetString()!).ToArray(), Box(r.GetProperty("r")))).ToArray() : [];
             Rect2? tactician = v.TryGetProperty("t", out var t) ? Box(t) : null;
-            result[card.Name] = new CardRegions(new Vector2(v.GetProperty("w").GetSingle(), v.GetProperty("h").GetSingle()), abilities, tactician);
+            var colours = v.TryGetProperty("kc", out var kc) ? kc : default;
+            Color PaperOf(string keyword) => colours.ValueKind == JsonValueKind.Object && colours.TryGetProperty(keyword, out var hex) && hex.GetString() is { } c ? new Color(c) : DefaultPaper;
+            var keywords = v.TryGetProperty("kw", out var kw) ? kw.EnumerateObject().ToDictionary(k => k.Name, k => (Box(k.Value), PaperOf(k.Name)), StringComparer.Ordinal) : null;
+            result[card.Name] = new CardRegions(new Vector2(v.GetProperty("w").GetSingle(), v.GetProperty("h").GetSingle()), abilities, tactician, keywords);
         }
         return result;
     }
@@ -62,6 +66,12 @@ public static class AbilityUseArt
 
     public static bool TacticianSpent(CardView card) => card.TacticalUses is { } t && t.Used >= t.Cap;
     public static bool PrintedTactician(CardView card) => (card.Definition?.Keywords ?? []).Contains("Tactician");
+
+    /// <summary>Issue #1329: the printed keywords this card has lost for now, as boxes (scan pixels) to cover in the keyword line's own colour so they read as not there.</summary>
+    public static (Rect2 Box, Color Paper)[] RemovedKeywordCovers(CardView card) =>
+        card.RemovedPrintedKeywords is { Length: > 0 } removed && card.Definition is { } def && For(def) is { Keywords: { } boxes }
+            ? removed.Where(boxes.ContainsKey).Select(k => boxes[k]).ToArray() : [];
+    private static readonly Color DefaultPaper = new("efe4c8");
 
     /// <summary>The marks to draw, in scan pixels: grey boxes and counters. Empty when nothing is used or no rectangles are known for this card.</summary>
     public static (Rect2[] Shaded, (Rect2 Box, string Text)[] Counters) Marks(CardView card)
