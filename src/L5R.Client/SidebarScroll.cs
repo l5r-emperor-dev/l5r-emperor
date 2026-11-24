@@ -9,7 +9,9 @@ namespace L5R.Client;
 /// </summary>
 public partial class SidebarScroll : ScrollContainer
 {
-    public float MaxHeight { get; init; } = 260;
+    private float _maxHeight = 260;
+    /// <summary>The tallest the zone grows before it scrolls. Settable so a zone can make room for extra content (issue #1333: the held-action box).</summary>
+    public float MaxHeight { get => _maxHeight; set { if (_maxHeight == value) return; _maxHeight = value; if (IsInsideTree()) FitContent(); } }
 
     public SidebarScroll()
     {

@@ -65,6 +65,21 @@ public partial class Main
         SupportRequire(!_proceedHintShown, "The Paused Animation reminder appeared for a shown card");
         SupportRequire(!_shownOpen && OpponentShows.Length == 0, "A private look was put in the public shown-card history");
 
+        // Issue #1333: once the Engage window closes, the Attacker's first action belongs to the Scout -- a gold box says so, and a click selects him.
+        var scout = play.Command!.PerformerId!;
+        for (var guard = 0; guard < 6 && scouting.State.PendingChoice?.Type == "engageReaction"; guard++)
+            await _session.Submit(new GameCommand("declineReaction", scouting.State.PriorityPlayerId, scouting.Version));
+        await WaitDecisionPresentation(); Render(); await EventFrames(10);
+        var box = _phaseActions.FindChildren("HeldActionBox", "Button", true, false).OfType<Button>().SingleOrDefault();
+        var scoutName = FindCard(scout)!.Definition!.Name;
+        SupportRequire(box is not null && box.Text == $"Take the First Action Using \"{scoutName}\"", $"First-action box missing or worded wrongly: '{box?.Text}'");
+        SupportRequire(_tiles.Any(t => t.Card.Id == scout && t.Highlighted), "The Scout is not outlined on the table");
+        GD.Print("FIRST_ACTION_BOX: " + box!.Text + " | " + box.TooltipText);
+        await SaveShownCapture("-first-action");
+        await SupportClick(box);
+        SupportRequire(_selected?.Id == scout, "Clicking the box did not select the Scout");
+        await SaveShownCapture("-first-action-selected");
+
         // The Otoro Estate: the viewer looks at the opponent's face-down province cards.
         var state = MatchEngine.CreatePublishedTestMatch(42).State;
         state.Phase = Phase.Action; state.ActivePlayerId = state.PriorityPlayerId = 0; state.PendingChoice = null;

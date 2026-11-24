@@ -141,6 +141,9 @@ internal static partial class EmperorP5Tests
         Check(!e.GetView(1).HandSights!.Any(v => v.DefinitionId.Length == 0), "named by definition");
         while (e.State.PendingChoice?.Type == "engageReaction") Accept(e, new GameCommand("declineReaction", e.State.PriorityPlayerId, e.Version));
         Eq(e.State.FirstActionPlayerId, 1, "the Attacker has the first chance");
+        // Issue #1333: both seats are told who must take it and why.
+        foreach (var seat in new[] { 0, 1 })
+            Check(e.GetView(seat).HeldActions is [{ PlayerId: 1, Kind: "first", SourceName: "Scouting the Pass", MustPass: false } first] && first.PerformerId == scout, $"seat {seat}: the Scout's first action is shown");
         Check(e.State.Players[0].Provinces[0].Reconnaissance[1], "Reconnaissance there");
         var bowerTarget = e.State.Cards.Values.First(c => c.OwnerId == 0 && c.Zone == Zone.Battlefield).Id;
         Check(Rejection(e, Use(e, 1, "training-bow-at-battle", other, bowerTarget)).Length > 0, "his first Battle action must be performed by that Scout");
