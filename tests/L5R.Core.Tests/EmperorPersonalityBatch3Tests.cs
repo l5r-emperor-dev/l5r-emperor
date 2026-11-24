@@ -189,8 +189,11 @@ internal static class EmperorPersonalityBatch3Tests
             return s;
         }
         CardInstance ryoko = null!, enemy = null!, follower = null!, ally = null!;
-        var s0 = Engage(s => { ryoko = Add(s, Ryoko, 0, Zone.Battlefield, province: 0); ally = Add(s, "training-crane-samurai", 0, Zone.Battlefield, province: 0);
-            enemy = Add(s, "training-lion-samurai", 1, Zone.Battlefield, province: 0); var host = Add(s, "training-crane-veteran", 1, Zone.Battlefield, province: 0); follower = Follow(s, host); });
+        var s0 = Engage(s =>
+        {
+            ryoko = Add(s, Ryoko, 0, Zone.Battlefield, province: 0); ally = Add(s, "training-crane-samurai", 0, Zone.Battlefield, province: 0);
+            enemy = Add(s, "training-lion-samurai", 1, Zone.Battlefield, province: 0); var host = Add(s, "training-crane-veteran", 1, Zone.Battlefield, province: 0); follower = Follow(s, host);
+        });
         var e = MatchEngine.FromTestState(s0);
         Accept(e, new GameCommand("selectBattle", 0, e.Version, Province: 0));
         Eq(e.State.PendingChoice?.Type, "engageReaction", "the Engage window opens");
