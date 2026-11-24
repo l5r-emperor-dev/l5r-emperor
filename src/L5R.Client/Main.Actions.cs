@@ -536,6 +536,7 @@ public partial class Main
 
     private void RenderPhaseActions()
     {
+        if (_phaseScroll is not null) _phaseScroll.MaxHeight = PhaseActionsHeight; // issue #1333: RenderHeldActions grows it again while a box is shown
         if (PresentationBusy) { Palette.Clear(_phaseActions); _phaseActions.AddChild(SidebarSkin.Button("Review battle", ShowBattleHistory)); return; }
         Palette.Clear(_phaseActions);
         if (_session.Snapshot is null) return;
@@ -572,6 +573,7 @@ public partial class Main
         {
             _phaseActions.AddChild(Palette.Wrapped($"Room {_session.Snapshot.RoomCode}\nWaiting for your opponent to connect.", 16, Palette.Crane)); return;
         }
+        RenderHeldActions(_phaseActions); // issue #1333: "Take the First Action Using ..." and the other named-performer boxes
         if (View.Phase == Phase.Battle && View.PendingChoice is null && View.PriorityPlayerId == View.ViewerId && View.BattleStep?.ConsecutivePasses == 1)
             _phaseActions.AddChild(Palette.Wrapped("Passing now ends Battle actions.", 16, Palette.PaperDim));
         foreach (var a in Actions.Where(a => a.Type is "pass" or "passAllBattles" or "endDynasty" or "proclaim" or "declineReaction" or "declineAdditionalAction" or "chooseShinden" or "declareAttack")) AddAction(_phaseActions, a);

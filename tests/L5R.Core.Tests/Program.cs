@@ -5284,6 +5284,9 @@ static void AdditionalActionPrimitive()
         Accept(e, new GameCommand("useAbility", 0, e.Version, CardId: twoHands.Id, PerformerId: kensai.Id, AbilityId: "two-hands-grant"));
         Equal(e.State.AdditionalActions.Count(g => g.PlayerId == 0), 2, "Grants two additional Battle actions");
         Check(e.State.AdditionalActions.All(g => g.ScopeCardIds!.Contains(kensai.Id) && g.ScopeCardIds.Contains(weapon.Id)), "Scoped to the Kensai and his Weapon");
+        // Issue #1333: both seats are told the same thing -- two actions held from the Kensai's unit, made by Two Hands, which may be declined.
+        foreach (var seat in new[] { 0, 1 })
+            Check(e.GetView(seat).HeldActions is [{ PlayerId: 0, Kind: "additional", SourceName: "Two Hands", Count: 2, MayDecline: true, PerformerId: null } held] && held.ScopeCardIds!.Contains(kensai.Id), $"seat {seat}: the held Two Hands actions are shown");
         // A card outside the unit is an ordinary action: succeeds, but is not scoped by the grant, so
         // both of it forfeit rather than lingering.
         Accept(e, new GameCommand("useAbility", 0, e.Version, CardId: outsiderWeapon.Id, TargetId: enemy.Id, AbilityId: "training-weapon-attack"));

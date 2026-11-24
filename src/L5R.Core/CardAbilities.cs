@@ -5029,7 +5029,9 @@ public sealed partial class MatchEngine
     {
         if (_state.NoNewAdditionalActionsThisBattle) { EmitBarred(playerId, "Taking a new additional Battle action", _state.NoNewAdditionalActionsBy ?? "Two Hands"); return; }
         if (MechAGrantLocked(playerId, battle)) { EmitBarred(playerId, "Taking another additional Battle action", "One Action, Two Strikes"); return; } // One Action, Two Strikes (issue #501, EmperorMechA.cs): "You will not take any other additional Battle actions this battle."
-        _state.AdditionalActions.Add(new(playerId, scopeCardIds, fromDiscard, battle, anyDiscardTiming, rangedTargetId, performerId, baseAbilityOnly, requiredActionKeyword, tag, id, mandatory, scopeAbilityIds));
+        // Issue #1333: the source is the card of the ability resolving now -- the last ability this player used (its abilityUsed event).
+        var sourceCardId = _state.Events.LastOrDefault(e => e.Type == "abilityUsed" && e.PlayerId == playerId)?.CardId;
+        _state.AdditionalActions.Add(new(playerId, scopeCardIds, fromDiscard, battle, anyDiscardTiming, rangedTargetId, performerId, baseAbilityOnly, requiredActionKeyword, tag, id, mandatory, scopeAbilityIds, SourceCardId: sourceCardId));
         Emit("additionalActionGranted", $"{Player(playerId).Name} may take an additional {(anyDiscardTiming ? "" : "Battle ")}action.", playerId);
     }
     // Ring of Air ("After you resolve your third or later Spell or Kiho action in one turn from cards with different titles") and Ring of Water ("...your fourth or later Battle action in one

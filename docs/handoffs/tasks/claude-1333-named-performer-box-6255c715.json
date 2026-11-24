@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Named-performer boxes (Mendon's approved wording): when the viewer holds a first Battle action limited to a named card (Naval Invasion, Scouting the Pass, Shosuro Toson, Jade's Roar, Rebuilding Kyuden Hida) or an additional action tied to a card or unit (Spinning Heel Kick, Takasho, Two Hands, Equip, Learning, ...), a gold box above the battle controls names it; a click selects that card; it is outlined on the table; the opponent sees a matching line. Core: MatchView.HeldActions (public), AdditionalActionGrant.SourceCardId. The battle controls grow while a box shows so Pass stays visible.",
+  "validation": "bash tools/check.sh (full, with client): all requested checks passed. Core: Two Hands, Spinning Heel Kick and Scouting the Pass tests now check HeldActions in both seats (count, source, performer, may decline). Native check-shown-cards 1920x1080 and 1280x800 reduced: plays Scouting the Pass through the engine, closes the Engage window, checks the box text 'Take the First Action Using \"Training Scout samurai\"' with 'has no Battle action available: you may only pass', the outline, and that a click selects the Scout; screenshots inspected (Pass visible below the box). One flaky native shown-history hover step failed once and passed on rerun unchanged. dotnet format clean. Replay digests unaffected (Digest covers no grant fields).",
+  "remaining": "Only the Scouting the Pass case is driven natively; the other sources' wording is covered by code paths, not screenshots. Not hand-played.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1333",
+  "branch": "claude/1333-named-performer-box",
+  "updated": "2026-11-24T12:17:36.525246+00:00"
+}

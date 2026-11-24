@@ -337,6 +337,9 @@ internal static class EmperorRemainingCTests
         Check(!e.State.Cards[monk.Id].Bowed, "the Monk straightened");
         var grant = e.State.AdditionalActions.Single(g => g.PlayerId == 0);
         Eq(grant.PerformerId, monk.Id, "the additional action is his");
+        // Issue #1333: both seats see who must perform it, and which card gave it.
+        foreach (var seat in new[] { 0, 1 })
+            Check(e.GetView(seat).HeldActions is [{ PlayerId: 0, Kind: "additional", SourceName: "Spinning Heel Kick", Count: 1, MayDecline: true } held] && held.PerformerId == monk.Id, $"seat {seat}: the Monk's held action is shown");
         Eq(e.State.PriorityPlayerId, 0, "and its player keeps priority to take it");
         // Another Personality's action is an ordinary action: it spends nothing and forfeits the grant.
         var wrong = Build(out var kick2, out var monk2, out var other2, out var enemy2);

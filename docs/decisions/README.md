@@ -136,4 +136,6 @@ interpretation this register's decision docs already settled.
 
 - [Every card shown to a player is held until they click](2026-11-24-shown-cards-held.md) — accepted (Mendon): cards the opponent shows, cards seen in another hand and face-down province cards looked at are each held on screen with a caption until Proceed, whatever the Paused Animation setting.
 
+- [Name the card that must take a limited first or additional action](2026-11-24-named-performer-box.md) — accepted (Mendon, wording approved first): a gold box ("Take the First Action Using "{Name}"", "Take Up to Two Actions from "{Name}"'s Unit", ...) selects that card on click and outlines it; the opponent sees a matching line.
+
 - [A removed printed keyword is covered on the card art](2026-11-24-removed-keyword-cover.md) — accepted (Mendon): while a Personality has lost a printed keyword (Clan alignment, Ninja, any other) it is painted over in the surrounding paper colour so it appears not to be there.

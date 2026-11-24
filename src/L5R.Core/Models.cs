@@ -670,7 +670,9 @@ public sealed record FirstActionRestriction(int PlayerId, string? PerformerId, b
 public sealed record AdditionalActionGrant(int PlayerId, string[]? ScopeCardIds, bool FromDiscard = false, int? Battle = null, bool AnyDiscardTiming = false, string? RangedTargetId = null, string? PerformerId = null, bool BaseAbilityOnly = false,
     string? RequiredActionKeyword = null, string? Tag = null, string? Id = null, bool Mandatory = false,
     // Primitive P17 (issue #721, AdditionalActionScope.cs) -- appended LAST, passed by name: the grant is spent only by a command that uses one of these abilities (Mirumoto Kalen - exp's second printed ability).
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string[]? ScopeAbilityIds = null);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string[]? ScopeAbilityIds = null,
+    // Issue #1333 -- appended LAST, passed by name: the card whose ability made the grant, for the holder's "Take an Additional Action Using ..." box.
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? SourceCardId = null);
 
 /// <summary>A discard a player owes: they choose the card from their hand (Times of Strife, Daigotsu Bofana - exp's entry).
 /// Reason names the card or rule in the prompt and the event.</summary>
@@ -1630,6 +1632,8 @@ public sealed record MatchView(string ContentVersion, string Scenario, long Vers
 {
     // #722: Core-owned response context. Older snapshots omit this member; no response is inferred by the client.
     public ReactionPresentationView? ReactionPresentation { get; init; }
+    // Issue #1333 (HeldActionViews.cs): first-action limits and held additional Battle actions, PUBLIC and identical for both seats; null when none.
+    public HeldActionView[]? HeldActions { get; init; }
     // Issue #803 (ReactionOrdering.cs): the announce / order / resolve procedure of a Reaction window both players hold a Reaction for; PUBLIC, null otherwise.
     public ReactionOrderView? ReactionOrder { get; init; }
     public ProvinceOrderView? PendingProvinceOrder { get; init; }

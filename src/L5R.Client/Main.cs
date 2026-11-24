@@ -479,7 +479,7 @@ public partial class Main : Node
         side.AddChild(new HSeparator());
         _guide = Palette.Wrapped("", 17, Palette.PaperDim); _guide.MouseFilter = Control.MouseFilterEnum.Stop; side.AddChild(new SidebarScroll { MaxHeight = 110 }); side.GetChild<SidebarScroll>(-1).AddChild(_guide);
         _decisionActions = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; side.AddChild(new SidebarScroll { MaxHeight = 210 }); side.GetChild<SidebarScroll>(-1).AddChild(_decisionActions);
-        _phaseActions = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; side.AddChild(new SidebarScroll { MaxHeight = 170 }); side.GetChild<SidebarScroll>(-1).AddChild(_phaseActions);
+        _phaseActions = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; _phaseScroll = new SidebarScroll { MaxHeight = PhaseActionsHeight }; side.AddChild(_phaseScroll); _phaseScroll.AddChild(_phaseActions);
         _notice = Place(_root, Palette.Text("", 13, Palette.PaperDim), 26, 1060, 1868, 19);
         _notice.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis; _notice.MouseFilter = Control.MouseFilterEnum.Stop;
         _intentOverlay = new BoardIntentOverlay { MouseFilter = Control.MouseFilterEnum.Ignore, Arrows = IntentArrows };
@@ -713,6 +713,7 @@ public partial class Main : Node
         _matSections.Emphasize(selectedProvince ?? (provinceIndex is int p && (selectedUnit?.Zone == Zone.Battlefield || _assignments.ContainsKey(rootId!)) ? $"battle:{1 - View.ActivePlayerId}:{p}" : null));
         var supportTargets = SupportDraftChoices().SelectMany(a => a.TargetIds ?? []).ToHashSet();
         var performerClicks = PerformerClicks(); var reactionSources = ReactionSourceCardIds();
+        var heldActionCards = HeldActionCardIds(); // issue #1333: the card a held first or additional action must come from
         var tutorialPointed = TutorialPointed();
         foreach (var tile in _tiles)
         {
@@ -722,6 +723,7 @@ public partial class Main : Node
             tile.Highlighted = tile.Card.Id == (_assignmentUnit ?? _selected?.Id) || rootId is not null && tile.Card.AttachedTo == rootId;
             tile.Highlighted |= GenericDecisionActive && tile.Card.Id == View.PendingChoice?.CardId;
             tile.Highlighted |= _chosen?.Command?.PerformerId == tile.Card.Id; // issue #789: the performer of the prepared action is marked on the table
+            tile.Highlighted |= heldActionCards.Contains(tile.Card.Id);
             tile.DecisionSelected |= DiscardActive && _discardSelected.Contains(tile.Card.Id); // issue #791: the cards chosen to discard
             tile.LegalTarget |= DiscardActive && tile.Card.Zone == Zone.Hand && tile.Card.OwnerId == View.ViewerId && !_discardSelected.Contains(tile.Card.Id);
             tile.Highlighted |= _hoveredPaymentCardId == tile.Card.Id; // issue #667: the payment method under the pointer names its card
