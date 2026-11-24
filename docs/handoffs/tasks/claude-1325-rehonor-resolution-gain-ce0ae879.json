@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Battle resolution rehonors a dishonorable army only in place of an actual Honor gain from destroying opposing cards (GainResolutionHonor): the winner's twice-the-cards gain and Plains of the Maiden's gain. No gain (undefended province, withheld gain, Aramasu's Legacy) rehonors nobody. Ties unchanged (both armies rehonored before destruction). The Earth Flows' bonus now follows only an Honor gain actually made. Ruling R-100.",
+  "validation": "New DishonorRehonorMechanics cases (undefended province; Plains of the Maiden with and without a dishonorable Personality) fail on the old engine ('No Honor gain from resolution: nobody is rehonored') and pass with the fix. bash tools/check.sh --skip-client: all requested checks passed. ReplayCheck: 25 replays, every card and every move legal. dotnet format whitespace clean.",
+  "remaining": "None; ready for review.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1325",
+  "branch": "claude/1325-rehonor-resolution-gain",
+  "updated": "2026-11-24T11:34:09.862986+00:00"
+}

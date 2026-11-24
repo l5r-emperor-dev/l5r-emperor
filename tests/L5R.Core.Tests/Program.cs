@@ -145,7 +145,7 @@ var tests = new (string Name, Action Run)[]
     ("Stalwart (issue #184): the first enemy-caused bow each turn is negated (and only the bow), a second succeeds, the card's own controller bowing it is never affected, and a stale marker from an earlier turn does not block this turn's negation", StalwartKeyword),
     ("Reserve (issue #184): a Dynasty Personality recruited as an absent battle action straight to the battlefield (no presence of the recruiter's own required, only enemy presence, face up only), and a non-Spell Fate card attached via Equip (Battle) the same way a Spell is, but without the bonus Additional Action", ReserveKeyword),
     ("Discipline (issue #184): a card played from a discard pile, paying its own printed Gold cost, resolving its effect, then removed from the game (the new Zone.RemovedFromGame/PlayerView.RemovedFromGame) rather than left in the discard pile; unusable from hand; unaffected by an earlier, unrelated discard the same turn", DisciplineKeyword),
-    ("Dishonor/Rehonor (issue #186): the Personal-Honor override (Utaku Chikako's shape), GainHonorFromPerformer negating a dishonorable performer's own Honor-granting ability and rehonoring them instead, and battle resolution rehonoring a dishonorable winner/tier and negating the full Honor gain (a tie's rehonoring happens before its own mutual destruction, so no double penalty)", DishonorRehonorMechanics),
+    ("Dishonor/Rehonor (issue #186): the Personal-Honor override (Utaku Chikako's shape), GainHonorFromPerformer negating a dishonorable performer's own Honor-granting ability and rehonoring them instead, and battle resolution rehonoring a dishonorable winner/tier and negating the full Honor gain (a tie's rehonoring happens before its own mutual destruction, so no double penalty); a win that gains no Honor (an undefended province) rehonors nobody, and Plains of the Maiden's gain is the one replaced (issue #1325)", DishonorRehonorMechanics),
     ("Utaku Chikako (issue #186): the real card's own Personal-Honor override, and her Limited ability (gain 2 Honor; may not declare an attack this turn, a broad restriction on the assignment itself that resets next turn)", UtakuChikako),
     ("Kiho keyword and discard-to-hand primitive (issue #190): Volcano Tattoo's own Fire Kiho Battle ability (Togashi Meiyu as the Tattooed Monk performer), and Hunter of Harmony returning it from the Fate discard pile 'freshly drawn' so it may be used again the same turn", KihoDiscardToHand),
     ("Multi-keyword Target/Performer requirement (issue #190): a card may name any number of keywords, all independently required regardless of order (e.g. 'a Tattooed Monk') -- a card with only one of the two required keywords does not qualify", MultiKeywordRequirement),
@@ -5627,6 +5627,33 @@ static void DishonorRehonorMechanics()
         Equal(e.State.Cards[attacker.Id].Zone, Zone.Dead, "Destroyed in the mutual tie");
         Equal(e.State.Players[0].Honor, attackerHonorBefore, "Dishonorable side: no gain, and no dishonorable-death penalty either (rehonored first)");
         Equal(e.State.Players[1].Honor, defenderHonorBefore + 1, "Honorable side still gains Honor normally (1 destroyed, a tie does not double it)");
+    }
+    {
+        // Issue #1325 (Mendon's ruling): the rehonoring replaces an Honor gain from destroying opposing cards. An undefended province destroyed
+        // by a winner whose resolution gains nothing leaves nothing to replace: his dishonorable Personality stays dishonorable.
+        var s = MatchEngine.CreateEconomyScenario().State; s.Phase = Phase.Battle; s.CurrentBattleProvince = 0; s.UnresolvedBattlefields = [0]; s.PriorityPlayerId = 0; s.ActivePlayerId = 0;
+        s.Players[1].Provinces[0].Strength = 1;
+        var attacker = Add(s, "training-lion-veteran", 0, Zone.Battlefield, province: 0); attacker.Dishonorable = true;
+        var e = MatchEngine.FromTestState(s);
+        var honorBefore = e.State.Players[0].Honor;
+        Resolve(e);
+        Check(e.State.Players[1].Provinces[0].Destroyed, "The undefended province is destroyed");
+        Check(e.State.Cards[attacker.Id].Dishonorable, "No Honor gain from resolution: nobody is rehonored");
+        Equal(e.State.Players[0].Honor, honorBefore, "...and no Honor is gained");
+    }
+    foreach (var dishonored in new[] { true, false })
+    {
+        // Plains of the Maiden destroying an undefended province with a Battle Maiden attacking DOES gain Honor from the resolution's destruction,
+        // so with a dishonorable Personality in the army that gain is the one replaced (issue #1325); without one it is gained as printed.
+        var s = StrongholdBattle("oracle-l5r-5982"); s.ActivePlayerId = 0; s.Players[1].Provinces[0].Strength = 1;
+        Add(s, "training-battle-maiden", 0, Zone.Battlefield, province: 0);
+        var veteran = Add(s, "training-lion-veteran", 0, Zone.Battlefield, province: 0); veteran.Dishonorable = dishonored;
+        var e = MatchEngine.FromTestState(s);
+        var honorBefore = e.State.Players[0].Honor;
+        Resolve(e);
+        Check(e.State.Players[1].Provinces[0].Destroyed, "Plains: the undefended province is destroyed");
+        Check(!e.State.Cards[veteran.Id].Dishonorable, dishonored ? "Plains: the gain is replaced by rehonoring him" : "Plains: an honorable army stays honorable");
+        Equal(e.State.Players[0].Honor, honorBefore + (dishonored ? 0 : 1), dishonored ? "Plains: the Battle Maiden's Honor is not gained" : "Plains: 1 Honor for the surviving Battle Maiden");
     }
 }
 static void UtakuChikako()
