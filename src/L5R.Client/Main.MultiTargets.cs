@@ -12,8 +12,9 @@ public partial class Main
     private string? _multiDraftKey, _multiActiveSlot, _multiMatch, _reactionCameraKey;
     private Window? _multiInspection;
     private static bool HasMultiTargets(ActionOption? action) => action is { Slots.Length: > 0, Command: not null };
+    // Issue #1327: with several legal performers, who performs is asked first (PerformerStepActive); the target groups and their table clicks wait until he is chosen.
     private bool MultiTargetActive => View.WinnerId is null && HasMultiTargets(_chosen) &&
-        _chosen!.Command!.PlayerId == View.ViewerId && View.PriorityPlayerId == View.ViewerId && _chosen.Command.ExpectedVersion == View.Version;
+        _chosen!.Command!.PlayerId == View.ViewerId && View.PriorityPlayerId == View.ViewerId && _chosen.Command.ExpectedVersion == View.Version && !PerformerStepActive;
     private IEnumerable<TargetSlotOption> MultiUpFront => _chosen?.Slots?.Where(s => s.Timing == TargetSlotTimings.UpFront) ?? [];
     private string MultiKey => $"{_session.MatchKey}/{View.ViewerId}/{View.Version}/{_chosen?.CardId}/{_chosen?.Command?.AbilityId}/{_chosen?.Command?.PerformerId}/{DecisionCanSubmit}";
     private void ClearMultiTargets()
@@ -45,6 +46,8 @@ public partial class Main
     /// <summary>Back: reopen the most recently answered group (the last one with a selection, before the open one when a group is open) and clear its answer.</summary>
     private void MultiBack()
     {
+        // Issue #1327: with no group answered yet, Back returns to choosing who performs (when there was a choice).
+        if (!MultiUpFront.Any(s => MultiCount(s) > 0) && _performerPicked && PerformerClicks().Count > 0) { _performerPicked = false; RenderInspector(); Highlight(); return; }
         var slots = MultiUpFront.ToList(); var open = slots.FindIndex(s => s.Slot == _multiActiveSlot && _multiExpanded.Contains(s.Slot));
         var from = open < 0 ? slots.Count : open + (MultiCount(slots[open]) > 0 ? 1 : 0); // an open group that already has an answer is the one Back undoes
         var previous = slots.Take(from).LastOrDefault(s => MultiCount(s) > 0) ?? slots.Take(from).LastOrDefault();
@@ -242,7 +245,7 @@ public partial class Main
             done.Name = "MultiNextGroup"; done.Disabled = !DecisionCanSubmit; _inspector.AddChild(done);
         }
         var total = MultiUpFront.Sum(MultiCount);
-        if (MultiUpFront.Any(s => MultiCount(s) > 0))
+        if (MultiUpFront.Any(s => MultiCount(s) > 0) || _performerPicked && PerformerClicks().Count > 0)
         { var back = SidebarSkin.Button("← Back", MultiBack); back.Name = "FlowBack"; back.Disabled = !DecisionCanSubmit; _decisionActions.AddChild(back); }
         _decisionActions.AddChild(Palette.Wrapped($"{total} selected" + (MultiReady ? " · Cards resolve in selection order." : " · Complete each required group."), 17, MultiReady ? Palette.Gold : Palette.PaperDim));
         if (action.AlternativeCost is not null && !_alternativeCostConfirmed)

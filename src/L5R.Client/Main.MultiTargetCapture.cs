@@ -80,6 +80,34 @@ public partial class Main
         PushCaptureMouse(new InputEventMouseButton { Position = point, GlobalPosition = point, ButtonIndex = MouseButton.Left, ButtonMask = MouseButtonMask.Left, Pressed = true });
         PushCaptureMouse(new InputEventMouseButton { Position = point, GlobalPosition = point, ButtonIndex = MouseButton.Left, Pressed = false }); await EventFrames(12);
     }
+    // Issue #1327: Running Battle (an enemy target plus an optional attachment) that two Scouts could perform. Who performs is asked first, on the table or in the list, and Back returns to it;
+    // the engine must receive the Scout the player picked, not the first one offered.
+    private async Task CaptureMultiPerformer()
+    {
+        var state = MatchEngine.CreatePublishedTestMatch(42).State;
+        foreach (var p in state.Players) { foreach (var id in p.Hand) state.Cards.Remove(id); p.Hand.Clear(); }
+        state.Phase = Phase.Battle; state.ActivePlayerId = state.PriorityPlayerId = 0; state.PendingChoice = null; state.CurrentBattleProvince = 0; state.UnresolvedBattlefields = [0];
+        var madoka = SupportFixtureCard(state, 5271, 0, Zone.Battlefield, 0); var yashiro = SupportFixtureCard(state, 8896, 0, Zone.Battlefield, 0, bowed: true);
+        var enemy = SupportFixtureCard(state, 2060, 1, Zone.Battlefield, 0); var card = SupportFixtureCard(state, 9924, 0, Zone.Hand);
+        _multiFixture = (MatchEngine)typeof(MatchEngine).GetMethod("FromTestState", BindingFlags.NonPublic | BindingFlags.Static)!.Invoke(null, [state])!;
+        await LoadSupportFixture(_multiFixture, 0);
+        var offered = Actions.Where(a => a.Enabled && a.CardId == card.Id && a.Command?.AbilityId == "running-battle").Select(a => a.Command!.PerformerId).ToHashSet();
+        SupportRequire(offered.SetEquals(new[] { madoka.Id, yashiro.Id }), "Running Battle fixture: both Scouts should be offered: " + string.Join(",", offered));
+        Choose(Actions.First(a => a.Enabled && a.CardId == card.Id && a.Command?.AbilityId == "running-battle")); await EventFrames(20);
+        bool Rows(params string[] ids) => ids.All(id => StabilizationButtons(_inspector).Any(b => b.HasMeta("performer_row") && b.GetMeta("performer_row").AsString() == id));
+        SupportRequire(PerformerStepActive && !MultiTargetActive && Rows(madoka.Id, yashiro.Id), "The performer was not asked first: step=" + PerformerStepActive + " multi=" + MultiTargetActive);
+        SupportRequire(_tiles.Where(t => t.Card.Id == yashiro.Id).All(t => t.LegalTarget), "Yashiro is not highlighted as a performer");
+        await SupportCapture("-performer");
+        await ClickMultiBoard(yashiro.Id);
+        SupportRequire(MultiTargetActive && _chosen?.Command?.PerformerId == yashiro.Id, "Clicking Yashiro on the table did not make him the performer: " + _chosen?.Command?.PerformerId + " notice=" + _notice.Text);
+        await SupportClick(StabilizationButtons(_decisionActions).Single(b => b.Name == "FlowBack"));
+        SupportRequire(PerformerStepActive && !MultiTargetActive, "Back did not return to choosing the performer");
+        await SupportClick(StabilizationButtons(_inspector).Single(b => b.HasMeta("performer_row") && b.GetMeta("performer_row").AsString() == yashiro.Id));
+        SupportRequire(MultiTargetActive && _chosen?.Command?.PerformerId == yashiro.Id, "Choosing Yashiro in the list did not make him the performer");
+        await SupportClick(MultiFace(MultiUpFront.First().Slot, enemy.Id)); await SupportCapture("-performer-targets"); await ConfirmMulti();
+        var played = _multiFixture.ExportReplay().Commands.Last(c => c.AbilityId == "running-battle");
+        SupportRequire(played.PerformerId == yashiro.Id && played.Selections?.Any(sel => sel.CardIds?.Contains(enemy.Id) == true) == true, "The engine did not receive Yashiro as the performer: " + played.PerformerId);
+    }
     private async Task CaptureMulti()
     {
         try
@@ -172,6 +200,7 @@ public partial class Main
                 await _session.Submit(Actions.Single(a => a.Enabled && a.Type == "declineReaction").Command!); await WaitDecisionPresentation(); await EventFrames(15);
             }
             SupportRequire(seen.Distinct().SequenceEqual(new[] { guard, _multiEnemy }) && View.PendingChoice is null, "Reaction windows did not preserve target order");
+            await CaptureMultiPerformer();
             if (_captureMode.Contains("review")) { await SupportClick(_multiReviewButtons.Single(b => b.Text == "Bonds of Coin")); await EventFrames(90); SupportRequire(MultiTargetActive && _chosen?.Command?.AbilityId == "bonds-of-coin-destroy", "Prepared navigation failed"); }
             GD.Print("MULTI_TARGETS_PASS: native board/keyboard selection, count bounds, ordered arrows, exact engine effects, conditional follow-ups, independent slots, optional zero, hand privacy, seat/busy reset and per-target reactions"); GetTree().Quit();
         }
