@@ -79,6 +79,8 @@ public partial class Main
             // (a local "pass device" hand-off, the delivery mechanism itself) with an unread one already waiting.
             // They get a chance to actually inspect the card before doing anything else. The "Minimize to return
             // to your decision" subtitle already existed for exactly this case.
+            // Issue #1319: a show arriving while seated is now presented as a held card (Main.ShownBeats.cs, which marks it read), so only the
+            // hand-off arrival still opens the history here.
             if (ShownUnread > 0 && (viewerChanged || sequences.Length > _shownSequences.Length))
             {
                 SetNotice($"{records[0].Definition.Name} was shown by {live.Players.Single(p => p.Id == records[0].ShownByPlayerId).Name}. Review Shown cards.");

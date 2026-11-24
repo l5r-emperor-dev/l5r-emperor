@@ -34,7 +34,8 @@ public partial class Main
 {
     /// <summary>Flip: the face-down card is turned over where it lies on the table (Cover covers it until its turn). Holdable: Paused Animation may stop on it (the flip of a card that merely stays in its province never does).</summary>
     /// <summary>Issue #1077: <paramref name="HoldSeconds"/> overrides how long the card is held (a tutorial Spell being attached: 8 seconds), and <paramref name="AnimateAttach"/> plays the slide out from under its Personality when the show ends.</summary>
-    private sealed record PlayBeat(CardView Card, string Caption, bool Discarded, CardFlip? Cover = null, bool Holdable = true, double? HoldSeconds = null, bool AnimateAttach = false);
+    /// <summary>Issue #1319: <paramref name="AlwaysHold"/> holds the card until Proceed whatever the Paused Animation preference says (a card shown to this player, Main.ShownBeats.cs).</summary>
+    private sealed record PlayBeat(CardView Card, string Caption, bool Discarded, CardFlip? Cover = null, bool Holdable = true, double? HoldSeconds = null, bool AnimateAttach = false, bool AlwaysHold = false);
 
     /// <summary>Spells whose attachment is being shown (tutorial): the table's own slide waits for the show to end, then <see cref="AnimateAttachment"/> plays it.</summary>
     private readonly HashSet<string> _spellAttachShown = [];
@@ -199,7 +200,8 @@ public partial class Main
 
     private void ShowBeat(PlayBeat beat)
     {
-        var paused = _preferences.PausedAnimation && beat.Holdable;
+        var paused = (_preferences.PausedAnimation || beat.AlwaysHold) && beat.Holdable;
+        var settingHint = _preferences.PausedAnimation && !beat.AlwaysHold; // a shown card always holds: the preference's hint would be wrong for it
         if (paused) { SetPlayHeld(true); ReleaseTableFocus(); HideTableTooltip(); }
         var height = CardPlayTiming.CardHeight; var width = height * .72f;
         var stage = new Control { MouseFilter = Control.MouseFilterEnum.Ignore, ZIndex = 60, Modulate = new Color(1, 1, 1, 0) };
@@ -214,6 +216,13 @@ public partial class Main
         caption.HorizontalAlignment = HorizontalAlignment.Center; caption.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         caption.MouseFilter = Control.MouseFilterEnum.Ignore;
         caption.Position = new Vector2(10, height + 14); caption.Size = new Vector2(stage.Size.X - 20, paused ? 60 : 90);
+        if (beat.AlwaysHold)
+        {
+            // Issue #1319: a shown card's caption says where it was seen; a dark plate keeps it readable over the cards on the table.
+            var plate = new Panel { MouseFilter = Control.MouseFilterEnum.Ignore, Position = caption.Position - new Vector2(4, 4), Size = caption.Size + new Vector2(8, 8) };
+            plate.AddThemeStyleboxOverride("panel", new StyleBoxFlat { BgColor = new Color(0, 0, 0, .72f), CornerRadiusTopLeft = 6, CornerRadiusTopRight = 6, CornerRadiusBottomLeft = 6, CornerRadiusBottomRight = 6 });
+            stage.AddChild(plate);
+        }
         stage.AddChild(caption);
         _playCurrent = stage;
 
@@ -226,7 +235,7 @@ public partial class Main
             tween.TweenProperty(stage, "modulate:a", 1.0, .15);
             if (paused)
             {
-                tween.TweenCallback(Callable.From(() => HoldCardPlay(stage, height, () =>
+                tween.TweenCallback(Callable.From(() => HoldCardPlay(stage, height, settingHint, () =>
                 {
                     if (!IsInstanceValid(stage)) return;
                     var fade = stage.CreateTween(); fade.TweenProperty(stage, "modulate:a", 0.0, .15); fade.TweenCallback(Callable.From(() => FinishCardPlay(stage)));
@@ -244,7 +253,7 @@ public partial class Main
             tween.TweenProperty(face, "scale", Vector2.One, CardPlayTiming.Intro * slow).SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
             tween.SetParallel(false);
             // The outro is built when the hold ends so the pile's final position is read then, not when the card arrived.
-            if (paused) tween.TweenCallback(Callable.From(() => HoldCardPlay(stage, height, () => PlayCardOutro(stage, face, caption, beat))));
+            if (paused) tween.TweenCallback(Callable.From(() => HoldCardPlay(stage, height, settingHint, () => PlayCardOutro(stage, face, caption, beat))));
             else { tween.TweenInterval(hold); tween.TweenCallback(Callable.From(() => PlayCardOutro(stage, face, caption, beat))); }
             return;
         }
@@ -252,7 +261,7 @@ public partial class Main
     }
 
     /// <summary>The card is fully shown: float a Proceed button beneath it and wait. Enter reaches the button through ordinary GUI focus.</summary>
-    private void HoldCardPlay(Control stage, float height, Action then)
+    private void HoldCardPlay(Control stage, float height, bool settingHint, Action then)
     {
         if (!IsInstanceValid(stage) || _playCurrent != stage) return;
         var proceed = Palette.Button("Proceed", () => ProceedCardPlay(), true);
@@ -267,7 +276,7 @@ public partial class Main
         // The first time the pointer reaches Proceed in a match, say where the setting lives. It never blocks the click.
         proceed.MouseEntered += () =>
         {
-            if (_proceedHintShown) return;
+            if (_proceedHintShown || !settingHint) return;
             _proceedHintShown = true; hint.Visible = true;
             SetNotice("Paused Animation is On. You can turn it off in Settings.");
         };

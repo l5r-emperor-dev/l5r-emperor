@@ -96,6 +96,10 @@ public partial class Main
             _preferences.ReducedMotion = _captureMode.Contains("reduced"); ApplyPreferences(false);
             await PrepareShownReview();
             if (_captureMode.Contains("review")) { GD.Print("SHOWN_REVIEW_READY: Shizuka reveal prepared; Show another card uses Kahoku."); return; }
+            // Issue #1319: the reveal arrives as a held card that waits for a click; the history then keeps it.
+            await WaitFor(() => ProceedButton is { Visible: true } && _shownBeatsStarted.SequenceEqual(["oracle-l5r-9865"]), "The first reveal was not held on screen");
+            await SaveShownCapture("-held"); await PausedMouse(ProceedButton!.GetGlobalRect().GetCenter(), true);
+            await WaitFor(() => !_playHeld && !PlayShowcaseBusy, "Proceed did not dismiss the first reveal");
             var version = _session.Snapshot!.View.Version;
             SupportRequire(OpponentShows.Length == 1 && _shownOpen, "Initial reveal missing");
             SupportRequire(_shownList.GetChildren().OfType<ShownCardEntry>().Single().Record.SourceName == "Ikoma Shizuka", "Source context missing");
@@ -107,10 +111,11 @@ public partial class Main
             await SupportClick(StabilizationButtons(_shownPreview!).Single(b => b.Text == "Close inspection"));
             await SupportClick(_shownToggle); SupportRequire(!_shownOpen, $"Minimize failed: panel={_shownPanel.GetGlobalRect()} min={_shownPanel.GetCombinedMinimumSize()} scroll={_shownScroll.Size}/{_shownScroll.GetCombinedMinimumSize()} toggle={_shownToggle.GetGlobalRect()} hover={GetViewport().GuiGetHoveredControl()?.GetPath()}");
             SupportRequire(_session.Snapshot.View.Version == version, "Inspection sent a game command");
-            // PR #434: an incoming show forces the panel open and read, so the recipient cannot miss it (the capture used to expect a minimized panel with one unread).
-            await NextShownReveal(); SupportRequire(_shownOpen && ShownUnread == 0 && OpponentShows.Length == 2, "An incoming show was not forced open and read");
-            await SaveShownCapture("-new");
-            await SupportClick(_shownToggle); SupportRequire(!_shownOpen && ShownUnread == 0, "Minimize after the forced-open reveal failed");
+            // PR #434: the recipient cannot miss an incoming show. Issue #1319: it arrives as a held card (not by forcing the history open), read once dismissed.
+            await NextShownReveal(); await WaitFor(() => ProceedButton is { Visible: true } && _shownBeatsStarted.Count == 2, "An incoming show was not held on screen");
+            SupportRequire(!_shownOpen && ShownUnread == 0 && OpponentShows.Length == 2, "An incoming show also forced the history open, or stayed unread");
+            await SaveShownCapture("-new"); await PausedMouse(ProceedButton!.GetGlobalRect().GetCenter(), true);
+            await WaitFor(() => !_playHeld && !PlayShowcaseBusy, "Proceed did not dismiss the incoming show");
             await SupportClick(_shownToggle); SupportRequire(_shownOpen && ShownUnread == 0 && OpponentShows.Length == 2, "Maximize lost history or unread state");
             row = _shownList.GetChildren().OfType<ShownCardEntry>().First(); row.GrabFocus(); await EventFrames(8);
             SupportRequire(_shownPreview is not null, "Keyboard focus did not enlarge card"); await SaveShownCapture("-history"); HideShownPreview();
@@ -137,6 +142,7 @@ public partial class Main
             var move = decisionEngine.QueryActions(0).First(a => a.Enabled && a.Command?.AbilityId == "yumaru-move-home");
             await _session.Submit(move.Command! with { TargetId = move.TargetIds!.First() }); await WaitDecisionPresentation();
             SupportRequire(!_shownOpen && GenericDecisionActive && DecisionButton("Confirm choice").IsVisibleInTree(), "An incoming required decision stayed behind history");
+            await CaptureShownBeats();
             GD.Print("SHOWN_HISTORY_PASS: native hover/click/keyboard, two real opponent reveals, minimized arrival, privacy, both seats, long history and new-match reset"); GetTree().Quit();
         }
         catch (Exception e) { await SaveShownCapture("-failure"); GD.PushError(e.ToString()); GetTree().Quit(1); }
