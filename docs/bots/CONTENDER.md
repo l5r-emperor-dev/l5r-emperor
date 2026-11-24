@@ -76,3 +76,11 @@ python3 tools/bots/merge_tournament.py artifacts/bots/contender-A.json artifacts
 Arms to run beside `contender`: `contender+attack`, `contender+discard`, `contender+reserve`, `contender+woncap`, `contender+all` (and the champion for the baseline). Splitting one pre-registered sample
 over two machines is fine; looking at half of it and then deciding to stop or extend is not (the rule in `docs/bots/README.md`). Running 5 arms at once on one machine can push a slow game past its wall-time
 budget (the report lists those as "out of time"); a few are harmless but they are not wins, so prefer fewer simultaneous arms than cores allow.
+
+## The practice Contender and the T2 yardstick
+
+`BotContext.TunedRules` (the practice Contender, Moderate, and the base of Hard) equals the frozen yardstick `T2Rules` plus:
+
+- `cavopen` (issue #1336, 2026-11-24, from replay 115409): in the Cavalry Maneuvers Segment the attacker counts as possible defenders only the defender's unbowed Cavalry at home (the infantry defense has closed), and the defenders already at a Province add to its Strength. Before it, a Cavalry-only attacker never attacked an undefended board while the defender had a large army at home, so Hard's playouts judged "do not defend" safe.
+
+Hard (`BotContext.HardRules`) also adds `lkStand`: when the attack can take every Province the bot has left, the search may choose among defences but never replaces the last stand with a pass.

@@ -656,7 +656,7 @@ public static partial class TrainingOpponent
                 }
                 var attacking = self.Home.Concat(x.Memory.UseCavalryAttack ? self.Army : []).Where(c => assignments.ContainsKey(c.Id) || c.AttachedTo is not null && assignments.ContainsKey(c.AttachedTo));
                 var force = ArmyForce(attacking);
-                var homeDefense = ArmyForce(opponent.Home);
+                var homeDefense = OpenDefence(x); // cavopen (issue #1336): in the Cavalry segment only the defender's Cavalry can still defend
                 // Every army in the assignment must beat its own province plus every unit that could defend it.
                 var armies = assignments.GroupBy(p => p.Value).Select(g => (Province: g.Key, Force: ArmyForce(self.Home.Concat(x.Memory.UseCavalryAttack ? self.Army : []).Where(c => g.Any(p => p.Key == c.Id) || c.AttachedTo is not null && g.Any(p => p.Key == c.AttachedTo))))).ToArray();
                 if (HonorRace(x) && armies.Length > 0) return 150 + armies.Length; // the opponent wins on Honor at the start of its turn: destroy every Province the army can

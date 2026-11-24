@@ -76,7 +76,8 @@ public sealed class BotContext
     /// slate, selfharm, econT2 and battlepolicy+trades each LOST games, so they stay off; lobby and openbow are kept (dropping both lost games). spreadwide and conf, from Mendon's battle grill,
     /// gained 24 and 19 games on dev blocks 7000 and 7100 and were neutral on the holdout decks; selfplayer, presdepth (pdh=100), keepup, nofoeboost and raid, from Mendon's practice games,
     /// gained 13 games on each dev block and 15 on the holdout decks (docs/bots/experiments/2026-11-09-grill-rules.md). Passing <c>rules</c> replaces this set.</summary>
-    public static readonly string[] TunedRules = ["econ", "presence", "lobby", "shinden", "openbow", "ownprov", "selflock", "surereact", "selfboost", "nostraighten", "provaim", "spreadwide", "conf", "selfplayer", "presdepth", "pdh=100", "keepup", "nofoeboost", "raid", "pdstrong", "defwin", "nobowgift"];
+    // Issue #1336 (Mendon, 2026-11-24): cavopen, the Cavalry Maneuvers Segment counts only the defenders that can still be assigned (replay 115409).
+    public static readonly string[] TunedRules = ["econ", "presence", "lobby", "shinden", "openbow", "ownprov", "selflock", "surereact", "selfboost", "nostraighten", "provaim", "spreadwide", "conf", "selfplayer", "presdepth", "pdh=100", "keepup", "nofoeboost", "raid", "pdstrong", "defwin", "nobowgift", "cavopen"];
     /// <summary>Issue #1206 (docs/bots/CONAN_STRATEGY_BRIEF.md step 0): the Contender frozen as the campaign's yardstick, T2, the 22 rules as they stood on 2026-11-13. This list never changes
     /// (RuleRegistryTests fails if it does); <see cref="TunedRules"/> may move on with the practice bot. The tournament arm is <c>t2</c>, and a rule list may say <c>t2</c> for the set.</summary>
     public static readonly string[] T2Rules = ["econ", "presence", "lobby", "shinden", "openbow", "ownprov", "selflock", "surereact", "selfboost", "nostraighten", "provaim", "spreadwide", "conf", "selfplayer", "presdepth", "pdh=100", "keepup", "nofoeboost", "raid", "pdstrong", "defwin", "nobowgift"];
@@ -85,7 +86,8 @@ public sealed class BotContext
     public static readonly string[] ConanRules = ["look"];
     /// <summary>Issue #1214: what Conan plays with for a person: the Contender's tuned rules plus <c>look</c> and the searches of the defence, its shapes and the planned attack (lkDef, lkVar, lkPlan), the best-measured
     /// state (71-73% against the Contender on blocks 7000, 7200 and 7300; docs/bots/experiments/2026-11-10-conan-vs-contender.md). Experimental rules stay off. The caller must still supply <see cref="Sampler"/>.</summary>
-    public static readonly string[] HardRules = ["lkDef", "lkVar", "lkPlan"];
+    // Issue #1336 (Mendon, 2026-11-24): lkStand, the search never turns a last stand into a pass (replay 115409).
+    public static readonly string[] HardRules = ["lkDef", "lkVar", "lkPlan", "lkStand"];
     public static BotContext Hard() => Conan(rules: [.. TunedRules, .. HardRules]);
     /// <summary>Issue #1206: a copy of the match with every card hidden from this seat redealt (MatchEngine.Sample), for a given seed; null: no lookahead. The caller supplies it, so the bot
     /// still never reads the real match: what it plays forward is a world consistent with its own view.</summary>

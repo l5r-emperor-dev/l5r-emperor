@@ -116,10 +116,10 @@ public static partial class TrainingOpponent
     {
         // Issue #946: the Personalities already sent in the Infantry Maneuvers Segment are part of the army the Cavalry joins.
         var unitForces = units.Concat(alreadyAssigned ?? []).Select(c => new AttackPlanner.Unit(c.Id, ArmyForce(x.Self.Home.Concat(x.Self.Army).Where(h => h.Id == c.Id || h.AttachedTo == c.Id)))).ToArray();
-        var targets = x.Opponent.Provinces.Where(p => !p.Destroyed && provinces.Contains(p.Index)).Select(p => new AttackPlanner.Target(p.Index, p.Strength)).ToArray();
+        var targets = x.Opponent.Provinces.Where(p => !p.Destroyed && provinces.Contains(p.Index)).Select(p => new AttackPlanner.Target(p.Index, HeldStrength(x, p))).ToArray();
         // The opponent's Honor victory is coming (Mendon's rule, playtest 2026-10): the bot attacks as many Provinces as it can beat, whatever the enemy army could do in reply.
         var spec = x.Memory.UseSpec818;
-        return AttackPlanner.Plan(unitForces, targets, HonorRace(x) ? 0 : ArmyForce(x.Opponent.Home), spec ? HandForceBonuses(x) : null, spec);
+        return AttackPlanner.Plan(unitForces, targets, HonorRace(x) ? 0 : OpenDefence(x), spec ? HandForceBonuses(x) : null, spec);
     }
 
     /// <summary>The opponent already holds the Honor it needs and will win it at the start of its next turn, so the bot cannot afford a cautious attack.</summary>

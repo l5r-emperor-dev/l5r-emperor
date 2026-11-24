@@ -188,8 +188,8 @@ public static partial class TrainingOpponent
         if (plan is null) return units.Length == 0 ? -100 : TradeFor(x, units) is { } trade ? TradeScore(trade) : 0;
         if (HonorRace(x)) return 200; // the opponent wins on Honor next turn: always attack
         var force = ArmyForce(x.Self.Home.Where(c => plan.ContainsKey(c.Id) || c.AttachedTo is not null && plan.ContainsKey(c.AttachedTo)));
-        if (x.Memory.UseArchetypeAttack && x.Memory.Archetype is { Primary: WinRoute.Dishonor } && force - ArmyForce(x.Opponent.Home) < DishonorAttackMargin) return 0; // the engine wins this game, not a marginal attack
-        return 90 + force - ArmyForce(x.Opponent.Home);
+        if (x.Memory.UseArchetypeAttack && x.Memory.Archetype is { Primary: WinRoute.Dishonor } && force - OpenDefence(x) < DishonorAttackMargin) return 0; // the engine wins this game, not a marginal attack
+        return 90 + force - OpenDefence(x);
     }
 
     /// <summary>Remembers the one thing the bot must carry to the next decision: that it has lobbied this turn (Lobby is once a turn).</summary>
