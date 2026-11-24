@@ -41,8 +41,18 @@ public partial class AbilityUseProbe : Control
                 { GrantedKeywords = [new("Tactician", "oracle-l5r-224", GrantDuration.Permanent)], TacticalUses = new(1, 1) }, "granted Tactician (seal) used"),
             (V("a1", atsumichi) with { GrantedKeywords = [new("Tactician", "oracle-l5r-224", GrantDuration.Turn)], TacticalUses = new(1, 1) }, "temporary Tactician used"),
         };
+        // Issue #1329: printed keywords the Personality has lost for now are covered in the paper's own colour.
+        var row3 = new (CardView Card, string Label)[]
+        {
+            (V("r0", CardCatalog.Get("oracle-l5r-4382")) with { RemovedPrintedKeywords = ["Lion Clan"] }, "lost Lion Clan"),
+            (V("r1", CardCatalog.Get("oracle-l5r-10081")) with { RemovedPrintedKeywords = ["Ninja"] }, "lost Ninja"),
+            (V("r2", CardCatalog.Get("oracle-l5r-10446")) with { RemovedPrintedKeywords = ["Crane Clan", "Duelist"] }, "lost Crane Clan and Duelist"),
+            (V("r3", CardCatalog.Get("oracle-l5r-10446")), "Crane Clan and Duelist kept"),
+        };
         Row(row1, 70, 300);
         Row(row2, 455, 300);
+        Row(row3, 800, 240);
+        var big = CardPreview.Face(row3[2].Card, 420, 300); big.Position = new Vector2(1500, 410); AddChild(big);
 
         Check(AbilityUseArt.Marks(row1[0].Card) is ({ Length: 0 }, { Length: 0 }), "an unused ability draws nothing");
         Check(AbilityUseArt.Marks(row1[1].Card) is ({ Length: 0 }, [(_, "1X")]), "one use draws only the counter");
@@ -51,13 +61,15 @@ public partial class AbilityUseProbe : Control
         Check(AbilityUseArt.Marks(row2[0].Card).Shaded.Length == 1, "printed Tactician keyword box");
         Check(AbilityUseArt.Marks(row2[3].Card).Shaded.Length == 0, "a granted Tactician has no printed keyword to box");
         Check(AbilityUseArt.ClanColor("Mantis") != AbilityUseArt.ClanColor("Crane"), "clan colours differ");
+        Check(AbilityUseArt.RemovedKeywordCovers(row3[0].Card).Length == 1 && AbilityUseArt.RemovedKeywordCovers(row3[1].Card).Length == 1, "a removed clan alignment and Ninja are covered");
+        Check(AbilityUseArt.RemovedKeywordCovers(row3[2].Card).Length == 2 && AbilityUseArt.RemovedKeywordCovers(row3[3].Card).Length == 0, "two removed keywords, two covers; none kept covered");
     }
 
     private void Row((CardView Card, string Label)[] cards, float y, float height)
     {
         for (var i = 0; i < cards.Length; i++)
         {
-            var x = 28 + i * 370f;
+            var x = 28 + i * (height + 70f);
             var tile = new CardTile(cards[i].Card, true, _ => { }, _ => { }) { Position = new Vector2(x, y), Size = new Vector2(height + 60, height), FaceHeight = height - 12, ReducedMotion = true };
             AddChild(tile);
             Caption(cards[i].Label, new Vector2(x, y + height + 2), 17);

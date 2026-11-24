@@ -10,7 +10,23 @@ internal static class AbilityUseViewTests
         ("A face-down card shows no ability uses", FaceDownHidden),
         ("A Tactician's Tactical actions this turn show against his cap, in both seats", TacticianUses),
         ("Every extra-use source (Fires of War mark, Centering the Soul, Sycophant) raises the shown limit, so the box clears", ExtraUsesRaiseTheLimit),
+        ("Issue #1329: a face-up card's removed PRINTED keywords (a Clan alignment too) reach both seats in printed order; a keyword it never printed and a face-down card show none", RemovedPrintedKeywords),
     ]);
+
+    private static void RemovedPrintedKeywords()
+    {
+        var s = Batch336Support.Table(Phase.Action, 0);
+        var card = Batch336Support.Add(s, Tomaru, 1, Zone.Home);
+        var printed = CardCatalog.Get(Tomaru).Keywords!;
+        Batch336Support.Check(View(s, 0, card.Id).RemovedPrintedKeywords is null, "nothing removed: nothing to cover");
+        card.RemovedKeywords.AddRange(["Scout", "Mantis Clan", "Ninja"]); // Ninja is not printed on Tomaru
+        var expected = printed.Where(k => k is "Scout" or "Mantis Clan").ToArray();
+        foreach (var seat in new[] { 0, 1 })
+            Batch336Support.Check(View(s, seat, card.Id).RemovedPrintedKeywords?.SequenceEqual(expected) == true,
+                $"seat {seat}: {string.Join(", ", View(s, seat, card.Id).RemovedPrintedKeywords ?? [])}");
+        card.FaceUp = false;
+        Batch336Support.Check(View(s, 1, card.Id).RemovedPrintedKeywords is null, "a face-down card says nothing");
+    }
 
     private const string Tomaru = "oracle-l5r-8893", BorderKeep = "oracle-l5r-1106";
 

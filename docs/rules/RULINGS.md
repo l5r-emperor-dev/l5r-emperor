@@ -829,3 +829,10 @@ The engine had wired Air and Water from the Twenty Festivals reprint and left Ea
 - **Cards/primitives:** Your Clan Needs You!, Shinden Shorai, Requesting Reinforcements, Masaya, Rise of the Dark Naga, the dead-pile recruits; `RecruitOffersClanModes`, `QuotePurchase` (`ProclaimEligible`), `ProclaimAllowed`.
 - **Date:** 2026-11-13
 - **Source:** Mendon, issue #1232 — [decision](../decisions/2026-11-13-recruit-clan-options-and-proclaim.md).
+
+### R-100 — Battle resolution rehonors only in place of an Honor gain from destroying opposing cards
+When battle resolution would give a player Honor for destroying opposing cards, and that player's army holds dishonorable Personalities, the Honor gain is negated and all of them are rehonored instead (core rules, Honorable and dishonorable). With no such gain there is nothing to replace and nobody is rehonored: a winner who destroys only an undefended province, or whose gain is withheld, stays dishonorable. Plains of the Maiden's gain counts: with no defending cards, destroying the province with an attacking Battle Maiden gains Honor, so that gain is the one replaced. In a tie both armies' dishonorable Personalities are rehonored before destruction, as before.
+
+- **Cards/primitives:** Plains of the Maiden (oracle-l5r-5982); `GainResolutionHonor`, `RehonorWinners`, `AttackerDestructionBonus` (MatchEngine.cs). The Earth Flows' bonus follows only an Honor gain actually made.
+- **Date:** 2026-11-24
+- **Source:** Mendon, issue #1325: "when the battle resolution generates an honor gain (from destroying an opposing card) negate the honor gain and, instead, rehonor all dishonored personalities in the army belonging to the player who would have gained honor (in a tie, dishonored personalities on both side are rehonored)."

@@ -119,7 +119,7 @@ public sealed partial class MatchEngine
             card.Protections.Select(p => new GrantedEffectView("Action protection", "Effects of actions this card performs will not be negated.", p.Source, p.Duration)).Concat(MechBGrantedEffects(card)).Concat(PromoGrantedEffects(card)).ToArray(), // issue #501: Only a Shadow's trait
             IsCopyCard(card), card.CopyOfCardId, CopyOfDefinition(card), CopyConditionsText(card), // issue #501 item 32 (EmperorMechBCopies.cs)
             card.OriginalOwnerId is int realOwner && realOwner != card.OwnerId ? realOwner : null, // issue #501: the owner of a card another player controls
-            card.UnitNumber, card.Zone == Zone.Underneath ? card.HostCardId : null, SpentPrintedAbilities(card, def), RestrictionViews(card), AbilityUseViews(card, def), TacticalUseView(card, def));
+            card.UnitNumber, card.Zone == Zone.Underneath ? card.HostCardId : null, SpentPrintedAbilities(card, def), RestrictionViews(card), AbilityUseViews(card, def), TacticalUseView(card, def), RemovedPrintedKeywordsView(card, def));
     }
 
     /// <summary>The printed abilities of a face-up card in play whose uses this turn are used up (never an Unlimited one); null when there are none.</summary>

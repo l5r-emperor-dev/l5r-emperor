@@ -1477,7 +1477,10 @@ public sealed record CardView(string Id, CardDefinition? Definition, int OwnerId
     // The card's printed abilities that have used up their uses this turn (public: both players watched them being used); null when none. A bot reads it to see which Battle actions a card still has.
     string[]? SpentAbilityIds = null, CardRestrictionView[]? Restrictions = null,
     // Issue #1309: per printed ability, uses this turn against the effective limit, drawn on the card art; a Tactician's Tactical actions this turn. Public; null when none.
-    AbilityUseView[]? AbilityUses = null, TacticalUseView? TacticalUses = null);
+    AbilityUseView[]? AbilityUses = null, TacticalUseView? TacticalUses = null,
+    // Issue #1329: the keywords PRINTED on this face-up card that it has lost for now (a Clan alignment as "Lion Clan", Ninja, ...), covered on the card art
+    // while removed. Public: the removal was announced. Null when none.
+    string[]? RemovedPrintedKeywords = null);
 /// <summary>What Dark Experiments does to the province it marks (permanent) and to each Holding that enters play from it; the board marker shows these values.</summary>
 public static class DarkExperimentsMark
 {

@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Replay upload: 1 practice game (24 Nov 11:54, Allan Unicorn / The Temple of Death v Scorpion Lethargy / The Towers of the Yogo, Hard, Mendon won turn 15).",
+  "validation": "check_replays.py: 26 files, all plain exports. ReplayCheck --write-index then plain run: 26 replays rebuilt, every card and every move legal. --decks table produced.",
+  "remaining": "No note supplied for the game. None otherwise; ready to merge.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1331",
+  "branch": "claude/1331-practice-replays",
+  "updated": "2026-11-24T12:01:26.052073+00:00"
+}

@@ -565,6 +565,32 @@
         "botLevel": "Hard"
       },
       "digest": true
+    },
+    {
+      "file": "practice-20261124-115409.json",
+      "sha256": "b456902737ef354c1eaf3f832c0f3f54e66310ed64c46de40fda088336be2ee5",
+      "commands": 226,
+      "turns": 15,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "The Temple of Death",
+          "cards": 86,
+          "fingerprint": "e464baf79bed"
+        },
+        {
+          "stronghold": "The Towers of the Yogo",
+          "cards": 88,
+          "fingerprint": "33deca3173c9"
+        }
+      ],
+      "note": "",
+      "practice": {
+        "yourDeck": "Allan Unicorn",
+        "opponentDeck": "Scorpion Lethargy",
+        "botLevel": "Hard"
+      },
+      "digest": true
     }
   ],
   "retired": [
