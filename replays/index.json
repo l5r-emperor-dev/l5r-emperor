@@ -539,6 +539,32 @@
         "botLevel": "Hard"
       },
       "digest": true
+    },
+    {
+      "file": "practice-20261124-111309.json",
+      "sha256": "746388671d9577d459eae16fc712e947303583840af1faa31b3a9eebffab2fdc",
+      "commands": 148,
+      "turns": 10,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Koshin Keep",
+          "cards": 91,
+          "fingerprint": "e34a224a65df"
+        },
+        {
+          "stronghold": "The Aerie",
+          "cards": 85,
+          "fingerprint": "b6b8d1478ef6"
+        }
+      ],
+      "note": "",
+      "practice": {
+        "yourDeck": "Mantis Manipulation",
+        "opponentDeck": "Crane Dominance",
+        "botLevel": "Hard"
+      },
+      "digest": true
     }
   ],
   "retired": [

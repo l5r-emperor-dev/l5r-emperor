@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Replay upload: 1 practice game (24 Nov, Mantis Manipulation / Koshin Keep v Crane Dominance / The Aerie, Hard, Mendon won turn 10). Commands 85-89 show Scouting the Pass gave Mendon the first Battle opportunity, which he passed (88) before the bot acted (89).",
+  "validation": "check_replays.py: 25 files, no findings. ReplayCheck --write-index then plain run: 25 replays rebuilt, every card and every move legal. --decks table produced.",
+  "remaining": "No note supplied yet for the game. None otherwise; ready to merge.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1323",
+  "branch": "claude/1323-practice-replays",
+  "updated": "2026-11-24T11:19:43.384084+00:00"
+}
