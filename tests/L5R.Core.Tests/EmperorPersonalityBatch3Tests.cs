@@ -21,6 +21,7 @@ internal static class EmperorPersonalityBatch3Tests
         ("Shinjo Itao: after entering play attaches a Follower from the hand, paying its cost; an Item in the hand is not offered", ItaoAttach),
         ("Utaku Ryoko: after engaging at her battlefield gives an opposing Personality or Follower a Force penalty equal to her Personal Honor; not from home", RyokoPenalty),
         ("Iuchi Shunshi: an Open lock on a Personality without attachments -- assignment and movement to battlefields, this turn", ShunshiLock),
+        ("Iuchi Shunshi: only a Personality without attachments -- any attached Follower, Item or Spell, or an attachment token, on either side, takes him off the target list, and a command naming him is refused", ShunshiOnlyBarePersonalities),
         ("Unmei: takes a keyword from another Mantis Clan Personality of her controller's with it, gets +3F and the Ranged 5 Attack while Samurai or Shugenja", UnmeiMirror),
         ("Yoritomo Hama: bows or straightens a card with lower Gold Cost than hers in a unit, one use for both", HamaToggle),
         ("Yoritomo Hiromi: destroys an enemy card or unit with a lower total Gold Cost than her unit; the destruction and bowing from her Battle actions are not negated", HiromiThunder),
@@ -188,8 +189,11 @@ internal static class EmperorPersonalityBatch3Tests
             return s;
         }
         CardInstance ryoko = null!, enemy = null!, follower = null!, ally = null!;
-        var s0 = Engage(s => { ryoko = Add(s, Ryoko, 0, Zone.Battlefield, province: 0); ally = Add(s, "training-crane-samurai", 0, Zone.Battlefield, province: 0);
-            enemy = Add(s, "training-lion-samurai", 1, Zone.Battlefield, province: 0); var host = Add(s, "training-crane-veteran", 1, Zone.Battlefield, province: 0); follower = Follow(s, host); });
+        var s0 = Engage(s =>
+        {
+            ryoko = Add(s, Ryoko, 0, Zone.Battlefield, province: 0); ally = Add(s, "training-crane-samurai", 0, Zone.Battlefield, province: 0);
+            enemy = Add(s, "training-lion-samurai", 1, Zone.Battlefield, province: 0); var host = Add(s, "training-crane-veteran", 1, Zone.Battlefield, province: 0); follower = Follow(s, host);
+        });
         var e = MatchEngine.FromTestState(s0);
         Accept(e, new GameCommand("selectBattle", 0, e.Version, Province: 0));
         Eq(e.State.PendingChoice?.Type, "engageReaction", "the Engage window opens");
@@ -224,6 +228,40 @@ internal static class EmperorPersonalityBatch3Tests
         Check(locks.Count == 1 && locks[0].Turn == e.State.TurnNumber && locks[0].Kinds.HasFlag(MovementKinds.Assign) && locks[0].Kinds.HasFlag(MovementKinds.ToBattlefield),
             "he may not be assigned, and will not move, to battlefields this turn");
         Check(e.State.Cards[followed.Id].MovementLocks.Count == 0, "the other was not touched");
+    }
+
+    private static void ShunshiOnlyBarePersonalities()
+    {
+        var s = Table(Phase.Action, 0); s.PriorityPlayerId = 0;
+        var shunshi = Add(s, Shunshi, 0, Zone.Home);
+        var bare = new[] { Add(s, "training-lion-samurai", 1, Zone.Home), Add(s, "training-crane-samurai", 0, Zone.Home) };
+        var covered = new List<(CardInstance Card, string What)>();
+        foreach (var owner in new[] { 0, 1 })
+        {
+            var follower = Add(s, "training-crane-veteran", owner, Zone.Home); Follow(s, follower); covered.Add((follower, $"player {owner}'s, with a Follower"));
+            var item = Add(s, "training-crane-veteran", owner, Zone.Home); Add(s, "training-item", owner, Zone.Attached, parent: item.Id); covered.Add((item, $"player {owner}'s, with an Item"));
+            var spell = Add(s, "training-crane-veteran", owner, Zone.Home); spell.GrantedKeywords.Add(new("Shugenja", "test-fixture", GrantDuration.Permanent));
+            Add(s, "training-bow-spell", owner, Zone.Attached, parent: spell.Id); covered.Add((spell, $"player {owner}'s, with a Spell"));
+            foreach (var token in new[] { "Follower", "Weapon", "Armor" })
+            {
+                var tokened = Add(s, "training-crane-veteran", owner, Zone.Home); tokened.Tokens.Add(new($"tok-{tokened.Id}", token, "test", "Force", 1));
+                covered.Add((tokened, $"player {owner}'s, with a {token} token"));
+            }
+        }
+        var forceToken = Add(s, "training-lion-veteran", 1, Zone.Home); forceToken.Tokens.Add(new("tok-force", "Force", "test", "Force", 1)); // a plain +F token is not an attachment
+        var e = MatchEngine.FromTestState(s);
+        var targets = Enabled(e, 0, "shunshi-lock", shunshi.Id).TargetIds!;
+        foreach (var b in bare) Check(targets.Contains(b.Id), $"{b.Id}, without attachments, is a target");
+        Check(targets.Contains(forceToken.Id), "a Personality with only a Force token has no attachment and is a target");
+        Check(targets.Contains(shunshi.Id), "Shunshi himself, without attachments, is a target");
+        foreach (var (card, what) in covered)
+        {
+            Check(!targets.Contains(card.Id), $"{what} is not a target");
+            var refused = Batch336Support.Rejection(e, new GameCommand("useAbility", 0, e.Version, CardId: shunshi.Id, TargetId: card.Id, AbilityId: "shunshi-lock"));
+            Check(!string.IsNullOrEmpty(refused), $"{what}: a command naming him is refused");
+            Check(e.State.Cards[card.Id].MovementLocks.Count == 0, $"{what}: and is not locked");
+        }
+        Check(targets.All(id => e.State.Cards[id].Zone != Zone.Attached && CardCatalog.Get(e.State.Cards[id].DefinitionId).Type == CardType.Personality), "only Personalities are offered");
     }
 
     private static void UnmeiMirror()
