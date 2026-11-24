@@ -291,6 +291,7 @@ runner.Run("seppuku", SeppukuTests.Tests); // issue #963: bot loop round 1
 runner.Run("michi-stall", MichiStallReplayTests.Tests); // issue #967
 runner.Run("prudence", PrudenceTests.Tests); // issue #902: Mendon's bot notes
 runner.Run("cavalry-defense", CavalryDefenseTests.Tests); // issue #946: defending against the attacker's possible Cavalry
+runner.Run("cavalry-open-defence", CavalryOpenDefenceTests.Tests); // issue #1336: replay 115409's Cavalry attack and last stand
 runner.Run("bot-profile", BatchProfile.Tests); // issue #888: opt-in timing of seeded bot-vs-bot matches
 runner.Run("human-compare", HumanReplayCompare.Tests);
 runner.Run("conan-positions", ConanPositions.Tests); // issue #1206: the decision test set from Mendon's replays (docs/bots/CONAN_STRATEGY_BRIEF.md step 1) // issue #1185: opt-in, a human practice replay beside the bot's choices

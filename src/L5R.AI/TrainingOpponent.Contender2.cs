@@ -175,11 +175,11 @@ public static partial class TrainingOpponent
         // aggro2: beating the Strength alone is enough.
         if ((Rule(x, "aggro") || Rule(x, "aggro2") || Rule(x, "raid") && Undefended(x)) && action.Type == "attack" && command.Assignments is { Count: > 0 } && score < 85)
         {
-            var defence = ArmyForce(x.Opponent.Home);
+            var defence = OpenDefence(x);
             var armies = WholeAttack(x, action, command.Assignments).GroupBy(p => p.Value)
                 .Select(g => (Province: x.Opponent.Provinces.FirstOrDefault(p => p.Index == g.Key), Force: g.Sum(p => ArmyForce(x.Self.Home.Concat(x.Self.Army).Where(c => c.Id == p.Key || c.AttachedTo == p.Key))))).ToArray();
             var boost = (Rule(x, "raidboost") || Rule(x, "raid")) && Undefended(x) ? RaidBoost(x, command.Assignments.Keys.Select(x.Card).OfType<CardView>().ToArray()) : 0;
-            if (armies.All(a => a.Province is { Destroyed: false } && a.Force + boost > a.Province.Strength && (Rule(x, "aggro2") || Rule(x, "raid") || a.Force > defence))) return 85;
+            if (armies.All(a => a.Province is { Destroyed: false } && a.Force + boost > HeldStrength(x, a.Province) && (Rule(x, "aggro2") || Rule(x, "raid") || a.Force > defence))) return 85;
         }
         if ((Rule(x, "aggro") || Rule(x, "aggro2") || Rule(x, "raid") && Undefended(x)) && action.Type == "declareAttack" && score < 85 && AggroAttack(x, x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed).ToArray(),
                 x.Opponent.Provinces.Where(p => !p.Destroyed).Select(p => p.Index).ToArray()) is not null) return 85;
@@ -231,7 +231,7 @@ public static partial class TrainingOpponent
         if (weakest is null) return null;
         var force = units.Sum(u => UnitForce(x, u)) + AlreadyAssigned(x).Where(c => c.ProvinceIndex == weakest.Index).Sum(u => UnitForce(x, u))
             + ((Rule(x, "raidboost") || Rule(x, "raid")) && Undefended(x) ? RaidBoost(x, units) : 0);
-        if (force <= weakest.Strength || !Rule(x, "aggro2") && !Rule(x, "raid") && force <= ArmyForce(x.Opponent.Home)) return null;
+        if (force <= HeldStrength(x, weakest) || !Rule(x, "aggro2") && !Rule(x, "raid") && force <= OpenDefence(x)) return null;
         return units.ToDictionary(u => u.Id, _ => weakest.Index, StringComparer.Ordinal);
     }
 
@@ -610,13 +610,13 @@ public static partial class TrainingOpponent
     /// </summary>
     private static Dictionary<string, int>? LeanPlan(Ctx x, CardView[] units, int[] provinces, bool maxRaze = false)
     {
-        var defence = ArmyForce(x.Opponent.Home);
+        var defence = OpenDefence(x);
         var pool = units.Select(u => (Unit: u, Force: UnitForce(x, u))).Where(u => u.Force > 0).OrderByDescending(u => u.Force).ThenBy(u => u.Unit.Id, StringComparer.Ordinal).Take(9).ToArray();
         var targets = x.Opponent.Provinces.Where(p => !p.Destroyed && provinces.Contains(p.Index)).OrderBy(p => p.Strength).ThenBy(p => p.Index).ToArray();
         for (var k = Math.Min(3, Math.Min(targets.Length, pool.Length)); k >= 1; k--)
         {
             var chosen = targets.Take(k).ToArray();
-            var need = chosen.Select(t => (Rule(x, "lean2") || maxRaze ? Math.Max(t.Strength, defence) : t.Strength + defence) + 1).ToArray(); // lean2: beating each of them separately razes it or destroys the defense
+            var need = chosen.Select(t => (Rule(x, "lean2") || maxRaze ? Math.Max(HeldStrength(x, t), defence) : HeldStrength(x, t) + defence) + 1).ToArray(); // lean2: beating each of them separately razes it or destroys the defense
             int[]? best = null; var bestUsed = int.MaxValue; var slot = new int[pool.Length];
             void Search(int i, int[] force, int used)
             {
@@ -643,7 +643,7 @@ public static partial class TrainingOpponent
     /// <summary>lean2, Cavalry segment: every army already sent beats both its Province's Strength and the enemy's unbowed defenders, so no Cavalry need join.</summary>
     private static bool LeanArmiesSuffice(Ctx x)
     {
-        var defence = ArmyForce(x.Opponent.Home);
+        var defence = OpenDefence(x);
         return x.Self.Army.Where(c => c.ProvinceIndex is not null).GroupBy(c => c.ProvinceIndex!.Value)
             .All(g => ArmyForce(g) > Math.Max(defence, x.Opponent.Provinces.FirstOrDefault(p => p.Index == g.Key)?.Strength ?? 0));
     }
@@ -665,7 +665,7 @@ public static partial class TrainingOpponent
     {
         if (LeanPlan(x, units, provinces, maxRaze: true) is not { } lean) return null;
         var plan = new Dictionary<string, int>(lean, StringComparer.Ordinal);
-        var defence = ArmyForce(x.Opponent.Home);
+        var defence = OpenDefence(x);
         int Margin(int province) => units.Where(u => plan.TryGetValue(u.Id, out var p) && p == province).Sum(u => UnitForce(x, u))
             - Math.Max(defence, x.Opponent.Provinces.First(p => p.Index == province).Strength);
         foreach (var unit in units.Where(u => !plan.ContainsKey(u.Id)).OrderByDescending(u => UnitForce(x, u)))
@@ -684,7 +684,7 @@ public static partial class TrainingOpponent
     /// <summary>lean3, Cavalry segment: every army already sent beats its Province's Strength plus every unbowed defender, so it razes whatever the defense does.</summary>
     private static bool LeanArmiesRaze(Ctx x)
     {
-        var defence = ArmyForce(x.Opponent.Home);
+        var defence = OpenDefence(x);
         return x.Self.Army.Where(c => c.ProvinceIndex is not null).GroupBy(c => c.ProvinceIndex!.Value)
             .All(g => ArmyForce(g) > defence + (x.Opponent.Provinces.FirstOrDefault(p => p.Index == g.Key)?.Strength ?? 0));
     }

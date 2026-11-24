@@ -15,6 +15,13 @@ public static partial class TrainingOpponent
         attacker.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed && IsCavalryUnit(attacker, c))
             .Sum(c => ArmyForce(attacker.Home.Where(h => h.Id == c.Id || h.AttachedTo == c.Id)));
 
+    /// <summary>cavopen (issue #1336, replay 115409): the enemy Force that can still defend against what this declaration assigns. In the Cavalry Maneuvers Segment the infantry defense
+    /// has closed, so only the defender's unbowed Cavalry at home can still be assigned; counting its whole home army made every Cavalry attack on an undefended board look hopeless.</summary>
+    private static bool CavalryOpen(Ctx x) => Rule(x, "cavopen") && x.View.Phase == Phase.CavalryDeclaration;
+    private static int OpenDefence(Ctx x) => CavalryOpen(x) ? PossibleCavalryForce(x.Opponent) : ArmyForce(x.Opponent.Home);
+    /// <summary>cavopen: a Province's Strength plus, in the Cavalry Maneuvers Segment, the defenders already assigned to it.</summary>
+    private static int HeldStrength(Ctx x, ProvinceView p) => p.Strength + (CavalryOpen(x) ? ArmyForce(x.Opponent.Army.Where(c => c.ProvinceIndex == p.Index)) : 0);
+
     /// <summary>Province order for a defense: face-up Personalities by Gold cost, most expensive first, then provinces whose card is face down, then the rest.</summary>
     private static int[] ProvincesByValue(PlayerView self, IEnumerable<int> offered)
     {

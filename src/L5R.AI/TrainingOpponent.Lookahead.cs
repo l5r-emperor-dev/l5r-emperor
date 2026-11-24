@@ -62,11 +62,18 @@ public static partial class TrainingOpponent
         if (Rule(x, "lkVar") && candidates.FirstOrDefault(c => c.Command.Type == "assignDefense" && c.Command.Assignments is not null) is { Action: not null } defend)
             searched.AddRange(DefenceShapes(x, defend.Action).Where(a => !searched.Any(o => SameAssignment(o.Command.Assignments, a)))
                 .Select(a => new Option(defend.Action, defend.Command with { Assignments = a }, "defend " + a.Count)));
+        // lkStand (issue #1336, replay 115409): when the attack can take every Province the bot has left, its rules always defend (Mendon's last stand); the search may choose
+        // among defences but not a pass, which its playouts can misjudge whenever the simulated attacker holds back.
+        if (Rule(x, "lkStand") && candidates[0].Command.Type == "assignDefense" && LastStandApplies(x, candidates[0].Action)) searched.RemoveAll(o => IsPass(o.Command));
         if (searched.Count < 2 || candidates[0].Command != searched[0].Command) return null;
         if (Search(x, sampler, searched, (int)Knob(x, dynasty ? "lkBN" : "lkN", dynasty ? 3 : 4), dynasty) is not { } values) return null;
         var best = Enumerable.Range(0, searched.Count).MaxBy(i => values[i]);
         return best > 0 && values[best] > values[0] + Knob(x, "lkM", 0) ? (searched[best].Command, searched[best].Action) : null;
     }
+
+    /// <summary>lkStand: the last-stand rules apply here, as in the Contender's defence (CavalryLastStandPlan, LastStandProvince).</summary>
+    private static bool LastStandApplies(Ctx x, ActionOption defend) =>
+        CavalryLastStandPlan(x, defend, null) is not null || LastStandProvince(x, defend.Provinces ?? x.Self.Provinces.Where(p => !p.Destroyed).Select(p => p.Index).ToArray()) is not null;
 
     /// <summary>The mean value of each option over the same redealt samples (a paired comparison), logged with the time it took; null when it ran past its time limit (lkT).</summary>
     private static double[]? Search(Ctx x, Func<ulong, MatchEngine> sampler, IReadOnlyList<Option> options, int samples, bool throughNextAttack = false)

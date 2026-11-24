@@ -189,7 +189,7 @@ public static partial class TrainingOpponent
     private static int WeakestArmyMargin(Ctx x, (int Province, int Force)[] armies, int homeDefense)
     {
         var spec = Spec(x);
-        var strengths = armies.Select(a => x.Opponent.Provinces.FirstOrDefault(p => p.Index == a.Province)?.Strength ?? int.MaxValue / 2).ToArray();
+        var strengths = armies.Select(a => x.Opponent.Provinces.FirstOrDefault(p => p.Index == a.Province) is { } held ? HeldStrength(x, held) : int.MaxValue / 2).ToArray(); // cavopen: with the defenders already there
         var forces = armies.Select(a => a.Force).ToArray();
         int Margin(int i) => forces[i] - (spec ? Math.Max(strengths[i], homeDefense) : strengths[i] + homeDefense);
         if (spec)

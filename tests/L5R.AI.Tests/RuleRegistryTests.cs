@@ -20,11 +20,11 @@ internal static class RuleRegistryTests
 
     public static readonly (string, Action)[] Tests =
     [
-        ("T2Rules is the yardstick frozen on 2026-11-13: these 22 tokens in this order, and the Contender's TunedRules still equals it today", () =>
+        ("T2Rules is the yardstick frozen on 2026-11-13: these 22 tokens in this order; the Contender's TunedRules is T2 plus cavopen (issue #1336, docs/bots/CONTENDER.md)", () =>
         {
             const string frozen = "econ,presence,lobby,shinden,openbow,ownprov,selflock,surereact,selfboost,nostraighten,provaim,spreadwide,conf,selfplayer,presdepth,pdh=100,keepup,nofoeboost,raid,pdstrong,defwin,nobowgift";
             Check(string.Join(",", BotContext.T2Rules) == frozen, $"T2Rules has changed; it is the campaign's yardstick and must not: {string.Join(",", BotContext.T2Rules)}");
-            Check(BotContext.T2Rules.SequenceEqual(BotContext.TunedRules), "TunedRules has moved away from T2; the practice Contender and the yardstick now differ (allowed, but say so in docs/bots/CONTENDER.md)");
+            Check(BotContext.TunedRules.SequenceEqual([.. BotContext.T2Rules, "cavopen"]), "TunedRules has moved; the practice Contender and the yardstick differ by more than docs/bots/CONTENDER.md says: update it and this check");
             var t2 = BotContext.Contender(rules: BotContext.T2Rules);
             Check(t2.Rules.SetEquals(BotContext.T2Rules) && t2.UseSureReactions && t2.UsePlanner, "the t2 arm carries the 22 rules, with surereact as the reaction flag and the planner on");
         }),

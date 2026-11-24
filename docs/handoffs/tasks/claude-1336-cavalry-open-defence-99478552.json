@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Bot fixes from replay 115409: cavopen (TunedRules) counts only the defender's Cavalry as possible defenders in the Cavalry Maneuvers Segment and adds defenders already at a Province to its Strength; lkStand (HardRules) keeps a last stand from being searched into a pass. Item 3 (hand pacing) assessed, no change at Mendon's direction.",
+  "validation": "tools/check.sh --skip-client passed; new cavalry-open-defence tests at the real replay position (Contender attacks the open board; Hard defends with each fix alone). Arena: Contender block 12100x4 1,456 games net -1 (12/13, p 1.0); Hard block 12104 364 games 70.5% vs 70.8% (5 changed). Neutral.",
+  "remaining": "None; ready for review.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1336",
+  "branch": "claude/1336-cavalry-open-defence",
+  "updated": "2026-11-24T16:07:21.363494+00:00"
+}
