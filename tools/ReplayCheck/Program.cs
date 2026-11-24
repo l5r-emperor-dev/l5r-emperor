@@ -12,7 +12,7 @@ using L5R.Core;
 //
 //   dotnet run -c Release --project tools/ReplayCheck                 check every replay against the engine and the index
 //   dotnet run -c Release --project tools/ReplayCheck -- --write-index    add new replays to the index and refresh its facts (notes and status are kept)
-//   dotnet run -c Release --project tools/ReplayCheck -- --decks          print the plays-by-deck table and the games still needed for bot training (reads the index only)
+//   dotnet run -c Release --project tools/ReplayCheck -- --decks          print the plays-by-Stronghold tables and the games still needed for bot training (reads the index only)
 //   (run from the repository root, or pass --root DIR)
 
 var root = Directory.GetCurrentDirectory(); var write = false; var deckTable = false;
