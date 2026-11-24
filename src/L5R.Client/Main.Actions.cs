@@ -48,6 +48,7 @@ public partial class Main
         if (RenderOpponentPayment()) return;
         if (RenderEitherOr()) return;
         if (RenderCopyTray()) return;
+        if (HasMultiTargets(_chosen) && PerformerStepActive) { RenderPerformerStep(); return; } // issue #1327: the performer before the target groups
         if (RenderMultiTargets()) return;
         if (RenderDecisionChooser()) { RenderReactionDecline(); AddDecisionReviewNavigation(); return; }
         if (RenderMovement()) return;

@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Multi-target actions (#1327): with several legal performers the performer is now asked first (table click or list), then the target groups; Back from the first group returns to the performer. Before, the multi-target chooser ran first, used the first offered performer and swallowed table clicks, so Running Battle could not be performed by Yashiro when Madoka could too (practice replay 2026-11-24, turn 8).",
+  "validation": "Client builds with 0 warnings/errors; changed-C# format check passes. New native step CaptureMultiPerformer in check-multi-targets-ui.sh: NOT YET RUN -- this Mac's screen was locked, so the existing native check could not get window focus (fails at its first, pre-existing board click).",
+  "remaining": "Run bash tools/check-multi-targets-ui.sh with the Mac unlocked before merging. No Windows graphical playtest.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1327",
+  "branch": "claude/1327-multi-target-performer",
+  "updated": "2026-11-24T11:39:24.992383+00:00"
+}
