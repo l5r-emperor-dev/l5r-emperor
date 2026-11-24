@@ -274,10 +274,28 @@ public partial class CardTile : Button
     {
         if (Card.Definition is not { } def || AbilityUseArt.For(def) is not { } regions) return;
         var (shaded, counters) = AbilityUseArt.Marks(Card);
-        if (shaded.Length == 0 && counters.Length == 0) return;
+        var covers = AbilityUseArt.RemovedKeywordCovers(Card);
+        if (shaded.Length == 0 && counters.Length == 0 && covers.Length == 0) return;
         var face = FaceSize();
         var scale = face / regions.Size;
         Vector2 Map(Vector2 scan) => ProjectFacePoint(scan * scale, face);
+        // Issue #1329: a removed printed keyword is painted over in the keyword line's own colour, so it reads as not there.
+        foreach (var (box, paper) in covers)
+        {
+            // Solid over the letters, then feathered to clear over a few scan pixels so no hard edge shows against the mottled paper.
+            // Each corner carries the UV of the spot it covers, so the card's paper shading (CardPaper: grading, edge darkening, grain) treats the cover as that paper.
+            var inner = box.Grow(2); var outer = box.Grow(8); var clear = paper with { A = 0 };
+            static Vector2[] Corners(Rect2 r) => [r.Position, new Vector2(r.End.X, r.Position.Y), r.End, new Vector2(r.Position.X, r.End.Y)];
+            var scanIn = Corners(inner); var scanOut = Corners(outer);
+            var inPoints = scanIn.Select(Map).ToArray(); var outPoints = scanOut.Select(Map).ToArray();
+            var inUv = scanIn.Select(p => p / regions.Size).ToArray(); var outUv = scanOut.Select(p => p / regions.Size).ToArray();
+            DrawPolygon(inPoints, [paper, paper, paper, paper], inUv);
+            for (var i = 0; i < 4; i++)
+            {
+                var j = (i + 1) % 4;
+                DrawPolygon([inPoints[i], inPoints[j], outPoints[j], outPoints[i]], [paper, paper, clear, clear], [inUv[i], inUv[j], outUv[j], outUv[i]]);
+            }
+        }
         foreach (var box in shaded)
         {
             var b = box.Grow(5);
