@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Every card shown to the player is now held on screen with a caption until Proceed (click, Enter or Esc), whatever the Paused Animation setting: opponent shows (ShownCards), cards seen in another hand (HandSights: Scouting the Pass, The Price of Honor) and face-down province cards looked at (ProvinceSights). HandSights and ProvinceSights were never drawn by the client before. Incoming shows no longer force the Shown cards history open (hand-off arrival still does). Client only; Core views unchanged.",
+  "validation": "bash tools/check.sh (full, with client): all requested checks passed. tools/check-shown-cards.sh normal 1920x1080 and reduced 1280x800: SHOWN_HISTORY_PASS and new SHOWN_BEATS_PASS (Scouting the Pass through the engine holds 2 hand cards; The Otoro Estate holds 2 province cards; each held past any timed hold, released by a click, with Paused Animation off and no Settings reminder). tools/check-paused-animation-ui.sh normal and reduced passed. Screenshots inspected (caption backing plate added after the first run showed it unreadable over table cards). dotnet format whitespace verify clean.",
+  "remaining": "Not hand-played. Separate open question from the same playtest: why the bot took the first Battle action after Scouting the Pass; needs Mendon's replay.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1319",
+  "branch": "claude/1319-held-shown-cards",
+  "updated": "2026-11-24T10:37:39.017581+00:00"
+}

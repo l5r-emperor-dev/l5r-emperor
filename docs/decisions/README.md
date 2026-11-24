@@ -133,3 +133,5 @@ interpretation this register's decision docs already settled.
 - [Used printed abilities are marked on the card art](2026-11-22-used-abilities-on-card-art.md) — accepted (Mendon): grey box over a used ability's printed paragraph, clan-coloured "NX" counter for multi-use abilities, Tactician marked on the keyword or its grant marker; nothing outside the card. Replaces the #1278 strip.
 
 - [Card markers are separate icons outside the card](2026-11-22-card-marker-icons.md) — accepted (Mendon): the status and token rails become individual icons (seal, restriction kinds, token groups) stacked five to the card height along its edge, more columns outward, explained on hover; icon art unchanged.
+
+- [Every card shown to a player is held until they click](2026-11-24-shown-cards-held.md) — accepted (Mendon): cards the opponent shows, cards seen in another hand and face-down province cards looked at are each held on screen with a caption until Proceed, whatever the Paused Animation setting.

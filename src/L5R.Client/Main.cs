@@ -565,6 +565,7 @@ public partial class Main : Node
         if (RouteMatchDuel()) return;
         ObserveBattleJournal();
         ObserveCardPlays(); // Issue #630: show a played card, then send it to the discard pile (Main.CardPlays.cs).
+        ObserveShownBeats(); // Issue #1319: every card shown to this player, held until Proceed (Main.ShownBeats.cs).
         PrepareBattlePresentation();
         RenderBattleFeedback();
         RenderProvinceOrder();
