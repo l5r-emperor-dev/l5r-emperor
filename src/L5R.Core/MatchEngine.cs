@@ -1720,7 +1720,7 @@ public sealed partial class MatchEngine
             MarkAttackVictory(a);
             var destroyedDefenders = aramasuSpares ? 0 : DestroyUnits(TfResolutionDestroyable(d, true)); // issue #622: Hitomi's Devotion spares its unit (TfGear.cs)
             destroyedByPlayer[attacker] = destroyedDefenders; losers.Add(defender);
-            if (!RehonorWinners(a)) { GainHonor(attacker, ResolutionHonor(attacker, defender, destroyedDefenders * 2), "Battle victory"); CheckEarthFlowsBonus(attacker, a); }
+            if (GainResolutionHonor(attacker, a, ResolutionHonor(attacker, defender, destroyedDefenders * 2), "Battle victory")) CheckEarthFlowsBonus(attacker, a);
             var province = battleProvince;
             var destroyedProvince = province is not null && !aramasuSpares && !PerfectMomentBarsDestruction(attacker) && af > df + EffectiveProvinceStrength(province) && !RendBarsProvinceDestruction(attacker); // Rend the Soul (issue #498): "You will not destroy the province in this battle's resolution"
             if (destroyedProvince && Wave829JizoReplacesDestruction(attacker, provinceIndex)) destroyedProvince = false;
@@ -1747,7 +1747,7 @@ public sealed partial class MatchEngine
         {
             var destroyedAttackers = DestroyUnits(TfResolutionDestroyable(a, false));
             destroyedByPlayer[defender] = destroyedAttackers; losers.Add(attacker);
-            if (!RehonorWinners(d)) { GainHonor(defender, ResolutionHonor(defender, attacker, destroyedAttackers * 2), "Battle victory"); CheckEarthFlowsBonus(defender, d); }
+            if (GainResolutionHonor(defender, d, ResolutionHonor(defender, attacker, destroyedAttackers * 2), "Battle victory")) CheckEarthFlowsBonus(defender, d);
             GrantRingRecruit(Player(defender), a.Length > 0, "false-ring-of-air-recruit");
             GrantRingRecruit(Player(defender), a.Length > 0 && !Player(defender).PersonalityDestroyedThisBattle, "ring-of-earth-recruit");
             GrantRingRecruit(Player(defender), destroyedAttackers > 0, "ring-of-fire-recruit");
@@ -2040,14 +2040,25 @@ public sealed partial class MatchEngine
     {
         if (Definition(Card(Player(attacker).StrongholdId)).Effect != "plains-honor") return;
         var maidens = attackingArmy.Count(c => c.Zone == Zone.Battlefield && Keyword(c, "Battle Maiden"));
-        if (maidens > 0) GainHonor(attacker, maidens, "Plains of the Maiden");
+        GainResolutionHonor(attacker, attackingArmy, maidens, "Plains of the Maiden"); // issue #1325: a gain from destroying in resolution, so a dishonorable army is rehonored instead
     }
-    // Dishonor/Rehonor (core rules Glossary, issue #186): "if a dishonorable personality is in an
-    // army that wins or ties a battle and destroys cards in an opposing army, all of the dishonorable
-    // personalities in the winner's army are rehonored and the FULL honor gain from winning is
-    // negated." Called (and, for a tie, rehonoring applied) before that army's own units are
-    // destroyed, in case it is also on the losing end of a tie. Returns whether any rehonoring
-    // happened, so the caller knows whether to skip its own GainHonor entirely.
+    // Issue #1325 (Mendon's ruling, core rules "Honorable and dishonorable"): an Honor gain from destroying opposing cards in battle resolution -- the
+    // winner's twice-the-cards gain, or Plains of the Maiden's -- is replaced, when the gaining player's army holds dishonorable Personalities, by
+    // rehonoring all of them. No gain (nothing of the enemy's destroyed, or the gain withheld), nothing to replace: nobody is rehonored. A tie
+    // rehonors both armies outright, before destruction (its own rule, in ResolveBattle). Returns whether Honor was actually gained.
+    private bool GainResolutionHonor(int playerId, CardInstance[] army, int amount, string reason)
+    {
+        if (amount <= 0) return false;
+        if (RehonorWinners(army))
+        {
+            Emit("resolutionRehonor", $"{Player(playerId).Name}'s dishonorable Personalities are rehonored instead of gaining {amount} Honor ({reason}).", playerId);
+            return false;
+        }
+        GainHonor(playerId, amount, reason);
+        return true;
+    }
+    // Dishonor/Rehonor (core rules Glossary, issue #186): rehonors every dishonorable Personality of the army still at the battlefield. Called for a tie
+    // before that army's own units are destroyed, so none of them also takes a dishonorable death's Honor loss. Returns whether any were rehonored.
     private bool RehonorWinners(CardInstance[] army)
     {
         var dishonorable = army.Where(c => c.Zone == Zone.Battlefield && c.Dishonorable).ToArray();
