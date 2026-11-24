@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Replays: 2 practice games from 24 Nov (Allan Beserker v Spider Conquer, Allan Beserker v Allan Lion, both Hard, both won by Mendon). Corpus 28 games, none retired.",
+  "validation": "check_replays.py: 28 plain exports. ReplayCheck: 28 rebuilt, every card and every move legal. --decks table in the PR.",
+  "remaining": "None; ready for review.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1338",
+  "branch": "claude/1338-practice-replays",
+  "updated": "2026-11-24T15:05:25.623075+00:00"
+}
