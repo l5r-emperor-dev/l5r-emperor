@@ -483,7 +483,7 @@ public partial class Main
         _decisionActions.AddChild(SidebarSkin.Button("Cancel", CancelChoice));
     }
 
-    private void CancelChoice() { _playPrompt = null; ResetDecisionSelection(); SetNotice("Selection cancelled. No action was taken."); _selected = null; _chosen = null; _sources.Clear(); _assignments.Clear(); _assignmentUnit = null; RenderBoard(); RenderInspector(); RenderPhaseActions(); Highlight(); }
+    private void CancelChoice() { CancelFavorShortcut(); _playPrompt = null; ResetDecisionSelection(); SetNotice("Selection cancelled. No action was taken."); _selected = null; _chosen = null; _sources.Clear(); _assignments.Clear(); _assignmentUnit = null; RenderBoard(); RenderInspector(); RenderPhaseActions(); Highlight(); }
 
     // An ability or reaction that cannot be used right now (no legal target or performer, a condition unmet, Honor too low to Lobby) is not offered at all; the engine still
     // lists it with its reason, but a menu of things the player cannot do only hides the ones they can.
