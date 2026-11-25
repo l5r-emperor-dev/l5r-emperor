@@ -139,7 +139,8 @@ public partial class Main
     }
     private async Task SubmitTransitionCommand(GameCommand command)
     {
-        if(!_transitionReady||_transitionDuel is null)return;
+        if(_transitionDuel is null)return;
+        if(!_transitionReady){_transitionDuel.SubmissionFinished();return;} // not sent: release the screen
         _transitionDuel.InputLocked=true;
         try{await _session.Submit(command);_transitionDuel.Present(_session.Snapshot!);}
         finally{_transitionDuel.InputLocked=false;_transitionDuel.SubmissionFinished();}
