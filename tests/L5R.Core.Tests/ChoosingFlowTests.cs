@@ -55,6 +55,9 @@ internal static class ChoosingFlowTests
             Batch336Support.Check(forHolding.All(o => o.Command!.TargetId == holding.Id || o.TargetIds!.Length == 1), "an option belongs to one Holding");
         }
         Batch336Support.Check(options.Count(o => o.TargetIds?.Contains(temples.Id) == true && o.Command!.AbilityId == EmperorP5HiddenAbilities.StolenAbility) == 3, "Temples of Gisei Toshi's three abilities are three choices");
+        // Issue #1343 (Mendon's wording): the two plays read short; the card itself carries the full text.
+        Batch336Support.Check(options.Where(o => o.Command!.AbilityId == EmperorP5HiddenAbilities.StolenGold).All(o => o.Label.StartsWith("Copy the gold production of a holding with cost 1 to 4 · ", StringComparison.Ordinal))
+            && options.Where(o => o.Command!.AbilityId == EmperorP5HiddenAbilities.StolenAbility).All(o => o.Label.StartsWith("Copy an ability of a holding with cost 1 to 4 · ", StringComparison.Ordinal)), "the plays use the short labels");
     }
 
     private static void CostOptionsAreNamed()

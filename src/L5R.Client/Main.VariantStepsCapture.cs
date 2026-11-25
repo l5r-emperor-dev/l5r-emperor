@@ -73,7 +73,7 @@ public partial class Main
             SelectCard(stolen!); await EventFrames(4);
             var plays = RowsWith("play_group");
             SupportRequire(plays.Length == 2, $"Stolen Merchandise should list two plays (an ability, a Gold trait), found {plays.Length}: " + string.Join(" | ", StabilizationButtons(_inspector).Select(b => b.Text)));
-            var copyAbility = plays.Single(b => !b.Text.Contains("Gold-producing", StringComparison.Ordinal));
+            var copyAbility = plays.Single(b => !b.Text.Contains("gold production", StringComparison.Ordinal));
             await SupportCapture("-4-stolen-list");
             await SupportClick(copyAbility); await EventFrames(3);
             SupportRequire(StabilizationText(_inspector).Contains("CHOOSE A TARGET") && !StabilizationText(_inspector).Contains("CHOOSE ONE"), "The Holding is chosen first: " + StabilizationText(_inspector));

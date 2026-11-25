@@ -49,9 +49,9 @@ public static class EmperorP5HiddenAbilities
             "none", Trigger: "after-engaging", Performer: "own-unbowed-personality-with-keyword-explicitly-at-battle", RequiredKeywords: ["Scout"]);
         // Stolen Merchandise (oracle-l5r-7494, a Kolat Holding; the scan): "Open: Target another player's Holding with a base Gold Cost from 1 to 4: This card copies one of its base abilities that does
         // not itself copy abilities, or one of its Gold-producing traits." One use, two ways (the ability chosen rides on Choice). The copy lasts until the end of the turn (nothing says permanent).
-        all[StolenAbility] = new("Open", "Target another player's Holding with a base Gold Cost from 1 to 4: This card copies one of its base abilities that does not itself copy abilities", OtherHoldingCost1To4,
+        all[StolenAbility] = new("Open", "Copy an ability of a holding with cost 1 to 4", OtherHoldingCost1To4,
             UsageKey: "p5-stolen-merchandise", CopiesAbilities: true);
-        all[StolenGold] = new("Open", "Target another player's Holding with a base Gold Cost from 1 to 4: This card copies one of its Gold-producing traits", OtherHoldingCost1To4,
+        all[StolenGold] = new("Open", "Copy the gold production of a holding with cost 1 to 4", OtherHoldingCost1To4,
             UsageKey: "p5-stolen-merchandise", CopiesAbilities: true);
         // Learning (oracle-l5r-10155): "Battle: Choose your performing Personality and a Battle Strategy in another player's discard pile: Its abilities may be used an additional time this turn. Your
         // Personality copies a keyword on an enemy Personality. You may take an additional action to play the Strategy for one of its actions. After it resolves, remove it from the game." The keyword
