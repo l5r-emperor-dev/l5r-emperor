@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Scars of War's game-long Honor-loss mark is now a public card-status row on the marked Holding (Kind honorLoss, Source Scars of War, For the rest of the game; one per copy). The status rail draws it with the red broken-fan dishonor medallion beside the Holding; hovering the icon (and the card's reading preview) gives the Scars of War text.",
+  "validation": "check.sh --skip-client: all passed. Core test ScarsOfWarBows now checks both seats see the mark and the other Holding is unmarked. tools/check-status-rails.sh: STATUS_RAIL_PASS (14 combinations x 11 fixtures incl. honorLoss), screenshots reviewed for upright and bowed Holdings.",
+  "remaining": "None; ready for review. Not hand-played in a live game.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1341",
+  "branch": "claude/1341-scars-of-war-mark",
+  "updated": "2026-11-25T09:58:37.970275+00:00"
+}
