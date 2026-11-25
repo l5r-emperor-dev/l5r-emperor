@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Added 5 practice replays (24-25 Nov 2026, Crab Control / Yasuki Palaces v Hard bot). Noted on all 8 Yasuki Palaces games Mendon played that unused Stronghold ability was a player mistake, not good play.",
+  "validation": "check_replays.py: 33 files all plain; ReplayCheck: 33 replays, every card and every move legal; --decks table regenerated.",
+  "remaining": "None; ready for review.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1349",
+  "branch": "claude/1349-practice-replays",
+  "updated": "2026-11-25T16:44:30.828487+00:00"
+}

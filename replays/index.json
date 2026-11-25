@@ -103,7 +103,7 @@
           "fingerprint": "3569b1c95f56"
         }
       ],
-      "note": "",
+      "note": "Mendon (Yasuki Palaces) forgot the Stronghold's ability in some battles where using it could have changed the outcome. A battle where he did not use Yasuki Palaces but could have is a player mistake, not evidence that holding it back is good play; the bot should not learn from it.",
       "digest": false
     },
     {
@@ -610,7 +610,7 @@
           "fingerprint": "d6c23492dc06"
         }
       ],
-      "note": "",
+      "note": "Mendon (Yasuki Palaces) forgot the Stronghold's ability in some battles where using it could have changed the outcome. A battle where he did not use Yasuki Palaces but could have is a player mistake, not evidence that holding it back is good play; the bot should not learn from it.",
       "practice": {
         "yourDeck": "Allan Beserker",
         "opponentDeck": "Spider Conquer",
@@ -636,10 +636,140 @@
           "fingerprint": "6dd9c762bfeb"
         }
       ],
-      "note": "",
+      "note": "Mendon (Yasuki Palaces) forgot the Stronghold's ability in some battles where using it could have changed the outcome. A battle where he did not use Yasuki Palaces but could have is a player mistake, not evidence that holding it back is good play; the bot should not learn from it.",
       "practice": {
         "yourDeck": "Allan Beserker",
         "opponentDeck": "Allan Lion",
+        "botLevel": "Hard"
+      },
+      "digest": true
+    },
+    {
+      "file": "practice-20261124-163751.json",
+      "sha256": "85a41cb0bbe165a98f9aa179edac6c93fe0fe9fb273a239534f4748dd584cbec",
+      "commands": 286,
+      "turns": 15,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Yasuki Palaces",
+          "cards": 84,
+          "fingerprint": "f9315058903e"
+        },
+        {
+          "stronghold": "The Temple of Death",
+          "cards": 86,
+          "fingerprint": "e464baf79bed"
+        }
+      ],
+      "note": "Mendon (Yasuki Palaces) forgot the Stronghold's ability in some battles where using it could have changed the outcome. A battle where he did not use Yasuki Palaces but could have is a player mistake, not evidence that holding it back is good play; the bot should not learn from it.",
+      "practice": {
+        "yourDeck": "Crab Control",
+        "opponentDeck": "Allan Unicorn",
+        "botLevel": "Hard"
+      },
+      "digest": true
+    },
+    {
+      "file": "practice-20261124-171431.json",
+      "sha256": "8332da889c86f333f10638eeb3dcf6e000d3e0e21e4c9ea2bee3d766e4297107",
+      "commands": 440,
+      "turns": 22,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Yasuki Palaces",
+          "cards": 84,
+          "fingerprint": "f9315058903e"
+        },
+        {
+          "stronghold": "Shinden Asahina",
+          "cards": 86,
+          "fingerprint": "659e5a17e1a4"
+        }
+      ],
+      "note": "Mendon (Yasuki Palaces) forgot the Stronghold's ability in some battles where using it could have changed the outcome. A battle where he did not use Yasuki Palaces but could have is a player mistake, not evidence that holding it back is good play; the bot should not learn from it.",
+      "practice": {
+        "yourDeck": "Crab Control",
+        "opponentDeck": "Asahina Crane",
+        "botLevel": "Hard"
+      },
+      "digest": true
+    },
+    {
+      "file": "practice-20261125-101551.json",
+      "sha256": "9d40bb7253353259686944cd203e86d0c1308ec642c921644a76d69896f444ab",
+      "commands": 335,
+      "turns": 17,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Yasuki Palaces",
+          "cards": 84,
+          "fingerprint": "f9315058903e"
+        },
+        {
+          "stronghold": "Pillars of Virtue",
+          "cards": 88,
+          "fingerprint": "ddae4dcf70e4"
+        }
+      ],
+      "note": "Mendon (Yasuki Palaces) forgot the Stronghold's ability in some battles where using it could have changed the outcome. A battle where he did not use Yasuki Palaces but could have is a player mistake, not evidence that holding it back is good play; the bot should not learn from it.",
+      "practice": {
+        "yourDeck": "Crab Control",
+        "opponentDeck": "Dragon Enlightenment",
+        "botLevel": "Hard"
+      },
+      "digest": true
+    },
+    {
+      "file": "practice-20261125-105032.json",
+      "sha256": "a148d97f2b61bdb198e4f8b9ff75c78b5d891c9b4e6acabb383f0b02df5aebb9",
+      "commands": 248,
+      "turns": 16,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Yasuki Palaces",
+          "cards": 84,
+          "fingerprint": "f9315058903e"
+        },
+        {
+          "stronghold": "Shinden Asahina",
+          "cards": 84,
+          "fingerprint": "b330186bc3a6"
+        }
+      ],
+      "note": "Mendon (Yasuki Palaces) forgot the Stronghold's ability in some battles where using it could have changed the outcome. A battle where he did not use Yasuki Palaces but could have is a player mistake, not evidence that holding it back is good play; the bot should not learn from it.",
+      "practice": {
+        "yourDeck": "Crab Control",
+        "opponentDeck": "Classic Crane",
+        "botLevel": "Hard"
+      },
+      "digest": true
+    },
+    {
+      "file": "practice-20261125-140112.json",
+      "sha256": "9fa6e05e85a512b78fb81544a88683f2f0afb41a5fa752aee946d3265301f425",
+      "commands": 341,
+      "turns": 15,
+      "winner": 0,
+      "decks": [
+        {
+          "stronghold": "Yasuki Palaces",
+          "cards": 84,
+          "fingerprint": "f9315058903e"
+        },
+        {
+          "stronghold": "Monastery of New Thought",
+          "cards": 88,
+          "fingerprint": "d30c76bab139"
+        }
+      ],
+      "note": "Mendon (Yasuki Palaces) forgot the Stronghold's ability in some battles where using it could have changed the outcome. A battle where he did not use Yasuki Palaces but could have is a player mistake, not evidence that holding it back is good play; the bot should not learn from it.",
+      "practice": {
+        "yourDeck": "Crab Control",
+        "opponentDeck": "Dragon Destruction",
         "botLevel": "Hard"
       },
       "digest": true
