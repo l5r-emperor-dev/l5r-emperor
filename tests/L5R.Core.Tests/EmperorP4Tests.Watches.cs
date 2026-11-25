@@ -13,7 +13,7 @@ internal static partial class EmperorP4Tests
         ("Drawing on the Mountain: while its Shugenja is Earth his controller's provinces have +1 strength (not otherwise)", DrawingStatic),
         ("Drawing on the Mountain: bowing the Shugenja and destroying the Spell, a bowed Personality's next straightening this game is negated -- once, even a later turn's; an unbowed Personality is no target", DrawingNegatesNextStraighten),
         ("Firm Censure: the target's next action this turn has its effects negated; a non-Samurai target without attachments is bowed, a Samurai is not", FirmCensureNegatesNextAction),
-        ("Scars of War: after each time the Holding bows its controller loses 1 Honor (a bow noticed once, and again after it straightens and bows again); another Holding costs nothing", ScarsOfWarBows),
+        ("Scars of War: after each time the Holding bows its controller loses 1 Honor (a bow noticed once, and again after it straightens and bows again); another Holding costs nothing; both players see the mark on the Holding (issue #1341)", ScarsOfWarBows),
         ("Show of Restraint: current Force penalties on the Monk are removed; with a Weapon the next effect that bows him is negated (not the one after); without a Weapon nothing is shielded", ShowOfRestraintShield),
         ("Show of Restraint: with a Weapon the next effect that moves him home is negated", ShowOfRestraintMoveShield),
         ("The Menacing Sky: after the watched Personality assigns he is bowed; a Thunder Shugenja is not bowed as the cost, another is", MenacingSkyAssign),
@@ -135,6 +135,13 @@ internal static partial class EmperorP4Tests
         var e = MatchEngine.FromTestState(s);
         Accept(e, Offer(e, 1, EmperorP4WatchAbilities.ScarsOfWar, card.Id, marked.Id, courtier.Id));
         Check(C(e, courtier).Bowed, "the Courtier bowed as the cost");
+        // Issue #1341: both players see the mark on the Holding, named and for the rest of the game; the other Holding shows none.
+        foreach (var seat in new[] { 0, 1 })
+        {
+            var rows = e.GetView(seat).Players.SelectMany(p => p.Home).Single(c => c.Id == marked.Id).Restrictions ?? [];
+            Check(rows.Any(r => r.Kind == "honorLoss" && r.SourceName == "Scars of War" && r.Duration == "For the rest of the game" && r.Label.Contains("loses 1 Honor")), $"seat {seat} sees the Scars of War mark");
+            Check(!(e.GetView(seat).Players.SelectMany(p => p.Home).Single(c => c.Id == other.Id).Restrictions ?? []).Any(r => r.Kind == "honorLoss"), $"seat {seat}: the other Holding is unmarked");
+        }
         var honor = Honor(e, 0);
         // One command at a time in the Action Phase: the Holding's state is set, then any command is taken (the watch looks after every command).
         MatchEngine Tick(MatchEngine m, bool markedBowed, bool otherBowed = false)

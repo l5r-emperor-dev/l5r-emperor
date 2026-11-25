@@ -25,6 +25,7 @@ public partial class StatusRailProbe : Control
         new("rule", "Will not issue challenges", "Until turn ends"),
         new("contribute", "Does not contribute Force", "Until this battle ends"),
         new("protect", "Protected from destruction from card effects", "Until turn ends", Protective: true),
+        new("honorLoss", "Until the game ends, after each time it bows or an ability on it resolves, its controller loses 1 Honor", "For the rest of the game", "Scars of War"), // issue #1341
     ];
     private static readonly CardToken[] SomeTokens = [new("t1", "Fire", "fixture", "force", 1), new("t2", "Poison", "fixture", "force", -1)];
     private static readonly GrantedKeyword[] Permanent = [new("Cavalry", "fixture", "Permanent")];
