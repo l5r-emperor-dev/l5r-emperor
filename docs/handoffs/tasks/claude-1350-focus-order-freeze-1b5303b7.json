@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Duel Focus Effect order freeze fixed: a panel's command closes the panel before submitting, and MatchDuelHost releases the screen when it does not send. SidebarScroll connects each child once (duplicate-connection errors at every duel entry).",
+  "validation": "Engine sweep (temporary): 43 Focus Effect Strategies x2 orders with two other effects, 86/86 resolved in order. Native check-duel-match all 15 variants pass on the unlocked Mac, including the new effects variant (fails without the fix). check-duel-followups 13/13, check-duel-transition, check-crimson-duel pass. tools/check.sh --skip-client passed.",
+  "remaining": "None; ready for review.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1350",
+  "branch": "claude/1350-focus-order-freeze",
+  "updated": "2026-11-25T17:12:31.413403+00:00"
+}

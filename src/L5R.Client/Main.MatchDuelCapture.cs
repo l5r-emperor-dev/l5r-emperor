@@ -16,6 +16,7 @@ public partial class Main
     private readonly HashSet<string> _matchProbeShots = [];
     private readonly List<string> _matchProbeChecks = [];
     private bool _matchProbeResized, _matchProbeSkip, _matchProbeTableClick;
+    private int _matchProbeOrderStep; private string[] _matchProbeOrder = []; private long _matchProbeSent = -1;
     private void StartMatchDuelCapture()
     {
         _matchReview = true; _autoOpponent = _capturePath is null;
@@ -156,16 +157,46 @@ public partial class Main
             System.IO.File.WriteAllText(_capturePath + ".json", JsonSerializer.Serialize(new { Passed = true, Scenario = _matchProbeScenario, Seat = _matchProbeSeat, Version = View.Version, Phase = View.Phase.ToString(), Priority = View.PriorityPlayerId, UnchangedReturnReplay = true }));
             GD.Print("MATCH_DUEL_CHECK: completed scenario " + _matchProbeScenario); GetTree().Quit(); return true;
         }
+        // effects: both seats focus The Courtesy of the Crane, then the ordering seat arranges the two Focus Effects with the real panel (issue: the order panel's
+        // submission was dropped by the paused match host and every button went dead). The order is reversed and must be the one the duel resolves in.
+        if (_matchProbeScenario == "effects" && snapshot.View.PendingDuel is { Stage: "OrderingEffects" } && snapshot.View.PriorityPlayerId == snapshot.View.ViewerId)
+        {
+            var screen = _matchDuel!.Screen;
+            switch (_matchProbeOrderStep++)
+            {
+                case 0: Press("Arrange Focus Effects…"); return true;
+                case 1:
+                    if (!screen.HasPrivateInspection) throw new InvalidOperationException("The Focus Effect order panel did not open");
+                    _matchProbeOrder = snapshot.Actions.Single(a => a.Type == "orderDuelFocusEffects").TargetIds!.Reverse().ToArray();
+                    Press("2. Move earlier"); return true;
+                case 2: GetViewport().GetTexture().GetImage().SavePng(_capturePath + "-order.png"); Press("Resolve in this order"); return true;
+                default: if (_matchProbeOrderStep > 8) throw new InvalidOperationException($"The arranged order was not resolved (panel {screen.HasPrivateInspection}, locked {screen.InputLocked})"); return true;
+            }
+        }
+        if (_matchProbeScenario == "effects" && _matchProbeOrderStep > 0 && _matchProbeOrder.Length > 0 && snapshot.View.LastDuel?.Result is { } ordered)
+        {
+            if (!ordered.EffectOrder.SequenceEqual(_matchProbeOrder)) throw new InvalidOperationException("The duel did not resolve in the arranged order");
+            if (_matchDuel!.Screen.HasPrivateInspection) throw new InvalidOperationException("The order panel stayed open after resolving");
+            GD.Print("MATCH_DUEL_CHECK: the arranged Focus Effect order resolved the duel through the match host"); _matchProbeOrder = [];
+        }
         if (_matchDuel?.CanReturn == true)
         {
+            if (_matchProbeScenario == "effects" && _matchProbeOrderStep == 0) throw new InvalidOperationException("The duel ended without a Focus Effect order to arrange");
             _matchProbeVersion = snapshot.View.Version; _matchProbeReplay = _session.ExportPracticeReplay();
             if (_matchProbeScenario == "refusal" && snapshot.View.LastDuel!.Result!.Kind != "Refused") throw new InvalidOperationException("Refusal scenario was not refused.");
             GetViewport().GetTexture().GetImage().SavePng(_capturePath + "-result.png");
             Press(_matchProbeScenario == "concede" ? "Return to table" : "Continue"); _matchProbeStep = 2; return true;
         }
-        GameCommand? Choose(MatchView view, ActionOption[] actions) => _matchProbeScenario == "concede" ? new GameCommand("concede", view.ViewerId, view.Version) : actions.FirstOrDefault(a => a.Enabled && a.Type == (_matchProbeScenario == "refusal" ? "declineDuel" : "strike"))?.Command
+        GameCommand? Courtesy(MatchView view, ActionOption[] actions) => _matchProbeScenario != "effects" || view.PendingDuel?.Stage != "Focusing" ? null
+            : actions.FirstOrDefault(a => a.Enabled && a.Type == "focus" && a.Command?.CardId is { } id && view.Players[view.ViewerId].Hand.Any(c => c.Id == id && c.Definition?.Id == "oracle-l5r-7996"))?.Command;
+        GameCommand? Choose(MatchView view, ActionOption[] actions) => Courtesy(view, actions) ?? (_matchProbeScenario == "concede" ? new GameCommand("concede", view.ViewerId, view.Version) : actions.FirstOrDefault(a => a.Enabled && a.Type == (_matchProbeScenario == "refusal" ? "declineDuel" : "strike"))?.Command
             ?? actions.FirstOrDefault(a => a.Enabled && a.Type == "duelistRefocus" && a.Command?.CardId is null)?.Command
-            ?? L5R.AI.DuelOpponent.Choose(view, actions);
+            ?? L5R.AI.DuelOpponent.Choose(view, actions));
+        if (snapshot.View.PriorityPlayerId == snapshot.View.ViewerId && Courtesy(snapshot.View, snapshot.Actions) is { } focus)
+        {
+            if (_matchProbeSent != snapshot.View.Version) { _matchProbeSent = snapshot.View.Version; _ = _session.Submit(focus); } // setup: the focus itself is not under test
+            return true;
+        }
         if (snapshot.View.PriorityPlayerId != snapshot.View.ViewerId) { _session.StepPracticeOpponent(Choose); return true; }
         var command = Choose(snapshot.View, snapshot.Actions) ?? throw new InvalidOperationException("No scenario action");
         var option = snapshot.Actions.First(a => a.Command == command);

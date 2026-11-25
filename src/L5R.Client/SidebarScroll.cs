@@ -10,6 +10,7 @@ namespace L5R.Client;
 public partial class SidebarScroll : ScrollContainer
 {
     private float _maxHeight = 260;
+    private readonly HashSet<ulong> _watched = [];
     /// <summary>The tallest the zone grows before it scrolls. Settable so a zone can make room for extra content (issue #1333: the held-action box).</summary>
     public float MaxHeight { get => _maxHeight; set { if (_maxHeight == value) return; _maxHeight = value; if (IsInsideTree()) FitContent(); } }
 
@@ -20,6 +21,8 @@ public partial class SidebarScroll : ScrollContainer
         ChildEnteredTree += node =>
         {
             if (node is not Control control) return;
+            // A child re-enters the tree when the table is reparented (a match duel opens and closes) and keeps its connections: connect it once, or Godot logs each duplicate.
+            if (!_watched.Add(control.GetInstanceId())) { FitContent(); return; }
             control.MinimumSizeChanged += FitContent; control.VisibilityChanged += FitContent; FitContent();
             // Content added to an empty (hidden) zone shows at once, not a frame later from _Process: a button rendered this frame (a drafted action's Confirm) is on screen and pressable
             // as soon as it exists. Emptying still hides the zone from _Process.

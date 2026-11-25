@@ -57,7 +57,8 @@ public partial class MatchDuelHost : Control
     }
     private async Task Submit(GameCommand command)
     {
-        if (Paused || _sending || Session.Snapshot?.View.Version != command.ExpectedVersion) return;
+        if (_sending) return; // the command in flight answers the screen
+        if (Paused || Session.Snapshot?.View.Version != command.ExpectedVersion) { Screen.SubmissionFinished(); return; } // not sent: release the screen rather than leave it waiting
         _sending = true; RefreshLock();
         try { await Session.Submit(command); }
         finally { _sending = false; Screen.SubmissionFinished(); RefreshLock(); }

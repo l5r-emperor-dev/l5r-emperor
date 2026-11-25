@@ -247,6 +247,9 @@ public partial class DuelScreen : Control
     {
         if (InputLocked || _submitted || _commandCooldown > 0 || PresentationBusy || Snapshot?.View.Version != command.ExpectedVersion) return;
         _submitted = true; _commandCooldown = .18; foreach (var button in _actions.GetChildren().OfType<Button>()) button.Disabled = true;
+        // A command chosen in a panel (the Focus Effect order, a focus from the discard pile) ends that panel: an open panel counts as a private inspection, which pauses the
+        // match host, so leaving it open made the host drop the command and the screen waited for an answer forever (every button dead).
+        if (_reading is not null) ClearReading();
         CommandRequested?.Invoke(command);
     }
     public void SubmissionFinished() { _submitted = false; RenderActions(); }
