@@ -87,15 +87,16 @@ public static class BranchEffect
     public const string MovePerformerHome = "move-performer-home";
 }
 
-/// <summary>The four answers to "choose a player who gains or loses N Honor" (issue #336): each player, each direction. Shared by every card that prints it.</summary>
+/// <summary>The four answers to "choose a player who gains or loses N Honor" (issue #336): each player, each direction. Shared by every card that prints it. Ordered with the two usual answers
+/// first (Mendon, 2026-11-25): you gain, your opponent loses, then your opponent gains, you lose. The Either/Or copies (Remember Your Ancestors, The Shadow Court) and Wave733 follow it.</summary>
 public static class HonorChoice
 {
     public static EffectOption[] Options(int amount) =>
     [
         new("self-gain", $"You gain {amount} Honor", [BranchEffect.Honor(true, amount)]),
+        new("opponent-lose", $"Your opponent loses {amount} Honor", [BranchEffect.Honor(false, -amount)]),
         new("opponent-gain", $"Your opponent gains {amount} Honor", [BranchEffect.Honor(false, amount)]),
         new("self-lose", $"You lose {amount} Honor", [BranchEffect.Honor(true, -amount)]),
-        new("opponent-lose", $"Your opponent loses {amount} Honor", [BranchEffect.Honor(false, -amount)]),
     ];
     /// <summary>What happens when the condition fails: nothing, and nothing is asked.</summary>
     public static readonly EffectOption None = new("none", "No Honor change", []);

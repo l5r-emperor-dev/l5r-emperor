@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "The four answers to 'choose a player, who gains or loses N Honor' now read: you gain, your opponent loses, your opponent gains, you lose (HonorChoice.Options, Remember Your Ancestors, The Shadow Court, Wave733's copy). Order only; keys and rules unchanged.",
+  "validation": "bash tools/check.sh --skip-client passed; IvoryPoliticalTests checks Inexplicable Challenge's option order.",
+  "remaining": "Cards printed as a gain action and a lose action sharing one use (Kitsuki Horume, Armor of the Heavens) are two plays, not this four-answer list; unchanged. Not hand-played.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1345",
+  "branch": "claude/1345-honor-choice-order",
+  "updated": "2026-11-25T13:53:38.162096+00:00"
+}

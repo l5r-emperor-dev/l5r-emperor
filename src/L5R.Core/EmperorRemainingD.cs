@@ -590,9 +590,9 @@ public sealed partial class MatchEngine
         EitherOrSpecs.ShadowCourtHonor =>
         [
             new("self-gain", "You gain 2 Honor", "You gain 2 Honor.", EitherOrKind.Choose, 0, true, null),
+            new("opponent-lose", "Your opponent loses 2 Honor", "Your opponent loses 2 Honor.", EitherOrKind.Choose, 0, true, null),
             new("opponent-gain", "Your opponent gains 2 Honor", "Your opponent gains 2 Honor.", EitherOrKind.Choose, 0, true, null),
             new("self-lose", "You lose 2 Honor", "You lose 2 Honor.", EitherOrKind.Choose, 0, true, null),
-            new("opponent-lose", "Your opponent loses 2 Honor", "Your opponent loses 2 Honor.", EitherOrKind.Choose, 0, true, null),
         ],
         EitherOrSpecs.SincerityDiscard =>
         [
