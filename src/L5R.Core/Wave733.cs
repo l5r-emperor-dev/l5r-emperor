@@ -218,9 +218,9 @@ public sealed partial class MatchEngine
                     _state.PendingEffectChoice!.Options =
                     [
                         new("self-gain", $"You gain {amount} Honor", [$"w733-gamble:self:{amount}"]),
+                        new("opponent-lose", $"Your opponent loses {amount} Honor", [$"w733-gamble:opponent:{-amount}"]),
                         new("opponent-gain", $"Your opponent gains {amount} Honor", [$"w733-gamble:opponent:{amount}"]),
-                        new("self-lose", $"You lose {amount} Honor", [$"w733-gamble:self:{-amount}"]),
-                        new("opponent-lose", $"Your opponent loses {amount} Honor", [$"w733-gamble:opponent:{-amount}"])
+                        new("self-lose", $"You lose {amount} Honor", [$"w733-gamble:self:{-amount}"])
                     ];
                     return true;
                 }

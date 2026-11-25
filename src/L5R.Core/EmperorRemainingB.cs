@@ -408,9 +408,9 @@ public sealed partial class MatchEngine
             ];
         return [
             new("self-gain", "You gain 3 Honor", "You gain 3 Honor.", EitherOrKind.Choose, 0, true, null),
+            new("opponent-lose", "Your opponent loses 3 Honor", "Your opponent loses 3 Honor.", EitherOrKind.Choose, 0, true, null),
             new("opponent-gain", "Your opponent gains 3 Honor", "Your opponent gains 3 Honor.", EitherOrKind.Choose, 0, true, null),
-            new("self-lose", "You lose 3 Honor", "You lose 3 Honor.", EitherOrKind.Choose, 0, true, null),
-            new("opponent-lose", "Your opponent loses 3 Honor", "Your opponent loses 3 Honor.", EitherOrKind.Choose, 0, true, null)
+            new("self-lose", "You lose 3 Honor", "You lose 3 Honor.", EitherOrKind.Choose, 0, true, null)
         ];
     }
 

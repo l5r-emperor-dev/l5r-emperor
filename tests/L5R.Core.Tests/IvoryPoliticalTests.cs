@@ -214,6 +214,9 @@ internal static class IvoryPoliticalTests
         Decline(e);
         Check(e.State.Cards[enemy.Id].Bowed, "the target was bowed"); Check(e.State.Cards[tired.Id].Bowed && !e.State.Cards[courtier.Id].Bowed, "the Courtier was not bowed by it");
         Eq(e.State.PendingChoice?.Type, "effectChoice", "then the player is asked");
+        // Mendon (2026-11-25): the two usual answers first -- you gain, then your opponent loses -- then the rarely chosen two.
+        var order = e.QueryActions(0).Where(a => a.Type == "chooseEffect").Select(a => a.Command!.Choice).ToArray();
+        Check(order.SequenceEqual(["self-gain", "opponent-lose", "opponent-gain", "self-lose"]), "you gain, your opponent loses, then the other two: " + string.Join(",", order));
         Accept(e, Choose(e, 0, "self-gain"));
         Eq(Honor(e, 0), h0 + 2, "I gained 2"); Eq(Honor(e, 1), h1);
         Check(e.State.Cards[card.Id].Zone != Zone.Hand, "the Strategy was played");
