@@ -12,6 +12,8 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+import urllib.error
+import urllib.request
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -35,6 +37,12 @@ def validate_coverage(root):
         sha=sha256(source)
         if art['resources'].get(key)!=sha or sha not in art['scans']:missing.add(key)
     if missing:raise RuntimeError('Catalogue artwork pack needs a publisher update for '+str(len(missing))+' new or changed printings; rebuild with tools/content/build_catalogue_art.py before distributing this version.')
+
+
+def download_public(receipt, path):
+    """Without the GitHub CLI (#1353): the repository is public, so its release asset downloads over plain HTTPS."""
+    url=f"https://github.com/{receipt['repository']}/releases/download/{receipt['tag']}/{receipt['asset']}"
+    with urllib.request.urlopen(url,timeout=60) as response,path.open('wb') as f:shutil.copyfileobj(response,f,1<<20)
 
 
 def install(root, archive=None, verify_only=False):
@@ -61,11 +69,11 @@ def install(root, archive=None, verify_only=False):
                 bundled=root/'.tools/github-cli'/name
                 if bundled.is_file():executable=str(bundled);break
             if (root/'.cache/github').is_dir():env.setdefault('GH_CONFIG_DIR',str(root/'.cache/github'))
-        if not executable:raise RuntimeError('The development launcher needs GitHub CLI access to this private repository for its first artwork download. Packaged games already include the artwork.')
         print(f"Installing catalogue artwork ({receipt['bytes']/1048576:.0f} MiB, first launch only)…",flush=True)
         with tempfile.TemporaryDirectory(prefix='download-',dir=shared.parent) as directory:
-            subprocess.run([executable,'release','download',receipt['tag'],'--repo',receipt['repository'],'--pattern',receipt['asset'],'--dir',directory],check=True,env=env,timeout=1800)
             download=Path(directory)/receipt['asset']
+            if executable:subprocess.run([executable,'release','download',receipt['tag'],'--repo',receipt['repository'],'--pattern',receipt['asset'],'--dir',directory],check=True,env=env,timeout=1800)
+            else:download_public(receipt,download)
             if not verified(download,receipt):raise ValueError('Downloaded artwork failed integrity verification; existing installation was preserved')
             os.replace(download,shared)
         source=shared
@@ -81,4 +89,4 @@ def install(root, archive=None, verify_only=False):
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--archive',type=Path);p.add_argument('--verify-only',action='store_true');a=p.parse_args()
     try:print(install(ROOT,a.archive,a.verify_only))
-    except (OSError,ValueError,RuntimeError,subprocess.SubprocessError) as e:raise SystemExit(f'Catalogue installation failed: {e}')
+    except (OSError,ValueError,RuntimeError,subprocess.SubprocessError,urllib.error.URLError) as e:raise SystemExit(f'Catalogue installation failed: {e}')

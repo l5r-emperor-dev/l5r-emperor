@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "ensure_catalogue_art.py downloads the pinned artwork pack over public HTTPS when the GitHub CLI is unavailable (repository is public), so the friends-pack Mac build works on alfredo-mac-studio (run 45701272332 failed there).",
+  "validation": "Real download via the new path: 626679376 bytes in 325 s, size and SHA-256 match the receipt. tools/content/test_catalogue_art.py 8 tests OK; bash tools/check.sh --skip-client passed.",
+  "remaining": "Re-dispatch the Mac friends-pack build for friends-main-20261125-77772f36-r1 after merge.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1353",
+  "branch": "claude/1353-art-download-no-gh",
+  "updated": "2026-11-25T21:21:20.012470+00:00"
+}
