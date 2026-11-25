@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Stolen Merchandise's two plays now read 'Copy the gold production of a holding with cost 1 to 4' and 'Copy an ability of a holding with cost 1 to 4' (Mendon's wording; cost range per the card). No rule changed.",
+  "validation": "bash tools/check.sh --skip-client passed; tools/check-variant-steps-ui.sh VARIANT_STEPS_PASS; ChoosingFlowTests checks the short labels.",
+  "remaining": "None; ready for review. Not hand-played.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1343",
+  "branch": "claude/1343-stolen-merchandise-labels",
+  "updated": "2026-11-25T13:32:13.018469+00:00"
+}
