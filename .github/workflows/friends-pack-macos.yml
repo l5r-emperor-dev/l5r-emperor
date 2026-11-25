@@ -37,12 +37,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag }}
         run: |
+          # The GitHub CLI is not on every Mac runner's PATH (#1353), so this calls the REST API with curl and python3.
+          api() { curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$GITHUB_API_URL/$1"; }
           # The release is normally still a draft, which the by-tag endpoint cannot see: read the list instead.
-          sha=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '.[] | select(.tag_name == env.TAG) | .target_commitish')
+          sha=$(api "repos/$GITHUB_REPOSITORY/releases?per_page=100" | python3 -c 'import json, os, sys; print(next((r["target_commitish"] for r in json.load(sys.stdin) if r["tag_name"] == os.environ["TAG"]), ""))')
           if ! [[ "$sha" =~ ^[0-9a-f]{40}$ ]]; then
             echo "::error::Release $TAG must target a full commit SHA (found '$sha')."; exit 1
           fi
-          status=$(gh api "repos/$GITHUB_REPOSITORY/compare/$sha...main" --jq .status)
+          status=$(api "repos/$GITHUB_REPOSITORY/compare/$sha...main" | python3 -c 'import json, sys; print(json.load(sys.stdin)["status"])')
           if [ "$status" != ahead ] && [ "$status" != identical ]; then
             echo "::error::$sha is not on main (compare status: $status)."; exit 1
           fi
@@ -76,10 +78,19 @@ jobs:
           asset="artifacts/share/L5R-Emperor-macOS-$SHORT.zip"
           cp artifacts/share/L5R-Emperor-Play-macOS.zip "$asset"
           local_sha=$(shasum -a 256 "$asset" | cut -d' ' -f1)
-          gh release upload "$TAG" "$asset" --repo "$GITHUB_REPOSITORY" --clobber
           name=$(basename "$asset")
           export NAME="$name"
-          remote=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '.[] | select(.tag_name == env.TAG) | .assets[] | select(.name == env.NAME) | .digest')
+          # curl and python3, not the GitHub CLI (#1353). Lists the draft's id and any earlier copy of this asset.
+          api() { curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$@"; }
+          release() { api "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/releases?per_page=100" | python3 -c "$1"; }
+          read -r release_id old_asset < <(release 'import json, os, sys
+          r = next(r for r in json.load(sys.stdin) if r["tag_name"] == os.environ["TAG"])
+          print(r["id"], next((a["id"] for a in r["assets"] if a["name"] == os.environ["NAME"]), ""))')
+          if [ -n "$old_asset" ]; then api -X DELETE "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/releases/assets/$old_asset"; fi
+          api -X POST -H "Content-Type: application/zip" -T "$asset" -o /dev/null "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$release_id/assets?name=$name"
+          remote=$(release 'import json, os, sys
+          r = next(r for r in json.load(sys.stdin) if r["tag_name"] == os.environ["TAG"])
+          print(next((a["digest"] or "" for a in r["assets"] if a["name"] == os.environ["NAME"]), ""))')
           if [ "$remote" != "sha256:$local_sha" ]; then
             echo "::error::Uploaded asset digest '$remote' does not match sha256:$local_sha."; exit 1
           fi
