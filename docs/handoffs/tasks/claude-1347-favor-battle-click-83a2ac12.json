@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Clicking your own Imperial Favor while its Battle action (send an enemy attacker home) is offered starts that action's target step at once: click the attacker on the table or pick it from the sidebar list. Cancel action deselects the Favor; it returns to the Favor's pane only if the pane offers another Favor action, which never happens in battle (the other two are Limited). Kyuden Otomo's Favor token is a cost choice inside the same draft, so nothing is lost. Cards that discard the Favor as their own cost are played from those cards and are unaffected.",
+  "validation": "tools/check-persistent-home.sh PERSISTENT_HOME_PASS at 1920x1080 and 1440x900, twice (one earlier 1440x900 run hit a Favor-hover timing flake in the Action-phase section; main and two reruns passed). New probe steps: battle click starts favor-battle with a visible target list, Cancel deselects, a second click restarts it, then the action executes; Kyuden Otomo token case keeps the cost choice and Cancel deselects. Screenshots reviewed.",
+  "remaining": "Not hand-played.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1347",
+  "branch": "claude/1347-favor-battle-click",
+  "updated": "2026-11-25T14:08:15.815818+00:00"
+}

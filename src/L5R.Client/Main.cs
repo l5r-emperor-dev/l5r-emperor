@@ -581,7 +581,7 @@ public partial class Main : Node
             if (View.Events.LastOrDefault() is { } latest) SetNotice(latest.Message);
             ObserveBarredEvents();
         }
-        if (_chosen?.Command?.ExpectedVersion != View.Version) { _chosen = null; _sources.Clear(); _assignments.Clear(); _assignmentUnit = null; }
+        if (_chosen?.Command?.ExpectedVersion != View.Version) { _chosen = null; _favorShortcut = false; _sources.Clear(); _assignments.Clear(); _assignmentUnit = null; }
         if (_chosen?.Movement is not null && _chosen.Command?.PlayerId != View.ViewerId) { _chosen = null; _sources.Clear(); }
         if (HasMultiTargets(_chosen) && (_chosen!.Command!.PlayerId != View.ViewerId || _multiMatch != _session.MatchKey)) { _chosen = null; _sources.Clear(); ClearMultiTargets(); }
         if (HasAttackTargets(_chosen) && _chosen!.Command!.PlayerId != View.ViewerId) { _chosen = null; _sources.Clear(); }

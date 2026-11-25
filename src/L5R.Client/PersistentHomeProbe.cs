@@ -158,10 +158,30 @@ public partial class PersistentHomeProbe : Node
 
             state = State(true); state.FavorPlayerId = 1; var attacker = state.Cards.Values.First(c => c.Zone == Zone.Battlefield && c.OwnerId == 0);
             await Load(state, 1); await Click(Reminders.Single(r => r.IsFavor));
-            Require(Descendants<Button>(Field<VBoxContainer>("_inspector")).Any(b => b.Text.Contains("Discard Favor") && !b.Disabled), "Battle flow swallowed the selected Favor action");
+            // Issue #1347: in battle the click goes straight to the send-home target, with the legal attackers listed in the sidebar; Cancel deselects the Favor.
+            Require(Field<ActionOption?>("_chosen")?.Command is { AbilityId: "favor-battle", TargetId: null } && Descendants<CardChoiceList>(_main).Any(l => l.IsVisibleInTree()),
+                $"Favor click in battle did not start its target step: chosen={Field<ActionOption?>("_chosen")?.Command?.AbilityId}");
+            await Capture("favor-battle-target");
+            Call("CancelChoice"); await Settle();
+            Require(Field<ActionOption?>("_chosen") is null && Field<object?>("_selectedHomeReminder") is null && !Reminders.Single(r => r.IsFavor).Selected, "Cancel after the Favor shortcut did not deselect the Favor");
+            await Click(Reminders.Single(r => r.IsFavor));
+            Require(Field<ActionOption?>("_chosen")?.Command?.AbilityId == "favor-battle", "A second Favor click did not start the send-home target again");
+            Call("CancelChoice"); await Settle();
             await Ability("favor-battle");
             Require(Engine.State.Cards[attacker.Id].Zone == Zone.Home && !Engine.State.Cards[attacker.Id].Bowed, "Battle Favor did not return attacker home unbowed");
             Require(Reminders.All(r => !r.IsFavor), "Battle spend left Favor visible");
+            // Kyuden Otomo - exp: a Favor token is another way to pay the same action -- a cost choice inside the draft, so the shortcut loses nothing and Cancel still deselects.
+            state = State(true); state.FavorPlayerId = 1;
+            var otomo = state.Cards.Values.Single(c => c.Zone == Zone.Stronghold && c.OwnerId == 1); otomo.DefinitionId = "oracle-l5r-4646";
+            otomo.Tokens.Add(new CardToken("probe-favor-token", "Favor", "probe", null, 0));
+            await Load(state, 1);
+            Require(_session.Snapshot!.Actions.Count(a => a.Enabled && a.Command?.AbilityId == "favor-battle" && a.AlternativeCost is not null) >= 2, "Fixture: the Favor token is not offered as a way to pay");
+            await Click(Reminders.Single(r => r.IsFavor));
+            Require(Field<ActionOption?>("_chosen") is { Command.AbilityId: "favor-battle", AlternativeCost: not null }, // the draft's "Review cost choices" offers the Favor or the token
+                $"With a Favor token, the Favor click did not start the send-home draft with its cost choices: chosen={Field<ActionOption?>("_chosen")?.Command?.AbilityId}/{Field<ActionOption?>("_chosen")?.Command?.CostOption}; buttons: {string.Join(" | ", Descendants<Button>(_main).Where(x => x.IsVisibleInTree()).Select(x => x.Text))}");
+            await Capture("favor-battle-token");
+            Call("CancelChoice"); await Settle();
+            Require(Field<object?>("_selectedHomeReminder") is null, "Cancel with a Favor token did not deselect the Favor");
             state = State(true); state.FavorPlayerId = 1; state.Cards.Values.First(c => c.Zone == Zone.Battlefield && c.OwnerId == 1).Zone = Zone.Home;
             await Load(state, 1); await Click(Reminders.Single(r => r.IsFavor));
             Require(!Descendants<Button>(Field<VBoxContainer>("_inspector")).Any(b => b.Text.Contains("Discard Favor") && !b.Disabled), "Battle action shown without engine-required presence");

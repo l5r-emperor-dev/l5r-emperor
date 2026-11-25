@@ -89,9 +89,32 @@ public partial class Main
         if (_session.Busy || PresentationBusy) return;
         if (_chosen is not null) { SetNotice("This is a reminder. Cancel the current action to inspect it."); return; }
         if (_selectedHomeReminder == (owner, effectId)) { DeselectCard(); return; }
-        _selected = null; _assignmentUnit = null; _sources.Clear(); _selectedHomeReminder = (owner, effectId);
+        _selected = null; _assignmentUnit = null; _sources.Clear(); _selectedHomeReminder = (owner, effectId); _favorShortcut = false;
         ReleaseTableFocus(); HideTableTooltip(); Highlight();
         RenderInspector(); RenderPhaseActions(); HighlightHomeReminders();
+        // Issue #1347 (Mendon): clicking your own Favor while its Battle action is offered means "send an attacker home" -- go straight to its target, as the pane's button would.
+        // A Kyuden Otomo Favor token is one of that draft's cost choices (Review cost choices), so nothing the pane offered is lost.
+        if (effectId is null && owner == View.ViewerId && View.FavorPlayerId == owner && View.PendingChoice is null && FavorBattleOption() is { } send)
+        { _favorShortcut = true; Choose(send); }
+    }
+
+    /// <summary>The Favor started its Battle action on the click itself (issue #1347): Cancel undoes the click, not just the draft.</summary>
+    private bool _favorShortcut;
+
+    private ActionOption[] FavorPaneActions() =>
+        Actions.Where(a => a.Enabled && a.Type == "useAbility" && a.Command?.AbilityId is "favor-cycle" or "favor-battle" or "favor-cycle-kurohito").ToArray();
+
+    private ActionOption? FavorBattleOption() =>
+        FavorPaneActions().FirstOrDefault(a => a.Command!.AbilityId == "favor-battle");
+
+    /// <summary>Cancel after the Favor shortcut: back to the Favor's pane when it offers another Favor action, otherwise the Favor is deselected. Ways to pay one action (the Favor or a
+    /// Favor token) are one play, as the pane shows them.</summary>
+    private void CancelFavorShortcut()
+    {
+        if (!_favorShortcut) return;
+        _favorShortcut = false;
+        var plays = FavorPaneActions().Select(a => a.Command!.AbilityId).Distinct().Count();
+        if (plays <= 1) { _selectedHomeReminder = null; HighlightHomeReminders(); }
     }
     private void HighlightHomeReminders()
     {
