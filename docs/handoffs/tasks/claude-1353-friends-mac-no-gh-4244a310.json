@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Friends pack (macOS) workflow calls the GitHub REST API with curl and python3 instead of the GitHub CLI, which is not on alfredo-mac-studio's PATH (run 45698648899 failed with gh: command not found).",
+  "validation": "Release lookup and compare steps run locally against the real draft friends-main-20261125-77772f36-r1 (sha and short found; draft id, asset lookup and digest read back). Upload POST/DELETE not run locally; first real run will be the re-dispatch for that release. check_policy passed; bash tools/check.sh --skip-client passed.",
+  "remaining": "Re-dispatch the Mac build for friends-main-20261125-77772f36-r1 after merge.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1353",
+  "branch": "claude/1353-friends-mac-no-gh",
+  "updated": "2026-11-25T20:57:36.899325+00:00"
+}
