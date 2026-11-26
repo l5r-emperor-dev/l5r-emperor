@@ -24,12 +24,18 @@ public sealed partial class CardChoiceList : VBoxContainer
         AddThemeConstantOverride("separation", 4);
     }
 
-    /// <summary>Adds a row. <paramref name="cardId"/> is the table card the row stands for (null for a row with no card, such as "No performer").</summary>
-    public void AddItem(string text, string? cardId)
+    /// <summary>Adds a row. <paramref name="cardId"/> is the table card the row stands for (null for a row with no card, such as "No performer").
+    /// <paramref name="wrap"/> lets a long row (an ability's printed text) wrap onto as many lines as it needs instead of being clipped.</summary>
+    public void AddItem(string text, string? cardId, bool wrap = false)
     {
         var index = _rows.Count;
         var row = SidebarSkin.Button(text, () => { if (Enabled) ItemSelected?.Invoke(index); });
-        row.Alignment = HorizontalAlignment.Left; row.ClipText = true; row.Disabled = !Enabled;
+        row.Alignment = HorizontalAlignment.Left; row.ClipText = !wrap; row.Disabled = !Enabled;
+        if (wrap)
+        { // as in the choice step's rows: a wrapping button does not grow by itself, so it is as tall as its lines (about 30 characters each in the sidebar)
+            row.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            row.CustomMinimumSize = new Vector2(0, 26 + 24 * text.Split('\n').Sum(line => Math.Max(1, (int)Math.Ceiling((line.Length + 3) / 30.0))));
+        }
         row.SetMeta("choice_card", cardId ?? "");
         _rows.Add((row, cardId));
         AddChild(row);

@@ -65,6 +65,18 @@ public partial class Main
     private static string FlowLabel(ActionOption option) =>
         option.Command?.AbilityId is { } id && AbilityCatalog.All.TryGetValue(id, out var ability) && option.Label.StartsWith(ability.Label, StringComparison.Ordinal) ? ability.Label : option.Label;
 
+    /// <summary>Issue #1356: Stolen Merchandise's Holding rows say what each Holding offers. Copying a Gold-producing trait shows the Holding and the Gold the copy produces (Core lists
+    /// them highest first); copying an ability shows the text of each ability that may be copied, without the Holding's name (it stays lit on the table).</summary>
+    private (string Text, bool Wrap)? StolenRow(ActionOption action, string targetId)
+    {
+        if (action.Command?.AbilityId is not (EmperorP5HiddenAbilities.StolenGold or EmperorP5HiddenAbilities.StolenAbility) || !IsAbilityDraft(action)) return null;
+        var offered = VariantsOf(action).Where(a => a.ChoiceLabel is not null && a.TargetIds?.Contains(targetId) == true).Select(a => a.ChoiceLabel!).Distinct().ToArray();
+        if (offered.Length == 0) return null;
+        return action.Command.AbilityId == EmperorP5HiddenAbilities.StolenGold
+            ? ($"{(FindCard(targetId) is { } card ? ShortName(card) : targetId)} · {string.Join(" · ", offered)}", false)
+            : (string.Join("\n", offered.Select(text => "• " + text)), true); // a Holding with several abilities: one bullet each
+    }
+
     private void PickChoice(ActionOption variant)
     {
         _choicePicked = true;
