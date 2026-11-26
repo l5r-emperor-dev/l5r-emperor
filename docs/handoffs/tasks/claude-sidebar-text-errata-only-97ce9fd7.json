@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Card details in the sidebar repeat a selected card's engine (corrected) text only when it differs from its pinned printing, or when the card has no scan; the shown text is captioned CORRECTED TEXT. content/printed-text.json (tools/content/printed_text.py, from the Oracle catalogues) records each published card's printing text; Core PrintedText compares at run time, ignoring case, punctuation, markup, Oracle symbols, reminder text and Oracle's later Event preamble. Of 2,072 cards with a known printing, 264 differ and keep their text.",
+  "validation": "Core: printed-text/MatchesOnlyThePrinting passes; tools/content/test_printed_text.py passes; tools/check.sh --skip-client passed. Native on the Mac: check-direct-play-ui.sh DIRECT_PLAY_PASS with new assertions (Isawa Nairuko's details omit the text; Kitsuki Yoyugi shows CORRECTED TEXT), screenshots inspected; Nairuko's scan was read to confirm it matches.",
+  "remaining": "Oracle stores a printing's own text only where it recorded a difference (text_override); elsewhere the comparison uses Oracle's current text, which can differ from an older scan in places nobody recorded.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1358",
+  "branch": "claude/sidebar-text-errata-only",
+  "updated": "2026-11-26T10:15:50.823130+00:00"
+}

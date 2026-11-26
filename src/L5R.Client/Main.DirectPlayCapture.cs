@@ -181,7 +181,19 @@ public partial class Main
             SupportRequire(FindCard(lishan.Id)?.Zone == Zone.Home && View.Players[0].Honor == wallHonor + 2 && View.Events.Any(e => e.Message.Contains("Wall of Honor:", StringComparison.Ordinal) && e.Message.Contains("-1 strength", StringComparison.Ordinal)),
                 $"Wall of Honor resolved: Lishan home, the battlefield's province at -1 strength, 2 Honor gained (Lishan {FindCard(lishan.Id)?.Zone}, Honor {wallHonor} -> {View.Players[0].Honor}; {string.Join(" ; ", View.Events.TakeLast(5).Select(l => l.Message))})");
 
-            GD.Print("DIRECT_PLAY_PASS:confirm-first for an automatic action only, two-action text selection that begins the action, assumed single legal action begun at once, click-to-choose performer, Wall of Honor played and performed (bowed) by table clicks with its mode asked last, a player chosen by clicking a stronghold or plaque and a card that names the player, blood-red Declare Attack, end-of-match main menu.");
+            // Issue #1358: the card details repeat the engine's text only when it differs from the printing the scan shows.
+            await LoadDirectPlay(s => { s.Phase = Phase.Action; SupportFixtureCard(s, 10242, 0, Zone.Home); SupportFixtureCard(s, 9817, 1, Zone.Home); });
+            var nairuko = FindCardByName("Isawa Nairuko")!; var yoyugi = FindCardByName("Kitsuki Yoyugi")!;
+            SelectCard(nairuko); await EventFrames(4);
+            SupportRequire(!StabilizationText(_inspector).Contains("while she has a Spell", StringComparison.Ordinal) && !StabilizationText(_inspector).Contains("CORRECTED TEXT", StringComparison.Ordinal),
+                "Isawa Nairuko reads as printed, so the sidebar leaves her text to the scan: " + StabilizationText(_inspector));
+            await SupportCapture("-printed-text-matches");
+            SelectCard(yoyugi); await EventFrames(4);
+            SupportRequire(StabilizationText(_inspector).Contains("CORRECTED TEXT", StringComparison.Ordinal) && StabilizationText(_inspector).Contains("printed abilities may not be used", StringComparison.Ordinal),
+                "Kitsuki Yoyugi's corrected text is shown: " + StabilizationText(_inspector));
+            await SupportCapture("-printed-text-corrected");
+
+            GD.Print("DIRECT_PLAY_PASS:confirm-first for an automatic action only, two-action text selection that begins the action, assumed single legal action begun at once, click-to-choose performer, Wall of Honor played and performed (bowed) by table clicks with its mode asked last, a player chosen by clicking a stronghold or plaque and a card that names the player, blood-red Declare Attack, end-of-match main menu, card text only when corrected.");
             GetTree().Quit(0);
         }
         catch (Exception e) { GD.PushError(e.ToString()); GetTree().Quit(1); }

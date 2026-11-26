@@ -20,6 +20,7 @@ class ParallelMechanismRegistrationTests(unittest.TestCase):
             for folder in ("src/L5R.Core", "content/published"):
                 shutil.copytree(ROOT / folder, root / folder, ignore=shutil.ignore_patterns("bin", "obj"))
             shutil.copy2(ROOT / "content/deck-pool.json", root / "content/deck-pool.json")
+            shutil.copy2(ROOT / "content/printed-text.json", root / "content/printed-text.json")  # embedded by L5R.Core (issue #1358)
             for name in ("global.json", "Directory.Build.props"):
                 shutil.copy2(ROOT / name, root / name)
             (root / ".gitignore").write_text("**/bin/\n**/obj/\n", encoding="utf-8")
