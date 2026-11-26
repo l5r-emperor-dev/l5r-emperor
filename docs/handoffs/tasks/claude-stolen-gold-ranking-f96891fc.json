@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Stolen Merchandise's Holding list: the Gold play shows each Holding with the Gold the copy would produce (printed production plus the copier's clan-gold bonus), ranked highest first by Core; the ability play shows the text of each copyable ability instead of the Holding's name (wrapping rows). The goldTraitCopied event now reports the same amount.",
+  "validation": "Core: new choosing-flow/StolenGoldRanked plus the existing Stolen cases pass; tools/check.sh --skip-client passed. Native on the Mac: check-variant-steps-ui.sh (VARIANT_STEPS_PASS, extended with the Gold ranking and ability-text rows, screenshots inspected) and check-direct-play-ui.sh (DIRECT_PLAY_PASS).",
+  "remaining": "None; ready for review.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1356",
+  "branch": "claude/stolen-gold-ranking",
+  "updated": "2026-11-26T10:00:52.223681+00:00"
+}

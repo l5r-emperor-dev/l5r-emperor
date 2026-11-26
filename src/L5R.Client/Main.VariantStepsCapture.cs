@@ -63,10 +63,13 @@ public partial class Main
             await LoadDirectPlay(s =>
             {
                 s.Phase = Phase.Action;
+                s.Players[0].Clan = "Crane";
                 SupportFixtureCard(s, 7494, 0, Zone.Home);                  // Stolen Merchandise
                 SupportFixtureCard(s, 7898, 1, Zone.Home);                  // Temples of Gisei Toshi: three abilities
                 SupportFixtureCard(s, 10760, 1, Zone.Home);                 // The Turquoise Court: two
                 SupportFixtureCard(s, 10265, 1, Zone.Home);                 // Green Lake Dojo: two
+                SupportFixtureCard(s, "training-farm", 1, Zone.Home);       // Gold-producing traits (issue #1356): the Farm makes 2,
+                SupportFixtureCard(s, "training-marketplace", 1, Zone.Home); // the Marketplace 3 for a Crane copier (the other three make 2)
             });
             var stolen = FindCardByName("Stolen Merchandise");
             SupportRequire(stolen is not null, "Stolen Merchandise was not on the table");
@@ -75,7 +78,21 @@ public partial class Main
             SupportRequire(plays.Length == 2, $"Stolen Merchandise should list two plays (an ability, a Gold trait), found {plays.Length}: " + string.Join(" | ", StabilizationButtons(_inspector).Select(b => b.Text)));
             var copyAbility = plays.Single(b => !b.Text.Contains("gold production", StringComparison.Ordinal));
             await SupportCapture("-4-stolen-list");
+            // Issue #1356: the Gold play lists each Holding with the Gold the copy produces, highest first.
+            await SupportClick(plays.Single(b => b.Text.Contains("gold production", StringComparison.Ordinal))); await EventFrames(3);
+            var goldRows = RowsWith("choice_card").Select(b => b.Text[3..]).ToArray();
+            SupportRequire(goldRows.Length == 5 && goldRows[0].EndsWith("produces 3 Gold", StringComparison.Ordinal) && goldRows.Skip(1).All(r => r.EndsWith("produces 2 Gold", StringComparison.Ordinal)),
+                "The Gold rows name the production, highest first: " + string.Join(" | ", goldRows));
+            await SupportCapture("-4b-stolen-gold");
+            CancelChoice(); await EventFrames(3);
+            SelectCard(FindCard(stolen!.Id)!); await EventFrames(4);
+            copyAbility = RowsWith("play_group").Single(b => !b.Text.Contains("gold production", StringComparison.Ordinal));
             await SupportClick(copyAbility); await EventFrames(3);
+            // Issue #1356: the ability play lists each Holding by the text of the abilities it may copy, without its name.
+            var abilityRows = RowsWith("choice_card").Select(b => b.Text[3..]).ToArray();
+            SupportRequire(abilityRows.Length == 3 && abilityRows.All(r => r.StartsWith("• ", StringComparison.Ordinal) && !r.Contains("Temples of Gisei Toshi", StringComparison.Ordinal) && !r.Contains("Turquoise Court", StringComparison.Ordinal))
+                && abilityRows.Count(r => r.Split("\n• ").Length == 3) == 1, "The ability rows list each ability's text, not the Holding: " + string.Join(" | ", abilityRows));
+            await SupportCapture("-4c-stolen-abilities");
             SupportRequire(StabilizationText(_inspector).Contains("CHOOSE A TARGET") && !StabilizationText(_inspector).Contains("CHOOSE ONE"), "The Holding is chosen first: " + StabilizationText(_inspector));
             var temples = FindCardByName("Temples of Gisei Toshi")!;
             SupportRequire(_chosen?.TargetIds is { Length: 3 } all && all.Contains(temples.Id), $"All three Holdings are legal targets of the one play, found {_chosen?.TargetIds?.Length}");
@@ -125,7 +142,7 @@ public partial class Main
             SupportRequire(FindCard(genshin.Id)?.Zone == Zone.Battlefield && View.Events.TakeLast(8).Any(e => e.Message.Contains("paid 5 Gold", StringComparison.Ordinal)),
                 "At Any Cost recruited Genshin for 5 Gold: " + string.Join(" | ", View.Events.TakeLast(8).Select(e => e.Message)));
 
-            GD.Print("VARIANT_STEPS_PASS: Governor's Court asks the performer, then how to pay (each way once, nothing pre-selected, Back); Stolen Merchandise lists two plays and asks the Holding, then which ability; At Any Cost asks the dead Samurai, then the Clan discount or allegiance, each with its price.");
+            GD.Print("VARIANT_STEPS_PASS: Governor's Court asks the performer, then how to pay (each way once, nothing pre-selected, Back); Stolen Merchandise lists two plays (Gold rows by production, highest first; ability rows by their text) and asks the Holding, then which ability; At Any Cost asks the dead Samurai, then the Clan discount or allegiance, each with its price.");
             GetTree().Quit(0);
         }
         catch (Exception e) { GD.PushError(e.ToString()); GetTree().Quit(1); }

@@ -437,6 +437,7 @@ public partial class Main
                 var card = FindCard(id)!;
                 // A target-derived cost is part of the choice: each target's own engine quote leads the label.
                 var price = action.TargetGold?.TryGetValue(id, out var priced) == true ? $" · {priced.Cost} Gold" : "";
+                if (StolenRow(action, id) is { } stolen) { picker.AddItem(stolen.Text, id, stolen.Wrap); continue; } // issue #1356
                 picker.AddItem($"{ShortName(card)}{price} · {card.Force} F{(card.Bowed ? " · bowed" : "")}", id);
             }
             picker.Selected = target is null ? -1 : Array.IndexOf(targets, target);
