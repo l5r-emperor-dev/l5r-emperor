@@ -12,5 +12,6 @@
     <EmbeddedResource Include="../../content/published/lion-crane-test-v1.json" LogicalName="L5R.Published.TestSnapshot.json" />
     <EmbeddedResource Include="../../content/published/*-wave-*.json" Exclude="../../content/published/*-sources.json" LogicalName="L5R.Published.%(Filename)%(Extension)" />
     <EmbeddedResource Include="PublishedWaveOrder.txt" LogicalName="L5R.WaveOrder.txt" />
+    <EmbeddedResource Include="../../content/printed-text.json" LogicalName="L5R.PrintedText.json" />
   </ItemGroup>
 </Project>

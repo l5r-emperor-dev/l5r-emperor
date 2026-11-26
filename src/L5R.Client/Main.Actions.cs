@@ -126,7 +126,13 @@ public partial class Main
             }
             if (_selected.Dishonorable) details.AddChild(Palette.Wrapped("Dishonorable", 21, new Color("efaa9a")));
             if (_selected.StraightenBlocked) details.AddChild(Palette.Wrapped("Straightening is prevented for this turn.", 13, Palette.Gold));
-            if (!string.IsNullOrWhiteSpace(def.Text)) details.AddChild(Palette.Wrapped(def.Text, 16, Palette.PaperDim));
+            // Issue #1358: the scan and the hover preview already show the printed text; the sidebar repeats the engine's text only when it is corrected (it differs from the printing) or
+            // there is no scan to read.
+            if (!string.IsNullOrWhiteSpace(def.Text) && (artwork is null || !PrintedText.Matches(def)))
+            {
+                if (artwork is not null) details.AddChild(Palette.Text("CORRECTED TEXT", 11, Palette.Gold));
+                var text = Palette.Wrapped(def.Text, 16, Palette.PaperDim); text.SetMeta("card_text", true); details.AddChild(text);
+            }
             AddActionTextBlocks(details, _selected);
             if (def.Type == CardType.Personality && (_selected.Force != def.Force || _selected.Chi != def.Chi)) details.AddChild(Palette.Wrapped($"Current: {_selected.Force} Force · {_selected.Chi} Chi", 16, Palette.Gold));
             if (_selected.AttachedTo is { } parent) details.AddChild(Palette.Wrapped("Attached to " + (FindCard(parent)?.Definition?.Name ?? parent), 13, Palette.Crane));
