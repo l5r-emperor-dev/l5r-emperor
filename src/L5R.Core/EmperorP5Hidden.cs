@@ -121,16 +121,19 @@ public sealed partial class MatchEngine
             }
             yield break;
         }
-        // Stolen Merchandise: one offered action per target Holding and per thing it may copy from it.
-        foreach (var holding in _state.Cards.Values.Where(c => InPlay(c) && c.OwnerId != playerId && Definition(c).Type == CardType.Holding).OrderBy(c => c.Id, StringComparer.Ordinal))
+        // Stolen Merchandise: one offered action per target Holding and per thing it may copy from it. The Gold-producing traits are listed by what the copy would produce, highest first
+        // (issue #1356), and each says how much.
+        var gold = id == EmperorP5HiddenAbilities.StolenGold;
+        var holdings = _state.Cards.Values.Where(c => InPlay(c) && c.OwnerId != playerId && Definition(c).Type == CardType.Holding).OrderBy(c => c.Id, StringComparer.Ordinal);
+        foreach (var holding in gold ? holdings.OrderByDescending(h => StolenGoldAmount(Definition(h), playerId)) : holdings)
         {
-            var choices = id == EmperorP5HiddenAbilities.StolenAbility ? StolenAbilityChoices(holding).ToArray() : HasGoldProducingTrait(Definition(holding)) ? ["gold"] : [];
+            var choices = !gold ? StolenAbilityChoices(holding).ToArray() : HasGoldProducingTrait(Definition(holding)) ? ["gold"] : [];
             foreach (var choice in choices)
             {
                 var command = new GameCommand("useAbility", playerId, _state.Version, source?.Id, TargetId: holding.Id, AbilityId: id, Choice: choice);
                 string? error = null;
                 error = TryValidateAbility(command);
-                var what = choice == "gold" ? "its Gold-producing trait" : AbilityCatalog.All[choice].Label;
+                var what = choice == "gold" ? $"produces {StolenGoldAmount(Definition(holding), playerId)} Gold" : AbilityCatalog.All[choice].Label;
                 yield return new("useAbility", $"{ability.Label} · {Definition(holding).Name}: {what}", error is null, error, error is null ? command : null, source?.Id, [holding.Id], ChoiceLabel: what);
             }
         }
@@ -256,6 +259,9 @@ public sealed partial class MatchEngine
 
     private static bool HasGoldProducingTrait(CardDefinition holding) => holding.GoldProduction > 0 || IsGoldEffect(holding.Effect);
 
+    // What Stolen Merchandise produces once it copies the Holding's Gold-producing trait: the printed production, plus a clan-gold bonus when the copier's clan matches (GoldProduced's terms).
+    private int StolenGoldAmount(CardDefinition holding, int playerId) => Math.Max(0, holding.GoldProduction + ClanGoldEffects.Bonus(holding.Effect, Player(playerId).Clan));
+
     private void StealGoldTrait(CardInstance stolen, CardInstance holding, string sourceName)
     {
         var from = Definition(holding);
@@ -263,7 +269,7 @@ public sealed partial class MatchEngine
         stolen.Printed = own with { GoldProduction = from.GoldProduction, Effect = IsGoldEffect(from.Effect) ? from.Effect : own.Effect };
         P5.StolenTraits.RemoveAll(t => t.CardId == stolen.Id);
         P5.StolenTraits.Add(new(stolen.Id, _state.TurnNumber));
-        Emit("goldTraitCopied", $"{sourceName} copies {from.Name}'s Gold-producing trait (it produces {from.GoldProduction} Gold) until the end of the turn.", stolen.OwnerId, stolen.Id);
+        Emit("goldTraitCopied", $"{sourceName} copies {from.Name}'s Gold-producing trait (it produces {StolenGoldAmount(from, stolen.OwnerId)} Gold) until the end of the turn.", stolen.OwnerId, stolen.Id);
     }
 
     // ---- Learning -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------

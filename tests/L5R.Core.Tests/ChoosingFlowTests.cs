@@ -10,6 +10,7 @@ internal static class ChoosingFlowTests
     public static void Run(TestRunner runner) => runner.Run("choosing-flow", [
         ("Governor's Court offers each way to pay once per Courtier, each named, and only as an action against the other player", GovernorsCourtOptions),
         ("Stolen Merchandise names what each option copies, so a client can ask which ability after the Holding", StolenMerchandiseLabels),
+        ("Stolen Merchandise lists Gold-producing Holdings by what the copy produces, highest first, and says how much", StolenGoldRanked),
         ("Every ability with cost options offers distinctly named ways to pay", CostOptionsAreNamed),
     ]);
 
@@ -58,6 +59,25 @@ internal static class ChoosingFlowTests
         // Issue #1343 (Mendon's wording): the two plays read short; the card itself carries the full text.
         Batch336Support.Check(options.Where(o => o.Command!.AbilityId == EmperorP5HiddenAbilities.StolenGold).All(o => o.Label.StartsWith("Copy the gold production of a holding with cost 1 to 4 · ", StringComparison.Ordinal))
             && options.Where(o => o.Command!.AbilityId == EmperorP5HiddenAbilities.StolenAbility).All(o => o.Label.StartsWith("Copy an ability of a holding with cost 1 to 4 · ", StringComparison.Ordinal)), "the plays use the short labels");
+    }
+
+    // Issue #1356: the Gold rows say what the copy would produce for the copier (a Crane copier gets the Marketplace's crane-gold bonus) and come highest first; ties keep card order.
+    private static void StolenGoldRanked()
+    {
+        var s = Batch336Support.Table(Phase.Action, 0); s.PriorityPlayerId = 0;
+        var stolen = Batch336Support.Add(s, StolenMerchandise, 0, Zone.Home);
+        var farm = Batch336Support.Add(s, "training-farm", 1, Zone.Home);
+        var market = Batch336Support.Add(s, "training-marketplace", 1, Zone.Home);
+        string[] Rows(string clan)
+        {
+            s.Players[0].Clan = clan;
+            return MatchEngine.FromTestState(s).QueryActions(0).Where(o => o.CardId == stolen.Id && o.Enabled && o.Command!.AbilityId == EmperorP5HiddenAbilities.StolenGold)
+                .Select(o => $"{o.Command!.TargetId}={o.ChoiceLabel}").ToArray();
+        }
+        var crane = Rows("Crane");
+        Batch336Support.Check(crane.SequenceEqual([$"{market.Id}=produces 3 Gold", $"{farm.Id}=produces 2 Gold"]), "a Crane copier: the Marketplace (3) before the Farm (2): " + string.Join(", ", crane));
+        var lion = Rows("Lion");
+        Batch336Support.Check(lion.SequenceEqual([$"{farm.Id}=produces 2 Gold", $"{market.Id}=produces 2 Gold"]), "a Lion copier: both produce 2, in card order: " + string.Join(", ", lion));
     }
 
     private static void CostOptionsAreNamed()
