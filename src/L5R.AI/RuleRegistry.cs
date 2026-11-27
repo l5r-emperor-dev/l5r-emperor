@@ -69,6 +69,7 @@ public static class RuleRegistry
         R("aggro2", "attack", "aggro, with the plan's assignment kept when it exists"),
         R("cavopen", "attack", "in the Cavalry Maneuvers Segment only the defender's Cavalry at home counts as possible defenders, and defenders already at a Province add to its Strength"),
         R("cavplan", "attack", "issue #1360: the plan's Cavalry is carried into the Cavalry segment (in play and in the search's playouts) and re-targeted against the defence as placed to take the most Provinces, with a margin for the defender's hand (cavM per card, cavMH cards); the Cavalry search plays lkCN samples"),
+        R("cavkeep", "attack", "issue #1360: with cavplan, only the Force needed rides (no reinforcing), Guard's units stay home, planned groups keep their Province against the defence as placed, and nothing takeable keeps the Cavalry home"),
         R("cavpick", "attack", "issue #1360: cavhold holds the Cavalry only when the opponent has two or more Provinces left and the bot has cavN (3) or more Cavalry units ready"),
         R("cavhold", "attack", "issue #1360: every Infantry declaration (the planned attack, lethal, planner and max-raze plans, the search's playouts) assigns only non-Cavalry units; the Cavalry waits for its own segment"),
         R("raid", "attack", "an undefended board is attacked more eagerly and the raid boost is added"),

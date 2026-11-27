@@ -140,9 +140,9 @@ public static partial class TrainingOpponent
     /// An attack that takes the opponent's last Province goes in whole. Otherwise, with guardN (2) or fewer Provinces left and the opponent's whole army (it all straightens
     /// for their turn) able to raze the weakest of them, the cheapest set of unbowed Personalities that stops it stays home: the smallest one strong enough alone, else the
     /// strongest few together. If even all of them could not stop it, nothing is held back: a guard that cannot save the Province only weakens the attack.</summary>
-    private static CardView[] Guard(Ctx x, CardView[] ready, CardView[] sent)
+    private static CardView[] Guard(Ctx x, CardView[] ready, CardView[] sent, bool always = false) // always: cavkeep (issue #1360) guards without the guard rule
     {
-        if (!Rule(x, "guard") || ready.Length == 0) return [];
+        if (!always && !Rule(x, "guard") || ready.Length == 0) return [];
         var theirs = x.Opponent.Provinces.Where(p => !p.Destroyed).ToArray();
         if (theirs.Length == 1 && EstimateAttack(x, [.. ready, .. sent], theirs[0]).Razes) return [];
         var mine = x.Self.Provinces.Where(p => !p.Destroyed).ToArray();

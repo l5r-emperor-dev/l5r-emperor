@@ -10,6 +10,12 @@ namespace L5R.AI;
 //            (cavM Force per card, at most cavMH cards); the Cavalry search plays lkCN (2) samples so it finishes inside its time limit.
 //   cavpick  Cavalry is held for its segment only when holding pays: the opponent has two or more Provinces left to sidestep to, and the bot has at least cavN (3) Cavalry
 //            units ready; otherwise the whole army assigns in the Infantry segment, as without cavhold.
+// Third pass (ablation, seeds 12104-12105): the attack rules alone lost 7 of 8 flipped Unicorn Maidens games, six of them to Military defeat of an Honor deck that sent 50% more riders
+// than Hard and kept nobody home. cavkeep answers that:
+//   cavkeep  only the Force needed to take each Province rides; riders left over stay home rather than reinforce; the units Guard computes (enough to stop the counter-attack
+//            razing a last Province, guardN) stay home whatever the guard rule says; a planned group keeps its planned Province when it beats the defence as placed there
+//            (its Strength and defenders; the margin is for re-targeted riders), so the plan search's shapes stay distinct in its playouts; and when nothing can be taken the
+//            Cavalry stays home rather than falling back to the planner's whole-army battlefield.
 public static partial class TrainingOpponent
 {
     /// <summary>cavplan: the Force a Cavalry follow-up adds for the battle actions the defender may still hold (its hand, capped).</summary>
@@ -27,7 +33,10 @@ public static partial class TrainingOpponent
     private static Dictionary<string, int>? CavalryFollowUp(Ctx x, ActionOption action, Dictionary<string, int>? planned)
     {
         var legal = action.TargetIds?.ToHashSet(StringComparer.Ordinal);
-        var riders = x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed && UnitForce(x, c) > 0 && (legal is null || legal.Contains(c.Id)) && (planned is null || planned.ContainsKey(c.Id)))
+        var keep = Rule(x, "cavkeep");
+        var home = x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed).ToArray();
+        var guard = keep ? Guard(x, home, x.Self.Army.Where(c => c.Definition?.Type == CardType.Personality).ToArray(), always: true).Select(c => c.Id).ToHashSet(StringComparer.Ordinal) : [];
+        var riders = home.Where(c => UnitForce(x, c) > 0 && !guard.Contains(c.Id) && (legal is null || legal.Contains(c.Id)) && (planned is null || planned.ContainsKey(c.Id)))
             .OrderByDescending(c => UnitForce(x, c)).ThenBy(c => c.Id, StringComparer.Ordinal).ToList();
         var targets = x.Opponent.Provinces.Where(p => !p.Destroyed && (action.Provinces is null || action.Provinces.Contains(p.Index))).ToList();
         if (riders.Count == 0 || targets.Count == 0) return null;
@@ -35,6 +44,7 @@ public static partial class TrainingOpponent
         var against = targets.ToDictionary(p => p.Index, p => p.Strength + ArmyForce(x.Opponent.Army.Where(c => c.ProvinceIndex == p.Index)) + reply + margin);
         var sent = targets.ToDictionary(p => p.Index, p => ArmyForce(x.Self.Army.Where(c => c.ProvinceIndex == p.Index)));
         int Need(ProvinceView p) => against[p.Index] - sent[p.Index];
+        int Placed(ProvinceView p) => p.Strength + ArmyForce(x.Opponent.Army.Where(c => c.ProvinceIndex == p.Index)) - sent[p.Index]; // cavkeep: the defence as placed, no reply or margin
         var result = new Dictionary<string, int>(StringComparer.Ordinal); var free = new List<CardView>(riders); var taken = new List<ProvinceView>();
         void Ride(ProvinceView p, IEnumerable<CardView> group)
         {
@@ -43,7 +53,7 @@ public static partial class TrainingOpponent
         }
         if (planned is not null)
             foreach (var group in riders.Where(r => planned.ContainsKey(r.Id)).GroupBy(r => planned[r.Id]).OrderBy(g => g.Key))
-                if (targets.FirstOrDefault(p => p.Index == group.Key) is { } province && group.Sum(u => UnitForce(x, u)) > Need(province)) Ride(province, group);
+                if (targets.FirstOrDefault(p => p.Index == group.Key) is { } province && group.Sum(u => UnitForce(x, u)) > (keep ? Placed(province) : Need(province))) Ride(province, group);
         foreach (var province in targets.Except(taken).OrderBy(Need).ThenBy(p => p.Index).ToList())
         {
             var need = Need(province);
@@ -54,7 +64,7 @@ public static partial class TrainingOpponent
             Ride(province, group);
         }
         if (taken.Count == 0) return null;
-        foreach (var u in free.ToList()) Ride(taken.OrderBy(p => sent[p.Index] - against[p.Index]).ThenBy(p => p.Index).First(), [u]);
+        if (!keep) foreach (var u in free.ToList()) Ride(taken.OrderBy(p => sent[p.Index] - against[p.Index]).ThenBy(p => p.Index).First(), [u]);
         return result;
     }
 

@@ -11,7 +11,7 @@ internal static class CavalryReserveTests
     [
         ("cavres: at replay 185919's Infantry defence (four attackers, no enemy Cavalry at home) the Contender defends without its two Cavalry; without cavres it sends them", InfantryDefenceHoldsCavalry),
         ("cavhold: at replay 185919's turn 10 Infantry declaration (four Cavalry at home) Hard assigns no Cavalry", ConanHoldsCavalryAttacking),
-        ("cavplan: at replay 185919's turn 10 Cavalry declaration (the defence placed blind) every army the Contender sends takes its Province with a margin, and it takes more Provinces than without cavplan", CavalryTakesProvinces),
+        ("cavplan: at replay 185919's turn 10 Cavalry declaration (the defence placed blind) every army the Contender sends takes its Province with a margin, and it takes more Provinces than without cavplan; with cavkeep it takes them with fewer riders, the surplus home", CavalryTakesProvinces),
     ];
 
     private static void Check(bool ok, string message) { if (!ok) throw new Exception(message); }
@@ -83,5 +83,11 @@ internal static class CavalryReserveTests
         var without = Takes(game, HumanReplayCompare.Ask(game.Clone(), 0, BotContext.Contender(rules: rules), roundTrip: false));
         Check(with.Battlefields > 0 && with.Taken == with.Battlefields, $"with cavplan every army should take its Province with the margin: {with.Detail}");
         Check(with.Taken > without.Taken, $"cavplan should take more Provinces here than without it: with {with.Detail}; without {without.Detail}");
+        // cavkeep (third pass): the same Provinces taken with fewer riders; the rest stay home to defend
+        var keepAnswer = HumanReplayCompare.Ask(game.Clone(), 0, BotContext.Contender(rules: [.. rules, "cavplan", "cavkeep"]), roundTrip: false);
+        var plainAnswer = HumanReplayCompare.Ask(game.Clone(), 0, BotContext.Contender(rules: [.. rules, "cavplan"]), roundTrip: false);
+        var keep = Takes(game, keepAnswer);
+        Check(keep.Battlefields > 0 && keep.Taken == with.Taken, $"with cavkeep the Cavalry should still take every Province cavplan takes: {keep.Detail}; cavplan alone {with.Detail}");
+        Check((keepAnswer?.Assignments?.Count ?? 0) < (plainAnswer?.Assignments?.Count ?? 0), $"with cavkeep fewer riders should go (the surplus stays home): {keepAnswer?.Assignments?.Count} against {plainAnswer?.Assignments?.Count}");
     }
 }
