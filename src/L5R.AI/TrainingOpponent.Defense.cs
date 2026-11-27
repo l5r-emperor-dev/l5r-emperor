@@ -180,25 +180,25 @@ public static partial class TrainingOpponent
         int Strongest() => offered.OrderByDescending(p => p.Strength - AttackersAt(x, p.Index)).ThenBy(p => p.Index).First().Index;
         Dictionary<string, int>? Stand(CardView[] units)
         {
-        if (units.Length == 0) return null;
-        var forces = units.Select(u => ArmyForce(x.Self.Home.Where(h => h.Id == u.Id || h.AttachedTo == u.Id))).ToArray();
-        if (units.Length <= 8)
-        {
-            var choice = new int[units.Length]; int[]? best = null; var bestDestroyed = remaining.Length; var bestSlack = int.MinValue;
-            for (var total = (int)Math.Pow(offered.Length, units.Length); total-- > 0;)
+            if (units.Length == 0) return null;
+            var forces = units.Select(u => ArmyForce(x.Self.Home.Where(h => h.Id == u.Id || h.AttachedTo == u.Id))).ToArray();
+            if (units.Length <= 8)
             {
-                var c = total; var defenders = new int[remaining.Length];
-                for (var i = 0; i < units.Length; i++) { choice[i] = c % offered.Length; c /= offered.Length; defenders[Array.FindIndex(remaining, p => p.Index == offered[choice[i]].Index)] += forces[i]; }
-                if (reach.OverBudget) break; // issue #1211: keep the best assignment found so far rather than stall the decision
-                if ((total & 1023) == 0) CheckDeadline(x.Memory);
-                var destroyed = reach.MaxDestroyed(remaining.Select((p, k) => Need(p, defenders[k])).ToArray());
-                if (destroyed >= remaining.Length) continue;
-                var slack = remaining.Select((p, k) => p.Strength + defenders[k]).Sum();
-                if (destroyed < bestDestroyed || destroyed == bestDestroyed && slack > bestSlack) { best = (int[])choice.Clone(); bestDestroyed = destroyed; bestSlack = slack; }
+                var choice = new int[units.Length]; int[]? best = null; var bestDestroyed = remaining.Length; var bestSlack = int.MinValue;
+                for (var total = (int)Math.Pow(offered.Length, units.Length); total-- > 0;)
+                {
+                    var c = total; var defenders = new int[remaining.Length];
+                    for (var i = 0; i < units.Length; i++) { choice[i] = c % offered.Length; c /= offered.Length; defenders[Array.FindIndex(remaining, p => p.Index == offered[choice[i]].Index)] += forces[i]; }
+                    if (reach.OverBudget) break; // issue #1211: keep the best assignment found so far rather than stall the decision
+                    if ((total & 1023) == 0) CheckDeadline(x.Memory);
+                    var destroyed = reach.MaxDestroyed(remaining.Select((p, k) => Need(p, defenders[k])).ToArray());
+                    if (destroyed >= remaining.Length) continue;
+                    var slack = remaining.Select((p, k) => p.Strength + defenders[k]).Sum();
+                    if (destroyed < bestDestroyed || destroyed == bestDestroyed && slack > bestSlack) { best = (int[])choice.Clone(); bestDestroyed = destroyed; bestSlack = slack; }
+                }
+                if (best is not null) return units.Select((u, i) => (u.Id, Province: offered[best[i]].Index)).ToDictionary(t => t.Id, t => t.Province, StringComparer.Ordinal);
             }
-            if (best is not null) return units.Select((u, i) => (u.Id, Province: offered[best[i]].Index)).ToDictionary(t => t.Id, t => t.Province, StringComparer.Ordinal);
-        }
-        return null;
+            return null;
         }
     }
 
