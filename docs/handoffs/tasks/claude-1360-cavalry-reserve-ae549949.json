@@ -1,9 +1,9 @@
 {
   "lane": "shared",
-  "summary": "Opt-in Cavalry rules cavhold, cavres and lkCav for Conan (hold Cavalry for the Cavalry segment, Cavalry-aware Infantry defence, search the Cavalry declaration). Not promoted: the arena result against T2 was net -10 (24 gained, 34 lost in 1,211 paired games).",
-  "validation": "check.sh --skip-client passed; cavalry-reserve tests pass; PR CI verify jobs passed; arena seeds 12100-12101 recorded in docs/bots/experiments/2026-11-27-cavalry-reserve.md",
-  "remaining": "Not merged: the result is not positive. Next, screen each rule alone and read the lost games.",
+  "summary": "Opt-in Cavalry rules for Conan: cavhold, cavres, lkCav (first pass), cavplan, cavpick (second pass), cavkeep (third pass). None promoted: arena results against Hard were -10, -12, ablation 0 (attack) / +1 (defence), and -2 with cavkeep.",
+  "validation": "Debug cavalry/guard/registry tests 23/23 pass; check_format clean; arena seeds 12100-12107 recorded in docs/bots/experiments/2026-11-27-cavalry-reserve.md",
+  "remaining": "Not merged: no run was positive. The rules remain opt-in on this branch for further work; Mendon to decide whether to merge them opt-in or close.",
   "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1360",
   "branch": "claude/1360-cavalry-reserve",
-  "updated": "2026-11-27T02:58:03.131903+00:00"
+  "updated": "2026-11-27T17:32:27.749406+00:00"
 }
