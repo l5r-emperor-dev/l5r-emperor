@@ -62,6 +62,13 @@ public static partial class TrainingOpponent
         if (Rule(x, "lkVar") && candidates.FirstOrDefault(c => c.Command.Type == "assignDefense" && c.Command.Assignments is not null) is { Action: not null } defend)
             searched.AddRange(DefenceShapes(x, defend.Action).Where(a => !searched.Any(o => SameAssignment(o.Command.Assignments, a)))
                 .Select(a => new Option(defend.Action, defend.Command with { Assignments = a }, "defend " + a.Count)));
+        // lkCav (issue #1360): the Cavalry declaration is searched over Cavalry follow-ups against the defence as placed
+        if (x.View.Phase == Phase.CavalryDeclaration && candidates.FirstOrDefault(c => c.Command.Type == "attack" && c.Command.Assignments is not null) is { Action: not null } ride)
+        {
+            if (!searched.Any(o => IsPass(o.Command)) && candidates.FirstOrDefault(c => IsPass(c.Command)) is { Action: not null } home) searched.Add(new(home.Action, home.Command, "cavalry home"));
+            foreach (var (label, a) in CavalryShapes(x, ride.Action))
+                if (!searched.Any(o => SameAssignment(o.Command.Assignments, a))) searched.Add(new(ride.Action, ride.Command with { Assignments = a }, "cavalry " + label));
+        }
         // lkStand (issue #1336, replay 115409): when the attack can take every Province the bot has left, its rules always defend (Mendon's last stand); the search may choose
         // among defences but not a pass, which its playouts can misjudge whenever the simulated attacker holds back.
         if (Rule(x, "lkStand") && candidates[0].Command.Type == "assignDefense" && LastStandApplies(x, candidates[0].Action)) searched.RemoveAll(o => IsPass(o.Command));
@@ -128,6 +135,7 @@ public static partial class TrainingOpponent
         Phase.Battle => true,
         Phase.AttackDeclaration => Rule(x, "lkAtk") || Rule(x, "lkPlan"),
         Phase.InfantryDeclaration => Rule(x, "lkPlan"),
+        Phase.CavalryDeclaration => Rule(x, "lkCav"),
         Phase.DefenseAssignment or Phase.CavalryDefense => Rule(x, "lkDef"),
         Phase.Dynasty => Rule(x, "lkBuy"),
         Phase.Action => Rule(x, "lkAct"),
@@ -163,13 +171,17 @@ public static partial class TrainingOpponent
         if (x.Memory.PlannedAttack is { } plan && plan.Turn == x.View.TurnNumber && Legal(attack.Action, plan.Assignment) is { Count: > 0 } kept)
         {
             x.Memory.PlanLog.Add($"T{x.View.TurnNumber} infantry: the planned {plan.Label}{(kept.Count < plan.Assignment.Count ? $" ({plan.Assignment.Count - kept.Count} unit(s) no longer able)" : "")}");
-            return (attack.Command with { Assignments = kept }, attack.Action);
+            // cavhold (issue #1360): the plan is the whole army; its Cavalry is assigned in the Cavalry segment, re-planned against the defence then placed
+            var now = InfantryPart(x, kept);
+            if (now.Count > 0) return (attack.Command with { Assignments = now }, attack.Action);
+            return candidates.FirstOrDefault(c => IsPass(c.Command)) is { Action: not null } hold ? (hold.Command, hold.Action) : null;
         }
         // The table changed since the plan (or there was none): the shapes are searched again from here.
         var options = new List<Option> { new(attack.Action, attack.Command, "contender") };
+        if (HoldsCavalry(x) && candidates.FirstOrDefault(c => IsPass(c.Command)) is { Action: not null } wait) options.Add(new(wait.Action, wait.Command, "Cavalry only")); // cavhold: a shape all Cavalry sends nobody now
         foreach (var (label, shape) in AttackShapes(x))
         {
-            var a = Legal(attack.Action, shape);
+            var a = InfantryPart(x, Legal(attack.Action, shape)); // cavhold (issue #1360): the shape's Infantry part now, its Cavalry in the Cavalry segment
             if (a.Count > 0 && !options.Any(o => SameAssignment(o.Command.Assignments, a))) options.Add(new(attack.Action, attack.Command with { Assignments = a }, $"{label} ({a.Count})")); // the shape's name in the search log (step 4 reads it)
         }
         if (options.Count < 2) return null;
@@ -238,6 +250,34 @@ public static partial class TrainingOpponent
         }
     }
 
+    // ---- Cavalry follow-ups (lkCav, issue #1360) ------------------------------------------------------------------------------------------------------------------------
+
+    /// <summary>Cavalry declarations worth comparing, whatever the cards, against the defence as placed (a Province's Strength plus its defenders, and the defender's Cavalry still
+    /// at home): every Cavalry unit at the Province it most nearly takes; the strongest until that Province falls to the army there; every Cavalry unit reinforcing each battlefield
+    /// the bot's infantry holds; and each unit alone at a different Province it takes by itself.</summary>
+    private static IEnumerable<(string Label, Dictionary<string, int> Assignment)> CavalryShapes(Ctx x, ActionOption action)
+    {
+        var legal = action.TargetIds?.ToHashSet(StringComparer.Ordinal);
+        var riders = x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed && UnitForce(x, c) > 0 && (legal is null || legal.Contains(c.Id)))
+            .OrderByDescending(c => UnitForce(x, c)).ThenBy(c => c.Id, StringComparer.Ordinal).ToList();
+        var targets = x.Opponent.Provinces.Where(p => !p.Destroyed && (action.Provinces is null || action.Provinces.Contains(p.Index))).ToArray();
+        if (riders.Count == 0 || targets.Length == 0) yield break;
+        var reply = PossibleCavalryForce(x.Opponent);
+        int Sent(int province) => ArmyForce(x.Self.Army.Where(c => c.ProvinceIndex == province));
+        int Need(ProvinceView p) => p.Strength + ArmyForce(x.Opponent.Army.Where(c => c.ProvinceIndex == p.Index)) + reply - Sent(p.Index); // Force still missing to take it, their Cavalry replying
+        var best = targets.OrderBy(Need).ThenBy(p => p.Index).First();
+        yield return ("all", riders.ToDictionary(u => u.Id, _ => best.Index, StringComparer.Ordinal));
+        var enough = new Dictionary<string, int>(StringComparer.Ordinal); var force = 0;
+        foreach (var unit in riders) { if (force > Need(best)) break; enough[unit.Id] = best.Index; force += UnitForce(x, unit); }
+        if (enough.Count < riders.Count && force > Need(best)) yield return ("enough", enough);
+        foreach (var held in targets.Where(p => p.Index != best.Index && Sent(p.Index) > 0).OrderBy(Need).Take(2))
+            yield return ("reinforce " + held.Index, riders.ToDictionary(u => u.Id, _ => held.Index, StringComparer.Ordinal));
+        var split = new Dictionary<string, int>(StringComparer.Ordinal); var open = targets.ToList();
+        foreach (var unit in riders)
+            if (open.Where(p => UnitForce(x, unit) > Need(p)).OrderByDescending(p => p.Strength).FirstOrDefault() is { } taken) { split[unit.Id] = taken.Index; open.Remove(taken); }
+        if (split.Values.Distinct().Count() > 1) yield return ("split", split);
+    }
+
     // ---- defence shapes (lkVar) ---------------------------------------------------------------------------------------------------------------------------------------
 
     /// <summary>Defences worth comparing, whatever the cards: every defender at the most threatened Province; at each threatened Province in turn, the strongest
@@ -245,7 +285,7 @@ public static partial class TrainingOpponent
     private static IEnumerable<Dictionary<string, int>> DefenceShapes(Ctx x, ActionOption action)
     {
         var legal = action.TargetIds?.ToHashSet(StringComparer.Ordinal);
-        var units = x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed && (legal is null || legal.Contains(c.Id)))
+        var units = InfantryDefenders(x, x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed && (legal is null || legal.Contains(c.Id))).ToArray()) // cavres (issue #1360)
             .OrderByDescending(c => UnitForce(x, c)).ThenBy(c => c.Id, StringComparer.Ordinal).ToList();
         var threatened = x.Self.Provinces.Where(p => !p.Destroyed && (action.Provinces is null || action.Provinces.Contains(p.Index)) && AttackersAt(x, p.Index) > 0)
             .OrderByDescending(p => AttackersAt(x, p.Index) - p.Strength).ToArray();
@@ -255,7 +295,7 @@ public static partial class TrainingOpponent
         foreach (var province in threatened)
         {
             var force = ArmyForce(x.Self.Army.Where(c => c.ProvinceIndex == province.Index));
-            while (free.Count > 0 && province.Strength + force <= AttackersAt(x, province.Index)) { var unit = free.Dequeue(); holding[unit.Id] = province.Index; force += UnitForce(x, unit); }
+            while (free.Count > 0 && province.Strength + force <= ThreatAt(x, province.Index)) { var unit = free.Dequeue(); holding[unit.Id] = province.Index; force += UnitForce(x, unit); }
         }
         if (holding.Count > 0) yield return holding;
         yield return new(StringComparer.Ordinal) { [units[0].Id] = threatened[0].Index };
@@ -302,6 +342,7 @@ public static partial class TrainingOpponent
             if (infantry is not null && seat == me && game.Phase == Phase.InfantryDeclaration && actions.FirstOrDefault(a => a.Enabled && a.Type == "attack" && a.Command is not null) is { } attack)
             {
                 var planned = Legal(attack, infantry); infantry = null;
+                if (Rule(x, "cavhold") && !CavalryBarred(x)) planned = WithoutCavalry(game.GetView(me).Players.Single(p => p.Id == me), planned); // issue #1360: the plan's Cavalry joins in its own segment, chosen there by the playout bot
                 if (planned.Count > 0 && game.Execute(attack.Command! with { Assignments = planned }).Accepted) continue;
             }
             var decision = Choose(game.GetView(seat), actions, bots[seat]);
