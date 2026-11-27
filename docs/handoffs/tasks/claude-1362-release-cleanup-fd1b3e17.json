@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Pruned old Releases at Mendon's request: old Windows playtests, superseded art packs, review builds for PRs 710/724/1274. Removed those three review receipts from previews/published so the preview delivery check doesn't fetch deleted releases; recorded what to keep in docs/PUBLIC_REPO.md and AGENTS.md.",
+  "validation": "tools/previews unit tests: 13 OK; bash tools/check.sh --skip-client passed. Remaining releases listed with gh release list.",
+  "remaining": "21 older review builds remain (not requested). None otherwise.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1362",
+  "branch": "claude/1362-release-cleanup",
+  "updated": "2026-11-27T15:31:57.534581+00:00"
+}
