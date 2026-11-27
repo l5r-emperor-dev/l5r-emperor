@@ -11,6 +11,7 @@ internal static class CavalryReserveTests
     [
         ("cavres: at replay 185919's Infantry defence (four attackers, no enemy Cavalry at home) the Contender defends without its two Cavalry; without cavres it sends them", InfantryDefenceHoldsCavalry),
         ("cavhold: at replay 185919's turn 10 Infantry declaration (four Cavalry at home) Hard assigns no Cavalry", ConanHoldsCavalryAttacking),
+        ("cavplan: at replay 185919's turn 10 Cavalry declaration (the defence placed blind) every army the Contender sends takes its Province with a margin, and it takes more Provinces than without cavplan", CavalryTakesProvinces),
     ];
 
     private static void Check(bool ok, string message) { if (!ok) throw new Exception(message); }
@@ -51,5 +52,36 @@ internal static class CavalryReserveTests
         Check(game.Phase == Phase.InfantryDeclaration, $"expected the Infantry declaration, got {game.Phase}");
         var answer = HumanReplayCompare.Ask(game, 0, bot, roundTrip: false);
         Check(CavalrySent(game, answer).Length == 0, $"Hard with cavhold should keep its Cavalry for the Cavalry segment, sent {string.Join(", ", CavalrySent(game, answer))} ({string.Join(" / ", bot.PlanLog)})");
+    }
+
+    // The Provinces an assignment takes on Force: every battlefield whose attackers exceed its Strength, the defenders already there, the defender's Cavalry still at home
+    // and the margin (one per card in the defender's hand, at most four).
+    private static (int Taken, int Battlefields, string Detail) Takes(MatchEngine game, GameCommand? answer)
+    {
+        var view = game.GetView(0); var self = view.Players[0]; var them = view.Players[1];
+        int Force(IEnumerable<CardView> cards) => cards.Where(c => !c.Bowed && c.Definition?.Type is CardType.Personality or CardType.Follower).Sum(c => Math.Max(0, c.Force));
+        bool Cavalry(PlayerView p, CardView c) => c.Definition?.Keywords?.Contains("Cavalry") == true && p.Home.Where(h => h.AttachedTo == c.Id && h.Definition?.Type == CardType.Follower).All(h => h.Definition?.Keywords?.Contains("Cavalry") == true);
+        var reply = them.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed && Cavalry(them, c)).Sum(c => Force(them.Home.Where(h => h.Id == c.Id || h.AttachedTo == c.Id)));
+        var margin = Math.Min(them.HandCount, 4);
+        var armies = (answer?.Assignments ?? []).GroupBy(a => a.Value).Select(g => (Province: g.Key, Force: Force(self.Home.Where(h => g.Any(a => a.Key == h.Id || a.Key == h.AttachedTo))))).ToArray();
+        var taken = armies.Count(a => a.Force > them.Provinces.Single(p => p.Index == a.Province).Strength + Force(them.Army.Where(c => c.ProvinceIndex == a.Province)) + reply + margin);
+        return (taken, armies.Length, string.Join(", ", armies.Select(a => $"P{a.Province + 1} {a.Force}F vs {them.Provinces.Single(p => p.Index == a.Province).Strength}+{Force(them.Army.Where(c => c.ProvinceIndex == a.Province))}")));
+    }
+
+    private static void CavalryTakesProvinces()
+    {
+        var game = Before(130);
+        Check(game.Phase == Phase.AttackDeclaration, $"the position moved: {game.Phase}");
+        Check(game.Execute(new GameCommand("declareAttack", 0, game.Version)).Accepted, "the declaration is refused");
+        var rules = (string[])[.. BotContext.TunedRules, "cavhold", "cavres"];
+        var infantry = HumanReplayCompare.Ask(game, 0, BotContext.Contender(rules: [.. rules, "cavplan"]), roundTrip: false);
+        Check(game.Execute(infantry ?? new GameCommand("pass", 0, game.Version)).Accepted, "the Infantry declaration is refused");
+        var defence = HumanReplayCompare.Ask(game, 1, BotContext.Contender(rules: rules), roundTrip: false);
+        Check(game.Execute(defence ?? new GameCommand("pass", 1, game.Version)).Accepted, "the Infantry defence is refused");
+        Check(game.Phase == Phase.CavalryDeclaration, $"expected the Cavalry declaration, got {game.Phase}");
+        var with = Takes(game, HumanReplayCompare.Ask(game.Clone(), 0, BotContext.Contender(rules: [.. rules, "cavplan"]), roundTrip: false));
+        var without = Takes(game, HumanReplayCompare.Ask(game.Clone(), 0, BotContext.Contender(rules: rules), roundTrip: false));
+        Check(with.Battlefields > 0 && with.Taken == with.Battlefields, $"with cavplan every army should take its Province with the margin: {with.Detail}");
+        Check(with.Taken > without.Taken, $"cavplan should take more Provinces here than without it: with {with.Detail}; without {without.Detail}");
     }
 }

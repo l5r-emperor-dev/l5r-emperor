@@ -33,7 +33,7 @@ public static partial class TrainingOpponent
     private static bool ReserveCavalry(Ctx x) => Rule(x, "cavres") && x.View.Phase == Phase.DefenseAssignment && !CavalryBarred(x);
 
     /// <summary>cavhold: in the Infantry declaration the bot's Cavalry is held for the Cavalry segment.</summary>
-    private static bool HoldsCavalry(Ctx x) => Rule(x, "cavhold") && x.View.Phase == Phase.InfantryDeclaration && !CavalryBarred(x);
+    private static bool HoldsCavalry(Ctx x) => Rule(x, "cavhold") && x.View.Phase == Phase.InfantryDeclaration && !CavalryBarred(x) && HoldPays(x); // cavpick: only when holding pays
 
     /// <summary>The offered units the Infantry defence may commit now: under cavres, the non-Cavalry ones.</summary>
     private static CardView[] InfantryDefenders(Ctx x, CardView[] units) => ReserveCavalry(x) ? units.Where(u => !IsCavalryUnit(x.Self, u)).ToArray() : units;

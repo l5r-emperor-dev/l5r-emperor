@@ -428,6 +428,9 @@ public static partial class TrainingOpponent
                 var assigned = AlreadyAssigned(x);
                 var plan = PlanAttack(x, units, provinces, assigned) is { } whole ? HoldCavalry(x, OfferedOnly(whole, units)) : null;
                 if (LethalPlan(x, units, provinces) is { } lethal) return InfantryPart(x, lethal) is { Count: > 0 } lethalNow ? command with { Assignments = lethalNow } : null; // issue #1185 tuning (lethal); cavhold (issue #1360): its Cavalry follows in its segment (all Cavalry: nobody now)
+                // cavplan (issue #1360): in the Cavalry segment the plan's Cavalry (or, with no plan, every rider) takes as many Provinces as it can against the defence as placed
+                if (Rule(x, "cavplan") && x.View.Phase == Phase.CavalryDeclaration && !HonorRace(x)
+                    && CavalryFollowUp(x, action, x.Memory.PlannedAttack is { } cavPlan && cavPlan.Turn == x.View.TurnNumber ? cavPlan.Assignment : null) is { } follow) return command with { Assignments = follow };
                 if (HonorAttackOf(x, units, provinces) is { } honorAttack) return command with { Assignments = HoldCavalry(x, honorAttack.Assignments) }; // issue #818 item 8
                 if (!HonorRace(x) && PlannerAssignment(x, units, provinces) is { } planned) return InfantryPart(x, planned) is { Count: > 0 } plannedNow ? command with { Assignments = plannedNow } : null; // issue #1185: the plan's own attack (cavhold: its Cavalry later)
                 if (Rule(x, "maxraze") && !HonorRace(x) && x.View.Phase == Phase.InfantryDeclaration && MaxRazePlan(x, units, provinces) is { } razing

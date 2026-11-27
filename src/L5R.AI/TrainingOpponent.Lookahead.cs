@@ -35,7 +35,7 @@ public static partial class TrainingOpponent
     private const int RolloutDecisions = 400, LongRolloutDecisions = 2000;
 
     /// <summary>One move a search compares: the command, and for an attack plan the infantry assignment the playout then makes.</summary>
-    private sealed record Option(ActionOption Action, GameCommand Command, string Label, Dictionary<string, int>? Infantry = null);
+    private sealed record Option(ActionOption Action, GameCommand Command, string Label, Dictionary<string, int>? Infantry = null, Dictionary<string, int>? Cavalry = null);
 
     private static (GameCommand Command, ActionOption Action)? LookAhead(Ctx x, (ActionOption Action, GameCommand Command, double Score)[] candidates)
     {
@@ -66,6 +66,13 @@ public static partial class TrainingOpponent
         if (x.View.Phase == Phase.CavalryDeclaration && candidates.FirstOrDefault(c => c.Command.Type == "attack" && c.Command.Assignments is not null) is { Action: not null } ride)
         {
             if (!searched.Any(o => IsPass(o.Command)) && candidates.FirstOrDefault(c => IsPass(c.Command)) is { Action: not null } home) searched.Add(new(home.Action, home.Command, "cavalry home"));
+            // cavplan: the plan's Cavalry re-targeted against the defence as placed, and every rider taking the most Provinces it can
+            if (Rule(x, "cavplan"))
+            {
+                if (x.Memory.PlannedAttack is { } plan && plan.Turn == x.View.TurnNumber && CavalryFollowUp(x, ride.Action, plan.Assignment) is { } follow && !searched.Any(o => SameAssignment(o.Command.Assignments, follow)))
+                    searched.Add(new(ride.Action, ride.Command with { Assignments = follow }, "cavalry plan"));
+                if (CavalryFollowUp(x, ride.Action, null) is { } most && !searched.Any(o => SameAssignment(o.Command.Assignments, most))) searched.Add(new(ride.Action, ride.Command with { Assignments = most }, "cavalry most"));
+            }
             foreach (var (label, a) in CavalryShapes(x, ride.Action))
                 if (!searched.Any(o => SameAssignment(o.Command.Assignments, a))) searched.Add(new(ride.Action, ride.Command with { Assignments = a }, "cavalry " + label));
         }
@@ -73,7 +80,9 @@ public static partial class TrainingOpponent
         // among defences but not a pass, which its playouts can misjudge whenever the simulated attacker holds back.
         if (Rule(x, "lkStand") && candidates[0].Command.Type == "assignDefense" && LastStandApplies(x, candidates[0].Action)) searched.RemoveAll(o => IsPass(o.Command));
         if (searched.Count < 2 || candidates[0].Command != searched[0].Command) return null;
-        if (Search(x, sampler, searched, (int)Knob(x, dynasty ? "lkBN" : "lkN", dynasty ? 3 : 4), dynasty) is not { } values) return null;
+        // cavplan (issue #1360): the Cavalry search plays fewer samples (lkCN) so it finishes inside its time limit
+        var samples = dynasty ? (int)Knob(x, "lkBN", 3) : x.View.Phase == Phase.CavalryDeclaration && Rule(x, "cavplan") ? (int)Knob(x, "lkCN", 2) : (int)Knob(x, "lkN", 4);
+        if (Search(x, sampler, searched, samples, dynasty) is not { } values) return null;
         var best = Enumerable.Range(0, searched.Count).MaxBy(i => values[i]);
         return best > 0 && values[best] > values[0] + Knob(x, "lkM", 0) ? (searched[best].Command, searched[best].Action) : null;
     }
@@ -182,7 +191,7 @@ public static partial class TrainingOpponent
         foreach (var (label, shape) in AttackShapes(x))
         {
             var a = InfantryPart(x, Legal(attack.Action, shape)); // cavhold (issue #1360): the shape's Infantry part now, its Cavalry in the Cavalry segment
-            if (a.Count > 0 && !options.Any(o => SameAssignment(o.Command.Assignments, a))) options.Add(new(attack.Action, attack.Command with { Assignments = a }, $"{label} ({a.Count})")); // the shape's name in the search log (step 4 reads it)
+            if (a.Count > 0 && !options.Any(o => SameAssignment(o.Command.Assignments, a))) options.Add(new(attack.Action, attack.Command with { Assignments = a }, $"{label} ({a.Count})", Cavalry: Legal(attack.Action, shape))); // the shape's name in the search log (step 4 reads it)
         }
         if (options.Count < 2) return null;
         if (Search(x, sampler, options, (int)Knob(x, "lkN", 4), Rule(x, "lkFar")) is not { } values) return null;
@@ -264,7 +273,7 @@ public static partial class TrainingOpponent
         if (riders.Count == 0 || targets.Length == 0) yield break;
         var reply = PossibleCavalryForce(x.Opponent);
         int Sent(int province) => ArmyForce(x.Self.Army.Where(c => c.ProvinceIndex == province));
-        int Need(ProvinceView p) => p.Strength + ArmyForce(x.Opponent.Army.Where(c => c.ProvinceIndex == p.Index)) + reply - Sent(p.Index); // Force still missing to take it, their Cavalry replying
+        int Need(ProvinceView p) => p.Strength + ArmyForce(x.Opponent.Army.Where(c => c.ProvinceIndex == p.Index)) + reply + CavalryMargin(x) - Sent(p.Index); // Force still missing to take it, their Cavalry replying
         var best = targets.OrderBy(Need).ThenBy(p => p.Index).First();
         yield return ("all", riders.ToDictionary(u => u.Id, _ => best.Index, StringComparer.Ordinal));
         var enough = new Dictionary<string, int>(StringComparer.Ordinal); var force = 0;
@@ -327,7 +336,7 @@ public static partial class TrainingOpponent
         bots[me].Archetype = x.Memory.Archetype;
         bots[0].Deadline = bots[1].Deadline = deadline; // a playout bot stuck in one decision is stopped too
         var fromAction = x.View.Phase == Phase.Action; // lkAct: an Action-phase move is played out through the end of this turn's attack
-        var turn = x.View.TurnNumber; var infantry = option.Infantry; var horizon = (int)Knob(x, "lkBH", 2);
+        var turn = x.View.TurnNumber; var infantry = option.Infantry; var cavalry = Rule(x, "cavplan") ? option.Cavalry : null; var horizon = (int)Knob(x, "lkBH", 2);
         // a playout through later turns does several times a battle's work: its search's budget is lkBB, by default lkB times twice the horizon
         var budget = (int)(throughNextAttack ? Knob(x, "lkBB", Knob(x, "lkB", 0) * horizon * 2) : Knob(x, "lkB", 0));
         for (var n = 0; n < (throughNextAttack ? LongRolloutDecisions * horizon / 2 : RolloutDecisions); n++)
@@ -342,8 +351,15 @@ public static partial class TrainingOpponent
             if (infantry is not null && seat == me && game.Phase == Phase.InfantryDeclaration && actions.FirstOrDefault(a => a.Enabled && a.Type == "attack" && a.Command is not null) is { } attack)
             {
                 var planned = Legal(attack, infantry); infantry = null;
-                if (Rule(x, "cavhold") && !CavalryBarred(x)) planned = WithoutCavalry(game.GetView(me).Players.Single(p => p.Id == me), planned); // issue #1360: the plan's Cavalry joins in its own segment, chosen there by the playout bot
+                if (Rule(x, "cavplan")) { cavalry = planned; planned = InfantryPart(PlayoutCtx(x, game.GetView(me), actions.ToArray()), planned); } // issue #1360: the plan's Cavalry is carried to its segment
+                else if (Rule(x, "cavhold") && !CavalryBarred(x)) planned = WithoutCavalry(game.GetView(me).Players.Single(p => p.Id == me), planned); // issue #1360: the plan's Cavalry joins in its own segment, chosen there by the playout bot
                 if (planned.Count > 0 && game.Execute(attack.Command! with { Assignments = planned }).Accepted) continue;
+            }
+            // cavplan: the plan's Cavalry follows up in its segment against the defence as placed, as the bot itself would (CavalryFollowUp)
+            if (cavalry is not null && seat == me && game.Phase == Phase.CavalryDeclaration && actions.FirstOrDefault(a => a.Enabled && a.Type == "attack" && a.Command is not null) is { } ride)
+            {
+                var follow = CavalryFollowUp(PlayoutCtx(x, game.GetView(me), actions.ToArray()), ride, cavalry); cavalry = null;
+                if (follow is { Count: > 0 } && game.Execute(ride.Command! with { Assignments = follow }).Accepted) continue;
             }
             var decision = Choose(game.GetView(seat), actions, bots[seat]);
             if (decision.Command is null) break;
