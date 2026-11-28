@@ -1,0 +1,9 @@
+{
+  "lane": "shared",
+  "summary": "Opt-in Cavalry rules for Conan: cavhold, cavres, lkCav (first pass), cavplan, cavpick (second pass), cavkeep (third pass). None promoted: arena results against Hard were -10, -12, ablation 0 (attack) / +1 (defence), and -2 with cavkeep. Against other opponents with cavkeep: champion -5, Conan (hard) -4; every bot opponent leaves 87-92% of Unicorn's attacks unopposed.",
+  "validation": "Debug cavalry/guard/registry tests 23/23 pass; check_format clean; arena seeds 12100-12111 (T2, champion, hard opponents) recorded in docs/bots/experiments/2026-11-27-cavalry-reserve.md",
+  "remaining": "Not merged: no run was positive. The rules remain opt-in on this branch for further work; Mendon to decide whether to merge them opt-in or close.",
+  "issue": "https://github.com/l5r-emperor-dev/l5r-emperor/issues/1360",
+  "branch": "claude/1360-cavalry-reserve",
+  "updated": "2026-11-28T05:40:32.211460+00:00"
+}

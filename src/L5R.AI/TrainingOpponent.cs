@@ -386,6 +386,7 @@ public static partial class TrainingOpponent
         {
             var legalIds = action.TargetIds?.ToHashSet(StringComparer.Ordinal);
             var units = self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed && (legalIds is null || legalIds.Contains(c.Id))).ToArray();
+            if (action.Type == "assignDefense") units = InfantryDefenders(x, units); // cavres (issue #1360): the Cavalry waits for the Cavalry defence
             var provinces = (action.Provinces ?? (action.Type == "attack" ? opponent.Provinces : self.Provinces).Where(p => !p.Destroyed).Select(p => p.Index).ToArray());
             if (provinces.Length == 0 || units.Length == 0) return null;
             if (action.Type == "attack" && x.Memory.RejectionMessages(view.Version, "attack").Any())
@@ -426,11 +427,17 @@ public static partial class TrainingOpponent
                 // Mendon's spec (issue #642): as many sub-armies as can each beat their province plus every unit that could defend it.
                 var assigned = AlreadyAssigned(x);
                 var plan = PlanAttack(x, units, provinces, assigned) is { } whole ? HoldCavalry(x, OfferedOnly(whole, units)) : null;
-                if (LethalPlan(x, units, provinces) is { } lethal) return command with { Assignments = lethal }; // issue #1185 tuning (lethal)
+                if (LethalPlan(x, units, provinces) is { } lethal) return InfantryPart(x, lethal) is { Count: > 0 } lethalNow ? command with { Assignments = lethalNow } : null; // issue #1185 tuning (lethal); cavhold (issue #1360): its Cavalry follows in its segment (all Cavalry: nobody now)
+                // cavplan (issue #1360): in the Cavalry segment the plan's Cavalry (or, with no plan, every rider) takes as many Provinces as it can against the defence as placed
+                if (Rule(x, "cavplan") && x.View.Phase == Phase.CavalryDeclaration && !HonorRace(x))
+                {
+                    if (CavalryFollowUp(x, action, x.Memory.PlannedAttack is { } cavPlan && cavPlan.Turn == x.View.TurnNumber ? cavPlan.Assignment : null) is { } follow) return command with { Assignments = follow };
+                    if (Rule(x, "cavkeep")) return null; // cavkeep: nothing the Cavalry can take, so it stays home (no fallback to the planner's whole-army battlefield)
+                }
                 if (HonorAttackOf(x, units, provinces) is { } honorAttack) return command with { Assignments = HoldCavalry(x, honorAttack.Assignments) }; // issue #818 item 8
-                if (!HonorRace(x) && PlannerAssignment(x, units, provinces) is { } planned) return command with { Assignments = planned }; // issue #1185: the plan's own attack
+                if (!HonorRace(x) && PlannerAssignment(x, units, provinces) is { } planned) return InfantryPart(x, planned) is { Count: > 0 } plannedNow ? command with { Assignments = plannedNow } : null; // issue #1185: the plan's own attack (cavhold: its Cavalry later)
                 if (Rule(x, "maxraze") && !HonorRace(x) && x.View.Phase == Phase.InfantryDeclaration && MaxRazePlan(x, units, provinces) is { } razing
-                    && razing.Values.Distinct().Count() > (plan?.Values.Distinct().Count() ?? 0)) return command with { Assignments = razing }; // issue #1185 tuning: more Provinces this turn
+                    && razing.Values.Distinct().Count() > (plan?.Values.Distinct().Count() ?? 0) && InfantryPart(x, razing) is { Count: > 0 } razingNow) return command with { Assignments = razingNow }; // issue #1185 tuning: more Provinces this turn
                 if (plan is not null && Rule(x, "favoraware") && !HonorRace(x) && FavorStopsAttack(x, plan)) return null; // issue #1185 tuning: the visible Favor sends the lone army's biggest unit home
                 if (plan is not null) return command with { Assignments = plan };
                 if ((Rule(x, "aggro") || Rule(x, "aggro2")) && AggroAttack(x, units, provinces) is { } aggro) return command with { Assignments = HoldCavalry(x, aggro) }; // issue #1185 tuning

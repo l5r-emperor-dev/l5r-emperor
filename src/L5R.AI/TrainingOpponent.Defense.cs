@@ -22,6 +22,32 @@ public static partial class TrainingOpponent
     /// <summary>cavopen: a Province's Strength plus, in the Cavalry Maneuvers Segment, the defenders already assigned to it.</summary>
     private static int HeldStrength(Ctx x, ProvinceView p) => p.Strength + (CavalryOpen(x) ? ArmyForce(x.Opponent.Army.Where(c => c.ProvinceIndex == p.Index)) : 0);
 
+    // ---- issue #1360: the Cavalry waits for its own segment (Mendon, 2026-11-27) -------------------------------------------------------------------------------------------
+    // A Cavalry unit may assign in either Maneuvers Segment, but waiting loses nothing: the attacker's Cavalry assigns after the defender's Infantry, the defender's Cavalry last, with
+    // every other assignment visible. So Cavalry is assigned in the Infantry segment only when the Cavalry segment is barred (Incredible Tragedy in play).
+
+    /// <summary>The Cavalry Maneuvers Segment is barred this turn (Incredible Tragedy in play: nobody assigns in it), so Cavalry assigns with the Infantry or not at all.</summary>
+    private static bool CavalryBarred(Ctx x) => x.View.Players.Any(p => p.EventsInPlay?.Any(c => c.Definition?.Effect == "incredible-tragedy") == true);
+
+    /// <summary>cavres: in the Infantry defence the bot's Cavalry is held for the Cavalry segment.</summary>
+    private static bool ReserveCavalry(Ctx x) => Rule(x, "cavres") && x.View.Phase == Phase.DefenseAssignment && !CavalryBarred(x);
+
+    /// <summary>cavhold: in the Infantry declaration the bot's Cavalry is held for the Cavalry segment.</summary>
+    private static bool HoldsCavalry(Ctx x) => Rule(x, "cavhold") && x.View.Phase == Phase.InfantryDeclaration && !CavalryBarred(x) && HoldPays(x); // cavpick: only when holding pays
+
+    /// <summary>The offered units the Infantry defence may commit now: under cavres, the non-Cavalry ones.</summary>
+    private static CardView[] InfantryDefenders(Ctx x, CardView[] units) => ReserveCavalry(x) ? units.Where(u => !IsCavalryUnit(x.Self, u)).ToArray() : units;
+
+    /// <summary>cavres: what the Cavalry still to come can change at a battlefield the infantry defends: the attacker's possible Cavalry less the bot's held Cavalry, both taken to
+    /// arrive there (the worst case for the infantry, who must then fight it; the bot's Cavalry replies last, seeing where theirs went). 0 outside the Infantry defence.</summary>
+    private static int CavalrySwing(Ctx x) => ReserveCavalry(x) ? PossibleCavalryForce(x.Opponent) - PossibleCavalryForce(x.Self) : 0;
+
+    /// <summary>The attack the infantry defence is judged against at a Province: the attackers there plus the Cavalry swing.</summary>
+    private static int ThreatAt(Ctx x, int province) => AttackersAt(x, province) + CavalrySwing(x);
+
+    /// <summary>cavres, in the Cavalry defence: the bot's defenders already at a battlefield, who fight beside the Cavalry it sends there.</summary>
+    private static int DefendingAt(Ctx x, int province) => Rule(x, "cavres") && x.View.Phase == Phase.CavalryDefense ? ArmyForce(x.Self.Army.Where(c => c.ProvinceIndex == province)) : 0;
+
     /// <summary>Province order for a defense: face-up Personalities by Gold cost, most expensive first, then provinces whose card is face down, then the rest.</summary>
     private static int[] ProvincesByValue(PlayerView self, IEnumerable<int> offered)
     {
@@ -140,28 +166,40 @@ public static partial class TrainingOpponent
         var reach = new CavalryReach(cavalry);
         if (reach.MaxDestroyed(remaining.Select(p => Need(p, 0)).ToArray()) < remaining.Length) return null; // the Cavalry cannot take every Province: nothing to be done here
         var legal = action.TargetIds?.ToHashSet(StringComparer.Ordinal);
-        var units = offeredUnits ?? x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed && (legal is null || legal.Contains(c.Id))).ToArray();
+        var all = x.Self.Home.Where(c => c.Definition?.Type == CardType.Personality && !c.Bowed && (legal is null || legal.Contains(c.Id))).ToArray();
         var offered = remaining.Where(p => action.Provinces is null || action.Provinces.Contains(p.Index)).ToArray();
-        if (units.Length == 0 || offered.Length == 0) return null;
-        var forces = units.Select(u => ArmyForce(x.Self.Home.Where(h => h.Id == u.Id || h.AttachedTo == u.Id))).ToArray();
-        if (units.Length <= 8)
+        if (all.Length == 0 || offered.Length == 0) return null;
+        // cavres (issue #1360): the infantry alone first; the Cavalry is sent now only when no infantry assignment keeps a Province
+        if (ReserveCavalry(x) && InfantryDefenders(x, all) is { Length: > 0 } infantry && infantry.Length < all.Length)
         {
-            var choice = new int[units.Length]; int[]? best = null; var bestDestroyed = remaining.Length; var bestSlack = int.MinValue;
-            for (var total = (int)Math.Pow(offered.Length, units.Length); total-- > 0;)
-            {
-                var c = total; var defenders = new int[remaining.Length];
-                for (var i = 0; i < units.Length; i++) { choice[i] = c % offered.Length; c /= offered.Length; defenders[Array.FindIndex(remaining, p => p.Index == offered[choice[i]].Index)] += forces[i]; }
-                if (reach.OverBudget) break; // issue #1211: keep the best assignment found so far rather than stall the decision
-                if ((total & 1023) == 0) CheckDeadline(x.Memory);
-                var destroyed = reach.MaxDestroyed(remaining.Select((p, k) => Need(p, defenders[k])).ToArray());
-                if (destroyed >= remaining.Length) continue;
-                var slack = remaining.Select((p, k) => p.Strength + defenders[k]).Sum();
-                if (destroyed < bestDestroyed || destroyed == bestDestroyed && slack > bestSlack) { best = (int[])choice.Clone(); bestDestroyed = destroyed; bestSlack = slack; }
-            }
-            if (best is not null) return units.Select((u, i) => (u.Id, Province: offered[best[i]].Index)).ToDictionary(t => t.Id, t => t.Province, StringComparer.Ordinal);
+            if (Stand(infantry) is { } held) return held;
+            if (Stand(all) is { } everyone) return everyone;
+            return infantry.ToDictionary(c => c.Id, _ => Strongest(), StringComparer.Ordinal); // cannot be stopped: the infantry holds the strongest Province, the Cavalry still replies
         }
-        var fallback = offered.OrderByDescending(p => p.Strength - AttackersAt(x, p.Index)).ThenBy(p => p.Index).First().Index; // cannot be stopped: hold the strongest Province
-        return units.ToDictionary(c => c.Id, _ => fallback, StringComparer.Ordinal);
+        return Stand(offeredUnits ?? all) ?? (offeredUnits ?? all).ToDictionary(c => c.Id, _ => Strongest(), StringComparer.Ordinal); // cannot be stopped: hold the strongest Province
+        int Strongest() => offered.OrderByDescending(p => p.Strength - AttackersAt(x, p.Index)).ThenBy(p => p.Index).First().Index;
+        Dictionary<string, int>? Stand(CardView[] units)
+        {
+            if (units.Length == 0) return null;
+            var forces = units.Select(u => ArmyForce(x.Self.Home.Where(h => h.Id == u.Id || h.AttachedTo == u.Id))).ToArray();
+            if (units.Length <= 8)
+            {
+                var choice = new int[units.Length]; int[]? best = null; var bestDestroyed = remaining.Length; var bestSlack = int.MinValue;
+                for (var total = (int)Math.Pow(offered.Length, units.Length); total-- > 0;)
+                {
+                    var c = total; var defenders = new int[remaining.Length];
+                    for (var i = 0; i < units.Length; i++) { choice[i] = c % offered.Length; c /= offered.Length; defenders[Array.FindIndex(remaining, p => p.Index == offered[choice[i]].Index)] += forces[i]; }
+                    if (reach.OverBudget) break; // issue #1211: keep the best assignment found so far rather than stall the decision
+                    if ((total & 1023) == 0) CheckDeadline(x.Memory);
+                    var destroyed = reach.MaxDestroyed(remaining.Select((p, k) => Need(p, defenders[k])).ToArray());
+                    if (destroyed >= remaining.Length) continue;
+                    var slack = remaining.Select((p, k) => p.Strength + defenders[k]).Sum();
+                    if (destroyed < bestDestroyed || destroyed == bestDestroyed && slack > bestSlack) { best = (int[])choice.Clone(); bestDestroyed = destroyed; bestSlack = slack; }
+                }
+                if (best is not null) return units.Select((u, i) => (u.Id, Province: offered[best[i]].Index)).ToDictionary(t => t.Id, t => t.Province, StringComparer.Ordinal);
+            }
+            return null;
+        }
     }
 
     private static bool HasBattleAction(CardView card) => !card.Bowed && !card.ActionLocked && BattlePolicy.Printed(card).Any(p => p.Ability.Timing is "Battle" or "BattleOrOpen");
@@ -178,8 +216,14 @@ public static partial class TrainingOpponent
 
     /// <summary>In the Infantry Maneuvers Segment the bot assigns only units that are not Cavalry; the Cavalry is assigned in the Cavalry Maneuvers Segment, when the defense is visible.</summary>
     private static Dictionary<string, int> HoldCavalry(Ctx x, Dictionary<string, int> assignments) =>
-        !x.Memory.UseCavalryAttack || x.View.Phase != Phase.InfantryDeclaration ? assignments
-            : assignments.Where(p => x.Self.Home.FirstOrDefault(c => c.Id == p.Key) is not { } unit || !IsCavalryUnit(x.Self, unit)).ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
+        !x.Memory.UseCavalryAttack || x.View.Phase != Phase.InfantryDeclaration || Rule(x, "cavhold") && CavalryBarred(x) ? assignments : WithoutCavalry(x.Self, assignments);
+
+    /// <summary>The assignment without the player's Cavalry units.</summary>
+    internal static Dictionary<string, int> WithoutCavalry(PlayerView self, Dictionary<string, int> assignments) =>
+        assignments.Where(p => self.Home.FirstOrDefault(c => c.Id == p.Key) is not { } unit || !IsCavalryUnit(self, unit)).ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
+
+    /// <summary>cavhold (issue #1360): a plan's Infantry declaration, its Cavalry held for the Cavalry segment; unchanged without the rule.</summary>
+    private static Dictionary<string, int> InfantryPart(Ctx x, Dictionary<string, int> assignments) => HoldsCavalry(x) ? HoldCavalry(x, assignments) : assignments;
 
     /// <summary>The attack as the scores read it: the whole army, not only this segment's part. In the Infantry segment, the plan the infantry assignment is the part of; in the Cavalry segment, the infantry already sent plus these Cavalry.</summary>
     private static Dictionary<string, int> WholeAttack(Ctx x, ActionOption action, Dictionary<string, int>? assignments)
@@ -216,10 +260,11 @@ public static partial class TrainingOpponent
         var defenders = DefendersForce(x, units.Select(u => u.Id));
         var contested = x.Self.Provinces.Where(p => !p.Destroyed && offered.Contains(p.Index) && AttackersAt(x, p.Index) > 0).ToArray();
         if (contested.Length == 0 || defenders == 0) return null;
-        var wins = contested.Where(p => defenders > AttackersAt(x, p.Index)).ToArray();
+        // cavres (issue #1360): against the attackers plus the Cavalry swing (ThreatAt), with the defenders already there in the Cavalry defence (DefendingAt)
+        var wins = contested.Where(p => defenders + DefendingAt(x, p.Index) > ThreatAt(x, p.Index)).ToArray();
         // Winning kills the biggest army available, and a Province that would otherwise fall counts for more than one that would stand.
-        if (wins.Length > 0) return wins.OrderByDescending(p => AttackersAt(x, p.Index) > p.Strength ? 1 : 0).ThenByDescending(p => AttackersAt(x, p.Index)).ThenBy(p => p.Index).First().Index;
-        var saves = contested.Where(p => AttackersAt(x, p.Index) > p.Strength && AttackersAt(x, p.Index) <= p.Strength + defenders).ToArray();
+        if (wins.Length > 0) return wins.OrderByDescending(p => ThreatAt(x, p.Index) > p.Strength ? 1 : 0).ThenByDescending(p => AttackersAt(x, p.Index)).ThenBy(p => p.Index).First().Index;
+        var saves = contested.Where(p => ThreatAt(x, p.Index) > p.Strength + DefendingAt(x, p.Index) && ThreatAt(x, p.Index) <= p.Strength + DefendingAt(x, p.Index) + defenders).ToArray();
         return saves.Length > 0 ? saves.OrderByDescending(p => p.Strength).ThenBy(p => p.Index).First().Index : null;
     }
 
@@ -246,7 +291,7 @@ public static partial class TrainingOpponent
                 for (var i = 0; i < units.Length; i++) if (choice[i] == p + 1) { defenders += forces[i]; count++; }
                 if (count == 0) continue;
                 used++;
-                var attackers = AttackersAt(x, contested[p].Index); var strength = contested[p].Strength;
+                var attackers = ThreatAt(x, contested[p].Index); var strength = contested[p].Strength + DefendingAt(x, contested[p].Index); defenders += DefendingAt(x, contested[p].Index); // cavres (issue #1360)
                 if (defenders > attackers) value += attackers > strength ? 3 : 1;
                 else if (attackers > strength && attackers <= strength + defenders) value += 2 - .25 * count;
                 else value -= .5 * count;
@@ -267,9 +312,10 @@ public static partial class TrainingOpponent
         foreach (var group in command.Assignments!.GroupBy(p => p.Value))
         {
             var target = x.Self.Provinces.FirstOrDefault(p => p.Index == group.Key); if (target is null) continue;
-            var attackers = AttackersAt(x, group.Key); var defenders = DefendersForce(x, group.Select(p => p.Key));
-            if (attackers > 0 && defenders > attackers) best = 95;
-            else if (attackers > target.Strength && attackers <= target.Strength + defenders) best = Math.Max(best, 70);
+            if (AttackersAt(x, group.Key) == 0) continue;
+            var attackers = ThreatAt(x, group.Key); var defenders = DefendersForce(x, group.Select(p => p.Key)) + DefendingAt(x, group.Key); var strength = target.Strength; // cavres (issue #1360)
+            if (defenders > attackers) best = 95;
+            else if (attackers > strength + DefendingAt(x, group.Key) && attackers <= strength + defenders) best = Math.Max(best, 70);
         }
         return best;
     }
@@ -283,11 +329,11 @@ public static partial class TrainingOpponent
         var province = command.Assignments.Values.First();
         var target = x.Self.Provinces.FirstOrDefault(p => p.Index == province);
         if (target is null) return null;
-        var attackers = AttackersAt(x, province);
-        var defenders = DefendersForce(x, command.Assignments.Keys);
-        if (attackers == 0) return 0; // nobody is there: sending the defense is pointless
+        if (AttackersAt(x, province) == 0) return 0; // nobody is there: sending the defense is pointless
+        var attackers = ThreatAt(x, province); // cavres (issue #1360): with the Cavalry swing, and the defenders already there in the Cavalry defence
+        var defenders = DefendersForce(x, command.Assignments.Keys) + DefendingAt(x, province);
         if (defenders > attackers) return 95; // wins: the attackers are destroyed
-        if (attackers > target.Strength && attackers <= target.Strength + defenders) return 70; // loses the battle but the Province stands
+        if (attackers > target.Strength + DefendingAt(x, province) && attackers <= target.Strength + defenders) return 70; // loses the battle but the Province stands
         return 0; // would lose the defenders without saving the Province, or the Province stands anyway: keep them home
     }
 }
