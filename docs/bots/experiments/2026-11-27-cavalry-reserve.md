@@ -63,3 +63,17 @@
 - Provinces taken did not rise. Unicorn decks destroyed 282 non-final Provinces against Hard's 285. Four-Province games fell from 53 to 48.
 - **Outcome: not positive.** None of `cavhold`, `cavres`, `lkCav`, `cavplan`, `cavpick` or `cavkeep` is promoted. They stay opt-in.
 - Across four arena runs, holding Cavalry for its segment has not taken more Provinces than Hard's practice of sending it with the plan.
+
+## Other opponents (attack rules + `cavkeep`)
+
+T2 rarely defends against Unicorn: 87% of Unicorn's attacks went unopposed. The rules were run against two more opponents to see whether holding the Cavalry pays against one that defends.
+
+| opponent | seeds | decided games | gained | lost | net | Unicorn attacks unopposed (Hard) |
+|---|---|---|---|---|---|---|
+| `champion` | 12110–12111 | ~1,190 | 15 | 20 | −5 | 92% (431 of 470) |
+| `hard` (Conan against Conan) | 12108–12109 | ~960 | 19 | 23 | −4 | 87% (317 of 365) |
+
+- Against Conan about a fifth of the games reached the 10-minute game cutoff undecided, because both seats search.
+- Unicorn decks against Conan: Allan Unicorn gained 3 and lost 4, Unicorn Maidens gained 4 and lost 1. Unicorn won 72 games in each arm.
+- Non-final Provinces destroyed against Conan fell from 232 to 220.
+- **Outcome:** no opponent in the arena defends often enough against Unicorn for holding the Cavalry to pay, and no run was positive. Nothing is promoted.
